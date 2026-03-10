@@ -1,0 +1,31 @@
+name: ✨ 기능 제안
+description: 새로운 기능을 제안할 때 사용하는 템플릿입니다.
+title: "[FEAT] "
+labels: ["feature"]
+assignees: []
+
+body:
+- type: textarea
+  id: feature-description
+  attributes:
+    label: 📝 기능 설명
+    description: 어떤 기능을 추가하고 싶은지 설명해주세요.
+    placeholder: 새로운 기능에 대해 설명해주세요...
+  validations:
+    required: true
+
+- type: textarea
+  id: to-do
+  attributes:
+    label: ✅ 할 일
+    description: 할 일을 체크박스 형태로 작성해주세요.
+    placeholder: "- [ ] 할 일 1"
+  validations:
+      required: true
+
+- type: textarea
+  id: etc
+  attributes:
+    label: 👀 기타 사항 (선택사항)
+    description: 특이사항이나 참고할 사항이 있다면 입력해주세요.
+    placeholder: 기타 사항을 입력해주세요.
