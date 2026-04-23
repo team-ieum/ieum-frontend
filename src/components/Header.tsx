@@ -16,6 +16,14 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 				</button>
 				<strong className='text-neutral-800'>IEUM</strong>
 			</div>
+			<div className='flex items-center gap-3'>
+				<button
+					type='button'
+					className='rounded-brand-sm bg-neutral-100 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-200'
+				>
+					로그인
+				</button>
+			</div>
 		</header>
 	)
 }
