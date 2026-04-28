@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router'
-import { Header } from '../Header'
+import { Header } from '../common/Header'
 
 export const Layout = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
