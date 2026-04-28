@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import TextInput from '@/components/auth/textInput'
+import LoginForm from '@/components/auth/LoginForm'
+import SignupForm from '@/components/auth/SignupForm'
+import AuthWavePanel from '@/components/auth/AuthWavePanel'
 import { z } from 'zod'
 
 type AuthMode = 'login' | 'signup'
@@ -76,66 +78,39 @@ const AuthPage = () => {
 	return (
 		<section className='flex min-h-screen items-center justify-center bg-neutral-100 px-4 py-8'>
 			<div
-				className={`w-full max-w-5xl overflow-hidden rounded-brand-lg border border-neutral-200 bg-neutral-white shadow-lg lg:flex ${
+				className={`w-full max-w-3xl overflow-hidden rounded-brand-lg border border-neutral-200 bg-neutral-white shadow-lg lg:flex ${
 					isSignup ? 'lg:flex-row-reverse' : 'lg:flex-row'
 				}`}
 			>
-				<div className='relative hidden min-h-[520px] flex-1 overflow-hidden bg-[#d8ecf5] lg:block'>
-					<p className='text-4xl font-black tracking-wide'>IEUM</p>
-				</div>
+				<AuthWavePanel />
 
-				<div className='flex flex-1 items-center justify-center px-8 py-12 lg:px-12'>
-					<form className='w-full max-w-sm space-y-4' onSubmit={handleSubmit}>
-						<div className='space-y-2 text-center'>
-							<p className='text-2xl font-bold text-neutral-800'>{isSignup ? '회원가입' : '로그인'}</p>
-						</div>
-
-						<div className='space-y-3 pt-4'>
-							<TextInput
-								text='email'
-								value={formValues.email}
-								onChange={value => handleInputChange('email', value)}
-								error={errors.email}
-							/>
-							<TextInput
-								text='password'
-								value={formValues.password}
-								onChange={value => handleInputChange('password', value)}
-								error={errors.password}
-							/>
-							{isSignup && (
-								<TextInput
-									text='passwordConfirm'
-									value={formValues.passwordConfirm}
-									onChange={value => handleInputChange('passwordConfirm', value)}
-									error={errors.passwordConfirm}
-								/>
-							)}
-						</div>
-
-						<button
-							type='submit'
-							className='mt-2 h-11 w-full rounded-brand-sm bg-main-blue font-semibold text-neutral-white transition hover:opacity-90'
-						>
-							{isSignup ? '회원가입' : '로그인'}
-						</button>
-
-						<div className='flex items-center justify-center gap-2 pt-2 text-sm'>
-							<span className='text-neutral-500'>
-								{isSignup ? '이미 계정이 있으신가요?' : '계정이 없으신가요?'}
-							</span>
-							<button
-								type='button'
-								onClick={() => {
-									setMode(isSignup ? 'login' : 'signup')
-									setErrors({})
-								}}
-								className='font-semibold text-main-blue underline underline-offset-4'
-							>
-								{isSignup ? '로그인' : '회원가입'}
-							</button>
-						</div>
-					</form>
+				<div className='flex w-full items-center justify-center px-8 py-12 lg:basis-1/2 lg:px-12'>
+					{isSignup ? (
+						<SignupForm
+							email={formValues.email}
+							password={formValues.password}
+							passwordConfirm={formValues.passwordConfirm}
+							errors={errors}
+							onChange={handleInputChange}
+							onSubmit={handleSubmit}
+							onToggleMode={() => {
+								setMode('login')
+								setErrors({})
+							}}
+						/>
+					) : (
+						<LoginForm
+							email={formValues.email}
+							password={formValues.password}
+							errors={errors}
+							onChange={handleInputChange}
+							onSubmit={handleSubmit}
+							onToggleMode={() => {
+								setMode('signup')
+								setErrors({})
+							}}
+						/>
+					)}
 				</div>
 			</div>
 		</section>
