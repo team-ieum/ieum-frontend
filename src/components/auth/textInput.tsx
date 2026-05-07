@@ -20,9 +20,9 @@ const TextInput = ({ text, value, onChange, error }: TextInputProps) => {
 
 	return (
 		<div className='space-y-1.5'>
-			<label className='text-xs font-medium text-neutral-600'>{label}</label>
+			<label className='typo-Caption1_Medium text-neutral-600'>{label}</label>
 			<div className='relative'>
-				<span className='pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-neutral-500'>
+				<span className='pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 typo-Body2_Regular text-neutral-500'>
 					{icon}
 				</span>
 				<input
@@ -30,12 +30,12 @@ const TextInput = ({ text, value, onChange, error }: TextInputProps) => {
 					placeholder={label}
 					value={value}
 					onChange={event => onChange(event.target.value)}
-					className={`h-11 w-full rounded-brand-sm border pr-3 pl-9 text-sm outline-none transition ${
+					className={`h-11 w-full rounded-brand-sm border pr-3 pl-9 typo-Body2_Regular outline-none transition ${
 						error ? 'border-danger-600 focus:border-danger-600' : 'border-neutral-200 focus:border-main-blue'
 					}`}
 				/>
 			</div>
-			{error && <p className='text-xs text-danger-700'>{error}</p>}
+			{error && <p className='typo-Caption1_Regular text-danger-700'>{error}</p>}
 		</div>
 	)
 }

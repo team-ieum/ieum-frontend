@@ -17,7 +17,7 @@ const LoginForm = ({ email, password, errors, onChange, onSubmit, onToggleMode }
 	return (
 		<form className='w-full max-w-sm space-y-4' onSubmit={onSubmit}>
 			<div className='space-y-2 text-center'>
-				<p className='text-2xl font-bold text-neutral-800'>로그인</p>
+				<p className='typo-Title3_Bold text-neutral-800'>로그인</p>
 			</div>
 
 			<div className='space-y-3 pt-4'>
