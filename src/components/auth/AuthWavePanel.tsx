@@ -12,7 +12,7 @@ const AuthWavePanel = () => {
 		<div className='relative hidden min-h-[520px] w-full overflow-hidden bg-[#d8ecf5] lg:block lg:basis-1/2'>
 			<div className='absolute inset-0 flex items-center justify-center flex-col pb-8'>
 				<img src={symbolNoLine} alt='IEUM 로고' className='w-16 object-contain' />
-				<p className='text-4xl font-black tracking-wide'>IEUM</p>
+				<p className='typo-Logo_Regular tracking-wide'>IEUM</p>
 			</div>
 
 			<div className='absolute inset-x-0 bottom-0 h-52'>
