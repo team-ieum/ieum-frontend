@@ -17,12 +17,10 @@ type SignupFormProps = {
 
 const SignupForm = ({ email, password, passwordConfirm, errors, onChange, onSubmit, onToggleMode }: SignupFormProps) => {
 	return (
-		<form className='w-full max-w-sm space-y-4' onSubmit={onSubmit}>
-			<div className='space-y-2 text-center'>
-				<p className='text-2xl font-bold text-neutral-800'>회원가입</p>
-			</div>
+		<form className='flex w-full flex-col justify-center' onSubmit={onSubmit}>
+			<h1 className='typo-Title2_Bold text-center text-main-deep-blue'>회원가입</h1>
 
-			<div className='space-y-3 pt-4'>
+			<div className='space-y-4 mt-16'>
 				<TextInput text='email' value={email} onChange={value => onChange('email', value)} error={errors.email} />
 				<TextInput
 					text='password'
@@ -38,16 +36,18 @@ const SignupForm = ({ email, password, passwordConfirm, errors, onChange, onSubm
 				/>
 			</div>
 
-			<AuthSubmitButton label='회원가입' />
+			<div className='mt-13'>
+				<AuthSubmitButton label='회원가입' />
+			</div>
 
-			<div className='flex items-center justify-center gap-2 pt-2 text-sm'>
-				<span className='text-neutral-500'>이미 계정이 있으신가요?</span>
+			<div className='flex items-center justify-center gap-4 pt-6'>
+				<span className='typo-Caption1_Medium text-neutral-500'>이미 계정이 있으신가요?</span>
 				<button
 					type='button'
 					onClick={onToggleMode}
-					className='font-semibold text-main-blue underline underline-offset-4'
+					className='typo-Caption1_Medium text-main-deep-blue hover:typo-Caption1_Bold transition-all'
 				>
-					로그인
+					로그인하기
 				</button>
 			</div>
 		</form>
