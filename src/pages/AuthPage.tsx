@@ -2,6 +2,7 @@ import { useState } from 'react'
 import LoginForm from '@/components/auth/LoginForm'
 import SignupForm from '@/components/auth/SignupForm'
 import AuthWavePanel from '@/components/auth/AuthWavePanel'
+import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
 import { z } from 'zod'
 
 type AuthMode = 'login' | 'signup'
@@ -28,6 +29,7 @@ const signupSchema = loginSchema
 const AuthPage = () => {
 	const [mode, setMode] = useState<AuthMode>('login')
 	const isSignup = mode === 'signup'
+	const [swapDirection, setSwapDirection] = useState<1 | -1>(1)
 	const [formValues, setFormValues] = useState<FormValues>({
 		email: '',
 		password: '',
@@ -76,43 +78,71 @@ const AuthPage = () => {
 	}
 
 	return (
-		<section className='flex min-h-screen items-center justify-center bg-neutral-100 px-4 py-8'>
-			<div
-				className={`w-full max-w-3xl overflow-hidden rounded-brand-lg border border-neutral-200 bg-neutral-white shadow-lg lg:flex ${
-					isSignup ? 'lg:flex-row-reverse' : 'lg:flex-row'
-				}`}
-			>
-				<AuthWavePanel />
+		<section className='flex min-h-screen items-center justify-center bg-[#f0f9ff] px-4 py-8'>
+			<LayoutGroup>
+				<motion.div
+					layout
+					transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+					className='w-full max-w-5xl min-h-[700px] overflow-hidden rounded-brand-lg border border-neutral-200 shadow-lg lg:flex lg:flex-row'
+				>
+					<motion.div layout='position' className={`w-full lg:basis-1/2 ${isSignup ? 'lg:order-2' : 'lg:order-1'}`}>
+						<AuthWavePanel />
+					</motion.div>
 
-				<div className='flex w-full items-center justify-center px-8 py-12 lg:basis-1/2 lg:px-12'>
-					{isSignup ? (
-						<SignupForm
-							email={formValues.email}
-							password={formValues.password}
-							passwordConfirm={formValues.passwordConfirm}
-							errors={errors}
-							onChange={handleInputChange}
-							onSubmit={handleSubmit}
-							onToggleMode={() => {
-								setMode('login')
-								setErrors({})
-							}}
-						/>
-					) : (
-						<LoginForm
-							email={formValues.email}
-							password={formValues.password}
-							errors={errors}
-							onChange={handleInputChange}
-							onSubmit={handleSubmit}
-							onToggleMode={() => {
-								setMode('signup')
-								setErrors({})
-							}}
-						/>
-					)}
-				</div>
-			</div>
+					<motion.div
+						layout='position'
+						className={`flex w-full items-center justify-center px-8 py-12 lg:basis-1/2 lg:px-12 ${
+							isSignup ? 'lg:order-1' : 'lg:order-2'
+						}`}
+					>
+						<AnimatePresence mode='wait' initial={false} custom={swapDirection}>
+							<motion.div
+								key={mode}
+								custom={swapDirection}
+								variants={{
+									initial: (direction: 1 | -1) => ({ x: direction * 28, opacity: 0 }),
+									animate: { x: 0, opacity: 1 },
+									exit: (direction: 1 | -1) => ({ x: direction * -28, opacity: 0 }),
+								}}
+								initial='initial'
+								animate='animate'
+								exit='exit'
+								transition={{ duration: 0.22, ease: 'easeOut' }}
+								className='w-full'
+							>
+								{isSignup ? (
+									<SignupForm
+										email={formValues.email}
+										password={formValues.password}
+										passwordConfirm={formValues.passwordConfirm}
+										errors={errors}
+										onChange={handleInputChange}
+										onSubmit={handleSubmit}
+										onToggleMode={() => {
+											setSwapDirection(-1)
+											setMode('login')
+											setErrors({})
+										}}
+									/>
+								) : (
+									<LoginForm
+										email={formValues.email}
+										password={formValues.password}
+										errors={errors}
+										onChange={handleInputChange}
+										onSubmit={handleSubmit}
+										onToggleMode={() => {
+											setSwapDirection(1)
+											setMode('signup')
+											setErrors({})
+										}}
+									/>
+								)}
+							</motion.div>
+						</AnimatePresence>
+					</motion.div>
+				</motion.div>
+			</LayoutGroup>
 		</section>
 	)
 }
