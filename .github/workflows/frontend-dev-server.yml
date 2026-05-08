@@ -1,0 +1,124 @@
+name: Frontend Dev Server Deploy
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-dev-server
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  IMAGE_NAME: ieum-frontend-dev
+  CONTAINER_NAME: hirescope-frontend
+  DOCKER_NETWORK: deploy_hirescope_net
+  FRONTEND_IP: 10.10.10.10
+  VITE_API_URL: ${{ vars.VITE_API_URL || '/api/v1' }}
+
+jobs:
+  deploy:
+    name: Deploy Dev to Self Hosted Server
+    runs-on:
+      group: ieum-dev-server
+      labels: [self-hosted, linux, x64, ieum-frontend]
+
+    steps:
+      # 저장소 코드 가져오기
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node.js 설치
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      # 의존성 설치
+      - name: Install dependencies
+        run: npm ci
+        env:
+          HUSKY: 0
+
+      # 코드 검사
+      - name: Lint
+        run: npm run lint
+
+      # 테스트 실행
+      - name: Test
+        run: npm test -- --run --passWithNoTests
+
+      # dev 서버용 빌드
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ env.VITE_API_URL }}
+
+      # SPA용 NGINX 설정 생성
+      - name: Write nginx config
+        run: |
+          mkdir -p .deploy
+
+          cat > .deploy/default.conf <<'EOF'
+          server {
+            listen 80;
+            server_name _;
+
+            root /usr/share/nginx/html;
+            index index.html;
+
+            location / {
+              try_files $uri $uri/ /index.html;
+            }
+
+            location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+              expires 30d;
+              add_header Cache-Control "public, immutable";
+              try_files $uri =404;
+            }
+          }
+          EOF
+
+      # Dockerfile 생성
+      - name: Write Dockerfile
+        run: |
+          cat > Dockerfile.ci <<'EOF'
+          FROM nginx:1.29-alpine
+          COPY dist /usr/share/nginx/html
+          COPY .deploy/default.conf /etc/nginx/conf.d/default.conf
+          EXPOSE 80
+          EOF
+
+      # Docker 이미지 빌드
+      - name: Build Docker image
+        run: |
+          docker build \
+            -f Dockerfile.ci \
+            -t $IMAGE_NAME:${{ github.sha }} \
+            -t $IMAGE_NAME:latest .
+
+      # 기존 dev 프론트 컨테이너 교체
+      - name: Restart frontend container
+        run: |
+          docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 \
+            || docker network create --subnet 10.10.10.0/24 "$DOCKER_NETWORK"
+
+          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            --network "$DOCKER_NETWORK" \
+            --ip "$FRONTEND_IP" \
+            "$IMAGE_NAME:latest"
+
+      # 배포 확인
+      - name: Health check
+        run: |
+          sleep 3
+          curl -fsS http://$FRONTEND_IP/ >/dev/null
