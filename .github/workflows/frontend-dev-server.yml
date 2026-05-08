@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: frontend-dev-server
+  group: frontend_dev_server
   cancel-in-progress: true
 
 env:
@@ -24,7 +24,7 @@ jobs:
   deploy:
     name: Deploy Dev to Self Hosted Server
     runs-on:
-      group: ieum-dev-server
+      group: ieum_dev_server
       labels: [self-hosted, linux, x64, ieum-frontend]
 
     steps:
