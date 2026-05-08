@@ -55,7 +55,7 @@ jobs:
 
       # dev 서버용 빌드
       - name: Build frontend
-        run: npm run build
+        run: npx vite build
         env:
           VITE_API_URL: ${{ env.VITE_API_URL }}
 
