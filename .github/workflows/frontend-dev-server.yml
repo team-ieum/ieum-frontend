@@ -15,8 +15,9 @@ concurrency:
 env:
   NODE_VERSION: '24'
   IMAGE_NAME: ieum-frontend-dev
-  CONTAINER_NAME: hirescope-frontend
-  DOCKER_NETWORK: deploy_hirescope_net
+  CONTAINER_NAME: ieum-frontend
+  LEGACY_CONTAINER_NAME: hirescope-frontend
+  DOCKER_NETWORK: ieum_net_green
   FRONTEND_IP: 10.10.10.10
   VITE_API_URL: ${{ vars.VITE_API_URL || '/api/v1' }}
 
@@ -37,7 +38,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
 
       # 의존성 설치
       - name: Install dependencies
@@ -109,6 +109,7 @@ jobs:
             || docker network create --subnet 10.10.10.0/24 "$DOCKER_NETWORK"
 
           docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+          docker rm -f "$LEGACY_CONTAINER_NAME" >/dev/null 2>&1 || true
 
           docker run -d \
             --name "$CONTAINER_NAME" \
