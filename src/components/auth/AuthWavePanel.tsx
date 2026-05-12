@@ -12,7 +12,7 @@ const AuthWavePanel = () => {
 		<div className='relative hidden h-full min-h-[700px] w-full overflow-hidden bg-[#d8ecf5] lg:block lg:basis-1/2'>
 			<div className='absolute inset-0 flex items-center justify-center flex-col pb-8 gap-3'>
 				<img src={symbolNoLine} alt='IEUM 로고' className='w-16 object-contain' />
-				<p className='font-Logo_Regular text-5xl text-main-deep-blue'>IEUM</p>
+				<p className='font-logo_regular text-5xl text-main-deep-blue'>IEUM</p>
 			</div>
 
 			{/* back wave (slow drift) */}

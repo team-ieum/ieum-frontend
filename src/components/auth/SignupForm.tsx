@@ -9,7 +9,7 @@ const SignupForm = () => {
 
 	return (
 		<form className='flex w-full flex-col justify-center' onSubmit={handleSubmit}>
-			<h1 className='typo-Title2_Bold text-center text-main-deep-blue'>회원가입</h1>
+			<h1 className='typo-title2_bold text-center text-main-deep-blue'>회원가입</h1>
 
 			<div className='space-y-4 mt-16'>
 				<TextInput
@@ -37,11 +37,11 @@ const SignupForm = () => {
 			</div>
 
 			<div className='flex items-center justify-center gap-4 pt-6'>
-				<span className='typo-Caption1_Medium text-neutral-500'>이미 계정이 있으신가요?</span>
+				<span className='typo-caption1_medium text-neutral-500'>이미 계정이 있으신가요?</span>
 				<button
 					type='button'
 					onClick={toLogin}
-					className='typo-Caption1_Medium text-main-deep-blue hover:typo-Caption1_Bold transition-all'
+					className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
 				>
 					로그인하기
 				</button>
