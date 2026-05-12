@@ -1,6 +1,6 @@
-import TextInput from '@/components/auth/textInput'
-import AuthSubmitButton from '@/components/auth/AuthSubmitButton'
-import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import TextInput from './textInput'
+import AuthSubmitButton from './AuthSubmitButton'
+import GoogleSignInButton from './GoogleSignInButton'
 
 type LoginFormProps = {
 	email: string

@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import LoginForm from '@/components/auth/LoginForm'
-import SignupForm from '@/components/auth/SignupForm'
-import AuthWavePanel from '@/components/auth/AuthWavePanel'
+import LoginForm from '../components/auth/LoginForm'
+import SignupForm from '../components/auth/SignupForm'
+import AuthWavePanel from '../components/auth/AuthWavePanel'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { loginSchema, signupSchema } from '@/schemas/auth'
+import { loginSchema, signupSchema } from '../schemas/auth'
 
 type AuthMode = 'login' | 'signup'
 type FormValues = {

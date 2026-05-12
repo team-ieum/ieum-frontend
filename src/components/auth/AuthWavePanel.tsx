@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
-import symbolNoLine from '@/assets/symbolNoLine.png'
+import symbolNoLine from '../../assets/symbolNoLine.png'
 
 // SVG path numbers: `M x y` move to (x,y), `C x1 y1, x2 y2, x y` cubic Bézier (control1, control2, end), `L x y` line to, `Z` close path.
 const wave2xA = 'M0 95 C 160 15, 360 185, 520 95 C 680 15, 880 185, 1040 95 L1040 200 L0 200 Z'

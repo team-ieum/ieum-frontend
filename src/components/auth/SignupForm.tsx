@@ -1,5 +1,5 @@
-import TextInput from '@/components/auth/textInput'
-import AuthSubmitButton from '@/components/auth/AuthSubmitButton'
+import TextInput from './textInput'
+import AuthSubmitButton from './AuthSubmitButton'
 
 type SignupFormProps = {
 	email: string
