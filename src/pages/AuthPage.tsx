@@ -1,67 +1,18 @@
-import { useState } from 'react'
 import LoginForm from '../components/auth/LoginForm'
 import SignupForm from '../components/auth/SignupForm'
 import AuthWavePanel from '../components/auth/AuthWavePanel'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { loginSchema, signupSchema } from '../schemas/auth'
+import { useAuthPage } from '../hooks/auth/useAuthPage'
+import type { SwapDirection } from '../types/auth'
 
-type AuthMode = 'login' | 'signup'
-type FormValues = {
-	email: string
-	password: string
-	passwordConfirm: string
+const swapVariants = {
+	initial: (direction: SwapDirection) => ({ x: direction * 28, opacity: 0 }),
+	animate: { x: 0, opacity: 1 },
+	exit: (direction: SwapDirection) => ({ x: direction * -28, opacity: 0 }),
 }
 
 const AuthPage = () => {
-	const [mode, setMode] = useState<AuthMode>('login')
-	const isSignup = mode === 'signup'
-	const [swapDirection, setSwapDirection] = useState<1 | -1>(1)
-	const [formValues, setFormValues] = useState<FormValues>({
-		email: '',
-		password: '',
-		passwordConfirm: '',
-	})
-	const [errors, setErrors] = useState<Partial<Record<keyof FormValues, string>>>({})
-
-	const handleInputChange = (field: keyof FormValues, value: string) => {
-		setFormValues(prev => ({ ...prev, [field]: value }))
-		setErrors(prev => ({ ...prev, [field]: undefined }))
-	}
-
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault()
-
-		if (isSignup) {
-			const parseResult = signupSchema.safeParse(formValues)
-
-			if (!parseResult.success) {
-				const fieldErrors = parseResult.error.flatten().fieldErrors
-				setErrors({
-					email: fieldErrors.email?.[0],
-					password: fieldErrors.password?.[0],
-					passwordConfirm: fieldErrors.passwordConfirm?.[0],
-				})
-				return
-			}
-		} else {
-			const parseResult = loginSchema.safeParse({
-				email: formValues.email,
-				password: formValues.password,
-			})
-
-			if (!parseResult.success) {
-				const fieldErrors = parseResult.error.flatten().fieldErrors
-				setErrors({
-					email: fieldErrors.email?.[0],
-					password: fieldErrors.password?.[0],
-					passwordConfirm: undefined,
-				})
-				return
-			}
-		}
-
-		setErrors({})
-	}
+	const { mode, swapDirection, isSignup } = useAuthPage()
 
 	return (
 		<section className='flex min-h-screen items-center justify-center bg-neutral-white px-4 py-8'>
@@ -85,45 +36,14 @@ const AuthPage = () => {
 							<motion.div
 								key={mode}
 								custom={swapDirection}
-								variants={{
-									initial: (direction: 1 | -1) => ({ x: direction * 28, opacity: 0 }),
-									animate: { x: 0, opacity: 1 },
-									exit: (direction: 1 | -1) => ({ x: direction * -28, opacity: 0 }),
-								}}
+								variants={swapVariants}
 								initial='initial'
 								animate='animate'
 								exit='exit'
 								transition={{ duration: 0.22, ease: 'easeOut' }}
 								className='w-full'
 							>
-								{isSignup ? (
-									<SignupForm
-										email={formValues.email}
-										password={formValues.password}
-										passwordConfirm={formValues.passwordConfirm}
-										errors={errors}
-										onChange={handleInputChange}
-										onSubmit={handleSubmit}
-										onToggleMode={() => {
-											setSwapDirection(-1)
-											setMode('login')
-											setErrors({})
-										}}
-									/>
-								) : (
-									<LoginForm
-										email={formValues.email}
-										password={formValues.password}
-										errors={errors}
-										onChange={handleInputChange}
-										onSubmit={handleSubmit}
-										onToggleMode={() => {
-											setSwapDirection(1)
-											setMode('signup')
-											setErrors({})
-										}}
-									/>
-								)}
+								{isSignup ? <SignupForm /> : <LoginForm />}
 							</motion.div>
 						</AnimatePresence>
 					</motion.div>

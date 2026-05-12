@@ -1,32 +1,30 @@
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import GoogleSignInButton from './GoogleSignInButton'
+import { useLoginForm } from '../../hooks/auth/useLoginForm'
+import { useAuthMode } from '../../stores/useAuthMode'
 
-type LoginFormProps = {
-	email: string
-	password: string
-	errors: {
-		email?: string
-		password?: string
-	}
-	onChange: (field: 'email' | 'password', value: string) => void
-	onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
-	onToggleMode: () => void
-}
+const LoginForm = () => {
+	const { values, errors, handleChange, handleSubmit } = useLoginForm()
+	const toSignup = useAuthMode(state => state.toSignup)
 
-const LoginForm = ({ email, password, errors, onChange, onSubmit, onToggleMode }: LoginFormProps) => {
 	return (
-		<form className='w-full flex flex-col justify-center' onSubmit={onSubmit}>
+		<form className='w-full flex flex-col justify-center' onSubmit={handleSubmit}>
 			<div className='text-center'>
 				<p className='typo-Title2_Bold text-main-deep-blue'>로그인</p>
 			</div>
 
 			<div className='space-y-4 pt-16 mb-13'>
-				<TextInput text='email' value={email} onChange={value => onChange('email', value)} error={errors.email} />
+				<TextInput
+					text='email'
+					value={values.email}
+					onChange={value => handleChange('email', value)}
+					error={errors.email}
+				/>
 				<TextInput
 					text='password'
-					value={password}
-					onChange={value => onChange('password', value)}
+					value={values.password}
+					onChange={value => handleChange('password', value)}
 					error={errors.password}
 				/>
 			</div>
@@ -56,7 +54,7 @@ const LoginForm = ({ email, password, errors, onChange, onSubmit, onToggleMode }
 					</button>
 					<button
 						type='button'
-						onClick={onToggleMode}
+						onClick={toSignup}
 						className='typo-Caption1_Medium text-main-deep-blue hover:typo-Caption1_Bold transition-all'
 					>
 						회원가입하기

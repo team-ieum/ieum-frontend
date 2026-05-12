@@ -1,13 +1,5 @@
 import { AtSignIcon, LockKeyhole } from 'lucide-react'
-
-export type InputText = 'email' | 'password' | 'passwordConfirm'
-
-type TextInputProps = {
-	text: InputText
-	value: string
-	onChange: (value: string) => void
-	error?: string
-}
+import type { InputText, TextInputProps } from '../../types/textInput'
 
 const inputMeta: Record<InputText, { label: string; type: string; placeholder: string; icon: React.ReactNode }> = {
 	email: { label: '이메일', type: 'email', placeholder: 'email@email.com', icon: <AtSignIcon /> },
