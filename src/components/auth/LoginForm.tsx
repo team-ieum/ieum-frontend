@@ -11,7 +11,7 @@ const LoginForm = () => {
 	return (
 		<form className='w-full flex flex-col justify-center' onSubmit={handleSubmit}>
 			<div className='text-center'>
-				<p className='typo-Title2_Bold text-main-deep-blue'>로그인</p>
+				<p className='typo-title2_bold text-main-deep-blue'>로그인</p>
 			</div>
 
 			<div className='space-y-4 pt-16 mb-13'>
@@ -37,7 +37,7 @@ const LoginForm = () => {
 						<span className='w-full border-t border-main-blue' />
 					</div>
 					<div className='relative flex justify-center'>
-						<span className='bg-[#f0f9ff] px-2 typo-Caption1_Bold text-main-deep-blue'>또는</span>
+						<span className='bg-[#f0f9ff] px-2 typo-caption1_bold text-main-deep-blue'>또는</span>
 					</div>
 				</div>
 
@@ -48,14 +48,14 @@ const LoginForm = () => {
 				<div className='flex items-center justify-center gap-10'>
 					<button
 						type='button'
-						className='typo-Caption1_Medium text-main-deep-blue hover:typo-Caption1_Bold transition-all'
+						className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
 					>
 						비밀번호 찾기
 					</button>
 					<button
 						type='button'
 						onClick={toSignup}
-						className='typo-Caption1_Medium text-main-deep-blue hover:typo-Caption1_Bold transition-all'
+						className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
 					>
 						회원가입하기
 					</button>
