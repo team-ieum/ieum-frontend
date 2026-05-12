@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { loginSchema } from '../../schemas/auth'
 
 type LoginFormValues = {
@@ -14,6 +15,7 @@ const INITIAL_VALUES: LoginFormValues = {
 }
 
 export const useLoginForm = () => {
+	const navigate = useNavigate()
 	const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<LoginFormErrors>({})
 
@@ -38,6 +40,7 @@ export const useLoginForm = () => {
 
 		setErrors({})
 		// TODO: 추후 실제 로그인 API 연동
+		navigate('/main')
 	}
 
 	return { values, errors, handleChange, handleSubmit }
