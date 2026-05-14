@@ -2,7 +2,7 @@ import LoginForm from '../components/auth/LoginForm'
 import SignupForm from '../components/auth/SignupForm'
 import AuthWavePanel from '../components/auth/AuthWavePanel'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { useAuthPage } from '../hooks/auth/useAuthPage'
+import { useAuthScreenMode } from '../hooks/auth/useAuthScreenMode'
 import type { SwapDirection } from '../types/auth'
 import { cn } from '../utils/cn'
 
@@ -13,7 +13,7 @@ const swapVariants = {
 }
 
 const AuthPage = () => {
-	const { mode, swapDirection, isSignup } = useAuthPage()
+	const { mode, swapDirection, isSignup } = useAuthScreenMode()
 
 	return (
 		<section className='flex min-h-screen items-center justify-center bg-neutral-white px-4 py-8'>

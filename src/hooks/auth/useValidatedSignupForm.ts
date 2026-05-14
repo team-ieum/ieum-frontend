@@ -15,7 +15,7 @@ const INITIAL_VALUES: SignupFormValues = {
 	passwordConfirm: '',
 }
 
-export const useSignupForm = () => {
+export const useValidatedSignupForm = () => {
 	const [values, setValues] = useState<SignupFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<SignupFormErrors>({})
 
