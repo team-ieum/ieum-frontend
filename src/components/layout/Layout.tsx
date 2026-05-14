@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router'
-import { Header } from '../Header'
+import { Header } from '../common/Header'
+import { cn } from '../../utils/cn'
 
 export const Layout = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -14,7 +15,12 @@ export const Layout = () => {
 
 			<div className='pt-(--layout-header-height)'>
 				<aside
-					className={`fixed top-(--layout-header-height) left-0 z-30 h-[calc(100vh-var(--layout-header-height))] w-(--layout-sidebar-width) border-r border-neutral-200 bg-neutral-white p-4 transition-transform lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+					className={cn(
+						'fixed top-(--layout-header-height) left-0 z-30 h-[calc(100vh-var(--layout-header-height))] w-(--layout-sidebar-width)',
+						'border-r border-neutral-200 bg-neutral-white p-4',
+						'transition-transform lg:translate-x-0',
+						isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+					)}
 					aria-label='사이드바'
 				>
 					<div className='mb-4 flex items-center justify-between lg:hidden'>
