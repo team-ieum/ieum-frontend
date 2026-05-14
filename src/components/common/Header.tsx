@@ -1,8 +1,11 @@
+import { useNavigate } from 'react-router'
+
 type HeaderProps = {
 	onMenuClick: () => void
 }
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
+	const navigate = useNavigate()
 	return (
 		<header className='fixed top-0 left-0 z-40 flex h-(--layout-header-height) w-full items-center justify-between border-b border-neutral-200 bg-neutral-white px-4 lg:px-6'>
 			<div className='flex items-center gap-3'>
@@ -15,6 +18,15 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
 					<span aria-hidden='true'>☰</span>
 				</button>
 				<strong className='text-neutral-800'>IEUM</strong>
+			</div>
+			<div className='flex items-center gap-3'>
+				<button
+					type='button'
+					className='rounded-brand-sm bg-neutral-100 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-200'
+					onClick={() => navigate('/auth')}
+				>
+					로그인
+				</button>
 			</div>
 		</header>
 	)
