@@ -14,7 +14,7 @@ const INITIAL_VALUES: LoginFormValues = {
 	password: '',
 }
 
-export const useLoginForm = () => {
+export const useValidatedLoginForm = () => {
 	const navigate = useNavigate()
 	const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<LoginFormErrors>({})
