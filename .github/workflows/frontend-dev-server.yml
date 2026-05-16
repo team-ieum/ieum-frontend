@@ -88,14 +88,14 @@ jobs:
 
       - name: Sync frontend env file to server
         run: |
-          sudo mkdir -p "$ENV_DIR"
+          mkdir -p "$ENV_DIR"
 
-          sudo tee "$ENV_FILE" > /dev/null <<EOF
+          tee "$ENV_FILE" > /dev/null <<EOF
           VITE_API_URL=${{ secrets.VITE_API_URL }}
           NODE_ENV=production
           EOF
 
-          sudo chmod 600 "$ENV_FILE"
+          chmod 600 "$ENV_FILE"
 
       - name: Build Docker image
         run: |
