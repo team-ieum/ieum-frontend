@@ -2,7 +2,7 @@ name: Frontend Dev Server Deploy
 
 on:
   push:
-    branches: [dev]
+    branches: [IEUM-SRV-10]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,6 @@ env:
   NODE_VERSION: ${{ secrets.NODE_VERSION }}
   IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
   CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
-  LEGACY_CONTAINER_NAME: ${{ secrets.LEGACY_CONTAINER_NAME }}
   DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
   FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
   ENV_DIR: ${{ secrets.FRONTEND_ENV_DIR }}
@@ -49,7 +48,6 @@ jobs:
       - name: Test
         run: npm test -- --run --passWithNoTests
 
-      # Vite는 빌드 시점에 VITE_* 값이 박힘
       - name: Build frontend
         run: npx vite build
         env:
@@ -88,7 +86,6 @@ jobs:
           EXPOSE 80
           EOF
 
-      # 서버 .env 파일 갱신
       - name: Sync frontend env file to server
         run: |
           sudo mkdir -p "$ENV_DIR"
@@ -113,7 +110,6 @@ jobs:
             || docker network create --subnet 10.10.10.0/24 "$DOCKER_NETWORK"
 
           docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-          docker rm -f "$LEGACY_CONTAINER_NAME" >/dev/null 2>&1 || true
 
           docker run -d \
             --name "$CONTAINER_NAME" \
