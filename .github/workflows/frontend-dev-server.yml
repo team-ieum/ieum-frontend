@@ -13,13 +13,14 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '24'
-  IMAGE_NAME: ieum-frontend-dev
-  CONTAINER_NAME: ieum-frontend
-  LEGACY_CONTAINER_NAME: hirescope-frontend
-  DOCKER_NETWORK: ieum_net_green
-  FRONTEND_IP: 10.10.10.10
-  VITE_API_URL: ${{ vars.VITE_API_URL || '/api/v1' }}
+  NODE_VERSION: ${{ secrets.NODE_VERSION }}
+  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
+  LEGACY_CONTAINER_NAME: ${{ secrets.LEGACY_CONTAINER_NAME }}
+  DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
+  FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
+  ENV_DIR: ${{ secrets.FRONTEND_ENV_DIR }}
+  ENV_FILE: ${{ secrets.FRONTEND_ENV_FILE }}
 
 jobs:
   deploy:
@@ -29,37 +30,31 @@ jobs:
       labels: [self-hosted, linux, x64, ieum-frontend]
 
     steps:
-      # 저장소 코드 가져오기
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Node.js 설치
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # 의존성 설치
       - name: Install dependencies
         run: npm ci
         env:
           HUSKY: 0
 
-      # 코드 검사
       - name: Lint
         run: npm run lint
 
-      # 테스트 실행
       - name: Test
         run: npm test -- --run --passWithNoTests
 
-      # dev 서버용 빌드
+      # Vite는 빌드 시점에 VITE_* 값이 박힘
       - name: Build frontend
         run: npx vite build
         env:
-          VITE_API_URL: ${{ env.VITE_API_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      # SPA용 NGINX 설정 생성
       - name: Write nginx config
         run: |
           mkdir -p .deploy
@@ -84,7 +79,6 @@ jobs:
           }
           EOF
 
-      # Dockerfile 생성
       - name: Write Dockerfile
         run: |
           cat > Dockerfile.ci <<'EOF'
@@ -94,15 +88,25 @@ jobs:
           EXPOSE 80
           EOF
 
-      # Docker 이미지 빌드
+      # 서버 .env 파일 갱신
+      - name: Sync frontend env file to server
+        run: |
+          sudo mkdir -p "$ENV_DIR"
+
+          sudo tee "$ENV_FILE" > /dev/null <<EOF
+          VITE_API_URL=${{ secrets.VITE_API_URL }}
+          NODE_ENV=production
+          EOF
+
+          sudo chmod 600 "$ENV_FILE"
+
       - name: Build Docker image
         run: |
           docker build \
             -f Dockerfile.ci \
-            -t $IMAGE_NAME:${{ github.sha }} \
-            -t $IMAGE_NAME:latest .
+            -t "$IMAGE_NAME:${{ github.sha }}" \
+            -t "$IMAGE_NAME:latest" .
 
-      # 기존 dev 프론트 컨테이너 교체
       - name: Restart frontend container
         run: |
           docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 \
@@ -116,10 +120,10 @@ jobs:
             --restart unless-stopped \
             --network "$DOCKER_NETWORK" \
             --ip "$FRONTEND_IP" \
+            --env-file "$ENV_FILE" \
             "$IMAGE_NAME:latest"
 
-      # 배포 확인
       - name: Health check
         run: |
           sleep 3
-          curl -fsS http://$FRONTEND_IP/ >/dev/null
+          curl -fsS "http://$FRONTEND_IP/" >/dev/null
