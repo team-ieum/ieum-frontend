@@ -2,7 +2,7 @@ name: Frontend Dev Server Deploy
 
 on:
   push:
-    branches: [infra/IEUM-SRV-10]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
