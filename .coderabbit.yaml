@@ -3,6 +3,7 @@
 language: "ko-KR"
 early_access: true
 reviews:
+  profile: "chill"
   request_changes_workflow: false
   changed_files_summary: false
   sequence_diagrams: false
