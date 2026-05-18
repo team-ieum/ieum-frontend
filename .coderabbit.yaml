@@ -22,10 +22,10 @@ reviews:
     drafts: false
     base_branches:
       - main
-      - release/**
+      - release/.*
       - dev
   path_instructions:
-    - path: "*"
+    - path: "**/*"
       instructions:
         "All character sets need to be in UTF-8.\n
         Lines need to end with LF (line feed).\n
