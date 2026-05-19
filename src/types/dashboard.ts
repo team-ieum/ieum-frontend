@@ -105,3 +105,27 @@ export type DashboardData = {
 	runs: RunRow[]
 	errors: ErrorRow[]
 }
+
+export type UseDashboardHeroMetricsResult = {
+	hero: DashboardHeroMetrics
+	hourlyExecutions: HourlyExecution[]
+}
+
+export type UseDashboardRunLogsResult = {
+	visibleRuns: RunRow[]
+	hasMore: boolean
+	isExpanded: boolean
+	toggleExpanded: () => void
+}
+
+export type UseDashboardErrorSummaryResult = {
+	visibleErrors: ErrorRow[]
+	errorCount: number
+	hasMore: boolean
+	isExpanded: boolean
+	toggleExpanded: () => void
+}
+
+export type UseWorkflowStatusSummaryResult = {
+	workflow: DashboardWorkflowSummary
+}

@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { dashboardMock } from '../../mocks/dashboard/dashboardMock'
+import type { UseDashboardRunLogsResult } from '../../types/dashboard'
 
 const RUN_LOG_PREVIEW_COUNT = 5
 
-export const useDashboardRunLogs = () => {
+export const useDashboardRunLogs = (): UseDashboardRunLogsResult => {
 	const { runs } = dashboardMock
 	const [isExpanded, setIsExpanded] = useState(false)
 
