@@ -1,59 +1,48 @@
 import { useState } from 'react'
-import { Outlet } from 'react-router'
-import { Header } from '../common/Header'
+import { Outlet, useLocation } from 'react-router'
 import { cn } from '../../utils/cn'
+import { Header } from '../common/Header'
+import { SideBar } from '../common/SideBar'
+import { NAV_ITEMS } from '@/constants/layout'
 
 export const Layout = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+	const [collapsed, setCollapsed] = useState(false)
+	const { pathname } = useLocation()
 
 	const closeSidebar = () => setIsSidebarOpen(false)
 	const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
+	const toggleCollapse = () => setCollapsed(prev => !prev)
+
+	const crumb = NAV_ITEMS.find(item => {
+		return pathname === item.path || pathname.startsWith(`${item.path}/`)
+	})?.label
 
 	return (
 		<div className='min-h-screen bg-neutral-50 text-neutral-800'>
-			<Header onMenuClick={toggleSidebar} />
+			<Header onMenuClick={toggleSidebar} crumb={crumb} />
 
-			<div className='pt-(--layout-header-height)'>
-				<aside
-					className={cn(
-						'fixed top-(--layout-header-height) left-0 z-30 h-[calc(100vh-var(--layout-header-height))] w-(--layout-sidebar-width)',
-						'border-r border-neutral-200 bg-neutral-white p-4',
-						'transition-transform lg:translate-x-0',
-						isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-					)}
-					aria-label='사이드바'
-				>
-					<div className='mb-4 flex items-center justify-between lg:hidden'>
-						<strong className='text-neutral-800'>메뉴</strong>
-						<button
-							type='button'
-							onClick={closeSidebar}
-							className='flex h-8 w-8 items-center justify-center rounded-brand-sm border border-neutral-300 text-neutral-700 hover:bg-neutral-100'
-							aria-label='사이드바 닫기'
-						>
-							<span aria-hidden='true'>✕</span>
-						</button>
-					</div>
-					<nav className='space-y-2 text-sm text-neutral-700'>
-						<div className='rounded-brand-sm bg-neutral-100 px-3 py-2'>대시보드</div>
-						<div className='rounded-brand-sm px-3 py-2'>메뉴 1</div>
-						<div className='rounded-brand-sm px-3 py-2'>메뉴 2</div>
-					</nav>
-				</aside>
+			<SideBar isOpen={isSidebarOpen} onClose={closeSidebar} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
 
-				{isSidebarOpen && (
-					<button
-						type='button'
-						className='fixed inset-0 top-(--layout-header-height) z-20 bg-black/30 lg:hidden'
-						onClick={closeSidebar}
-						aria-label='사이드바 배경 닫기'
-					/>
+			{isSidebarOpen && (
+				<button
+					type='button'
+					className='fixed inset-0 top-(--layout-header-height) z-20 bg-black/30 lg:hidden'
+					onClick={closeSidebar}
+					aria-label='사이드바 배경 닫기'
+				/>
+			)}
+
+			<main
+				className={cn(
+					'min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6',
+					'pt-[calc(var(--layout-header-height)+1.5rem)]',
+					'transition-[padding-left] duration-200',
+					collapsed ? 'lg:pl-22' : 'lg:pl-[calc(var(--layout-sidebar-width)+1.5rem)]'
 				)}
-
-				<main className='mx-auto min-h-[calc(100vh-var(--layout-header-height))] w-full max-w-(--layout-content-max-width) px-4 py-6 lg:pl-[calc(var(--layout-sidebar-width)+1.5rem)]'>
-					<Outlet />
-				</main>
-			</div>
+			>
+				<Outlet />
+			</main>
 		</div>
 	)
 }
