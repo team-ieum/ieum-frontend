@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { dashboardMock } from '../../mocks/dashboard/dashboardMock'
+import type { UseDashboardErrorSummaryResult } from '../../types/dashboard'
 
 const ERROR_PREVIEW_COUNT = 3
 
-export const useDashboardErrorSummary = () => {
+export const useDashboardErrorSummary = (): UseDashboardErrorSummaryResult => {
 	const { errors } = dashboardMock
 	const [isExpanded, setIsExpanded] = useState(false)
 
