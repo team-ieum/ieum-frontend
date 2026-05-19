@@ -6,6 +6,7 @@ export const useWorkflowToolbar = (defaultTitle: string) => {
 	const [title, setTitle] = useState(defaultTitle)
 
 	const handleBack = () => navigate(-1)
+	const handleTitleChange = (newTitle: string) => setTitle(newTitle)
 
-	return { title, setTitle, handleBack }
+	return { title, handleTitleChange, handleBack }
 }

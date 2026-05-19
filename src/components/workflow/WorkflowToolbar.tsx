@@ -6,7 +6,7 @@ type WorkflowToolbarProps = {
 }
 
 const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowToolbarProps) => {
-	const { title, setTitle, handleBack } = useWorkflowToolbar(defaultTitle)
+	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
 
 	return (
 		<div
@@ -25,7 +25,7 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 			<div className='flex items-center gap-2.5'>
 				<input
 					value={title}
-					onChange={e => setTitle(e.target.value)}
+					onChange={e => handleTitleChange(e.target.value)}
 					aria-label='워크플로우 제목'
 					className='text-xl font-bold text-main-deep-blue tracking-wide outline-none bg-transparent rounded-md px-2 py-1 hover:bg-neutral-100 focus:bg-neutral-100 transition-colors min-w-0'
 					style={{ fontFamily: 'var(--font-sans)' }}
