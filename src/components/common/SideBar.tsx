@@ -3,8 +3,6 @@ import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkl
 import { cn } from '@/utils/cn'
 import { NAV_ITEMS, RECENTS } from '@/constants/layout'
 
-export type SidebarNavId = 'dashboard' | 'canvas' | 'refs' | 'settings'
-
 type SideBarProps = {
 	isOpen?: boolean
 	onClose?: () => void

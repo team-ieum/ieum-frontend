@@ -1,6 +1,7 @@
 import { LayoutDashboard, Workflow, Blocks, UserRoundCog } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import type { SidebarNavId } from '@/components/common/SideBar'
+
+export type SidebarNavId = 'dashboard' | 'canvas' | 'refs' | 'settings'
 
 export type NavItem = {
 	id: SidebarNavId
