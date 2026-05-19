@@ -1,16 +1,6 @@
-import { Handle, Position, type Node, type NodeProps } from '@xyflow/react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { AlertCircle, AlertTriangle, CheckSquare, FileText, Filter, Hash, Sparkles, Webhook } from 'lucide-react'
-
-export type WorkflowNodeData = {
-	brand: 'webhook' | 'openai' | 'filter' | 'slack' | 'notion' | 'warning'
-	title: string
-	method: string
-	url: string
-	check?: boolean
-	warn?: boolean
-}
-
-export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
+import type { WorkflowNodeData, WorkflowNodeType } from '@/types/workflow'
 
 type BrandConfig = {
 	bg: string
@@ -20,42 +10,12 @@ type BrandConfig = {
 }
 
 const BRAND_CONFIG: Record<WorkflowNodeData['brand'], BrandConfig> = {
-	webhook: {
-		bg: '#4f5d75',
-		fg: '#ffffff',
-		icon: <Webhook size={16} />,
-		name: 'Webhook',
-	},
-	openai: {
-		bg: '#0C1117',
-		fg: '#ffffff',
-		icon: <Sparkles size={16} />,
-		name: 'OpenAI',
-	},
-	filter: {
-		bg: '#F2C94C',
-		fg: '#3F2E00',
-		icon: <Filter size={16} />,
-		name: 'Filter',
-	},
-	slack: {
-		bg: '#006a4e',
-		fg: '#ffffff',
-		icon: <Hash size={16} />,
-		name: 'Slack',
-	},
-	notion: {
-		bg: '#111111',
-		fg: '#ffffff',
-		icon: <FileText size={16} />,
-		name: 'Notion',
-	},
-	warning: {
-		bg: '#e2725b',
-		fg: '#ffffff',
-		icon: <AlertTriangle size={16} />,
-		name: 'Email',
-	},
+	webhook: { bg: '#4f5d75', fg: '#ffffff', icon: <Webhook size={16} />, name: 'Webhook' },
+	openai: { bg: '#0C1117', fg: '#ffffff', icon: <Sparkles size={16} />, name: 'OpenAI' },
+	filter: { bg: '#F2C94C', fg: '#3F2E00', icon: <Filter size={16} />, name: 'Filter' },
+	slack: { bg: '#006a4e', fg: '#ffffff', icon: <Hash size={16} />, name: 'Slack' },
+	notion: { bg: '#111111', fg: '#ffffff', icon: <FileText size={16} />, name: 'Notion' },
+	warning: { bg: '#e2725b', fg: '#ffffff', icon: <AlertTriangle size={16} />, name: 'Email' },
 }
 
 const WorkflowNode = ({ data, selected }: NodeProps<WorkflowNodeType>) => {
@@ -141,15 +101,7 @@ const WorkflowNode = ({ data, selected }: NodeProps<WorkflowNodeType>) => {
 			</div>
 
 			{/* Body */}
-			<div
-				style={{
-					padding: '12px 14px',
-					background: '#fff',
-					display: 'flex',
-					flexDirection: 'column',
-					gap: 6,
-				}}
-			>
+			<div style={{ padding: '12px 14px', background: '#fff', display: 'flex', flexDirection: 'column', gap: 6 }}>
 				<div
 					style={{
 						display: 'flex',

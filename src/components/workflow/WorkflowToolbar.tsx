@@ -1,34 +1,26 @@
-import { Bug, CloudCheck, History, ArrowLeft, Rocket, Share2 } from 'lucide-react'
-import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { ArrowLeft, Bug, CloudCheck, History, Rocket, Share2 } from 'lucide-react'
+import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
 
 type WorkflowToolbarProps = {
 	defaultTitle?: string
 }
 
 const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowToolbarProps) => {
-	const navigate = useNavigate()
-	const [title, setTitle] = useState(defaultTitle)
+	const { title, setTitle, handleBack } = useWorkflowToolbar(defaultTitle)
 
 	return (
 		<div
 			className='flex items-center gap-3.5 px-6 border-b border-neutral-200 shrink-0'
-			style={{
-				height: 64,
-				background: 'rgba(255,255,255,.85)',
-				backdropFilter: 'blur(8px)',
-			}}
+			style={{ height: 64, background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)' }}
 		>
-			{/* 뒤로가기 */}
 			<button
 				type='button'
-				onClick={() => navigate(-1)}
+				onClick={handleBack}
 				className='w-9 h-9 rounded-[10px] grid place-items-center bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50 transition-colors shrink-0 cursor-pointer'
 			>
 				<ArrowLeft size={18} />
 			</button>
 
-			{/* 제목 + DRAFT 뱃지 */}
 			<div className='flex items-center gap-2.5'>
 				<input
 					value={title}
@@ -42,7 +34,6 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 				</span>
 			</div>
 
-			{/* 자동 저장 */}
 			<span className='inline-flex items-center gap-1 text-xs text-neutral-400 shrink-0'>
 				<CloudCheck size={14} className='text-node-green' />
 				방금 전 자동 저장됨
@@ -50,7 +41,6 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 
 			<div className='flex-1' />
 
-			{/* 아이콘 버튼 */}
 			<button
 				type='button'
 				className='w-9 h-9 rounded-[10px] grid place-items-center text-neutral-500 hover:bg-neutral-100 transition-colors cursor-pointer'
@@ -63,8 +53,6 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 			>
 				<Share2 size={18} />
 			</button>
-
-			{/* 테스트 버튼 */}
 			<button
 				type='button'
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer'
@@ -72,8 +60,6 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 				<Bug size={15} />
 				테스트
 			</button>
-
-			{/* Deploy 버튼 */}
 			<button
 				type='button'
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer'
