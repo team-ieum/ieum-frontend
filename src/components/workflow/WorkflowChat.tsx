@@ -44,6 +44,7 @@ const WorkflowChat = () => {
 						exit={{ scale: 0, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 300, damping: 22 }}
 						onClick={() => setIsOpen(true)}
+						aria-label='채팅 열기'
 						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
 					>
@@ -83,6 +84,7 @@ const WorkflowChat = () => {
 							</div>
 							<button
 								onClick={() => setIsOpen(false)}
+								aria-label='채팅 닫기'
 								className='w-7 h-7 rounded-lg grid place-items-center hover:opacity-80 transition-opacity cursor-pointer'
 								style={{ background: 'rgba(255,255,255,.12)' }}
 							>
@@ -126,6 +128,7 @@ const WorkflowChat = () => {
 									value={input}
 									onChange={e => setInput(e.target.value)}
 									onKeyDown={handleKeyDown}
+									aria-label='메시지 입력'
 									placeholder='메시지를 입력하세요…'
 									className='flex-1 text-sm outline-none bg-transparent'
 									disabled={isTyping}
@@ -134,6 +137,7 @@ const WorkflowChat = () => {
 									type='button'
 									onClick={handleSend}
 									disabled={isTyping || !input.trim()}
+									aria-label='메시지 전송'
 									className='w-7 h-7 rounded-[10px] bg-main-deep-blue grid place-items-center shrink-0 cursor-pointer disabled:opacity-40 transition-opacity'
 								>
 									<ArrowUp size={14} className='text-white' />
