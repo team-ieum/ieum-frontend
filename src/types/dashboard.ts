@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 
+// --- Model (도메인) ---
+
 export type RunStatus = 'success' | 'error' | 'running'
 
 export type RunRow = {
@@ -25,6 +27,37 @@ export type HourlyExecution = {
 	t: string
 	count: number
 }
+
+export type PillTone = 'active' | 'inactive' | 'error' | 'running'
+
+export type StatusPillItem = {
+	label: string
+	value: number
+	sub: string
+	tone: PillTone
+}
+
+export type DashboardHeroMetrics = {
+	totalRuns: number
+	changePercent: number
+	avgDuration: string
+	successRate: string
+}
+
+export type DashboardWorkflowSummary = {
+	totalCount: number
+	pills: StatusPillItem[]
+}
+
+export type DashboardData = {
+	hero: DashboardHeroMetrics
+	hourlyExecutions: HourlyExecution[]
+	workflow: DashboardWorkflowSummary
+	runs: RunRow[]
+	errors: ErrorRow[]
+}
+
+// --- View (컴포넌트) ---
 
 export type DashboardChartTooltipPayload = {
 	value?: number
@@ -77,34 +110,7 @@ export type StatusPillSkin = {
 
 export type StatusPillSkins = Record<PillTone, StatusPillSkin>
 
-export type PillTone = 'active' | 'inactive' | 'error' | 'running'
-
-export type StatusPillItem = {
-	label: string
-	value: number
-	sub: string
-	tone: PillTone
-}
-
-export type DashboardHeroMetrics = {
-	totalRuns: number
-	changePercent: number
-	avgDuration: string
-	successRate: string
-}
-
-export type DashboardWorkflowSummary = {
-	totalCount: number
-	pills: StatusPillItem[]
-}
-
-export type DashboardData = {
-	hero: DashboardHeroMetrics
-	hourlyExecutions: HourlyExecution[]
-	workflow: DashboardWorkflowSummary
-	runs: RunRow[]
-	errors: ErrorRow[]
-}
+// --- ViewModel (훅) ---
 
 export type UseDashboardHeroMetricsResult = {
 	hero: DashboardHeroMetrics
