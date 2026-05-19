@@ -14,7 +14,9 @@ export const Layout = () => {
 	const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 	const toggleCollapse = () => setCollapsed(prev => !prev)
 
-	const crumb = NAV_ITEMS.find(item => (item.path === '/main' ? pathname === '/main' : pathname.startsWith(item.path)))?.label
+	const crumb = NAV_ITEMS.find(item => {
+		return pathname === item.path || pathname.startsWith(`${item.path}/`)
+	})?.label
 
 	return (
 		<div className='min-h-screen bg-neutral-50 text-neutral-800'>

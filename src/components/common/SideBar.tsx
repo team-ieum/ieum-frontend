@@ -64,7 +64,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 			<nav className='flex flex-col gap-0.5 px-3'>
 				{NAV_ITEMS.map(item => {
 					const Icon = item.icon
-					const isActive = item.path === '/main' ? pathname === '/main' : pathname.startsWith(item.path)
+					const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`)
 					return (
 						<button
 							key={item.id}
