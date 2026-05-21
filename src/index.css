@@ -41,6 +41,10 @@
 	font-display: swap;
 }
 
+body {
+	font-family: var(--font-family-pretendard);
+}
+
 button {
 	cursor: pointer;
 }

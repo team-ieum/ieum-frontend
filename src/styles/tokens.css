@@ -46,11 +46,15 @@
 	--radius-brand-full: 6.25rem; /* 100px */
 }
 
-/* 레이아웃 토큰 */
+/* 레이아웃·차트 토큰 */
 :root {
 	--layout-header-height: 3.5rem;
 	--layout-sidebar-width: 16rem;
 	--layout-content-max-width: 90rem;
+
+	--font-family-pretendard:
+		'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		sans-serif;
 }
 
 /* 다크 모드 오버라이드 */
