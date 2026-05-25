@@ -1,10 +1,13 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
-import { Layout } from './components/layout/Layout'
+import { Layout } from '@/components/layout/Layout'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import LandingPage from './pages/LandingPage'
-import MainPage from './pages/MainPage'
-import AuthPage from './pages/AuthPage'
+import MainPage from '@/pages/MainPage'
+import AuthPage from '@/pages/AuthPage'
+import WorkFlowPage from '@/pages/WorkFlowPage'
+import InterSettingPage from './pages/InterSettingPage'
+import UserPage from './pages/UserPage'
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -29,8 +32,20 @@ const router = createBrowserRouter([
 		element: <Layout />,
 		children: [
 			{
-				index: true,
+				path: '/main',
 				element: <MainPage />,
+			},
+			{
+				path: '/workflow',
+				element: <WorkFlowPage />,
+			},
+			{
+				path: '/inter-setting',
+				element: <InterSettingPage />,
+			},
+			{
+				path: '/user',
+				element: <UserPage />,
 			},
 		],
 	},
