@@ -26,7 +26,6 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps) => (
 					{workflows.map(workflow => (
 						<tr
 							key={workflow.id}
-							role='button'
 							tabIndex={0}
 							onClick={() => onOpen(workflow.id)}
 							onKeyDown={event => {
