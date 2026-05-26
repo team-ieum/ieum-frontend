@@ -15,6 +15,8 @@ type WorkflowListToolbarProps = {
 	onViewChange: (value: WorkflowViewMode) => void
 }
 
+const SORT_MENU_ID = 'workflow-sort-menu'
+
 const WorkflowListToolbar = ({
 	search,
 	sort,
@@ -54,6 +56,9 @@ const WorkflowListToolbar = ({
 					<button
 						type='button'
 						onClick={() => setIsSortOpen(prev => !prev)}
+						aria-haspopup='menu'
+						aria-expanded={isSortOpen}
+						aria-controls={SORT_MENU_ID}
 						className='inline-flex h-10 items-center gap-2 rounded-[10px] border border-neutral-200 bg-white px-3 typo-body2_medium text-neutral-700 transition-colors hover:bg-neutral-50'
 					>
 						{currentSort.label}
@@ -62,6 +67,8 @@ const WorkflowListToolbar = ({
 
 					{isSortOpen && (
 						<div
+							id={SORT_MENU_ID}
+							role='menu'
 							tabIndex={-1}
 							className='absolute right-0 top-[calc(100%+6px)] z-20 w-40 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
 							onMouseLeave={() => setIsSortOpen(false)}
@@ -70,6 +77,8 @@ const WorkflowListToolbar = ({
 								<button
 									key={option.id}
 									type='button'
+									role='menuitemradio'
+									aria-checked={option.id === sort}
 									onClick={() => {
 										onSortChange(option.id)
 										setIsSortOpen(false)
