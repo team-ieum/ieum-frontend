@@ -1,4 +1,5 @@
 import { MoreHorizontal } from 'lucide-react'
+import type { ReactElement } from 'react'
 import type { WorkflowListItem } from '@/types/workflowList'
 import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './WorkflowListPrimitives'
 
@@ -7,7 +8,7 @@ type WorkflowListCardProps = {
 	onOpen: (workflowId: string) => void
 }
 
-const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps) => (
+const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps): ReactElement => (
 	<article
 		role='button'
 		tabIndex={0}

@@ -27,16 +27,40 @@ export type WorkflowActiveFilter = {
 	status?: WorkflowStatus
 }
 
+export type WorkflowListViewModel = {
+	search: string
+	sort: WorkflowSortKey
+	view: WorkflowViewMode
+	filters: WorkflowListFilters
+	workflows: WorkflowListItem[]
+	activeFilters: WorkflowActiveFilter[]
+	activeFilterCount: number
+	totalCount: number
+	serviceCounts: Record<WorkflowServiceId, number>
+	categoryCounts: Record<WorkflowCategoryId, number>
+	statusCounts: Record<WorkflowStatus, number>
+	toggleService: (serviceId: WorkflowServiceId) => void
+	toggleCategory: (categoryId: WorkflowCategoryId) => void
+	toggleStatus: (status: WorkflowStatus) => void
+	removeFilter: (filter: WorkflowActiveFilter) => void
+	clearFilters: () => void
+	onSearchChange: (value: string) => void
+	onSortChange: (value: WorkflowSortKey) => void
+	onViewChange: (value: WorkflowViewMode) => void
+	handleCreateWorkflow: () => void
+	handleOpenWorkflow: (workflowId: string) => void
+}
+
 const createEmptyFilters = (): WorkflowListFilters => ({
 	services: [],
 	categories: [],
 	statuses: [],
 })
 
-const toggleValue = <T extends string>(values: T[], value: T) =>
+const toggleValue = <T extends string>(values: T[], value: T): T[] =>
 	values.includes(value) ? values.filter(item => item !== value) : [...values, value]
 
-const createCountMap = <T extends string>(values: T[], initialValues: T[]) => {
+const createCountMap = <T extends string>(values: T[], initialValues: T[]): Record<T, number> => {
 	const countMap = initialValues.reduce(
 		(acc, value) => {
 			acc[value] = 0
@@ -52,7 +76,7 @@ const createCountMap = <T extends string>(values: T[], initialValues: T[]) => {
 	return countMap
 }
 
-const matchesSearch = (workflow: WorkflowListItem, search: string) => {
+const matchesSearch = (workflow: WorkflowListItem, search: string): boolean => {
 	const query = search.trim().toLocaleLowerCase('ko-KR')
 
 	if (!query) {
@@ -73,7 +97,7 @@ const matchesSearch = (workflow: WorkflowListItem, search: string) => {
 	return searchableText.includes(query)
 }
 
-const filterWorkflow = (workflow: WorkflowListItem, filters: WorkflowListFilters, search: string) => {
+const filterWorkflow = (workflow: WorkflowListItem, filters: WorkflowListFilters, search: string): boolean => {
 	const matchesService =
 		filters.services.length === 0 || workflow.services.some(serviceId => filters.services.includes(serviceId))
 	const matchesCategory = filters.categories.length === 0 || filters.categories.includes(workflow.category)
@@ -82,7 +106,9 @@ const filterWorkflow = (workflow: WorkflowListItem, filters: WorkflowListFilters
 	return matchesService && matchesCategory && matchesStatus && matchesSearch(workflow, search)
 }
 
-const sortWorkflows = (workflows: WorkflowListItem[], sort: WorkflowSortKey) => {
+const getLastRunTime = (workflow: WorkflowListItem): number => new Date(workflow.lastRun).getTime()
+
+const sortWorkflows = (workflows: WorkflowListItem[], sort: WorkflowSortKey): WorkflowListItem[] => {
 	const sorted = [...workflows]
 
 	switch (sort) {
@@ -94,11 +120,11 @@ const sortWorkflows = (workflows: WorkflowListItem[], sort: WorkflowSortKey) => 
 			return sorted.sort((a, b) => WORKFLOW_STATUS_ORDER.indexOf(a.status) - WORKFLOW_STATUS_ORDER.indexOf(b.status))
 		case 'recent':
 		default:
-			return sorted
+			return sorted.sort((a, b) => getLastRunTime(b) - getLastRunTime(a))
 	}
 }
 
-export const useWorkflowListViewModel = () => {
+export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const navigate = useNavigate()
 	const [search, setSearch] = useState('')
 	const [sort, setSort] = useState<WorkflowSortKey>('recent')

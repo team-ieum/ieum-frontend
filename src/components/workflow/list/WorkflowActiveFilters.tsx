@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import type { ReactElement } from 'react'
 import type { WorkflowActiveFilter } from '@/hooks/workflow/useWorkflowListViewModel'
 import { ServiceLogo, StatusDot } from './WorkflowListPrimitives'
 
@@ -7,7 +8,7 @@ type WorkflowActiveFiltersProps = {
 	onRemove: (filter: WorkflowActiveFilter) => void
 }
 
-const WorkflowActiveFilters = ({ filters, onRemove }: WorkflowActiveFiltersProps) => {
+const WorkflowActiveFilters = ({ filters, onRemove }: WorkflowActiveFiltersProps): ReactElement | null => {
 	if (filters.length === 0) {
 		return null
 	}

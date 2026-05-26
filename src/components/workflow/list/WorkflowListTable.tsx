@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react'
+import type { ReactElement } from 'react'
 import type { WorkflowListItem } from '@/types/workflowList'
 import { CategoryPill, ServiceChain, StatusDot, TriggerPill } from './WorkflowListPrimitives'
 
@@ -7,7 +8,7 @@ type WorkflowListTableProps = {
 	onOpen: (workflowId: string) => void
 }
 
-const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps) => (
+const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): ReactElement => (
 	<div className='overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)]'>
 		<div className='overflow-x-auto'>
 			<table className='w-full min-w-[760px] border-collapse'>
