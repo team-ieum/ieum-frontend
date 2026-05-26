@@ -1,5 +1,6 @@
-import { cn } from '@/utils/cn'
+import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
 import type { IntegrationTabId, IntegrationView } from '@/types/integration'
+import { cn } from '@/utils/cn'
 
 const TABS: { id: IntegrationTabId; label: string }[] = [
 	{ id: 'connected', label: '연결됨' },
@@ -15,7 +16,12 @@ type IntegrationTabsProps = {
 }
 
 const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount }: IntegrationTabsProps) => (
-	<div className='flex flex-wrap items-end gap-5 border-b border-neutral-200 bg-neutral-white px-6 pt-5'>
+	<div
+		className={cn(
+			INTEGRATION_PAGE_X,
+			'flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 bg-neutral-white pt-5 pb-4'
+		)}
+	>
 		<div className='flex gap-1'>
 			{TABS.map(tab => (
 				<button
@@ -33,7 +39,7 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 				</button>
 			))}
 		</div>
-		<p className='pb-3.5 typo-caption1_regular text-neutral-500'>
+		<p className='m-0 typo-caption1_regular text-neutral-500'>
 			{view.kind === 'list' ? `연결됨 ${connectedCount}개 · 사용 가능 ${availableCount}개` : '연결된 서비스 / 상세 보기'}
 		</p>
 	</div>
