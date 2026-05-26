@@ -13,6 +13,10 @@ const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps) => (
 		tabIndex={0}
 		onClick={() => onOpen(workflow.id)}
 		onKeyDown={event => {
+			if (event.currentTarget !== event.target) {
+				return
+			}
+
 			if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault()
 				onOpen(workflow.id)

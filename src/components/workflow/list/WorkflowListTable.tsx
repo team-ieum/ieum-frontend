@@ -26,8 +26,16 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps) => (
 					{workflows.map(workflow => (
 						<tr
 							key={workflow.id}
+							role='button'
+							tabIndex={0}
 							onClick={() => onOpen(workflow.id)}
-							className='cursor-pointer bg-white transition-colors hover:bg-main-light-blue/35'
+							onKeyDown={event => {
+								if (event.key === 'Enter' || event.key === ' ') {
+									event.preventDefault()
+									onOpen(workflow.id)
+								}
+							}}
+							className='cursor-pointer bg-white transition-colors hover:bg-main-light-blue/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-inset'
 						>
 							<td className='px-4 py-3'>
 								<StatusDot status={workflow.status} />
