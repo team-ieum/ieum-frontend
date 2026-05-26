@@ -1,19 +1,7 @@
-import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
-import type { IntegrationTabId, IntegrationView } from '@/types/integration'
-import { cn } from '@/utils/cn'
-
-const TABS: { id: IntegrationTabId; label: string }[] = [
-	{ id: 'connected', label: '연결됨' },
-	{ id: 'available', label: '사용 가능' },
-]
-
-type IntegrationTabsProps = {
-	active: IntegrationTabId
-	onChange: (tab: IntegrationTabId) => void
-	view: IntegrationView
-	connectedCount: number
-	availableCount: number
-}
+import { INTEGRATION_PAGE_X } from '../../constants/integration/layout'
+import { INTEGRATION_TABS } from '../../constants/integration/statusLabels'
+import type { IntegrationTabsProps } from '../../types/integration'
+import { cn } from '../../utils/cn'
 
 const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount }: IntegrationTabsProps) => (
 	<div
@@ -23,7 +11,7 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 		)}
 	>
 		<div className='flex gap-1'>
-			{TABS.map(tab => (
+			{INTEGRATION_TABS.map(tab => (
 				<button
 					key={tab.id}
 					type='button'
