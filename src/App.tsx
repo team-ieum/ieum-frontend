@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage'
 import MainPage from '@/pages/MainPage'
 import AuthPage from '@/pages/AuthPage'
 import WorkFlowPage from '@/pages/WorkFlowPage'
+import WorkflowListPage from '@/pages/WorkflowListPage'
 import InterSettingPage from './pages/InterSettingPage'
 import UserPage from './pages/UserPage'
 
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
 			},
 			{
 				path: '/workflow',
+				element: <WorkflowListPage />,
+			},
+			{
+				path: '/workflow/new',
 				element: <WorkFlowPage />,
 			},
 			{
