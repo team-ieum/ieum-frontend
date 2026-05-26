@@ -176,21 +176,33 @@ export const useWorkflowListViewModel = () => {
 		setSearch('')
 	}, [])
 
+	const onSearchChange = useCallback((value: string) => {
+		setSearch(value)
+	}, [])
+
+	const onSortChange = useCallback((value: WorkflowSortKey) => {
+		setSort(value)
+	}, [])
+
+	const onViewChange = useCallback((value: WorkflowViewMode) => {
+		setView(value)
+	}, [])
+
 	const handleCreateWorkflow = useCallback(() => {
 		navigate('/workflow/new')
 	}, [navigate])
 
-	const handleOpenWorkflow = useCallback(() => {
-		navigate('/workflow/new')
-	}, [navigate])
+	const handleOpenWorkflow = useCallback(
+		(workflowId: string) => {
+			navigate(`/workflow/${workflowId}`)
+		},
+		[navigate]
+	)
 
 	return {
 		search,
-		setSearch,
 		sort,
-		setSort,
 		view,
-		setView,
 		filters,
 		workflows,
 		activeFilters,
@@ -204,6 +216,9 @@ export const useWorkflowListViewModel = () => {
 		toggleStatus,
 		removeFilter,
 		clearFilters,
+		onSearchChange,
+		onSortChange,
+		onViewChange,
 		handleCreateWorkflow,
 		handleOpenWorkflow,
 	}

@@ -44,6 +44,10 @@ const router = createBrowserRouter([
 				element: <WorkFlowPage />,
 			},
 			{
+				path: '/workflow/:workflowId',
+				element: <WorkFlowPage />,
+			},
+			{
 				path: '/inter-setting',
 				element: <InterSettingPage />,
 			},
