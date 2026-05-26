@@ -24,6 +24,8 @@ export type WorkflowSortKey = 'recent' | 'name' | 'runs' | 'status'
 
 export type WorkflowViewMode = 'card' | 'row'
 
+export type IsoDateString = string
+
 export type WorkflowListFilters = {
 	services: WorkflowServiceId[]
 	categories: WorkflowCategoryId[]
@@ -39,7 +41,7 @@ export type WorkflowListItem = {
 	category: WorkflowCategoryId
 	status: WorkflowStatus
 	trigger: WorkflowTriggerType
-	lastRun: string
+	lastRun: IsoDateString
 	runs: number
 	success: number
 }

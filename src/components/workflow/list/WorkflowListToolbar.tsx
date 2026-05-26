@@ -1,5 +1,5 @@
 import { Check, ChevronDown, LayoutGrid, List, Search } from 'lucide-react'
-import { useState } from 'react'
+import { useState, type KeyboardEvent, type ReactElement } from 'react'
 import { WORKFLOW_SORT_OPTIONS } from '@/constants/workflow/workflowList'
 import type { WorkflowSortKey, WorkflowViewMode } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
@@ -24,9 +24,14 @@ const WorkflowListToolbar = ({
 	onSearchChange,
 	onSortChange,
 	onViewChange,
-}: WorkflowListToolbarProps) => {
+}: WorkflowListToolbarProps): ReactElement => {
 	const [isSortOpen, setIsSortOpen] = useState(false)
 	const currentSort = WORKFLOW_SORT_OPTIONS.find(option => option.id === sort) ?? WORKFLOW_SORT_OPTIONS[0]
+	const handleSortKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+		if (event.key === 'Escape') {
+			setIsSortOpen(false)
+		}
+	}
 
 	return (
 		<div className='flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,.04)] xl:flex-row xl:items-center'>
@@ -45,7 +50,7 @@ const WorkflowListToolbar = ({
 			</span>
 
 			<div className='flex flex-wrap items-center gap-2 xl:ml-auto'>
-				<div className='relative'>
+				<div className='relative' onKeyDown={handleSortKeyDown}>
 					<button
 						type='button'
 						onClick={() => setIsSortOpen(prev => !prev)}
@@ -57,6 +62,7 @@ const WorkflowListToolbar = ({
 
 					{isSortOpen && (
 						<div
+							tabIndex={-1}
 							className='absolute right-0 top-[calc(100%+6px)] z-20 w-40 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
 							onMouseLeave={() => setIsSortOpen(false)}
 						>

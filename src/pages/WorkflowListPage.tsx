@@ -1,4 +1,5 @@
 import { Plus, Sparkles } from 'lucide-react'
+import type { ReactElement } from 'react'
 import WorkflowActiveFilters from '@/components/workflow/list/WorkflowActiveFilters'
 import WorkflowEmptyState from '@/components/workflow/list/WorkflowEmptyState'
 import WorkflowFilterSidebar from '@/components/workflow/list/WorkflowFilterSidebar'
@@ -7,7 +8,7 @@ import WorkflowListTable from '@/components/workflow/list/WorkflowListTable'
 import WorkflowListToolbar from '@/components/workflow/list/WorkflowListToolbar'
 import { useWorkflowListViewModel } from '@/hooks/workflow/useWorkflowListViewModel'
 
-const WorkflowListPage = () => {
+const WorkflowListPage = (): ReactElement => {
 	const viewModel = useWorkflowListViewModel()
 
 	return (

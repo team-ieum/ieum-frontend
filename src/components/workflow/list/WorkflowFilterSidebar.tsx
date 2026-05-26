@@ -1,5 +1,5 @@
 import { Cable, Check, ChevronDown, ChevronUp, Circle, ListFilter, Tag, X } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState, type ReactElement, type ReactNode } from 'react'
 import { WORKFLOW_CATEGORIES, WORKFLOW_SERVICES, WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import type { WorkflowCategoryId, WorkflowListFilters, WorkflowServiceId, WorkflowStatus } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
@@ -25,7 +25,7 @@ type FilterGroupProps = {
 	children: ReactNode
 }
 
-const FilterGroup = ({ icon, title, count, defaultOpen = true, children }: FilterGroupProps) => {
+const FilterGroup = ({ icon, title, count, defaultOpen = true, children }: FilterGroupProps): ReactElement => {
 	const [isOpen, setIsOpen] = useState(defaultOpen)
 
 	return (
@@ -57,7 +57,7 @@ type FilterRowProps = {
 	onClick: () => void
 }
 
-const FilterRow = ({ active, label, count, leading, onClick }: FilterRowProps) => (
+const FilterRow = ({ active, label, count, leading, onClick }: FilterRowProps): ReactElement => (
 	<button
 		type='button'
 		onClick={onClick}
@@ -92,7 +92,7 @@ const WorkflowFilterSidebar = ({
 	onToggleCategory,
 	onToggleStatus,
 	onClearFilters,
-}: WorkflowFilterSidebarProps) => (
+}: WorkflowFilterSidebarProps): ReactElement => (
 	<aside className='rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:sticky lg:top-[calc(var(--layout-header-height)+1.5rem)] lg:max-h-[calc(100vh-var(--layout-header-height)-3rem)] lg:overflow-y-auto'>
 		{/* 필터 헤더 */}
 		<div className='mb-1 flex items-center justify-between gap-3'>

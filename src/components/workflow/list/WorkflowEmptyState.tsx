@@ -1,11 +1,12 @@
 import { RotateCcw, SearchX, Sparkles } from 'lucide-react'
+import type { ReactElement } from 'react'
 
 type WorkflowEmptyStateProps = {
 	onReset: () => void
 	onCreate: () => void
 }
 
-const WorkflowEmptyState = ({ onReset, onCreate }: WorkflowEmptyStateProps) => (
+const WorkflowEmptyState = ({ onReset, onCreate }: WorkflowEmptyStateProps): ReactElement => (
 	<div className='flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center'>
 		<div className='grid h-14 w-14 place-items-center rounded-2xl bg-main-light-blue text-main-deep-blue'>
 			<SearchX size={28} />

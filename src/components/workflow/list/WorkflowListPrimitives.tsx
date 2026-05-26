@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import type { ReactElement } from 'react'
 import {
 	WORKFLOW_CATEGORY_META,
 	WORKFLOW_SERVICE_META,
@@ -20,7 +21,7 @@ type ServiceLogoProps = {
 	className?: string
 }
 
-export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps) => {
+export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps): ReactElement => {
 	const service = WORKFLOW_SERVICE_META[id]
 
 	return (
@@ -52,7 +53,7 @@ type ServiceChainProps = {
 	showArrow?: boolean
 }
 
-export const ServiceChain = ({ services, size = 28, max = 4, showArrow = true }: ServiceChainProps) => {
+export const ServiceChain = ({ services, size = 28, max = 4, showArrow = true }: ServiceChainProps): ReactElement => {
 	const visibleServices = services.slice(0, max)
 	const overflowCount = services.length - visibleServices.length
 
@@ -81,7 +82,7 @@ type StatusDotProps = {
 	size?: number
 }
 
-export const StatusDot = ({ status, size = 8 }: StatusDotProps) => {
+export const StatusDot = ({ status, size = 8 }: StatusDotProps): ReactElement => {
 	const statusMeta = WORKFLOW_STATUS_META[status]
 
 	return (
@@ -102,7 +103,7 @@ type StatusBadgeProps = {
 	withDot?: boolean
 }
 
-export const StatusBadge = ({ status, withDot = true }: StatusBadgeProps) => {
+export const StatusBadge = ({ status, withDot = true }: StatusBadgeProps): ReactElement => {
 	const statusMeta = WORKFLOW_STATUS_META[status]
 
 	return (
@@ -123,7 +124,7 @@ type CategoryPillProps = {
 	count?: number
 }
 
-export const CategoryPill = ({ category, count }: CategoryPillProps) => {
+export const CategoryPill = ({ category, count }: CategoryPillProps): ReactElement => {
 	const categoryMeta = WORKFLOW_CATEGORY_META[category]
 
 	return (
@@ -139,7 +140,7 @@ type TriggerPillProps = {
 	trigger: WorkflowTriggerType
 }
 
-export const TriggerPill = ({ trigger }: TriggerPillProps) => {
+export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => {
 	const triggerMeta = WORKFLOW_TRIGGER_META[trigger]
 	const Icon = triggerMeta.icon
 
@@ -155,13 +156,13 @@ type WorkflowTagChipProps = {
 	children: string
 }
 
-export const WorkflowTagChip = ({ children }: WorkflowTagChipProps) => (
+export const WorkflowTagChip = ({ children }: WorkflowTagChipProps): ReactElement => (
 	<span className='inline-flex h-6 items-center rounded-full bg-neutral-100 px-2 typo-caption1_regular text-neutral-600'>
 		#{children}
 	</span>
 )
 
-const createSparklineValues = (workflow: WorkflowListItem) => {
+const createSparklineValues = (workflow: WorkflowListItem): number[] => {
 	let hash = 0
 
 	for (let index = 0; index < workflow.id.length; index += 1) {
@@ -187,7 +188,7 @@ const createSparklineValues = (workflow: WorkflowListItem) => {
 	})
 }
 
-const getSuccessColor = (workflow: WorkflowListItem) => {
+const getSuccessColor = (workflow: WorkflowListItem): string => {
 	if (workflow.status === 'error') {
 		return '#EC2D30'
 	}
@@ -213,7 +214,7 @@ type WorkflowSparklineProps = {
 	height?: number
 }
 
-export const WorkflowSparkline = ({ workflow, width = 72, height = 24 }: WorkflowSparklineProps) => {
+export const WorkflowSparkline = ({ workflow, width = 72, height = 24 }: WorkflowSparklineProps): ReactElement => {
 	const values = createSparklineValues(workflow)
 	const max = Math.max(1, ...values)
 	const stepX = values.length > 1 ? width / (values.length - 1) : width
