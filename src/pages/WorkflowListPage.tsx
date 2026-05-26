@@ -24,7 +24,9 @@ const WorkflowListPage = (): ReactElement => {
 				<div className='flex flex-wrap gap-2'>
 					<button
 						type='button'
-						className='inline-flex h-10 items-center gap-2 rounded-[10px] border border-[#cde9f4] bg-white px-4 typo-body2_semibold text-main-deep-blue transition-colors hover:bg-main-light-blue'
+						disabled
+						aria-disabled='true'
+						className='inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-[10px] border border-[#cde9f4] bg-white px-4 typo-body2_semibold text-main-deep-blue/50 opacity-60'
 					>
 						<Sparkles size={15} />
 						템플릿
