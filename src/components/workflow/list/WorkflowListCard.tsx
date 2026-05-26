@@ -4,18 +4,18 @@ import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './Workflow
 
 type WorkflowListCardProps = {
 	workflow: WorkflowListItem
-	onOpen: () => void
+	onOpen: (workflowId: string) => void
 }
 
 const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps) => (
 	<article
 		role='button'
 		tabIndex={0}
-		onClick={onOpen}
+		onClick={() => onOpen(workflow.id)}
 		onKeyDown={event => {
 			if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault()
-				onOpen()
+				onOpen(workflow.id)
 			}
 		}}
 		className='group relative flex min-h-[148px] cursor-pointer flex-col gap-3 overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'

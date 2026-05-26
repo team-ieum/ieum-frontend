@@ -58,9 +58,9 @@ const WorkflowListPage = () => {
 						view={viewModel.view}
 						resultCount={viewModel.workflows.length}
 						totalCount={viewModel.totalCount}
-						onSearchChange={viewModel.setSearch}
-						onSortChange={viewModel.setSort}
-						onViewChange={viewModel.setView}
+						onSearchChange={viewModel.onSearchChange}
+						onSortChange={viewModel.onSortChange}
+						onViewChange={viewModel.onViewChange}
 					/>
 
 					<div className='mt-3'>

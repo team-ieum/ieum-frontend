@@ -4,7 +4,7 @@ import { CategoryPill, ServiceChain, StatusDot, TriggerPill } from './WorkflowLi
 
 type WorkflowListTableProps = {
 	workflows: WorkflowListItem[]
-	onOpen: (workflow: WorkflowListItem) => void
+	onOpen: (workflowId: string) => void
 }
 
 const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps) => (
@@ -26,7 +26,7 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps) => (
 					{workflows.map(workflow => (
 						<tr
 							key={workflow.id}
-							onClick={() => onOpen(workflow)}
+							onClick={() => onOpen(workflow.id)}
 							className='cursor-pointer bg-white transition-colors hover:bg-main-light-blue/35'
 						>
 							<td className='px-4 py-3'>
