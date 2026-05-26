@@ -1,13 +1,5 @@
 import { BookOpen, Code2, FileSpreadsheet, FileText, Globe, Hash, LayoutGrid, Mail, Sparkles, Webhook } from 'lucide-react'
-import type { IntegrationBrand } from '@/types/integration'
-
-export type IntegrationBrandConfig = {
-	bg: string
-	fg: string
-	tint: string
-	icon: React.ReactNode
-	label: string
-}
+import type { IntegrationBrand, IntegrationBrandConfig } from '../../types/integration'
 
 export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrandConfig> = {
 	slack: { bg: '#006a4e', fg: '#ffffff', tint: '#e8f5f0', icon: <Hash size={18} />, label: 'Slack' },
@@ -24,4 +16,4 @@ export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrand
 	google: { bg: '#4285f4', fg: '#ffffff', tint: '#e8f0fe', icon: <Globe size={18} />, label: 'Google' },
 }
 
-export const getBrandConfig = (brand: IntegrationBrand) => INTEGRATION_BRAND_CONFIG[brand]
+export const getBrandConfig = (brand: IntegrationBrand): IntegrationBrandConfig => INTEGRATION_BRAND_CONFIG[brand]

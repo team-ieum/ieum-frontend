@@ -1,23 +1,14 @@
 import { AlertTriangle, ChevronRight } from 'lucide-react'
-import { getBrandConfig } from '@/constants/integration/brandConfig'
-import type { IntegrationService } from '@/types/integration'
-import { cn } from '@/utils/cn'
-
-type IntegrationConnectedCardProps = {
-	service: IntegrationService
-	onManage: () => void
-}
-
-const STATUS_LABEL = {
-	connected: { text: '연결됨', className: 'bg-main-light-blue text-main-deep-blue' },
-	error: { text: '오류', className: 'bg-danger-100 text-danger-700' },
-	expired: { text: '만료됨', className: 'bg-neutral-100 text-neutral-600' },
-} as const
+import { getBrandConfig } from '../../constants/integration/brandConfig'
+import { INTEGRATION_STATUS_LABEL } from '../../constants/integration/statusLabels'
+import type { IntegrationConnectedCardProps } from '../../types/integration'
+import { toConnectedDisplayStatus } from '../../utils/integration/selectors'
+import { cn } from '../../utils/cn'
 
 const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCardProps) => {
 	const brand = getBrandConfig(service.brand)
-	const statusKey = service.status === 'available' ? 'connected' : service.status
-	const status = STATUS_LABEL[statusKey as keyof typeof STATUS_LABEL] ?? STATUS_LABEL.connected
+	const displayStatus = toConnectedDisplayStatus(service.status)
+	const status = INTEGRATION_STATUS_LABEL[displayStatus]
 
 	return (
 		<article

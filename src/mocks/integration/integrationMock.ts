@@ -1,6 +1,6 @@
-import type { IntegrationService } from '@/types/integration'
+import type { IntegrationData, IntegrationService } from '../../types/integration'
 
-export const INTEGRATION_SERVICES: IntegrationService[] = [
+const services: IntegrationService[] = [
 	{
 		id: 'slack',
 		name: 'Slack',
@@ -98,3 +98,8 @@ export const INTEGRATION_SERVICES: IntegrationService[] = [
 		desc: '파일 업로드 및 폴더 감시',
 	},
 ]
+
+export const integrationMock: IntegrationData = { services }
+
+/** @deprecated integrationMock.services 사용 권장 */
+export const INTEGRATION_SERVICES = services

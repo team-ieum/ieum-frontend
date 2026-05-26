@@ -1,12 +1,7 @@
 import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
-import { getBrandConfig } from '@/constants/integration/brandConfig'
-import type { IntegrationService } from '@/types/integration'
-import { cn } from '@/utils/cn'
-
-type IntegrationConnectedDetailProps = {
-	service: IntegrationService
-	onBack: () => void
-}
+import { getBrandConfig } from '../../constants/integration/brandConfig'
+import type { IntegrationConnectedDetailProps } from '../../types/integration'
+import { cn } from '../../utils/cn'
 
 const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
@@ -45,14 +40,10 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 					</span>
 				</div>
 
-				<div className='grid gap-6 border-t border-neutral-100 px-6 py-5 sm:grid-cols-2'>
+				<div className='border-t border-neutral-100 px-6 py-5'>
 					<dl className='m-0 flex flex-col gap-1'>
 						<dt className='typo-caption1_regular text-neutral-400'>연동 워크플로우</dt>
 						<dd className='typo-body2_semibold m-0 text-neutral-900'>{service.workflowCount ?? 0}개</dd>
-					</dl>
-					<dl className='m-0 flex flex-col gap-1'>
-						<dt className='typo-caption1_regular text-neutral-400'>마지막 동기화</dt>
-						<dd className='typo-body2_semibold m-0 text-neutral-900'>{service.lastSync ?? '–'}</dd>
 					</dl>
 				</div>
 
