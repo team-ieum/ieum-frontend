@@ -28,7 +28,6 @@ const router = createBrowserRouter([
 		element: <AuthPage />,
 	},
 	{
-		path: '/main',
 		element: <Layout />,
 		children: [
 			{
