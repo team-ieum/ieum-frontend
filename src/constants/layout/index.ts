@@ -25,7 +25,7 @@ export type CollabAvatar = {
 
 export const NAV_ITEMS: NavItem[] = [
 	{ id: 'dashboard', icon: LayoutDashboard, label: '대시보드', path: '/main' },
-	{ id: 'canvas', icon: Workflow, label: '워크플로우', path: '/workflow', count: 12 },
+	{ id: 'canvas', icon: Workflow, label: '워크플로우', path: '/workflow', count: 22 },
 	{ id: 'refs', icon: Blocks, label: '통합 설정', path: '/inter-setting' },
 	{ id: 'settings', icon: UserRoundCog, label: '계정 설정', path: '/user' },
 ]
