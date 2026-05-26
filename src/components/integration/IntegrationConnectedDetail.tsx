@@ -13,7 +13,7 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 	const isError = service.status === 'error'
 
 	return (
-		<div className='flex flex-col gap-6'>
+		<div className='flex flex-col gap-5'>
 			<button
 				type='button'
 				onClick={onBack}
@@ -73,8 +73,10 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 				)}
 
 				{isError && (
-					<div className='mx-6 mb-5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 py-3 typo-body3_regular text-danger-700'>
-						API 키가 만료되었거나 권한이 변경되었습니다. 재연결 후 워크플로우가 정상 동작합니다.
+					<div className='border-t border-neutral-100 px-6 py-4'>
+						<div className='rounded-brand-sm border border-danger-300 bg-danger-50 px-4 py-3 typo-body3_regular text-danger-700'>
+							API 키가 만료되었거나 권한이 변경되었습니다. 재연결 후 워크플로우가 정상 동작합니다.
+						</div>
 					</div>
 				)}
 
