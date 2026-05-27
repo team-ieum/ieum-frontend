@@ -14,15 +14,39 @@ export type WorkflowServiceId =
 	| 'zapier'
 	| 'asana'
 
-export type WorkflowCategoryId = 'cs' | 'marketing' | 'dev' | 'sales' | 'ops' | 'data'
+// prettier-ignore
+export type WorkflowCategoryId =
+	| 'cs'
+	| 'marketing'
+	| 'dev'
+	| 'sales'
+	| 'ops'
+	| 'data'
 
-export type WorkflowTriggerType = 'schedule' | 'webhook' | 'event' | 'manual'
+// prettier-ignore
+export type WorkflowTriggerType =
+	| 'schedule'
+	| 'webhook'
+	| 'event'
+	| 'manual'
 
-export type WorkflowStatus = 'active' | 'paused' | 'error'
+// prettier-ignore
+export type WorkflowStatus =
+	| 'active'
+	| 'paused'
+	| 'error'
 
-export type WorkflowSortKey = 'recent' | 'name' | 'runs' | 'status'
+// prettier-ignore
+export type WorkflowSortKey =
+	| 'recent'
+	| 'name'
+	| 'runs'
+	| 'status'
 
-export type WorkflowViewMode = 'card' | 'row'
+// prettier-ignore
+export type WorkflowViewMode =
+	| 'card'
+	| 'row'
 
 export type IsoDateString = string
 
