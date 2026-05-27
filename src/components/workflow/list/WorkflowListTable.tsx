@@ -25,23 +25,18 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): React
 				</thead>
 				<tbody className='divide-y divide-neutral-200'>
 					{workflows.map(workflow => (
-						<tr
-							key={workflow.id}
-							tabIndex={0}
-							onClick={() => onOpen(workflow.id)}
-							onKeyDown={event => {
-								if (event.key === 'Enter' || event.key === ' ') {
-									event.preventDefault()
-									onOpen(workflow.id)
-								}
-							}}
-							className='cursor-pointer bg-white transition-colors hover:bg-main-light-blue/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-inset'
-						>
+						<tr key={workflow.id} className='bg-white transition-colors hover:bg-main-light-blue/35'>
 							<td className='px-4 py-3'>
 								<StatusDot status={workflow.status} />
 							</td>
 							<td className='max-w-[240px] px-3 py-3'>
-								<div className='truncate typo-body2_semibold text-neutral-800'>{workflow.name}</div>
+								<button
+									type='button'
+									onClick={() => onOpen(workflow.id)}
+									className='block w-full truncate rounded text-left typo-body2_semibold text-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'
+								>
+									{workflow.name}
+								</button>
 							</td>
 							<td className='px-3 py-3'>
 								<ServiceChain services={workflow.services} size={24} max={5} showArrow={false} />

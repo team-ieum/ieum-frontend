@@ -128,6 +128,7 @@ const WorkflowListToolbar = ({
 					<button
 						type='button'
 						onClick={() => onViewChange('card')}
+						aria-pressed={view === 'card'}
 						title='카드 보기'
 						aria-label='카드 보기'
 						className={cn(
@@ -142,6 +143,7 @@ const WorkflowListToolbar = ({
 					<button
 						type='button'
 						onClick={() => onViewChange('row')}
+						aria-pressed={view === 'row'}
 						title='행 보기'
 						aria-label='행 보기'
 						className={cn(
