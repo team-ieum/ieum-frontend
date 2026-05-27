@@ -1,5 +1,5 @@
 import { Cable, Check, ChevronDown, ChevronUp, Circle, ListFilter, Tag, X } from 'lucide-react'
-import { useState, type ReactElement, type ReactNode } from 'react'
+import { useId, useState, type ReactElement, type ReactNode } from 'react'
 import {
 	WORKFLOW_CATEGORIES,
 	WORKFLOW_SERVICES,
@@ -32,12 +32,15 @@ type FilterGroupProps = {
 
 const FilterGroup = ({ icon, title, count, defaultOpen = true, children }: FilterGroupProps): ReactElement => {
 	const [isOpen, setIsOpen] = useState(defaultOpen)
+	const contentId = useId()
 
 	return (
 		<section className='border-b border-neutral-200 py-3 last:border-b-0'>
 			<button
 				type='button'
 				onClick={() => setIsOpen(prev => !prev)}
+				aria-expanded={isOpen}
+				aria-controls={contentId}
 				className='flex w-full items-center gap-2 rounded-lg px-1 py-1 text-left text-neutral-700 transition-colors hover:bg-neutral-50'
 			>
 				<span className='text-neutral-400'>{icon}</span>
@@ -49,7 +52,9 @@ const FilterGroup = ({ icon, title, count, defaultOpen = true, children }: Filte
 					<ChevronDown size={16} className='text-neutral-400' />
 				)}
 			</button>
-			{isOpen && <div className='mt-2 flex flex-col gap-1'>{children}</div>}
+			<div id={contentId} hidden={!isOpen} className='mt-2 flex flex-col gap-1'>
+				{children}
+			</div>
 		</section>
 	)
 }
