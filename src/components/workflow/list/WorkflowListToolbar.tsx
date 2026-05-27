@@ -1,5 +1,5 @@
 import { Check, ChevronDown, LayoutGrid, List, Search } from 'lucide-react'
-import { useState, type KeyboardEvent, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactElement } from 'react'
 import { WORKFLOW_SORT_OPTIONS } from '@/constants/workflow/workflowList'
 import type { WorkflowSortKey, WorkflowViewMode } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
@@ -28,9 +28,35 @@ const WorkflowListToolbar = ({
 	onViewChange,
 }: WorkflowListToolbarProps): ReactElement => {
 	const [isSortOpen, setIsSortOpen] = useState(false)
+	const sortContainerRef = useRef<HTMLDivElement>(null)
 	const currentSort = WORKFLOW_SORT_OPTIONS.find(option => option.id === sort) ?? WORKFLOW_SORT_OPTIONS[0]
+
+	useEffect(() => {
+		if (!isSortOpen) {
+			return
+		}
+
+		const handleDocumentMouseDown = (event: MouseEvent): void => {
+			if (!sortContainerRef.current?.contains(event.target as Node)) {
+				setIsSortOpen(false)
+			}
+		}
+
+		document.addEventListener('mousedown', handleDocumentMouseDown)
+
+		return () => {
+			document.removeEventListener('mousedown', handleDocumentMouseDown)
+		}
+	}, [isSortOpen])
+
 	const handleSortKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
 		if (event.key === 'Escape') {
+			setIsSortOpen(false)
+		}
+	}
+
+	const handleSortBlur = (event: FocusEvent<HTMLDivElement>): void => {
+		if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
 			setIsSortOpen(false)
 		}
 	}
@@ -52,7 +78,7 @@ const WorkflowListToolbar = ({
 			</span>
 
 			<div className='flex flex-wrap items-center gap-2 xl:ml-auto'>
-				<div className='relative' onKeyDown={handleSortKeyDown}>
+				<div ref={sortContainerRef} className='relative' onKeyDown={handleSortKeyDown} onBlur={handleSortBlur}>
 					<button
 						type='button'
 						onClick={() => setIsSortOpen(prev => !prev)}
