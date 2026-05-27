@@ -1,6 +1,11 @@
 import { Cable, Check, ChevronDown, ChevronUp, Circle, ListFilter, Tag, X } from 'lucide-react'
 import { useState, type ReactElement, type ReactNode } from 'react'
-import { WORKFLOW_CATEGORIES, WORKFLOW_SERVICES, WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import {
+	WORKFLOW_CATEGORIES,
+	WORKFLOW_SERVICES,
+	WORKFLOW_STATUS_META,
+	WORKFLOW_STATUS_ORDER,
+} from '@/constants/workflow/workflowList'
 import type { WorkflowCategoryId, WorkflowListFilters, WorkflowServiceId, WorkflowStatus } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 import { ServiceLogo, StatusDot } from './WorkflowListPrimitives'
@@ -61,6 +66,7 @@ const FilterRow = ({ active, label, count, leading, onClick }: FilterRowProps): 
 	<button
 		type='button'
 		onClick={onClick}
+		aria-pressed={active}
 		className={cn(
 			'flex min-h-9 w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
 			active ? 'bg-main-light-blue text-main-deep-blue' : 'text-neutral-600 hover:bg-neutral-50'
@@ -79,8 +85,6 @@ const FilterRow = ({ active, label, count, leading, onClick }: FilterRowProps): 
 		<span className='typo-caption1_regular text-neutral-400'>{count}</span>
 	</button>
 )
-
-const statusOrder: WorkflowStatus[] = ['active', 'paused', 'error']
 
 const WorkflowFilterSidebar = ({
 	filters,
@@ -143,8 +147,8 @@ const WorkflowFilterSidebar = ({
 		</FilterGroup>
 
 		{/* 상태 */}
-		<FilterGroup icon={<Circle size={16} />} title='상태' count={statusOrder.length}>
-			{statusOrder.map(status => (
+		<FilterGroup icon={<Circle size={16} />} title='상태' count={WORKFLOW_STATUS_ORDER.length}>
+			{WORKFLOW_STATUS_ORDER.map(status => (
 				<FilterRow
 					key={status}
 					active={filters.statuses.includes(status)}

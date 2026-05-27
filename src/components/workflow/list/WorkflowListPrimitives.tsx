@@ -6,13 +6,7 @@ import {
 	WORKFLOW_STATUS_META,
 	WORKFLOW_TRIGGER_META,
 } from '@/constants/workflow/workflowList'
-import type {
-	WorkflowCategoryId,
-	WorkflowListItem,
-	WorkflowServiceId,
-	WorkflowStatus,
-	WorkflowTriggerType,
-} from '@/types/workflowList'
+import type { WorkflowCategoryId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 type ServiceLogoProps = {
@@ -161,74 +155,3 @@ export const WorkflowTagChip = ({ children }: WorkflowTagChipProps): ReactElemen
 		#{children}
 	</span>
 )
-
-const createSparklineValues = (workflow: WorkflowListItem): number[] => {
-	let hash = 0
-
-	for (let index = 0; index < workflow.id.length; index += 1) {
-		hash = (hash * 31 + workflow.id.charCodeAt(index)) & 0xffff
-	}
-
-	const base = Math.max(1, workflow.runs / 30)
-
-	return Array.from({ length: 7 }, (_, index) => {
-		hash = (hash * 9301 + 49297) & 0xffff
-		const noise = (hash % 1000) / 1000
-		let value = base * (0.45 + noise * 1.3)
-
-		if (workflow.status === 'paused' && index > 3) {
-			value = 0
-		}
-
-		if (workflow.status === 'error' && index === 6) {
-			value = base * 0.15
-		}
-
-		return Math.max(0, value)
-	})
-}
-
-const getSuccessColor = (workflow: WorkflowListItem): string => {
-	if (workflow.status === 'error') {
-		return '#EC2D30'
-	}
-
-	if (workflow.status === 'paused') {
-		return '#959595'
-	}
-
-	if (workflow.success >= 99) {
-		return '#006A4E'
-	}
-
-	if (workflow.success >= 95) {
-		return '#007BA7'
-	}
-
-	return '#B58900'
-}
-
-type WorkflowSparklineProps = {
-	workflow: WorkflowListItem
-	width?: number
-	height?: number
-}
-
-export const WorkflowSparkline = ({ workflow, width = 72, height = 24 }: WorkflowSparklineProps): ReactElement => {
-	const values = createSparklineValues(workflow)
-	const max = Math.max(1, ...values)
-	const stepX = values.length > 1 ? width / (values.length - 1) : width
-	const points = values.map((value, index) => [index * stepX, height - (value / max) * (height - 4) - 2])
-	const path = `M ${points.map(point => point.map(value => value.toFixed(1)).join(' ')).join(' L ')}`
-	const areaPath = `${path} L ${width} ${height} L 0 ${height} Z`
-	const color = getSuccessColor(workflow)
-	const lastPoint = points[points.length - 1]
-
-	return (
-		<svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className='shrink-0' aria-hidden='true'>
-			<path d={areaPath} fill={color} fillOpacity='0.13' />
-			<path d={path} stroke={color} strokeWidth='1.7' fill='none' strokeLinejoin='round' strokeLinecap='round' />
-			{lastPoint && <circle cx={lastPoint[0]} cy={lastPoint[1]} r='2.4' fill={color} />}
-		</svg>
-	)
-}

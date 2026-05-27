@@ -29,14 +29,15 @@ const WorkflowListPage = (): ReactElement => {
 						className='inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-[10px] border border-[#cde9f4] bg-white px-4 typo-body2_semibold text-main-deep-blue/50 opacity-60'
 					>
 						<Sparkles size={15} />
-						템플릿
+						<span>템플릿</span>
 					</button>
 					<button
 						type='button'
 						onClick={viewModel.handleCreateWorkflow}
 						className='inline-flex h-10 items-center gap-2 rounded-[10px] bg-main-deep-blue px-4 typo-body2_semibold text-white shadow-[0_8px_18px_-10px_rgba(41,83,124,.7)] transition-opacity hover:opacity-90'
 					>
-						<Plus size={16} />새 워크플로우
+						<Plus size={16} />
+						<span>새 워크플로우</span>
 					</button>
 				</div>
 			</header>

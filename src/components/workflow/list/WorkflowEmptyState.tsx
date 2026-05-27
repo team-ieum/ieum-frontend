@@ -22,14 +22,15 @@ const WorkflowEmptyState = ({ onReset, onCreate }: WorkflowEmptyStateProps): Rea
 				className='inline-flex h-10 items-center gap-2 rounded-[10px] border border-neutral-200 bg-white px-4 typo-body2_semibold text-neutral-700 transition-colors hover:bg-neutral-50'
 			>
 				<RotateCcw size={15} />
-				필터 초기화
+				<span>필터 초기화</span>
 			</button>
 			<button
 				type='button'
 				onClick={onCreate}
 				className='inline-flex h-10 items-center gap-2 rounded-[10px] bg-main-deep-blue px-4 typo-body2_semibold text-white transition-opacity hover:opacity-90'
 			>
-				<Sparkles size={15} />새 워크플로우
+				<Sparkles size={15} />
+				<span>새 워크플로우</span>
 			</button>
 		</div>
 	</div>
