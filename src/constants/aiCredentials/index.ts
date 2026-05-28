@@ -9,10 +9,7 @@ export const AI_PROVIDERS: AiProvider[] = [
 		brand: '#10A37F',
 		tint: '#E6F4EE',
 		state: {
-			apikey: {
-				status: 'connected',
-				masked: 'sk-proj-••••••••••••••••••••••••••••AC9k',
-			},
+			apikey: { status: 'empty' },
 		},
 	},
 	{
@@ -35,10 +32,7 @@ export const AI_PROVIDERS: AiProvider[] = [
 		brand: '#4285F4',
 		tint: '#E8F0FE',
 		state: {
-			oauth: {
-				status: 'connected',
-				account: 'admin@company.com',
-			},
+			oauth: { status: 'empty' },
 		},
 	},
 	{
