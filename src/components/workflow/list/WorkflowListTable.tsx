@@ -19,7 +19,6 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): React
 						<th className='px-3 py-3'>사용 서비스</th>
 						<th className='px-3 py-3'>카테고리</th>
 						<th className='px-3 py-3'>트리거</th>
-						<th className='px-3 py-3 text-right'>실행 수</th>
 						<th className='w-10 px-4 py-3' />
 					</tr>
 				</thead>
@@ -46,9 +45,6 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): React
 							</td>
 							<td className='px-3 py-3'>
 								<TriggerPill trigger={workflow.trigger} />
-							</td>
-							<td className='px-3 py-3 text-right typo-body3_semibold text-neutral-700'>
-								{workflow.runs.toLocaleString('ko-KR')}
 							</td>
 							<td className='px-4 py-3 text-neutral-400'>
 								<ChevronRight size={17} />

@@ -40,7 +40,6 @@ export type WorkflowStatus =
 export type WorkflowSortKey =
 	| 'recent'
 	| 'name'
-	| 'runs'
 	| 'status'
 
 // prettier-ignore
@@ -66,7 +65,6 @@ export type WorkflowListItem = {
 	status: WorkflowStatus
 	trigger: WorkflowTriggerType
 	lastRun: IsoDateString
-	runs: number
 	success: number
 }
 
