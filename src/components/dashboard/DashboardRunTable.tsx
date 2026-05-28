@@ -1,10 +1,13 @@
 import { useDashboardRunLogs } from '../../hooks/dashboard/useDashboardRunLogs'
-import type { DashboardTriggerChipProps } from '../../types/dashboard'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 import DashboardStatusBadge from './DashboardStatusBadge'
 
 const TABLE_HEADERS = ['실행 ID', '워크플로우', '상태', '소요 시간', '트리거', '시각'] as const
+
+type DashboardTriggerChipProps = {
+	kind: string
+}
 
 const TriggerChip = ({ kind }: DashboardTriggerChipProps) => (
 	<span className='inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 typo-caption1_medium text-neutral-600'>
