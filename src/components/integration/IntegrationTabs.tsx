@@ -1,7 +1,15 @@
 import { INTEGRATION_PAGE_X } from '../../constants/integration/layout'
 import { INTEGRATION_TABS } from '../../constants/integration/statusLabels'
-import type { IntegrationTabsProps } from '../../types/integration'
+import type { IntegrationTabId, IntegrationView } from '../../types/integration'
 import { cn } from '../../utils/cn'
+
+type IntegrationTabsProps = {
+	active: IntegrationTabId
+	onChange: (tab: IntegrationTabId) => void
+	view: IntegrationView
+	connectedCount: number
+	availableCount: number
+}
 
 const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount }: IntegrationTabsProps) => (
 	<div
