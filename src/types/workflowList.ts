@@ -1,5 +1,3 @@
-import { type LucideIcon } from 'lucide-react'
-
 export type WorkflowServiceId =
 	| 'google'
 	| 'slack'
@@ -103,7 +101,6 @@ export type WorkflowStatusMeta = {
 
 export type WorkflowTriggerMeta = {
 	label: string
-	icon: LucideIcon
 }
 
 export type WorkflowSortOption = {

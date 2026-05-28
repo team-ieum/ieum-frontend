@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, History, Rocket, Sparkles, Webhook, type LucideIcon } from 'lucide-react'
 import type { ReactElement } from 'react'
 import {
 	WORKFLOW_CATEGORY_META,
@@ -130,18 +130,24 @@ export const CategoryPill = ({ category, count }: CategoryPillProps): ReactEleme
 	)
 }
 
+const TRIGGER_ICON: Record<WorkflowTriggerType, LucideIcon> = {
+	schedule: History,
+	webhook: Webhook,
+	event: Sparkles,
+	manual: Rocket,
+}
+
 type TriggerPillProps = {
 	trigger: WorkflowTriggerType
 }
 
 export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => {
-	const triggerMeta = WORKFLOW_TRIGGER_META[trigger]
-	const Icon = triggerMeta.icon
+	const Icon = TRIGGER_ICON[trigger]
 
 	return (
 		<span className='inline-flex items-center gap-1.5 typo-caption1_regular text-neutral-500'>
 			<Icon size={14} />
-			{triggerMeta.label}
+			{WORKFLOW_TRIGGER_META[trigger].label}
 		</span>
 	)
 }
