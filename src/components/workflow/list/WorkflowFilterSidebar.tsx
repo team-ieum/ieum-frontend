@@ -1,4 +1,4 @@
-import { Cable, Check, ChevronDown, ChevronUp, Circle, ListFilter, Tag, X } from 'lucide-react'
+import { Cable, Check, ChevronDown, Circle, ListFilter, Tag, X } from 'lucide-react'
 import { useId, useState, type ReactElement, type ReactNode } from 'react'
 import {
 	WORKFLOW_CATEGORIES,
@@ -46,11 +46,7 @@ const FilterGroup = ({ icon, title, count, defaultOpen = true, children }: Filte
 				<span className='text-neutral-400'>{icon}</span>
 				<span className='flex-1 typo-body3_semibold'>{title}</span>
 				<span className='typo-caption1_regular text-neutral-400'>{count}</span>
-				{isOpen ? (
-					<ChevronUp size={16} className='text-neutral-400' />
-				) : (
-					<ChevronDown size={16} className='text-neutral-400' />
-				)}
+				<ChevronDown size={16} className={cn('text-neutral-400 transition-transform', isOpen && 'rotate-180')} />
 			</button>
 			<div id={contentId} hidden={!isOpen} className='mt-2 flex flex-col gap-1'>
 				{children}
