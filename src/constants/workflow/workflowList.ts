@@ -1,41 +1,15 @@
-import { History, Rocket, Sparkles, Webhook, type LucideIcon } from 'lucide-react'
+import { History, Rocket, Sparkles, Webhook } from 'lucide-react'
 import type {
 	WorkflowCategoryId,
+	WorkflowCategoryMeta,
 	WorkflowServiceId,
-	WorkflowSortKey,
+	WorkflowServiceMeta,
+	WorkflowSortOption,
 	WorkflowStatus,
+	WorkflowStatusMeta,
+	WorkflowTriggerMeta,
 	WorkflowTriggerType,
 } from '@/types/workflowList'
-
-export type WorkflowServiceMeta = {
-	id: WorkflowServiceId
-	name: string
-	initial: string
-	color: string
-	foreground: string
-}
-
-export type WorkflowCategoryMeta = {
-	id: WorkflowCategoryId
-	label: string
-	color: string
-}
-
-export type WorkflowStatusMeta = {
-	label: string
-	toneClass: string
-	dotColor: string
-}
-
-export type WorkflowTriggerMeta = {
-	label: string
-	icon: LucideIcon
-}
-
-export type WorkflowSortOption = {
-	id: WorkflowSortKey
-	label: string
-}
 
 export const WORKFLOW_SERVICE_META: Record<WorkflowServiceId, WorkflowServiceMeta> = {
 	google: { id: 'google', name: 'Google', initial: 'G', color: '#4285F4', foreground: '#ffffff' },

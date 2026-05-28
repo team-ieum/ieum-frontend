@@ -17,31 +17,8 @@ import type {
 	WorkflowSortKey,
 	WorkflowStatus,
 	WorkflowViewMode,
+	WorkflowListViewModel,
 } from '@/types/workflowList'
-
-export type WorkflowListViewModel = {
-	search: string
-	sort: WorkflowSortKey
-	view: WorkflowViewMode
-	filters: WorkflowListFilters
-	workflows: WorkflowListItem[]
-	activeFilters: WorkflowActiveFilter[]
-	activeFilterCount: number
-	totalCount: number
-	serviceCounts: Record<WorkflowServiceId, number>
-	categoryCounts: Record<WorkflowCategoryId, number>
-	statusCounts: Record<WorkflowStatus, number>
-	toggleService: (serviceId: WorkflowServiceId) => void
-	toggleCategory: (categoryId: WorkflowCategoryId) => void
-	toggleStatus: (status: WorkflowStatus) => void
-	removeFilter: (filter: WorkflowActiveFilter) => void
-	clearFilters: () => void
-	onSearchChange: (value: string) => void
-	onSortChange: (value: WorkflowSortKey) => void
-	onViewChange: (value: WorkflowViewMode) => void
-	handleCreateWorkflow: () => void
-	handleOpenWorkflow: (workflowId: string) => void
-}
 
 const createEmptyFilters = (): WorkflowListFilters => ({
 	services: [],
