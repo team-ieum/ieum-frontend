@@ -36,3 +36,4 @@ build
 
 # TypeScript incremental build info
 *.tsbuildinfo
+.serena
