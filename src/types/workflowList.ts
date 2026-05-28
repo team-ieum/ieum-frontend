@@ -69,3 +69,12 @@ export type WorkflowListItem = {
 	runs: number
 	success: number
 }
+
+export type WorkflowActiveFilter = {
+	kind: keyof WorkflowListFilters
+	id: string
+	label: string
+	color?: string
+	serviceId?: WorkflowServiceId
+	status?: WorkflowStatus
+}
