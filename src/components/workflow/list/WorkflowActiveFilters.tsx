@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import type { ReactElement } from 'react'
-import type { WorkflowActiveFilter } from '@/hooks/workflow/useWorkflowListViewModel'
+import type { WorkflowActiveFilter } from '@/types/workflowList'
 import { ServiceLogo, StatusDot } from './WorkflowListPrimitives'
 
 type WorkflowActiveFiltersProps = {

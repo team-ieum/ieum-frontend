@@ -1,5 +1,6 @@
 import { MoreHorizontal } from 'lucide-react'
 import type { ReactElement } from 'react'
+import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import type { WorkflowListItem } from '@/types/workflowList'
 import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './WorkflowListPrimitives'
 
@@ -19,9 +20,7 @@ const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps): ReactEle
 		</button>
 		<span
 			className='absolute inset-y-0 left-0 w-1'
-			style={{
-				backgroundColor: workflow.status === 'error' ? '#EC2D30' : workflow.status === 'paused' ? '#959595' : '#006A4E',
-			}}
+			style={{ backgroundColor: WORKFLOW_STATUS_META[workflow.status].dotColor }}
 		/>
 
 		<div className='pointer-events-none relative z-20 flex flex-1 flex-col gap-3'>

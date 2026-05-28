@@ -97,7 +97,6 @@ const WorkflowListToolbar = ({
 							role='menu'
 							tabIndex={-1}
 							className='absolute right-0 top-[calc(100%+6px)] z-20 w-40 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
-							onMouseLeave={() => setIsSortOpen(false)}
 						>
 							{WORKFLOW_SORT_OPTIONS.map(option => (
 								<button

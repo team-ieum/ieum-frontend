@@ -9,6 +9,7 @@ import {
 } from '@/constants/workflow/workflowList'
 import { WORKFLOW_LIST } from '@/mocks/workflow/workflowListMock'
 import type {
+	WorkflowActiveFilter,
 	WorkflowCategoryId,
 	WorkflowListFilters,
 	WorkflowListItem,
@@ -17,15 +18,6 @@ import type {
 	WorkflowStatus,
 	WorkflowViewMode,
 } from '@/types/workflowList'
-
-export type WorkflowActiveFilter = {
-	kind: keyof WorkflowListFilters
-	id: string
-	label: string
-	color?: string
-	serviceId?: WorkflowServiceId
-	status?: WorkflowStatus
-}
 
 export type WorkflowListViewModel = {
 	search: string
