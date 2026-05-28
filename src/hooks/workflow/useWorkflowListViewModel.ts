@@ -184,8 +184,8 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	}, [navigate])
 
 	const handleOpenWorkflow = useCallback(
-		(workflowId: string) => {
-			navigate(`/workflow/${workflowId}`)
+		(workflowId: string, workflowName: string) => {
+			navigate(`/workflow/${workflowId}`, { state: { name: workflowName } })
 		},
 		[navigate]
 	)

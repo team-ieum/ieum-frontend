@@ -7,14 +7,14 @@ import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './Workflow
 
 type WorkflowListCardProps = {
 	workflow: WorkflowListItem
-	onOpen: (workflowId: string) => void
+	onOpen: (workflowId: string, workflowName: string) => void
 }
 
 const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps): ReactElement => (
 	<article className='group relative flex min-h-[148px] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)]'>
 		<button
 			type='button'
-			onClick={() => onOpen(workflow.id)}
+			onClick={() => onOpen(workflow.id, workflow.name)}
 			className='absolute inset-0 z-10 cursor-pointer rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'
 		>
 			<span className='sr-only'>{workflow.name} 열기</span>

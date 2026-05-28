@@ -5,7 +5,7 @@ import { CategoryPill, ServiceChain, StatusDot, TriggerPill } from './WorkflowLi
 
 type WorkflowListTableProps = {
 	workflows: WorkflowListItem[]
-	onOpen: (workflowId: string) => void
+	onOpen: (workflowId: string, workflowName: string) => void
 }
 
 const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): ReactElement => (
@@ -31,7 +31,7 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): React
 							<td className='max-w-[240px] px-3 py-3'>
 								<button
 									type='button'
-									onClick={() => onOpen(workflow.id)}
+									onClick={() => onOpen(workflow.id, workflow.name)}
 									className='block w-full truncate rounded text-left typo-body2_semibold text-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'
 								>
 									{workflow.name}
