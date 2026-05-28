@@ -21,10 +21,7 @@ const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCar
 			style={{ background: `linear-gradient(180deg, ${brand.tint} 0%, #fff 42%)` }}
 		>
 			<div className='flex items-start gap-3 p-4'>
-				<span
-					className='grid h-10 w-10 shrink-0 place-items-center rounded-xl'
-					style={{ background: brand.bg, color: brand.fg }}
-				>
+				<span className='grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-white text-neutral-900'>
 					{brand.icon}
 				</span>
 				<div className='min-w-0 flex-1'>

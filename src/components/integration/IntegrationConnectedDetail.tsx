@@ -24,11 +24,8 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 			</button>
 
 			<div className='overflow-hidden rounded-brand-md border border-neutral-200 bg-neutral-white shadow-sm'>
-				<div className='flex flex-wrap items-center gap-4 px-6 py-5' style={{ background: brand.tint }}>
-					<span
-						className='grid h-12 w-12 place-items-center rounded-xl'
-						style={{ background: brand.bg, color: brand.fg }}
-					>
+				<div className='flex flex-wrap items-center gap-4 px-6 py-5'>
+					<span className='grid h-12 w-12 place-items-center rounded-xl bg-neutral-white text-neutral-900'>
 						{brand.icon}
 					</span>
 					<div className='min-w-0 flex-1'>
