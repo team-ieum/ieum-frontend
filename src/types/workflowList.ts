@@ -128,5 +128,5 @@ export type WorkflowListViewModel = {
 	onSortChange: (value: WorkflowSortKey) => void
 	onViewChange: (value: WorkflowViewMode) => void
 	handleCreateWorkflow: () => void
-	handleOpenWorkflow: (workflowId: string) => void
+	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
 }
