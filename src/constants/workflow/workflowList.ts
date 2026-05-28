@@ -74,6 +74,5 @@ export const WORKFLOW_STATUS_ORDER: WorkflowStatus[] = ['error', 'active', 'paus
 export const WORKFLOW_SORT_OPTIONS: WorkflowSortOption[] = [
 	{ id: 'recent', label: '기본순' },
 	{ id: 'name', label: '이름순' },
-	{ id: 'runs', label: '실행 수' },
 	{ id: 'status', label: '상태순' },
 ]

@@ -19,7 +19,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(2 * MINUTE_MS),
-		runs: 1284,
 		success: 99.2,
 	},
 	{
@@ -32,7 +31,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(14 * MINUTE_MS),
-		runs: 487,
 		success: 98.6,
 	},
 	{
@@ -45,7 +43,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(3 * DAY_MS),
-		runs: 38,
 		success: 100,
 	},
 	{
@@ -58,7 +55,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(38 * MINUTE_MS),
-		runs: 2102,
 		success: 99.7,
 	},
 	{
@@ -71,7 +67,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'paused',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(2 * DAY_MS),
-		runs: 612,
 		success: 97.4,
 	},
 	{
@@ -84,7 +79,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(5 * MINUTE_MS),
-		runs: 894,
 		success: 99.1,
 	},
 	{
@@ -97,7 +91,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(7 * DAY_MS),
-		runs: 12,
 		success: 100,
 	},
 	{
@@ -110,7 +103,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'error',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(HOUR_MS),
-		runs: 156,
 		success: 84,
 	},
 	{
@@ -123,7 +115,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(30 * SECOND_MS),
-		runs: 3401,
 		success: 99.8,
 	},
 	{
@@ -136,7 +127,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(22 * MINUTE_MS),
-		runs: 218,
 		success: 96.3,
 	},
 	{
@@ -149,7 +139,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(27 * HOUR_MS),
-		runs: 142,
 		success: 99.3,
 	},
 	{
@@ -162,7 +151,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(HOUR_MS),
-		runs: 743,
 		success: 98.9,
 	},
 	{
@@ -175,7 +163,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'paused',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(5 * DAY_MS),
-		runs: 28,
 		success: 92.8,
 	},
 	{
@@ -188,7 +175,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'webhook',
 		lastRun: createLastRunIso(3 * MINUTE_MS),
-		runs: 5817,
 		success: 99.9,
 	},
 	{
@@ -201,7 +187,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'error',
 		trigger: 'event',
 		lastRun: createLastRunIso(12 * MINUTE_MS),
-		runs: 89,
 		success: 78.6,
 	},
 	{
@@ -214,7 +199,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(4 * HOUR_MS),
-		runs: 421,
 		success: 97.6,
 	},
 	{
@@ -227,7 +211,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'paused',
 		trigger: 'event',
 		lastRun: createLastRunIso(11 * DAY_MS),
-		runs: 9,
 		success: 100,
 	},
 	{
@@ -240,7 +223,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(6 * HOUR_MS),
-		runs: 64,
 		success: 98.4,
 	},
 	{
@@ -253,7 +235,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'event',
 		lastRun: createLastRunIso(47 * MINUTE_MS),
-		runs: 268,
 		success: 99,
 	},
 	{
@@ -266,7 +247,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(3 * DAY_MS),
-		runs: 31,
 		success: 100,
 	},
 	{
@@ -279,7 +259,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'active',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(DAY_MS),
-		runs: 86,
 		success: 100,
 	},
 	{
@@ -292,7 +271,6 @@ export const WORKFLOW_LIST: WorkflowListItem[] = [
 		status: 'paused',
 		trigger: 'schedule',
 		lastRun: createLastRunIso(14 * DAY_MS),
-		runs: 18,
 		success: 100,
 	},
 ]

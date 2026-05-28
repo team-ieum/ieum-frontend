@@ -83,8 +83,6 @@ const sortWorkflows = (workflows: WorkflowListItem[], sort: WorkflowSortKey): Wo
 	switch (sort) {
 		case 'name':
 			return sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
-		case 'runs':
-			return sorted.sort((a, b) => b.runs - a.runs)
 		case 'status':
 			return sorted.sort((a, b) => WORKFLOW_STATUS_ORDER.indexOf(a.status) - WORKFLOW_STATUS_ORDER.indexOf(b.status))
 		case 'recent':
