@@ -1,19 +1,35 @@
-import { BookOpen, Code2, FileSpreadsheet, FileText, Globe, Hash, LayoutGrid, Mail, Sparkles, Webhook } from 'lucide-react'
 import type { IntegrationBrand, IntegrationBrandConfig } from '../../types/integration'
 
+import AirtableIcon from '../../assets/serviceIcon/airtable.png'
+import GithubIcon from '../../assets/serviceIcon/github.png'
+import GmailIcon from '../../assets/serviceIcon/gmail.png'
+import JiraIcon from '../../assets/serviceIcon/jira.png'
+import LinearIcon from '../../assets/serviceIcon/linear.png'
+import NotionIcon from '../../assets/serviceIcon/notion.png'
+import OpenaiIcon from '../../assets/serviceIcon/openai.png'
+import GoogleSheetsIcon from '../../assets/serviceIcon/googlesheets.png'
+import SlackIcon from '../../assets/serviceIcon/slack.png'
+import WebhookIcon from '../../assets/serviceIcon/webhook.png'
+import DiscordIcon from '../../assets/serviceIcon/discord.png'
+import GoogleDriveIcon from '../../assets/serviceIcon/googledrive.png'
+
+const brandLogo = (src: string, alt: string) => (
+	<img src={src} alt={alt} className='h-[24px] w-[24px] object-contain' loading='lazy' />
+)
+
 export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrandConfig> = {
-	slack: { bg: '#006a4e', fg: '#ffffff', tint: '#e8f5f0', icon: <Hash size={18} />, label: 'Slack' },
-	notion: { bg: '#111111', fg: '#ffffff', tint: '#f0f0f0', icon: <FileText size={18} />, label: 'Notion' },
-	github: { bg: '#24292f', fg: '#ffffff', tint: '#eef0f2', icon: <Code2 size={18} />, label: 'GitHub' },
-	openai: { bg: '#0c1117', fg: '#ffffff', tint: '#e8eaed', icon: <Sparkles size={18} />, label: 'OpenAI' },
-	gmail: { bg: '#c5221f', fg: '#ffffff', tint: '#fce8e6', icon: <Mail size={18} />, label: 'Gmail' },
-	sheets: { bg: '#0f9d58', fg: '#ffffff', tint: '#e6f4ea', icon: <FileSpreadsheet size={18} />, label: 'Sheets' },
-	jira: { bg: '#0052cc', fg: '#ffffff', tint: '#e8f0fe', icon: <LayoutGrid size={18} />, label: 'Jira' },
-	webhook: { bg: '#4f5d75', fg: '#ffffff', tint: '#eef0f3', icon: <Webhook size={18} />, label: 'Webhook' },
-	airtable: { bg: '#fcb400', fg: '#3f2e00', tint: '#fff8e1', icon: <BookOpen size={18} />, label: 'Airtable' },
-	discord: { bg: '#5865f2', fg: '#ffffff', tint: '#eef0ff', icon: <Globe size={18} />, label: 'Discord' },
-	linear: { bg: '#5e6ad2', fg: '#ffffff', tint: '#eef0ff', icon: <LayoutGrid size={18} />, label: 'Linear' },
-	google: { bg: '#4285f4', fg: '#ffffff', tint: '#e8f0fe', icon: <Globe size={18} />, label: 'Google' },
+	slack: { tint: '#e8f5f0', icon: brandLogo(SlackIcon, 'Slack 로고'), label: 'Slack' },
+	notion: { tint: '#f0f0f0', icon: brandLogo(NotionIcon, 'Notion 로고'), label: 'Notion' },
+	github: { tint: '#eef0f2', icon: brandLogo(GithubIcon, 'GitHub 로고'), label: 'GitHub' },
+	openai: { tint: '#e8eaed', icon: brandLogo(OpenaiIcon, 'OpenAI 로고'), label: 'OpenAI' },
+	gmail: { tint: '#fce8e6', icon: brandLogo(GmailIcon, 'Gmail 로고'), label: 'Gmail' },
+	sheets: { tint: '#e6f4ea', icon: brandLogo(GoogleSheetsIcon, 'Google Sheets 로고'), label: 'Sheets' },
+	jira: { tint: '#e8f0fe', icon: brandLogo(JiraIcon, 'Jira 로고'), label: 'Jira' },
+	webhook: { tint: '#eef0f3', icon: brandLogo(WebhookIcon, 'Webhook 로고'), label: 'Webhook' },
+	airtable: { tint: '#fff8e1', icon: brandLogo(AirtableIcon, 'Airtable 로고'), label: 'Airtable' },
+	discord: { tint: '#eef0ff', icon: brandLogo(DiscordIcon, 'Discord 로고'), label: 'Discord' },
+	linear: { tint: '#eef0ff', icon: brandLogo(LinearIcon, 'Linear 로고'), label: 'Linear' },
+	google: { tint: '#e8f0fe', icon: brandLogo(GoogleDriveIcon, 'Google Drive 로고'), label: 'Google' },
 }
 
 export const getBrandConfig = (brand: IntegrationBrand): IntegrationBrandConfig => INTEGRATION_BRAND_CONFIG[brand]

@@ -51,8 +51,6 @@ export type IntegrationStatusLabelConfig = {
 }
 
 export type IntegrationBrandConfig = {
-	bg: string
-	fg: string
 	tint: string
 	icon: ReactNode
 	label: string

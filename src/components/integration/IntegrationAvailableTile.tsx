@@ -12,10 +12,7 @@ const IntegrationAvailableTile = ({ service }: IntegrationAvailableTileProps) =>
 	return (
 		<article className='flex h-full w-full min-w-0 flex-col gap-3 rounded-brand-md border border-neutral-200 bg-neutral-white p-4 transition-shadow hover:shadow-sm'>
 			<div className='flex items-start gap-3'>
-				<span
-					className='grid h-9 w-9 shrink-0 place-items-center rounded-lg'
-					style={{ background: brand.bg, color: brand.fg }}
-				>
+				<span className='grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-neutral-white text-neutral-900'>
 					{brand.icon}
 				</span>
 				<div className='min-w-0 flex-1'>
