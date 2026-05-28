@@ -1,4 +1,3 @@
-import { History, Rocket, Sparkles, Webhook } from 'lucide-react'
 import type {
 	WorkflowCategoryId,
 	WorkflowCategoryMeta,
@@ -42,10 +41,10 @@ export const WORKFLOW_CATEGORY_META: Record<WorkflowCategoryId, WorkflowCategory
 export const WORKFLOW_CATEGORIES = Object.values(WORKFLOW_CATEGORY_META)
 
 export const WORKFLOW_TRIGGER_META: Record<WorkflowTriggerType, WorkflowTriggerMeta> = {
-	schedule: { label: '스케줄', icon: History },
-	webhook: { label: '웹훅', icon: Webhook },
-	event: { label: '이벤트', icon: Sparkles },
-	manual: { label: '수동', icon: Rocket },
+	schedule: { label: '스케줄' },
+	webhook: { label: '웹훅' },
+	event: { label: '이벤트' },
+	manual: { label: '수동' },
 }
 
 export const WORKFLOW_STATUS_META: Record<WorkflowStatus, WorkflowStatusMeta> = {
