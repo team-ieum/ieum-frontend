@@ -9,6 +9,15 @@ import {
 import type { WorkflowCategoryId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
+const SQUARE_SIZE_CLASS: Record<number, string> = {
+	7: 'w-[7px] h-[7px]',
+	8: 'w-2 h-2',
+	16: 'w-4 h-4',
+	18: 'w-[18px] h-[18px]',
+	24: 'w-6 h-6',
+	28: 'w-7 h-7',
+}
+
 type ServiceLogoProps = {
 	id: WorkflowServiceId
 	size?: number
@@ -21,17 +30,12 @@ export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps): Rea
 	return (
 		<span
 			className={cn(
-				'grid shrink-0 place-items-center rounded-lg font-bold shadow-[inset_0_0_0_1px_rgba(255,255,255,.18)]',
+				'grid shrink-0 place-items-center rounded-lg font-bold leading-none text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.18)]',
+				service.bgClass,
+				SQUARE_SIZE_CLASS[size],
+				size <= 22 ? 'text-[10px]' : 'text-xs',
 				className
 			)}
-			style={{
-				width: size,
-				height: size,
-				backgroundColor: service.color,
-				color: service.foreground,
-				fontSize: size <= 22 ? 10 : 12,
-				lineHeight: 1,
-			}}
 			title={service.name}
 			aria-label={service.name}
 		>
@@ -61,8 +65,10 @@ export const ServiceChain = ({ services, size = 28, max = 4, showArrow = true }:
 			))}
 			{overflowCount > 0 && (
 				<span
-					className='grid shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-100 text-[11px] font-bold text-neutral-500'
-					style={{ width: size, height: size }}
+					className={cn(
+						'grid shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-100 text-[11px] font-bold text-neutral-500',
+						SQUARE_SIZE_CLASS[size]
+					)}
 				>
 					+{overflowCount}
 				</span>
@@ -81,13 +87,12 @@ export const StatusDot = ({ status, size = 8 }: StatusDotProps): ReactElement =>
 
 	return (
 		<span
-			className='inline-block shrink-0 rounded-full'
-			style={{
-				width: size,
-				height: size,
-				backgroundColor: statusMeta.dotColor,
-				boxShadow: status === 'active' ? `0 0 0 3px ${statusMeta.dotColor}22` : undefined,
-			}}
+			className={cn(
+				'inline-block shrink-0 rounded-full',
+				statusMeta.dotBgClass,
+				SQUARE_SIZE_CLASS[size],
+				statusMeta.dotRingClass
+			)}
 		/>
 	)
 }
@@ -123,7 +128,7 @@ export const CategoryPill = ({ category, count }: CategoryPillProps): ReactEleme
 
 	return (
 		<span className='inline-flex h-7 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 typo-caption1_medium text-neutral-600'>
-			<span className='h-2 w-2 rounded-[3px]' style={{ backgroundColor: categoryMeta.color }} />
+			<span className={cn('h-2 w-2 rounded-[3px]', categoryMeta.dotClass)} />
 			{categoryMeta.label}
 			{count != null && <span className='text-neutral-400'>{count}</span>}
 		</span>

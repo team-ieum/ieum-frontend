@@ -2,6 +2,7 @@ import { MoreHorizontal } from 'lucide-react'
 import type { ReactElement } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import type { WorkflowListItem } from '@/types/workflowList'
+import { cn } from '@/utils/cn'
 import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './WorkflowListPrimitives'
 
 type WorkflowListCardProps = {
@@ -18,10 +19,7 @@ const WorkflowListCard = ({ workflow, onOpen }: WorkflowListCardProps): ReactEle
 		>
 			<span className='sr-only'>{workflow.name} 열기</span>
 		</button>
-		<span
-			className='absolute inset-y-0 left-0 w-1'
-			style={{ backgroundColor: WORKFLOW_STATUS_META[workflow.status].dotColor }}
-		/>
+		<span className={cn('absolute inset-y-0 left-0 w-1', WORKFLOW_STATUS_META[workflow.status].barClass)} />
 
 		<div className='pointer-events-none relative z-20 flex flex-1 flex-col gap-3'>
 			{/* 카드 헤더 */}

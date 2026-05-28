@@ -74,7 +74,7 @@ export type WorkflowActiveFilter = {
 	kind: keyof WorkflowListFilters
 	id: string
 	label: string
-	color?: string
+	dotClass?: string
 	serviceId?: WorkflowServiceId
 	status?: WorkflowStatus
 }
@@ -83,20 +83,21 @@ export type WorkflowServiceMeta = {
 	id: WorkflowServiceId
 	name: string
 	initial: string
-	color: string
-	foreground: string
+	bgClass: string
 }
 
 export type WorkflowCategoryMeta = {
 	id: WorkflowCategoryId
 	label: string
-	color: string
+	dotClass: string
 }
 
 export type WorkflowStatusMeta = {
 	label: string
 	toneClass: string
-	dotColor: string
+	barClass: string
+	dotBgClass: string
+	dotRingClass?: string
 }
 
 export type WorkflowTriggerMeta = {

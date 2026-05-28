@@ -128,20 +128,18 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 				kind: 'services' as const,
 				id: serviceId,
 				label: WORKFLOW_SERVICE_META[serviceId].name,
-				color: WORKFLOW_SERVICE_META[serviceId].color,
 				serviceId,
 			})),
 			...filters.categories.map(categoryId => ({
 				kind: 'categories' as const,
 				id: categoryId,
 				label: WORKFLOW_CATEGORY_META[categoryId].label,
-				color: WORKFLOW_CATEGORY_META[categoryId].color,
+				dotClass: WORKFLOW_CATEGORY_META[categoryId].dotClass,
 			})),
 			...filters.statuses.map(status => ({
 				kind: 'statuses' as const,
 				id: status,
 				label: WORKFLOW_STATUS_META[status].label,
-				color: WORKFLOW_STATUS_META[status].dotColor,
 				status,
 			})),
 		]

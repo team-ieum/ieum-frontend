@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import type { ReactElement } from 'react'
 import type { WorkflowActiveFilter } from '@/types/workflowList'
+import { cn } from '@/utils/cn'
 import { ServiceLogo, StatusDot } from './WorkflowListPrimitives'
 
 type WorkflowActiveFiltersProps = {
@@ -25,8 +26,8 @@ const WorkflowActiveFilters = ({ filters, onRemove }: WorkflowActiveFiltersProps
 				>
 					{filter.serviceId && <ServiceLogo id={filter.serviceId} size={16} />}
 					{filter.status && <StatusDot status={filter.status} size={7} />}
-					{!filter.serviceId && !filter.status && filter.color && (
-						<span className='h-2 w-2 rounded-[3px]' style={{ backgroundColor: filter.color }} />
+					{!filter.serviceId && !filter.status && filter.dotClass && (
+						<span className={cn('h-2 w-2 rounded-[3px]', filter.dotClass)} />
 					)}
 					{filter.label}
 					<X size={13} />
