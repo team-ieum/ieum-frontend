@@ -4,9 +4,10 @@ import type { IntegrationService } from '../../types/integration'
 
 type IntegrationAvailableTileProps = {
 	service: IntegrationService
+	onConnect: (id: string) => void
 }
 
-const IntegrationAvailableTile = ({ service }: IntegrationAvailableTileProps) => {
+const IntegrationAvailableTile = ({ service, onConnect }: IntegrationAvailableTileProps) => {
 	const brand = getBrandConfig(service.brand)
 
 	return (
@@ -22,6 +23,7 @@ const IntegrationAvailableTile = ({ service }: IntegrationAvailableTileProps) =>
 			</div>
 			<button
 				type='button'
+				onClick={() => onConnect(service.id)}
 				className='mt-auto inline-flex h-8 w-full items-center justify-center gap-1 rounded-brand-sm border border-neutral-200 bg-neutral-50 typo-caption1_semibold text-neutral-700 transition-colors hover:border-main-blue hover:bg-main-light-blue hover:text-main-blue'
 			>
 				<Plus size={14} />

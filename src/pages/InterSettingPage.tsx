@@ -4,6 +4,7 @@ import IntegrationSettingLayout from '../components/integration/IntegrationSetti
 import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
 import { cn } from '../utils/cn'
+import { useEffect } from 'react'
 
 const InterSettingPage = () => {
 	const {
@@ -19,7 +20,15 @@ const InterSettingPage = () => {
 		goDetail,
 		goList,
 		handleTabChange,
+		onConnect,
 	} = useIntegrationSetting()
+
+	const isMissingDetail = !isListView && !currentService
+
+	useEffect(() => {
+		if (!isMissingDetail) return
+		goList()
+	}, [isMissingDetail, goList])
 
 	return (
 		<IntegrationSettingLayout
@@ -35,13 +44,21 @@ const InterSettingPage = () => {
 						connected={connected}
 						available={available}
 						onManage={goDetail}
+						onConnect={onConnect}
 						availableSectionRef={availableSectionRef}
 					/>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>
 						<IntegrationConnectedDetail service={currentService} onBack={goList} />
 					</div>
-				) : null}
+				) : (
+					<div className={cn('w-full py-10', INTEGRATION_PAGE_X)}>
+						<div className='rounded-brand-md border border-neutral-200 bg-neutral-white px-6 py-5'>
+							<p className='m-0 typo-body2_semibold text-neutral-900'>서비스를 찾을 수 없습니다.</p>
+							<p className='mt-1 mb-0 typo-body3_regular text-neutral-500'>목록으로 이동합니다.</p>
+						</div>
+					</div>
+				)}
 			</div>
 		</IntegrationSettingLayout>
 	)

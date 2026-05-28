@@ -71,4 +71,5 @@ export type UseIntegrationSettingResult = {
 	goDetail: (id: string) => void
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void
+	onConnect: (id: string) => void
 }

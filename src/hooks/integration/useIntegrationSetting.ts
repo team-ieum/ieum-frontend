@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { IntegrationService, IntegrationTabId, IntegrationView, UseIntegrationSettingResult } from '../../types/integration'
 import { findServiceById, partitionServices } from '../../utils/integration/selectors'
+import { useIntegrationConnect } from './useIntegrationConnect'
 
 const MOCK_SERVICES: IntegrationService[] = [
 	{
@@ -105,6 +106,8 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
 	const [activeTab, setActiveTab] = useState<IntegrationTabId>('connected')
 
+	const { connect } = useIntegrationConnect()
+
 	const availableSectionRef = useRef<HTMLElement>(null)
 	const shouldScrollToAvailableRef = useRef(false)
 
@@ -139,6 +142,13 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		})
 	}, [activeTab, view.kind])
 
+	const onConnect = useCallback(
+		(id: string) => {
+			void connect(id)
+		},
+		[connect]
+	)
+
 	return {
 		view,
 		activeTab,
@@ -152,5 +162,6 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		goDetail,
 		goList,
 		handleTabChange,
+		onConnect,
 	}
 }
