@@ -11,8 +11,14 @@ import {
 	Loader2,
 	type LucideIcon,
 } from 'lucide-react'
-import type { DashboardIconProps } from '../../types/dashboard'
 import { cn } from '../../utils/cn'
+
+type DashboardIconProps = {
+	name: string
+	size?: number
+	fill?: 0 | 1
+	className?: string
+}
 
 const ICON_MAP: Record<string, LucideIcon> = {
 	check_circle: CheckCircle2,
