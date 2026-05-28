@@ -62,7 +62,12 @@ const WorkflowListToolbar = ({
 	}
 
 	return (
-		<div className='flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,.04)] xl:flex-row xl:items-center'>
+		<div
+			className={cn(
+				'relative flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,.04)] xl:flex-row xl:items-center',
+				isSortOpen && 'z-100'
+			)}
+		>
 			<label className='relative min-w-0 flex-1'>
 				<Search size={17} className='pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400' />
 				<input
