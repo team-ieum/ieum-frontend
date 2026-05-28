@@ -1,9 +1,17 @@
 import { INTEGRATION_CARD_GRID, INTEGRATION_PAGE_X } from '../../constants/integration/layout'
-import type { IntegrationListBodyProps } from '../../types/integration'
+import type { RefObject } from 'react'
+import type { IntegrationService } from '../../types/integration'
 import { cn } from '../../utils/cn'
 import IntegrationAvailableTile from './IntegrationAvailableTile'
 import IntegrationConnectedCard from './IntegrationConnectedCard'
 import IntegrationSectionHeading from './IntegrationSectionHeading'
+
+type IntegrationListBodyProps = {
+	connected: IntegrationService[]
+	available: IntegrationService[]
+	onManage: (id: string) => void
+	availableSectionRef?: RefObject<HTMLElement | null>
+}
 
 const IntegrationListBody = ({ connected, available, onManage, availableSectionRef }: IntegrationListBodyProps) => (
 	<div className={cn('w-full py-6 pb-10', INTEGRATION_PAGE_X)}>
@@ -21,7 +29,7 @@ const IntegrationListBody = ({ connected, available, onManage, availableSectionR
 		<section
 			ref={availableSectionRef}
 			id='integration-available'
-			className='w-full scroll-mt-[var(--layout-header-height)]'
+			className='w-full scroll-mt-(--layout-header-height)'
 			aria-labelledby='integration-available-heading'
 		>
 			<IntegrationSectionHeading

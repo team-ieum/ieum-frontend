@@ -1,7 +1,12 @@
 import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
-import type { IntegrationConnectedDetailProps } from '../../types/integration'
+import type { IntegrationService } from '../../types/integration'
 import { cn } from '../../utils/cn'
+
+type IntegrationConnectedDetailProps = {
+	service: IntegrationService
+	onBack: () => void
+}
 
 const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)

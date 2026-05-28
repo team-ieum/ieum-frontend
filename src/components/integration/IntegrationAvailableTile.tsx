@@ -1,6 +1,10 @@
 import { Plus } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
-import type { IntegrationAvailableTileProps } from '../../types/integration'
+import type { IntegrationService } from '../../types/integration'
+
+type IntegrationAvailableTileProps = {
+	service: IntegrationService
+}
 
 const IntegrationAvailableTile = ({ service }: IntegrationAvailableTileProps) => {
 	const brand = getBrandConfig(service.brand)

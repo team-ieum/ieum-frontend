@@ -1,4 +1,9 @@
-import type { IntegrationSectionHeadingProps } from '../../types/integration'
+type IntegrationSectionHeadingProps = {
+	label: string
+	count: number
+	desc: string
+	headingId?: string
+}
 
 const IntegrationSectionHeading = ({ label, count, desc, headingId }: IntegrationSectionHeadingProps) => (
 	<div className='flex flex-col gap-1'>

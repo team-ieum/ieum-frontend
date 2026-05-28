@@ -1,9 +1,14 @@
 import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import { INTEGRATION_STATUS_LABEL } from '../../constants/integration/statusLabels'
-import type { IntegrationConnectedCardProps } from '../../types/integration'
+import type { IntegrationService } from '../../types/integration'
 import { toConnectedDisplayStatus } from '../../utils/integration/selectors'
 import { cn } from '../../utils/cn'
+
+type IntegrationConnectedCardProps = {
+	service: IntegrationService
+	onManage: () => void
+}
 
 const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCardProps) => {
 	const brand = getBrandConfig(service.brand)

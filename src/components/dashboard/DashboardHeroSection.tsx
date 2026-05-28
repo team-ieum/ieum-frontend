@@ -1,7 +1,21 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useDashboardHeroMetrics } from '../../hooks/dashboard/useDashboardHeroMetrics'
-import type { DashboardChartTooltipProps, DashboardMiniStatProps } from '../../types/dashboard'
 import DashboardIcon from './DashboardIcon'
+
+type DashboardChartTooltipPayload = {
+	value?: number
+}
+
+type DashboardChartTooltipProps = {
+	active?: boolean
+	payload?: DashboardChartTooltipPayload[]
+	label?: string
+}
+
+type DashboardMiniStatProps = {
+	label: string
+	value: string
+}
 
 const ChartTooltip = ({ active, payload, label }: DashboardChartTooltipProps) => {
 	if (!active || !payload?.length) return null

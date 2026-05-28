@@ -58,44 +58,6 @@ export type IntegrationBrandConfig = {
 	label: string
 }
 
-// --- View (컴포넌트) ---
-
-export type IntegrationSectionHeadingProps = {
-	label: string
-	count: number
-	desc: string
-	headingId?: string
-}
-
-export type IntegrationConnectedCardProps = {
-	service: IntegrationService
-	onManage: () => void
-}
-
-export type IntegrationAvailableTileProps = {
-	service: IntegrationService
-}
-
-export type IntegrationConnectedDetailProps = {
-	service: IntegrationService
-	onBack: () => void
-}
-
-export type IntegrationTabsProps = {
-	active: IntegrationTabId
-	onChange: (tab: IntegrationTabId) => void
-	view: IntegrationView
-	connectedCount: number
-	availableCount: number
-}
-
-export type IntegrationListBodyProps = {
-	connected: IntegrationService[]
-	available: IntegrationService[]
-	onManage: (id: string) => void
-	availableSectionRef?: RefObject<HTMLElement | null>
-}
-
 // --- ViewModel (훅) ---
 
 export type UseIntegrationSettingResult = {

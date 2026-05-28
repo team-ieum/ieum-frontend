@@ -1,7 +1,6 @@
 import IntegrationConnectedDetail from '../components/integration/IntegrationConnectedDetail'
 import IntegrationListBody from '../components/integration/IntegrationListBody'
-import IntegrationPageHeader from '../components/integration/IntegrationPageHeader'
-import IntegrationTabs from '../components/integration/IntegrationTabs'
+import IntegrationSettingLayout from '../components/integration/IntegrationSettingLayout'
 import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
 import { cn } from '../utils/cn'
@@ -23,21 +22,13 @@ const InterSettingPage = () => {
 	} = useIntegrationSetting()
 
 	return (
-		<section
-			className={cn(
-				'-mx-6 -mt-6 -mb-6 flex flex-col overflow-hidden',
-				'min-h-[calc(100vh-var(--layout-header-height))] border-y border-neutral-200 bg-neutral-white'
-			)}
+		<IntegrationSettingLayout
+			active={activeTab}
+			onChange={handleTabChange}
+			view={view}
+			connectedCount={connectedCount}
+			availableCount={availableCount}
 		>
-			<IntegrationPageHeader />
-			<IntegrationTabs
-				active={activeTab}
-				onChange={handleTabChange}
-				view={view}
-				connectedCount={connectedCount}
-				availableCount={availableCount}
-			/>
-
 			<div className='flex-1 bg-neutral-50'>
 				{isListView ? (
 					<IntegrationListBody
@@ -52,7 +43,7 @@ const InterSettingPage = () => {
 					</div>
 				) : null}
 			</div>
-		</section>
+		</IntegrationSettingLayout>
 	)
 }
 
