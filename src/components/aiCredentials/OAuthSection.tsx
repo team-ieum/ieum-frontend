@@ -66,7 +66,7 @@ export const OAuthSection = ({ provider, onConnect, onDisconnect }: OAuthSection
 				OAuth 계정
 			</SectionLabel>
 			{isConnected && oauth ? (
-				<OAuthConnected state={oauth} onDisconnect={onDisconnect} onChange={onDisconnect} />
+				<OAuthConnected state={oauth} onDisconnect={onDisconnect} onChange={onConnect} />
 			) : (
 				<OAuthEmpty provider={provider} onConnect={onConnect} />
 			)}
