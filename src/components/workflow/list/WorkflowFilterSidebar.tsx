@@ -141,7 +141,7 @@ const WorkflowFilterSidebar = ({
 					active={filters.categories.includes(category.id)}
 					label={category.label}
 					count={categoryCounts[category.id]}
-					leading={<span className='h-2.5 w-2.5 shrink-0 rounded-[3px]' style={{ backgroundColor: category.color }} />}
+					leading={<span className={cn('h-2.5 w-2.5 shrink-0 rounded-[3px]', category.dotClass)} />}
 					onClick={() => onToggleCategory(category.id)}
 				/>
 			))}
