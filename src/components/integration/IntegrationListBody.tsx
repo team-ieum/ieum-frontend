@@ -10,10 +10,11 @@ type IntegrationListBodyProps = {
 	connected: IntegrationService[]
 	available: IntegrationService[]
 	onManage: (id: string) => void
+	onConnect: (id: string) => void
 	availableSectionRef?: RefObject<HTMLElement | null>
 }
 
-const IntegrationListBody = ({ connected, available, onManage, availableSectionRef }: IntegrationListBodyProps) => (
+const IntegrationListBody = ({ connected, available, onManage, onConnect, availableSectionRef }: IntegrationListBodyProps) => (
 	<div className={cn('w-full py-6 pb-10', INTEGRATION_PAGE_X)}>
 		<IntegrationSectionHeading
 			label='연결된 서비스'
@@ -40,7 +41,7 @@ const IntegrationListBody = ({ connected, available, onManage, availableSectionR
 			/>
 			<div className={cn('mt-3.5 items-stretch', INTEGRATION_CARD_GRID)}>
 				{available.map(service => (
-					<IntegrationAvailableTile key={service.id} service={service} />
+					<IntegrationAvailableTile key={service.id} service={service} onConnect={onConnect} />
 				))}
 			</div>
 		</section>
