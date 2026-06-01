@@ -2,72 +2,29 @@ import { useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import {
-	isValidWebhookUrl,
-	WEBHOOK_CONNECT_CONFIG,
-	type WebhookConnectServiceId,
-	webhookServiceIdToProvider,
-} from '@/constants/integration/webhookCredentialConnect'
+import { WEBHOOK_CONNECT_CONFIG, type WebhookConnectServiceId } from '@/constants/integration/webhookCredentialConnect'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
-import { useCreateWebhookCredentialMutation } from '@/hooks/webhookCredentials/mutations/useCreateWebhookCredentialMutation'
-import { useModalStore } from '@/stores/useModalStore'
-import { isApiError } from '@/utils/ApiError'
+import type { WebhookCredentialFormValues } from '@/hooks/integration/useWebhookCredentialConnect'
 import { cn } from '@/utils/cn'
 
 type WebhookCredentialConnectModalProps = {
 	serviceId: WebhookConnectServiceId
 	onClose: () => void
+	onSubmit: (values: WebhookCredentialFormValues) => void | Promise<void>
+	isPending: boolean
 }
 
-const WebhookCredentialConnectModal = ({ serviceId, onClose }: WebhookCredentialConnectModalProps) => {
+const WebhookCredentialConnectModal = ({ serviceId, onClose, onSubmit, isPending }: WebhookCredentialConnectModalProps) => {
 	const config = WEBHOOK_CONNECT_CONFIG[serviceId]
 	const brand = getBrandConfig(config.brand)
-	const openAlert = useModalStore(state => state.open)
 
 	const [displayName, setDisplayName] = useState('')
 	const [webhookUrl, setWebhookUrl] = useState('')
 	const [defaultChannel, setDefaultChannel] = useState('')
 
-	const { mutateAsync, isPending } = useCreateWebhookCredentialMutation()
-
-	const handleSubmit = async (event: FormEvent) => {
+	const handleSubmit = (event: FormEvent) => {
 		event.preventDefault()
-
-		const trimmedName = displayName.trim()
-		const trimmedUrl = webhookUrl.trim()
-		const trimmedChannel = defaultChannel.trim()
-
-		if (!trimmedName) {
-			openAlert('입력 확인', '표시 이름을 입력해 주세요.')
-			return
-		}
-
-		if (!isValidWebhookUrl(trimmedUrl, serviceId)) {
-			openAlert(
-				'입력 확인',
-				serviceId === 'slack'
-					? 'Slack Webhook URL은 https://hooks.slack.com/services/... 형식이어야 합니다.'
-					: 'Discord Webhook URL은 https://discord.com/api/webhooks/... 형식이어야 합니다.'
-			)
-			return
-		}
-
-		try {
-			await mutateAsync({
-				provider: webhookServiceIdToProvider(serviceId),
-				displayName: trimmedName,
-				webhookUrl: trimmedUrl,
-				...(trimmedChannel ? { defaultChannel: trimmedChannel } : {}),
-			})
-			openAlert('연동 완료', `${brand.label} 웹훅이 연결되었습니다.`)
-			onClose()
-		} catch (error) {
-			if (isApiError(error)) {
-				openAlert('연동 실패', error.message)
-				return
-			}
-			openAlert('연동 실패', '웹훅을 등록하지 못했습니다.')
-		}
+		void onSubmit({ displayName, webhookUrl, defaultChannel })
 	}
 
 	return createPortal(
