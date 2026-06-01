@@ -1,8 +1,8 @@
 import { api } from '@/utils/AxiosInstance'
-import type { RequestRegisterDto, RegisterResponse } from '@/types/auth'
+import type { RequestRegisterDto, RegisterResponse, LoginResponse } from '@/types/auth'
 
-export const login = async (email: string, password: string) => {
-	const response = await api.post('/auth/login', { email, password })
+export const login = async (email: string, password: string): Promise<LoginResponse> => {
+	const response = await api.post('/api/v1/auth/login', { email, password })
 	return response.data
 }
 
