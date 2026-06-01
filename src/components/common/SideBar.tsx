@@ -14,6 +14,11 @@ type SideBarProps = {
 export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
 	const navigate = useNavigate()
 	const { pathname } = useLocation()
+	const handleCreateCanvas = () => {
+		navigate('/workflow/new')
+		onClose?.()
+	}
+
 	return (
 		<aside
 			className={cn(
@@ -43,6 +48,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 			<div className='p-3.5'>
 				<button
 					type='button'
+					onClick={handleCreateCanvas}
 					className={cn(
 						'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
 						collapsed ? 'justify-center' : 'justify-between px-3.5'
