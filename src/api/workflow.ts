@@ -13,6 +13,16 @@ export const getWorkflow = async (id: string): Promise<ApiResponse<WorkflowDto>>
 	return response.data
 }
 
+export const activateWorkflow = async (id: string): Promise<ApiResponse<WorkflowDto>> => {
+	const response = await api.post(`/api/v1/workflows/${id}/activate`)
+	return response.data
+}
+
+export const deactivateWorkflow = async (id: string): Promise<ApiResponse<WorkflowDto>> => {
+	const response = await api.post(`/api/v1/workflows/${id}/deactivate`)
+	return response.data
+}
+
 export const createWorkflow = async (body: CreateWorkflowRequest): Promise<CreateWorkflowResponse> => {
 	const response = await api.post('/api/v1/workflows', body)
 	return response.data
