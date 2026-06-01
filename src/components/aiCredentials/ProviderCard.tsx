@@ -12,6 +12,7 @@ type ProviderCardProps = {
 	onDeleteApiKey: () => void
 	onConnectOAuth: () => void
 	onDisconnectOAuth: () => void
+	isPending?: boolean
 }
 
 export const ProviderCard = ({
@@ -20,6 +21,7 @@ export const ProviderCard = ({
 	onDeleteApiKey,
 	onConnectOAuth,
 	onDisconnectOAuth,
+	isPending,
 }: ProviderCardProps) => {
 	const connected = isProviderConnected(provider)
 	const hasBoth = provider.methods.length > 1
@@ -45,7 +47,12 @@ export const ProviderCard = ({
 			{/* Body */}
 			<div className='flex flex-col gap-[18px] px-6 py-5'>
 				{provider.methods.includes('apikey') && (
-					<ApiKeySection provider={provider} onRegister={onRegisterApiKey} onDelete={onDeleteApiKey} />
+					<ApiKeySection
+						provider={provider}
+						onRegister={onRegisterApiKey}
+						onDelete={onDeleteApiKey}
+						isPending={isPending}
+					/>
 				)}
 
 				{hasBoth && (

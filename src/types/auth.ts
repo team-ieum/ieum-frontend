@@ -1,5 +1,12 @@
 import type { ApiResponse } from '@/types/api'
 
+export type AuthErrorCode =
+	| 'EMAIL_ALREADY_EXISTS'
+	| 'SOCIAL_LOGIN_EMAIL_CONFLICT'
+	| 'INVALID_CREDENTIALS'
+	| 'TOKEN_EXPIRED'
+	| 'TOKEN_INVALID'
+
 export interface RequestRegisterDto {
 	email: string
 	password: string
