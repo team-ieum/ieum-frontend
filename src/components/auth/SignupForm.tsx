@@ -4,7 +4,7 @@ import { useValidatedSignupForm } from '../../hooks/auth/useValidatedSignupForm'
 import { useAuthMode } from '../../stores/useAuthMode'
 
 const SignupForm = () => {
-	const { values, errors, handleChange, handleSubmit } = useValidatedSignupForm()
+	const { values, errors, serverError, handleChange, handleSubmit } = useValidatedSignupForm()
 	const toLogin = useAuthMode(state => state.toLogin)
 
 	return (
@@ -12,6 +12,7 @@ const SignupForm = () => {
 			<h1 className='typo-title2_bold text-center text-main-deep-blue'>회원가입</h1>
 
 			<div className='space-y-4 mt-16'>
+				<TextInput text='name' value={values.name} onChange={value => handleChange('name', value)} error={errors.name} />
 				<TextInput
 					text='email'
 					value={values.email}
@@ -31,6 +32,8 @@ const SignupForm = () => {
 					error={errors.passwordConfirm}
 				/>
 			</div>
+
+			{serverError && <p className='typo-caption1_medium text-red-500 mt-2'>{serverError}</p>}
 
 			<div className='mt-13'>
 				<AuthSubmitButton label='회원가입' />

@@ -1,3 +1,19 @@
+import type { ApiResponse } from './api'
+
+export interface RequestRegisterDto {
+	email: string
+	password: string
+	name: string
+}
+
+export interface ResponseRegisterDto {
+	userId: string
+	email: string
+	name: string
+}
+
+export type RegisterResponse = ApiResponse<ResponseRegisterDto>
+
 export interface RequestLoginDto {
 	email: string
 	password: string

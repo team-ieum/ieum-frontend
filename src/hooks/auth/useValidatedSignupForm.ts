@@ -1,7 +1,11 @@
 import { useState } from 'react'
+import { isAxiosError } from 'axios'
 import { signupSchema } from '../../schemas/auth'
+import { useAuthMode } from '../../stores/useAuthMode'
+import { useRegisterMutation } from './mutations/useRegisterMutation'
 
 type SignupFormValues = {
+	name: string
 	email: string
 	password: string
 	passwordConfirm: string
@@ -10,21 +14,26 @@ type SignupFormValues = {
 type SignupFormErrors = Partial<Record<keyof SignupFormValues, string>>
 
 const INITIAL_VALUES: SignupFormValues = {
+	name: '',
 	email: '',
 	password: '',
 	passwordConfirm: '',
 }
 
 export const useValidatedSignupForm = () => {
+	const toLogin = useAuthMode(state => state.toLogin)
+	const { mutateAsync, isPending } = useRegisterMutation()
 	const [values, setValues] = useState<SignupFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<SignupFormErrors>({})
+	const [serverError, setServerError] = useState<string | undefined>(undefined)
 
 	const handleChange = (field: keyof SignupFormValues, value: string) => {
 		setValues(prev => ({ ...prev, [field]: value }))
 		setErrors(prev => ({ ...prev, [field]: undefined }))
+		setServerError(undefined)
 	}
 
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
 		const parseResult = signupSchema.safeParse(values)
@@ -32,6 +41,7 @@ export const useValidatedSignupForm = () => {
 		if (!parseResult.success) {
 			const fieldErrors = parseResult.error.flatten().fieldErrors
 			setErrors({
+				name: fieldErrors.name?.[0],
 				email: fieldErrors.email?.[0],
 				password: fieldErrors.password?.[0],
 				passwordConfirm: fieldErrors.passwordConfirm?.[0],
@@ -40,8 +50,20 @@ export const useValidatedSignupForm = () => {
 		}
 
 		setErrors({})
-		// TODO: 추후 실제 회원가입 API 연동
+		setServerError(undefined)
+
+		try {
+			const { name, email, password } = parseResult.data
+			await mutateAsync({ name, email, password })
+			toLogin()
+		} catch (error) {
+			if (isAxiosError(error)) {
+				setServerError(error.response?.data?.message ?? '회원가입에 실패했어요. 다시 시도해주세요.')
+			} else {
+				setServerError('회원가입에 실패했어요. 다시 시도해주세요.')
+			}
+		}
 	}
 
-	return { values, errors, handleChange, handleSubmit }
+	return { values, errors, serverError, isPending, handleChange, handleSubmit }
 }
