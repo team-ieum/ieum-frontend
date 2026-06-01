@@ -1,12 +1,16 @@
-import { ArrowLeft, Bug, CloudCheck, History, Rocket, Share2 } from 'lucide-react'
+import { ArrowLeft, CloudCheck, History, Rocket, Save, Share2 } from 'lucide-react'
+import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
+import type { WorkflowStatus } from '@/types/workflowList'
 
 type WorkflowToolbarProps = {
 	defaultTitle?: string
+	status?: WorkflowStatus
 }
 
-const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowToolbarProps) => {
+const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목', status = 'paused' }: WorkflowToolbarProps) => {
 	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
+	const statusMeta = WORKFLOW_STATUS_META[status]
 
 	return (
 		<div
@@ -30,9 +34,11 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 					className='text-xl font-bold text-main-deep-blue tracking-wide outline-none bg-transparent rounded-md px-2 py-1 hover:bg-neutral-100 focus:bg-neutral-100 transition-colors min-w-0'
 					style={{ fontFamily: 'var(--font-sans)' }}
 				/>
-				<span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-main-light-blue text-main-deep-blue border border-[#cde9f4] text-xs font-semibold shrink-0'>
-					<span className='w-1.5 h-1.5 rounded-full bg-main-blue' />
-					DRAFT
+				<span
+					className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold shrink-0 ${statusMeta.toneClass}`}
+				>
+					<span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dotBgClass}`} />
+					{statusMeta.label}
 				</span>
 			</div>
 
@@ -61,8 +67,8 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 				type='button'
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer'
 			>
-				<Bug size={15} />
-				테스트
+				<Save size={15} />
+				저장
 			</button>
 			<button
 				type='button'

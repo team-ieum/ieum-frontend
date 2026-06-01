@@ -14,7 +14,7 @@ const WorkFlowPage = () => {
 
 	return (
 		<div className='-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col' style={{ height: 'calc(100vh - var(--layout-header-height))' }}>
-			<WorkflowToolbar defaultTitle={state?.name} />
+			<WorkflowToolbar defaultTitle={state?.name} status={state?.status} />
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
 				<ReactFlow
