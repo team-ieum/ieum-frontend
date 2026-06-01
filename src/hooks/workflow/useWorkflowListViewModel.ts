@@ -9,6 +9,7 @@ import {
 } from '@/constants/workflow/workflowList'
 import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
 import { useCreateWorkflowMutation } from '@/hooks/workflow/mutations/useCreateWorkflowMutation'
+import { TEMP_INITIAL_NODES } from '@/constants/workflow/tempNodes'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import type {
@@ -213,7 +214,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 			const res = await createMutation.mutateAsync({
 				name: '새 워크플로우',
 				description: '새로 생성된 워크플로우입니다.',
-				nodes: [],
+				nodes: TEMP_INITIAL_NODES,
 				edges: [],
 				triggerType: 'MANUAL',
 			})
