@@ -14,8 +14,6 @@ export type WorkflowNodeData = {
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
 
-export type ChatMessage = { type: 'user'; body: string } | { type: 'assistant'; body: string; actions?: WorkflowChatAction[] }
-
 export type CreateWorkflowNodeDto = {
 	id: string
 	type: WorkflowNodeKind
@@ -53,39 +51,4 @@ export interface WorkflowExecutionDto {
 
 export interface ExecuteWorkflowRequest {
 	triggerData?: Record<string, unknown>
-}
-
-export interface WorkflowChatAction {
-	type: string
-	provider: string
-	label: string
-	oauthUrl: string
-}
-
-export interface WorkflowChatOption {
-	value: string
-	label: string
-	description: string
-}
-
-export interface WorkflowChatRequest {
-	prompt: string
-	currentNodes?: unknown[]
-	currentEdges?: unknown[]
-	sessionId?: string
-	credentialId?: string
-}
-
-export interface WorkflowChatResponseData {
-	messageId: string
-	sessionId: string
-	type: string
-	content: string
-	changeDescription: string
-	workflowName: string
-	nodes: unknown[]
-	edges: unknown[]
-	actions: WorkflowChatAction[]
-	options: WorkflowChatOption[]
-	tokens: { inputTokens: number; outputTokens: number }
 }

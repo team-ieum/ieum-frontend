@@ -6,9 +6,8 @@ import type {
 	CreateWorkflowResponse,
 	ExecuteWorkflowRequest,
 	WorkflowExecutionDto,
-	WorkflowChatRequest,
-	WorkflowChatResponseData,
 } from '@/types/workflow'
+import type { WorkflowChatRequest, WorkflowChatResponseData } from '@/types/workflowChat'
 
 export const getWorkflows = async (params: { cursor?: string; size?: number }): Promise<WorkflowListResponse> => {
 	const response = await api.get('/api/v1/workflows', { params })

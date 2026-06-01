@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { sendWorkflowChat } from '@/api/workflow'
-import type { ChatMessage } from '@/types/workflow'
+import type { ChatMessage } from '@/types/workflowChat'
 
 export const useWorkflowChat = (workflowId: string, currentNodes: unknown[], currentEdges: unknown[]) => {
 	const [messages, setMessages] = useState<ChatMessage[]>([])
