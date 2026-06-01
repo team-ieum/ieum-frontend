@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
 	WORKFLOW_CATEGORY_META,
@@ -7,18 +7,35 @@ import {
 	WORKFLOW_STATUS_ORDER,
 	WORKFLOW_TRIGGER_META,
 } from '@/constants/workflow/workflowList'
-import { WORKFLOW_LIST } from '@/mocks/workflow/workflowListMock'
+import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
+import { useModalStore } from '@/stores/useModalStore'
+import { isApiError } from '@/utils/ApiError'
 import type {
 	WorkflowActiveFilter,
 	WorkflowCategoryId,
+	WorkflowDto,
 	WorkflowListFilters,
 	WorkflowListItem,
 	WorkflowServiceId,
 	WorkflowSortKey,
 	WorkflowStatus,
+	WorkflowTriggerType,
 	WorkflowViewMode,
 	WorkflowListViewModel,
 } from '@/types/workflowList'
+
+const toWorkflowListItem = (dto: WorkflowDto): WorkflowListItem => ({
+	id: dto.id,
+	name: dto.name,
+	desc: dto.description,
+	tags: [],
+	services: [],
+	category: 'ops',
+	status: dto.active ? 'active' : 'paused',
+	trigger: dto.triggerType.toLowerCase() as WorkflowTriggerType,
+	lastRun: dto.updatedAt,
+	success: 0,
+})
 
 const createEmptyFilters = (): WorkflowListFilters => ({
 	services: [],
@@ -98,30 +115,47 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const [view, setView] = useState<WorkflowViewMode>('card')
 	const [filters, setFilters] = useState<WorkflowListFilters>(() => createEmptyFilters())
 
+	const { data, isLoading, isError, error, hasNextPage, fetchNextPage } = useWorkflowListQuery()
+	const openModal = useModalStore(state => state.open)
+
+	useEffect(() => {
+		if (isError && error) {
+			const message = isApiError(error) ? error.message : '워크플로우를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
+			openModal('오류', message)
+		}
+	}, [isError, error, openModal])
+
+	const allWorkflows = useMemo<WorkflowListItem[]>(
+		() => (data?.pages ?? []).flatMap(page => page.data.content.map(toWorkflowListItem)),
+		[data]
+	)
+
 	const serviceCounts = useMemo(() => {
-		const serviceIds = WORKFLOW_LIST.flatMap(workflow => workflow.services)
+		const serviceIds = allWorkflows.flatMap(workflow => workflow.services)
 		return createCountMap(serviceIds, Object.keys(WORKFLOW_SERVICE_META) as WorkflowServiceId[])
-	}, [])
+	}, [allWorkflows])
 
 	const categoryCounts = useMemo(() => {
-		const categoryIds = WORKFLOW_LIST.map(workflow => workflow.category)
+		const categoryIds = allWorkflows.map(workflow => workflow.category)
 		return createCountMap(categoryIds, Object.keys(WORKFLOW_CATEGORY_META) as WorkflowCategoryId[])
-	}, [])
+	}, [allWorkflows])
 
 	const statusCounts = useMemo(() => {
-		const statusIds = WORKFLOW_LIST.map(workflow => workflow.status)
+		const statusIds = allWorkflows.map(workflow => workflow.status)
 		return createCountMap(statusIds, Object.keys(WORKFLOW_STATUS_META) as WorkflowStatus[])
-	}, [])
+	}, [allWorkflows])
 
-	const workflows = useMemo(() => {
-		return sortWorkflows(
-			WORKFLOW_LIST.filter(workflow => filterWorkflow(workflow, filters, search)),
-			sort
-		)
-	}, [filters, search, sort])
+	const workflows = useMemo(
+		() =>
+			sortWorkflows(
+				allWorkflows.filter(workflow => filterWorkflow(workflow, filters, search)),
+				sort
+			),
+		[allWorkflows, filters, search, sort]
+	)
 
-	const activeFilters = useMemo<WorkflowActiveFilter[]>(() => {
-		return [
+	const activeFilters = useMemo<WorkflowActiveFilter[]>(
+		() => [
 			...filters.services.map(serviceId => ({
 				kind: 'services' as const,
 				id: serviceId,
@@ -140,8 +174,9 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 				label: WORKFLOW_STATUS_META[status].label,
 				status,
 			})),
-		]
-	}, [filters])
+		],
+		[filters]
+	)
 
 	const toggleService = useCallback((serviceId: WorkflowServiceId) => {
 		setFilters(prev => ({ ...prev, services: toggleValue(prev.services, serviceId) }))
@@ -167,21 +202,11 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		setSearch('')
 	}, [])
 
-	const onSearchChange = useCallback((value: string) => {
-		setSearch(value)
-	}, [])
+	const onSearchChange = useCallback((value: string) => setSearch(value), [])
+	const onSortChange = useCallback((value: WorkflowSortKey) => setSort(value), [])
+	const onViewChange = useCallback((value: WorkflowViewMode) => setView(value), [])
 
-	const onSortChange = useCallback((value: WorkflowSortKey) => {
-		setSort(value)
-	}, [])
-
-	const onViewChange = useCallback((value: WorkflowViewMode) => {
-		setView(value)
-	}, [])
-
-	const handleCreateWorkflow = useCallback(() => {
-		navigate('/workflow/new')
-	}, [navigate])
+	const handleCreateWorkflow = useCallback(() => navigate('/workflow/new'), [navigate])
 
 	const handleOpenWorkflow = useCallback(
 		(workflowId: string, workflowName: string) => {
@@ -198,10 +223,14 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		workflows,
 		activeFilters,
 		activeFilterCount: activeFilters.length,
-		totalCount: WORKFLOW_LIST.length,
+		totalCount: allWorkflows.length,
 		serviceCounts,
 		categoryCounts,
 		statusCounts,
+		isLoading,
+		isError,
+		hasNextPage: hasNextPage ?? false,
+		fetchNextPage,
 		toggleService,
 		toggleCategory,
 		toggleStatus,

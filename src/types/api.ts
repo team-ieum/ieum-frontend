@@ -5,18 +5,18 @@ export interface ApiResponse<T> {
 	code: string
 }
 
-export type ApiErrorCode =
+import type { AuthErrorCode } from '@/types/auth'
+import type { WorkflowErrorCode } from '@/types/workflowList'
+
+export type CommonErrorCode =
 	| 'INVALID_INPUT'
 	| 'NOT_FOUND'
 	| 'UNAUTHORIZED'
 	| 'FORBIDDEN'
 	| 'NOT_SUPPORTED'
 	| 'INTERNAL_SERVER_ERROR'
-	| 'EMAIL_ALREADY_EXISTS'
-	| 'SOCIAL_LOGIN_EMAIL_CONFLICT'
-	| 'INVALID_CREDENTIALS'
-	| 'TOKEN_EXPIRED'
-	| 'TOKEN_INVALID'
+
+export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode
 
 export interface ApiErrorResponse {
 	success: false
