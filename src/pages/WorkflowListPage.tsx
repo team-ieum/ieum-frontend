@@ -7,6 +7,7 @@ import WorkflowListCard from '@/components/workflow/list/WorkflowListCard'
 import WorkflowListTable from '@/components/workflow/list/WorkflowListTable'
 import WorkflowListToolbar from '@/components/workflow/list/WorkflowListToolbar'
 import { useWorkflowListViewModel } from '@/hooks/workflow/useWorkflowListViewModel'
+import Spinner from '@/components/common/Spinner'
 
 const WorkflowListPage = (): ReactElement => {
 	const viewModel = useWorkflowListViewModel()
@@ -74,8 +75,8 @@ const WorkflowListPage = (): ReactElement => {
 					{/* 결과 영역 */}
 					<div className='mt-4'>
 						{viewModel.isLoading ? (
-							<div className='flex items-center justify-center py-20 typo-body2_regular text-neutral-400'>
-								불러오는 중...
+							<div className='flex items-center justify-center py-20'>
+								<Spinner size='lg' />
 							</div>
 						) : viewModel.workflows.length === 0 ? (
 							<WorkflowEmptyState onReset={viewModel.clearFilters} onCreate={viewModel.handleCreateWorkflow} />
