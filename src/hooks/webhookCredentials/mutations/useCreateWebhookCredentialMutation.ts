@@ -1,9 +1,13 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import { createWebhookCredential } from '@/api/webhookCredentials'
 import { webhookCredentialsQueryKey } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
-import type { CreateWebhookCredentialRequest } from '@/types/webhookCredentials'
+import type { CreateWebhookCredentialRequest, CreateWebhookCredentialResponse } from '@/types/webhookCredentials'
 
-export const useCreateWebhookCredentialMutation = () => {
+export const useCreateWebhookCredentialMutation = (): UseMutationResult<
+	CreateWebhookCredentialResponse,
+	Error,
+	CreateWebhookCredentialRequest
+> => {
 	const queryClient = useQueryClient()
 
 	return useMutation({
