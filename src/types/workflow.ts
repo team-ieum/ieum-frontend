@@ -34,8 +34,8 @@ export type CreateWorkflowRequest = {
 	description?: string
 	triggerType?: WorkflowTriggerKind
 	cronExpression?: string
-	nodes: CreateWorkflowNodeDto[]
-	edges: CreateWorkflowEdgeDto[]
+	nodes?: CreateWorkflowNodeDto[]
+	edges?: CreateWorkflowEdgeDto[]
 }
 
 export type CreateWorkflowResponse = ApiResponse<WorkflowDto>
