@@ -3,15 +3,12 @@ import IntegrationListBody from '../components/integration/IntegrationListBody'
 import IntegrationSettingLayout from '../components/integration/IntegrationSettingLayout'
 import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
-import { useIntegrationOAuthReturn } from '../hooks/integration/useIntegrationOAuthReturn'
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
 import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
 
 const InterSettingPage = () => {
-	useIntegrationOAuthReturn()
-
 	const {
 		view,
 		activeTab,
@@ -22,8 +19,6 @@ const InterSettingPage = () => {
 		availableCount,
 		isConnectedLoading,
 		isConnectedError,
-		isAvailableLoading,
-		isAvailableError,
 		isListView,
 		availableSectionRef,
 		goDetail,
@@ -59,8 +54,6 @@ const InterSettingPage = () => {
 							onConnect={onConnect}
 							isConnectedLoading={isConnectedLoading}
 							isConnectedError={isConnectedError}
-							isAvailableLoading={isAvailableLoading}
-							isAvailableError={isAvailableError}
 							availableSectionRef={availableSectionRef}
 						/>
 						<AiCredentialsSection />

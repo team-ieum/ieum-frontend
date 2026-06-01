@@ -1,10 +1,14 @@
-import { useDashboardErrorSummary } from '../../hooks/dashboard/useDashboardErrorSummary'
-import { cn } from '../../utils/cn'
+import type { DashboardExpandableListState, ErrorRow } from '@/types/dashboard'
+import { cn } from '@/utils/cn'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 
-const DashboardErrorRail = () => {
-	const { visibleErrors, errorCount, hasMore, isExpanded, toggleExpanded } = useDashboardErrorSummary()
+type DashboardErrorRailProps = {
+	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
+}
+
+const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
+	const { visibleItems, errorCount, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = errors
 
 	return (
 		<DashboardCard className='flex w-full flex-col'>
@@ -18,52 +22,66 @@ const DashboardErrorRail = () => {
 				</span>
 			</div>
 
-			<ul>
-				{visibleErrors.map((error, index) => {
-					const isError = error.severity === 'error'
-					const iconName = isError ? 'cancel' : 'warning'
+			{isError && (
+				<p className='m-0 border-b border-neutral-200 px-5 py-3 typo-caption1_medium text-danger-700'>
+					오류 목록을 불러오지 못했습니다.
+				</p>
+			)}
 
-					return (
-						<li
-							key={error.code}
-							className={cn(
-								'flex gap-3 px-5 py-3.5',
-								index < visibleErrors.length - 1 && 'border-b border-neutral-100'
-							)}
-						>
-							<div
+			<ul>
+				{isLoading && visibleItems.length === 0 ? (
+					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>불러오는 중…</li>
+				) : visibleItems.length === 0 ? (
+					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>최근 오류가 없습니다.</li>
+				) : (
+					visibleItems.map((error, index) => {
+						const isErrorSeverity = error.severity === 'error'
+						const iconName = isErrorSeverity ? 'cancel' : 'warning'
+
+						return (
+							<li
+								key={error.id}
 								className={cn(
-									'grid h-7 w-7 shrink-0 place-items-center rounded-lg border',
-									isError ? 'border-danger-300 bg-danger-100' : 'border-main-light-blue bg-main-light-blue'
+									'flex gap-3 px-5 py-3.5',
+									index < visibleItems.length - 1 && 'border-b border-neutral-100'
 								)}
 							>
-								<DashboardIcon
-									name={iconName}
-									size={14}
-									fill={1}
-									className={isError ? 'text-danger-600' : 'text-main-deep-blue'}
-								/>
-							</div>
-							<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-								<div className='flex items-center gap-2'>
-									<span className='font-mono typo-caption2_medium text-neutral-400'>{error.code}</span>
-									<span className='ml-auto typo-caption1_regular text-neutral-400'>{error.when}</span>
+								<div
+									className={cn(
+										'grid h-7 w-7 shrink-0 place-items-center rounded-lg border',
+										isErrorSeverity
+											? 'border-danger-300 bg-danger-100'
+											: 'border-main-light-blue bg-main-light-blue'
+									)}
+								>
+									<DashboardIcon
+										name={iconName}
+										size={14}
+										fill={1}
+										className={isErrorSeverity ? 'text-danger-600' : 'text-main-deep-blue'}
+									/>
 								</div>
-								<p className='typo-body2_semibold m-0 text-neutral-900'>{error.title}</p>
-								<p className='typo-caption1_regular m-0 text-neutral-400'>{error.flow}</p>
-							</div>
-						</li>
-					)
-				})}
+								<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+									<div className='flex items-center gap-2'>
+										<span className='font-mono typo-caption2_medium text-neutral-400'>{error.code}</span>
+										<span className='ml-auto typo-caption1_regular text-neutral-400'>{error.when}</span>
+									</div>
+									<p className='typo-body2_semibold m-0 text-neutral-900'>{error.title}</p>
+									<p className='typo-caption1_regular m-0 text-neutral-400'>{error.flow}</p>
+								</div>
+							</li>
+						)
+					})
+				)}
 			</ul>
 
 			{hasMore && (
 				<button
 					type='button'
-					onClick={toggleExpanded}
+					onClick={handleFooterClick}
 					className='flex w-full items-center justify-center gap-2 border-t border-neutral-200 bg-neutral-50 px-4 py-3.5 typo-body2_semibold text-neutral-600 transition-colors hover:bg-neutral-100'
 				>
-					{isExpanded ? '닫기' : '전체 오류 이력 보기'}
+					{footerLabel}
 					<DashboardIcon name={isExpanded ? 'expand_less' : 'expand_more'} size={16} className='text-neutral-600' />
 				</button>
 			)}

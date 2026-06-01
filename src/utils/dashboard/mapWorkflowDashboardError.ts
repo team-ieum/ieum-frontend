@@ -1,0 +1,17 @@
+import type { WorkflowDashboardErrorDto } from '@/types/workflowDashboard'
+import type { ErrorRow } from '@/types/dashboard'
+import { formatRelativeTime } from '@/utils/formatRelativeTime'
+
+const formatErrorCode = (executionId: string): string => {
+	const compact = executionId.replace(/-/g, '').toUpperCase()
+	return compact.length > 6 ? `ERR-${compact.slice(0, 6)}` : executionId
+}
+
+export const mapWorkflowDashboardErrorToRow = (error: WorkflowDashboardErrorDto): ErrorRow => ({
+	id: `${error.executionId}:${error.failedNodeId}`,
+	code: formatErrorCode(error.executionId),
+	severity: 'error',
+	title: error.errorMessage,
+	flow: error.workflowName,
+	when: formatRelativeTime(error.finishedAt ?? error.startedAt),
+})
