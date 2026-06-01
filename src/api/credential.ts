@@ -1,10 +1,16 @@
 import { api } from '@/utils/AxiosInstance'
 import type { ApiResponse } from '@/types/api'
-import type { CredentialItem, ProviderInfo, ValidateCredentialResult } from '@/types/credential'
+import type {
+	CredentialItem,
+	CredentialProvider,
+	CredentialType,
+	ProviderInfo,
+	ValidateCredentialResult,
+} from '@/types/credential'
 
 export interface RegisterCredentialBody {
-	provider: string
-	credentialType: string
+	provider: CredentialProvider
+	credentialType: CredentialType
 	displayName: string
 	apiKey: string
 }
