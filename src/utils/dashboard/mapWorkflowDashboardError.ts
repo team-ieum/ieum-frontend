@@ -8,7 +8,7 @@ const formatErrorCode = (executionId: string): string => {
 }
 
 export const mapWorkflowDashboardErrorToRow = (error: WorkflowDashboardErrorDto): ErrorRow => ({
-	id: error.executionId,
+	id: `${error.executionId}:${error.failedNodeId}`,
 	code: formatErrorCode(error.executionId),
 	severity: 'error',
 	title: error.errorMessage,
