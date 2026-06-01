@@ -21,12 +21,14 @@ const toReactFlowNode = (dto: WorkflowNodeDto, index: number): WorkflowNodeType 
 	type: 'workflowNode',
 	position: { x: index * 300, y: 100 },
 	data: {
-		brand: (dto.config.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
+		brand: (dto.config?.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
 		title: dto.label,
-		method: (dto.config.method as string) ?? '',
-		url: (dto.config.url as string) ?? '',
+		method: (dto.config?.method as string) ?? '',
+		url: (dto.config?.url as string) ?? '',
 	},
 })
+
+const isValidRawNode = (n: unknown): n is WorkflowNodeDto => typeof n === 'object' && n !== null && 'id' in n && 'label' in n
 
 const toReactFlowEdge = (dto: WorkflowEdgeDto): Edge => ({
 	id: `${dto.source}-${dto.target}`,
@@ -84,6 +86,18 @@ const WorkFlowPage = () => {
 		}
 	}
 
+	const [aiCanvasVersion, setAiCanvasVersion] = useState(0)
+	const [aiCanvas, setAiCanvas] = useState<{ nodes: WorkflowNodeType[]; edges: Edge[] } | null>(null)
+	const [aiRawCanvas, setAiRawCanvas] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null)
+
+	const handleCanvasUpdate = (rawNodes: unknown[], rawEdges: unknown[]) => {
+		const nodes = rawNodes.filter(isValidRawNode).map((n, i) => toReactFlowNode(n, i))
+		const edges = (rawEdges as WorkflowEdgeDto[]).map(toReactFlowEdge)
+		setAiCanvas({ nodes, edges })
+		setAiRawCanvas({ nodes: rawNodes, edges: rawEdges })
+		setAiCanvasVersion(v => v + 1)
+	}
+
 	// undefined = API 데이터 우선, boolean = 사용자가 토글한 로컬 override
 	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
 	const active = localActive ?? workflow?.active
@@ -111,8 +125,19 @@ const WorkFlowPage = () => {
 			/>
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
-				{canvas && <WorkflowCanvas key={workflowId} initialNodes={canvas.nodes} initialEdges={canvas.edges} />}
-				<WorkflowChat />
+				{(aiCanvas ?? canvas) && (
+					<WorkflowCanvas
+						key={`${workflowId}-${aiCanvasVersion}`}
+						initialNodes={(aiCanvas ?? canvas)!.nodes}
+						initialEdges={(aiCanvas ?? canvas)!.edges}
+					/>
+				)}
+				<WorkflowChat
+					workflowId={workflowId ?? ''}
+					currentNodes={aiRawCanvas?.nodes ?? workflow?.nodes ?? []}
+					currentEdges={aiRawCanvas?.edges ?? workflow?.edges ?? []}
+					onCanvasUpdate={handleCanvasUpdate}
+				/>
 			</div>
 		</div>
 	)

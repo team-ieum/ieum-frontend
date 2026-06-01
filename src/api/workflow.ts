@@ -7,6 +7,12 @@ import type {
 	ExecuteWorkflowRequest,
 	WorkflowExecutionDto,
 } from '@/types/workflow'
+import type {
+	WorkflowChatRequest,
+	WorkflowChatResponseData,
+	WorkflowChatHistoryParams,
+	WorkflowChatHistoryPage,
+} from '@/types/workflowChat'
 
 export const getWorkflows = async (params: { cursor?: string; size?: number }): Promise<WorkflowListResponse> => {
 	const response = await api.get('/api/v1/workflows', { params })
@@ -40,5 +46,21 @@ export const deleteWorkflow = async (id: string): Promise<ApiResponse<Record<str
 
 export const createWorkflow = async (body: CreateWorkflowRequest): Promise<CreateWorkflowResponse> => {
 	const response = await api.post('/api/v1/workflows', body)
+	return response.data
+}
+
+export const sendWorkflowChat = async (
+	workflowId: string,
+	body: WorkflowChatRequest
+): Promise<ApiResponse<WorkflowChatResponseData>> => {
+	const response = await api.post(`/api/v1/workflows/${workflowId}/chat`, body)
+	return response.data
+}
+
+export const getWorkflowChatHistory = async (
+	workflowId: string,
+	params: WorkflowChatHistoryParams
+): Promise<ApiResponse<WorkflowChatHistoryPage>> => {
+	const response = await api.get(`/api/v1/workflows/${workflowId}/chat/history`, { params })
 	return response.data
 }

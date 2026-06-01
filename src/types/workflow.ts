@@ -14,8 +14,6 @@ export type WorkflowNodeData = {
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
 
-export type ChatMessage = { type: 'assistant'; body: string } | { type: 'user'; body: string }
-
 export type CreateWorkflowNodeDto = {
 	id: string
 	type: WorkflowNodeKind
