@@ -18,6 +18,11 @@ export const queryKeys = {
 		all: () => ['oauth-connections'] as const,
 		list: () => [...queryKeys.oauthConnections.all(), 'list'] as const,
 	},
+	webhookCredentials: {
+		all: () => ['webhook-credentials'] as const,
+		list: () => [...queryKeys.webhookCredentials.all(), 'list'] as const,
+	},
 } as const
 
 export const oauthConnectionsQueryKey = queryKeys.oauthConnections.list()
+export const webhookCredentialsQueryKey = queryKeys.webhookCredentials.list()

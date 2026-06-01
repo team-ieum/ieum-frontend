@@ -1,11 +1,14 @@
-import { useDashboardErrorSummary } from '../../hooks/dashboard/useDashboardErrorSummary'
-import { cn } from '../../utils/cn'
+import type { DashboardExpandableListState, ErrorRow } from '@/types/dashboard'
+import { cn } from '@/utils/cn'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 
-const DashboardErrorRail = () => {
-	const { visibleErrors, errorCount, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } =
-		useDashboardErrorSummary()
+type DashboardErrorRailProps = {
+	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
+}
+
+const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
+	const { visibleItems, errorCount, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = errors
 
 	return (
 		<DashboardCard className='flex w-full flex-col'>
@@ -26,12 +29,12 @@ const DashboardErrorRail = () => {
 			)}
 
 			<ul>
-				{isLoading && visibleErrors.length === 0 ? (
+				{isLoading && visibleItems.length === 0 ? (
 					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>불러오는 중…</li>
-				) : visibleErrors.length === 0 ? (
+				) : visibleItems.length === 0 ? (
 					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>최근 오류가 없습니다.</li>
 				) : (
-					visibleErrors.map((error, index) => {
+					visibleItems.map((error, index) => {
 						const isErrorSeverity = error.severity === 'error'
 						const iconName = isErrorSeverity ? 'cancel' : 'warning'
 
@@ -40,7 +43,7 @@ const DashboardErrorRail = () => {
 								key={error.id}
 								className={cn(
 									'flex gap-3 px-5 py-3.5',
-									index < visibleErrors.length - 1 && 'border-b border-neutral-100'
+									index < visibleItems.length - 1 && 'border-b border-neutral-100'
 								)}
 							>
 								<div
