@@ -1,5 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, type Edge } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { useState } from 'react'
 import { useParams } from 'react-router'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
@@ -67,11 +68,17 @@ const WorkFlowPage = () => {
 	const workflow = data?.data
 	const canvas = workflow ? toCanvasData(workflow) : null
 
+	// undefined = API 데이터 우선, boolean = 사용자가 토글한 로컬 override
+	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
+	const active = localActive ?? workflow?.active
+
 	return (
 		<div className='-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col' style={{ height: 'calc(100vh - var(--layout-header-height))' }}>
 			<WorkflowToolbar
 				defaultTitle={workflow?.name}
-				status={workflow ? (workflow.active ? 'active' : 'paused') : undefined}
+				status={active === undefined ? undefined : active ? 'active' : 'paused'}
+				active={active}
+				onToggleActive={() => setLocalActive(!(active ?? false))}
 			/>
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
