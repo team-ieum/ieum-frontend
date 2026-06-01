@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
+import Modal from '@/components/common/Modal'
 import { Layout } from '@/components/layout/Layout'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -63,6 +64,7 @@ function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<RouterProvider router={router} />
+			<Modal />
 			{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
 		</QueryClientProvider>
 	)
