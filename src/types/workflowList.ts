@@ -186,4 +186,5 @@ export type WorkflowListViewModel = {
 	fetchNextPage: () => void
 	handleCreateWorkflow: () => void
 	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
+	handleDeleteWorkflow: (workflowId: string) => void
 }

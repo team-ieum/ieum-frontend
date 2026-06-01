@@ -5,6 +5,7 @@ export const queryKeys = {
 		dashboardSummary: () => [...queryKeys.workflows.all(), 'dashboard', 'summary'] as const,
 		dashboardExecutions: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'executions', { size }] as const,
 		dashboardErrors: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'errors', { size }] as const,
+		detail: (id: string) => [...queryKeys.workflows.all(), 'detail', id] as const,
 	},
 	credentials: {
 		all: () => ['credentials'] as const,
