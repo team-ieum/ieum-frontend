@@ -3,6 +3,13 @@ import { ArrowUp, X } from 'lucide-react'
 import { useState } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
+import type { CredentialProvider } from '@/types/credential'
+
+const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
+	OPENAI: 'OpenAI',
+	CLAUDE: 'Claude',
+	GEMINI: 'Gemini',
+}
 
 const TypingIndicator = () => (
 	<motion.div
@@ -32,15 +39,23 @@ type WorkflowChatProps = {
 	workflowId: string
 	currentNodes: unknown[]
 	currentEdges: unknown[]
+	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 }
 
-const WorkflowChat = ({ workflowId, currentNodes, currentEdges }: WorkflowChatProps) => {
+const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
 	const [isOpen, setIsOpen] = useState(false)
-	const { messages, input, setInput, isTyping, handleSend, handleKeyDown, bodyRef } = useWorkflowChat(
-		workflowId,
-		currentNodes,
-		currentEdges
-	)
+	const {
+		messages,
+		input,
+		setInput,
+		isTyping,
+		handleSend,
+		handleKeyDown,
+		bodyRef,
+		credentials,
+		selectedCredentialId,
+		setSelectedCredentialId,
+	} = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
 
 	return (
 		<>
@@ -145,7 +160,21 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges }: WorkflowChatPr
 						</div>
 
 						{/* 입력창 */}
-						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0'>
+						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0 flex flex-col gap-2'>
+							{credentials.length > 0 && (
+								<select
+									value={selectedCredentialId ?? ''}
+									onChange={e => setSelectedCredentialId(e.target.value || null)}
+									className='w-22 self-start rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 typo-caption1_medium text-neutral-700 outline-none focus:border-main-blue'
+								>
+									<option value=''>크레덴셜 선택 (선택 안 함)</option>
+									{credentials.map(c => (
+										<option key={c.id} value={c.id}>
+											{PROVIDER_DISPLAY_NAME[c.provider]}
+										</option>
+									))}
+								</select>
+							)}
 							<div className='flex items-center gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>
 								<input
 									value={input}

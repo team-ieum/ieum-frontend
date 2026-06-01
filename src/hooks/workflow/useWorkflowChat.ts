@@ -1,17 +1,38 @@
 import { useEffect, useRef, useState } from 'react'
 import { getWorkflowChatHistory, sendWorkflowChat } from '@/api/workflow'
+import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
 import type { ChatMessage } from '@/types/workflowChat'
 
 const POLL_INTERVAL_MS = 3000
 
-export const useWorkflowChat = (workflowId: string, currentNodes: unknown[], currentEdges: unknown[]) => {
+export const useWorkflowChat = (
+	workflowId: string,
+	currentNodes: unknown[],
+	currentEdges: unknown[],
+	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+) => {
 	const [messages, setMessages] = useState<ChatMessage[]>([])
 	const [input, setInput] = useState('')
 	const [isTyping, setIsTyping] = useState(false)
 	const [sessionId, setSessionId] = useState<string | null>(null)
+	const [selectedCredentialId, setSelectedCredentialIdState] = useState<string | null>(() =>
+		localStorage.getItem('ieum-chat-credential-id')
+	)
+
+	const setSelectedCredentialId = (id: string | null) => {
+		setSelectedCredentialIdState(id)
+		if (id) {
+			localStorage.setItem('ieum-chat-credential-id', id)
+		} else {
+			localStorage.removeItem('ieum-chat-credential-id')
+		}
+	}
 	const bodyRef = useRef<HTMLDivElement>(null)
 	const seenMessageIdsRef = useRef<Set<string>>(new Set())
 	const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+	const { data: credentialsData } = useCredentialsQuery()
+	const credentials = credentialsData?.data ?? []
 
 	useEffect(() => {
 		if (bodyRef.current) {
@@ -52,6 +73,9 @@ export const useWorkflowChat = (workflowId: string, currentNodes: unknown[], cur
 								: {}),
 						},
 					])
+					if (onCanvasUpdate && latest.nodes?.length) {
+						onCanvasUpdate(latest.nodes, latest.edges ?? [])
+					}
 					stopPolling()
 				}
 			} catch {
@@ -73,6 +97,7 @@ export const useWorkflowChat = (workflowId: string, currentNodes: unknown[], cur
 				prompt: text,
 				...(currentNodes.length > 0 ? { currentNodes, currentEdges } : {}),
 				...(sessionId ? { sessionId } : {}),
+				...(selectedCredentialId ? { credentialId: selectedCredentialId } : {}),
 			})
 			const newSessionId = res.data.sessionId
 			setSessionId(newSessionId)
@@ -87,5 +112,16 @@ export const useWorkflowChat = (workflowId: string, currentNodes: unknown[], cur
 		if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
 	}
 
-	return { messages, input, setInput, isTyping, handleSend, handleKeyDown, bodyRef }
+	return {
+		messages,
+		input,
+		setInput,
+		isTyping,
+		handleSend,
+		handleKeyDown,
+		bodyRef,
+		credentials,
+		selectedCredentialId,
+		setSelectedCredentialId,
+	}
 }
