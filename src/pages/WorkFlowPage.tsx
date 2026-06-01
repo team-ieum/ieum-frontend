@@ -21,12 +21,14 @@ const toReactFlowNode = (dto: WorkflowNodeDto, index: number): WorkflowNodeType 
 	type: 'workflowNode',
 	position: { x: index * 300, y: 100 },
 	data: {
-		brand: (dto.config.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
+		brand: (dto.config?.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
 		title: dto.label,
-		method: (dto.config.method as string) ?? '',
-		url: (dto.config.url as string) ?? '',
+		method: (dto.config?.method as string) ?? '',
+		url: (dto.config?.url as string) ?? '',
 	},
 })
+
+const isValidRawNode = (n: unknown): n is WorkflowNodeDto => typeof n === 'object' && n !== null && 'id' in n && 'label' in n
 
 const toReactFlowEdge = (dto: WorkflowEdgeDto): Edge => ({
 	id: `${dto.source}-${dto.target}`,
@@ -89,7 +91,7 @@ const WorkFlowPage = () => {
 	const [aiRawCanvas, setAiRawCanvas] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null)
 
 	const handleCanvasUpdate = (rawNodes: unknown[], rawEdges: unknown[]) => {
-		const nodes = (rawNodes as WorkflowNodeDto[]).map((n, i) => toReactFlowNode(n, i))
+		const nodes = rawNodes.filter(isValidRawNode).map((n, i) => toReactFlowNode(n, i))
 		const edges = (rawEdges as WorkflowEdgeDto[]).map(toReactFlowEdge)
 		setAiCanvas({ nodes, edges })
 		setAiRawCanvas({ nodes: rawNodes, edges: rawEdges })
