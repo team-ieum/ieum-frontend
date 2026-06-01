@@ -8,6 +8,7 @@ import {
 	WORKFLOW_TRIGGER_META,
 } from '@/constants/workflow/workflowList'
 import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
+import { useCreateWorkflowMutation } from '@/hooks/workflow/mutations/useCreateWorkflowMutation'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import type {
@@ -117,6 +118,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 
 	const { data, isLoading, isError, error, hasNextPage, fetchNextPage } = useWorkflowListQuery()
 	const openModal = useModalStore(state => state.open)
+	const createMutation = useCreateWorkflowMutation()
 
 	useEffect(() => {
 		if (isError && error) {
@@ -206,7 +208,24 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const onSortChange = useCallback((value: WorkflowSortKey) => setSort(value), [])
 	const onViewChange = useCallback((value: WorkflowViewMode) => setView(value), [])
 
-	const handleCreateWorkflow = useCallback(() => navigate('/workflow/new'), [navigate])
+	const handleCreateWorkflow = useCallback(async () => {
+		try {
+			const res = await createMutation.mutateAsync({
+				name: '새 워크플로우',
+				description: '새로 생성된 워크플로우입니다.',
+				nodes: [],
+				edges: [],
+				triggerType: 'MANUAL',
+			})
+			navigate(`/workflow/${res.data.id}`)
+		} catch (err) {
+			if (isApiError(err)) {
+				openModal('오류', err.message)
+			} else {
+				openModal('오류', '워크플로우 생성에 실패했어요. 다시 시도해주세요.')
+			}
+		}
+	}, [createMutation, navigate, openModal])
 
 	const handleOpenWorkflow = useCallback(
 		(workflowId: string, workflowName: string) => {
