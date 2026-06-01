@@ -20,20 +20,14 @@ export interface RequestLoginDto {
 }
 
 export interface ResponseLoginDto {
-	id: string
-	email: string
-	name: string
-	createdAt: string
-	updatedAt: string
-}
-
-export interface ResponseLoginDto {
 	accessToken: string
 	refreshToken: string
 	expiresIn: number
 }
 
 export type LoginResponse = ApiResponse<ResponseLoginDto>
+
+export type RefreshResponse = LoginResponse
 
 export type AuthMode = 'login' | 'signup'
 
