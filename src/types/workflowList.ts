@@ -1,3 +1,56 @@
+import type { ApiResponse } from '@/types/api'
+
+export type WorkflowErrorCode =
+	| 'WORKFLOW_NOT_FOUND'
+	| 'WORKFLOW_DEFINITION_NOT_FOUND'
+	| 'INVALID_WORKFLOW'
+	| 'INVALID_CRON_EXPRESSION'
+	| 'WORKFLOW_NOT_ACTIVE'
+	| 'WEBHOOK_TRIGGER_MISMATCH'
+	| 'EXECUTION_NOT_FOUND'
+	| 'INVALID_CURSOR'
+
+// --- API response types ---
+
+export type WorkflowNodeDto = {
+	id: string
+	type: string
+	label: string
+	config: Record<string, unknown>
+}
+
+export type WorkflowEdgeDto = {
+	source: string
+	target: string
+	conditionType: string
+}
+
+export type WorkflowDto = {
+	id: string
+	userId: string
+	name: string
+	description: string
+	active: boolean
+	triggerType: string
+	cronExpression: string | null
+	version: number
+	nodes: WorkflowNodeDto[]
+	edges: WorkflowEdgeDto[]
+	createdAt: string
+	updatedAt: string
+}
+
+export type WorkflowPageDto = {
+	content: WorkflowDto[]
+	size: number
+	hasNext: boolean
+	nextCursor: string | null
+}
+
+export type WorkflowListResponse = ApiResponse<WorkflowPageDto>
+
+// --- UI types ---
+
 export type WorkflowServiceId =
 	| 'google'
 	| 'slack'
@@ -127,6 +180,10 @@ export type WorkflowListViewModel = {
 	onSearchChange: (value: string) => void
 	onSortChange: (value: WorkflowSortKey) => void
 	onViewChange: (value: WorkflowViewMode) => void
+	isLoading: boolean
+	isError: boolean
+	hasNextPage: boolean
+	fetchNextPage: () => void
 	handleCreateWorkflow: () => void
 	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
 }
