@@ -33,6 +33,11 @@ export const executeWorkflow = async (id: string, body?: ExecuteWorkflowRequest)
 	return response.data
 }
 
+export const deleteWorkflow = async (id: string): Promise<ApiResponse<Record<string, never>>> => {
+	const response = await api.delete(`/api/v1/workflows/${id}`)
+	return response.data
+}
+
 export const createWorkflow = async (body: CreateWorkflowRequest): Promise<CreateWorkflowResponse> => {
 	const response = await api.post('/api/v1/workflows', body)
 	return response.data
