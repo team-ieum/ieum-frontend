@@ -1,21 +1,16 @@
 import { useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router'
-import { useQueryClient } from '@tanstack/react-query'
-import { useModalStore } from '@/stores/useModalStore'
-import { handleIntegrationOAuthReturn } from '@/utils/integration/handleIntegrationOAuthReturn'
+import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { buildInterSettingOAuthReturnUrl, detectOAuthProvider } from '@/utils/integration/integrationOAuthReturn'
 
 const IntegrationOAuthCallbackPage = () => {
 	const navigate = useNavigate()
+	const location = useLocation()
 	const [searchParams] = useSearchParams()
-	const queryClient = useQueryClient()
-	const openModal = useModalStore(state => state.open)
 
 	useEffect(() => {
-		void (async () => {
-			await handleIntegrationOAuthReturn(searchParams, queryClient, openModal)
-			navigate('/inter-setting', { replace: true })
-		})()
-	}, [navigate, openModal, queryClient, searchParams])
+		const provider = detectOAuthProvider(location.pathname, searchParams)
+		navigate(buildInterSettingOAuthReturnUrl(searchParams, provider), { replace: true })
+	}, [location.pathname, navigate, searchParams])
 
 	return (
 		<div className='flex min-h-screen items-center justify-center bg-neutral-50'>

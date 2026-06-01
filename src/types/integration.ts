@@ -76,4 +76,6 @@ export type UseIntegrationSettingResult = {
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void
 	onConnect: (id: string) => void
+	webhookConnectServiceId: 'slack' | 'discord' | null
+	closeWebhookConnect: () => void
 }

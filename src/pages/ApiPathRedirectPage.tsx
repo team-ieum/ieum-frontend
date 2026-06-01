@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { resolveApiPathFromBrowserLocation } from '@/utils/integration/resolveOAuthRedirectUrl'
+import { resolveApiPathFromBrowserLocation } from '@/utils/integration/resolveApiPathFromBrowserLocation'
 
 const ApiPathRedirectPage = () => {
 	useEffect(() => {

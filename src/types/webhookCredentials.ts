@@ -12,3 +12,12 @@ export interface WebhookCredentialDto {
 }
 
 export type WebhookCredentialsListResponse = ApiResponse<WebhookCredentialDto[]>
+
+export type CreateWebhookCredentialRequest = {
+	provider: WebhookCredentialProvider
+	displayName: string
+	webhookUrl: string
+	defaultChannel?: string
+}
+
+export type CreateWebhookCredentialResponse = ApiResponse<WebhookCredentialDto>

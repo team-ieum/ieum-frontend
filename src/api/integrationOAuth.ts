@@ -1,20 +1,18 @@
 import { api } from '@/utils/AxiosInstance'
+import {
+	isOAuthConnectServiceId,
+	OAUTH_AUTHORIZE_PATH_BY_SERVICE_ID,
+	type OAuthConnectServiceId,
+} from '@/constants/integration/integrationProviders'
 import { pickAuthorizationUrl } from '@/utils/integration/pickAuthorizationUrl'
 import type { OAuthAuthorizeResponse } from '@/types/integrationOAuth'
 
-export const getGithubOAuthAuthorizeUrl = async (): Promise<string> => {
-	const response = await api.get<OAuthAuthorizeResponse>('/api/v1/github/oauth2/authorize')
+const fetchOAuthAuthorizeUrl = async (path: string): Promise<string> => {
+	const response = await api.get<OAuthAuthorizeResponse>(path)
 	return pickAuthorizationUrl(response.data.data)
 }
 
-export const getNotionOAuthAuthorizeUrl = async (): Promise<string> => {
-	const response = await api.get<OAuthAuthorizeResponse>('/api/v1/notion/oauth2/authorize')
-	return pickAuthorizationUrl(response.data.data)
-}
-
-export const getGoogleOAuthAuthorizeUrl = async (): Promise<string> => {
-	const response = await api.get<OAuthAuthorizeResponse>('/api/v1/oauth/google/authorize-url')
-	const { data } = response.data
-	if (typeof data === 'string') return data
-	return pickAuthorizationUrl(data)
+export const fetchIntegrationOAuthAuthorizeUrl = async (serviceId: string): Promise<string | null> => {
+	if (!isOAuthConnectServiceId(serviceId)) return null
+	return fetchOAuthAuthorizeUrl(OAUTH_AUTHORIZE_PATH_BY_SERVICE_ID[serviceId as OAuthConnectServiceId])
 }

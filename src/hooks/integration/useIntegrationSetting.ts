@@ -1,77 +1,58 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
-import { GOOGLE_SCOPE_BRANDS } from '@/constants/integration/googleScopeGroups'
-import { useGoogleMyScopesQuery } from '@/hooks/googleOAuth/queries/useGoogleMyScopesQuery'
-import { useGoogleScopesQuery } from '@/hooks/googleOAuth/queries/useGoogleScopesQuery'
+import { useOAuthConnectionsQuery } from '@/hooks/oauthConnections/queries/useOAuthConnectionsQuery'
 import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
-import type { IntegrationService, IntegrationTabId, IntegrationView, UseIntegrationSettingResult } from '../../types/integration'
+import type {
+	IntegrationBrand,
+	IntegrationService,
+	IntegrationTabId,
+	IntegrationView,
+	UseIntegrationSettingResult,
+} from '../../types/integration'
 import {
-	mapGoogleMyScopesToConnectedService,
-	mapGoogleScopesToAvailableServices,
-} from '../../utils/integration/mapGoogleOAuthToIntegrationService'
+	getExcludedCatalogBrandsForOAuthConnections,
+	mapOAuthConnectionToIntegrationService,
+} from '../../utils/integration/mapOAuthConnectionToIntegrationService'
 import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
 import { findServiceById } from '../../utils/integration/selectors'
 import { useIntegrationConnect } from './useIntegrationConnect'
 
-const filterCatalogAvailable = (
-	catalog: IntegrationService[],
-	webhookConnected: IntegrationService[],
-	googleConnected: boolean
-) => {
-	const connectedBrands = new Set(webhookConnected.map(service => service.brand))
-
-	return catalog.filter(service => {
-		if (connectedBrands.has(service.brand)) return false
-		if (googleConnected && GOOGLE_SCOPE_BRANDS.includes(service.brand)) return false
-		return true
-	})
-}
+const filterCatalogAvailable = (catalog: IntegrationService[], excludedBrands: Set<IntegrationBrand>) =>
+	catalog.filter(service => !excludedBrands.has(service.brand))
 
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
 	const [activeTab, setActiveTab] = useState<IntegrationTabId>('connected')
 
-	const { connect } = useIntegrationConnect()
+	const { connect, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
 
 	const { data: webhookCredentials = [], isLoading: isWebhookLoading, isError: isWebhookError } = useWebhookCredentialsQuery()
 
-	const { data: googleScopesData, isLoading: isGoogleScopesLoading, isError: isGoogleScopesError } = useGoogleScopesQuery()
-
 	const {
-		data: googleMyScopesData,
-		isLoading: isGoogleMyScopesLoading,
-		isError: isGoogleMyScopesError,
-	} = useGoogleMyScopesQuery()
+		data: oauthConnections = [],
+		isLoading: isOAuthConnectionsLoading,
+		isError: isOAuthConnectionsError,
+	} = useOAuthConnectionsQuery()
 
 	const availableSectionRef = useRef<HTMLElement>(null)
 	const shouldScrollToAvailableRef = useRef(false)
 
 	const webhookConnected = useMemo(() => webhookCredentials.map(mapWebhookCredentialToIntegrationService), [webhookCredentials])
 
-	const googleConnectedService = useMemo(
-		() => (googleMyScopesData ? mapGoogleMyScopesToConnectedService(googleMyScopesData) : null),
-		[googleMyScopesData]
+	const oauthConnected = useMemo(() => oauthConnections.map(mapOAuthConnectionToIntegrationService), [oauthConnections])
+
+	const connected = useMemo(() => [...webhookConnected, ...oauthConnected], [webhookConnected, oauthConnected])
+
+	const excludedCatalogBrands = useMemo(() => {
+		const brands = new Set(webhookConnected.map(service => service.brand))
+		getExcludedCatalogBrandsForOAuthConnections(oauthConnections).forEach(brand => brands.add(brand))
+		return brands
+	}, [webhookConnected, oauthConnections])
+
+	const available = useMemo(
+		() => filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogBrands),
+		[excludedCatalogBrands]
 	)
-
-	const googleConnected = Boolean(googleConnectedService)
-
-	const connected = useMemo(() => {
-		const items = [...webhookConnected]
-		if (googleConnectedService) items.push(googleConnectedService)
-		return items
-	}, [webhookConnected, googleConnectedService])
-
-	const googleAvailable = useMemo(() => {
-		if (googleConnected || !googleScopesData) return []
-		return mapGoogleScopesToAvailableServices(googleScopesData)
-	}, [googleConnected, googleScopesData])
-
-	const available = useMemo(() => {
-		const filteredCatalog = filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, webhookConnected, googleConnected)
-		const googleBrands = new Set(googleAvailable.map(service => service.brand))
-		const catalogWithoutGoogleDupes = filteredCatalog.filter(service => !googleBrands.has(service.brand))
-		return [...catalogWithoutGoogleDupes, ...googleAvailable]
-	}, [webhookConnected, googleConnected, googleAvailable])
 
 	const services = useMemo(() => [...connected, ...available], [connected, available])
 
@@ -111,10 +92,8 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		[connect]
 	)
 
-	const isConnectedLoading = isWebhookLoading || isGoogleMyScopesLoading
-	const isConnectedError = isWebhookError || isGoogleMyScopesError
-	const isAvailableLoading = isGoogleScopesLoading
-	const isAvailableError = isGoogleScopesError
+	const isConnectedLoading = isWebhookLoading || isOAuthConnectionsLoading
+	const isConnectedError = isWebhookError || isOAuthConnectionsError
 
 	return {
 		view,
@@ -126,13 +105,15 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		availableCount: available.length,
 		isConnectedLoading,
 		isConnectedError,
-		isAvailableLoading,
-		isAvailableError,
+		isAvailableLoading: false,
+		isAvailableError: false,
 		isListView: view.kind === 'list',
 		availableSectionRef,
 		goDetail,
 		goList,
 		handleTabChange,
 		onConnect,
+		webhookConnectServiceId,
+		closeWebhookConnect,
 	}
 }
