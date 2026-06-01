@@ -7,9 +7,10 @@ import { SectionLabel } from './SectionLabel'
 type ApiKeyEmptyProps = {
 	provider: AiProvider
 	onRegister: (key: string) => void
+	isPending?: boolean
 }
 
-const ApiKeyEmpty = ({ provider, onRegister }: ApiKeyEmptyProps) => {
+const ApiKeyEmpty = ({ provider, onRegister, isPending }: ApiKeyEmptyProps) => {
 	const [value, setValue] = useState('')
 	const [show, setShow] = useState(false)
 
@@ -36,17 +37,17 @@ const ApiKeyEmpty = ({ provider, onRegister }: ApiKeyEmptyProps) => {
 			<button
 				type='button'
 				onClick={() => {
-					if (value) onRegister(value)
+					if (value && !isPending) onRegister(value)
 				}}
-				disabled={!value}
+				disabled={!value || isPending}
 				className={cn(
 					'typo-button1_semibold h-10 rounded-lg px-4 transition-colors',
-					value
+					value && !isPending
 						? 'bg-main-blue text-white hover:bg-main-deep-blue'
 						: 'cursor-not-allowed bg-neutral-100 text-neutral-400'
 				)}
 			>
-				등록
+				{isPending ? '등록 중…' : '등록'}
 			</button>
 		</div>
 	)
@@ -63,7 +64,7 @@ const ApiKeyConnected = ({ state, onDelete, onReplace }: ApiKeyConnectedProps) =
 		<span className='grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/90'>
 			<Check size={14} className='text-node-green' />
 		</span>
-		<span className='truncate font-mono text-[13px] font-medium text-neutral-900 flex-1 min-w-0'>{state.masked}</span>
+		<span className='truncate font-mono text-[13px] font-medium text-neutral-900 flex-1 min-w-0'>{state.keyHint}</span>
 		<button
 			type='button'
 			onClick={onReplace}
@@ -87,9 +88,10 @@ type ApiKeySectionProps = {
 	provider: AiProvider
 	onRegister: (key: string) => void
 	onDelete: () => void
+	isPending?: boolean
 }
 
-export const ApiKeySection = ({ provider, onRegister, onDelete }: ApiKeySectionProps) => {
+export const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: ApiKeySectionProps) => {
 	const [replacing, setReplacing] = useState(false)
 	const apikey = provider.state.apikey
 	const isConnected = apikey?.status === 'connected' && !replacing
@@ -108,7 +110,7 @@ export const ApiKeySection = ({ provider, onRegister, onDelete }: ApiKeySectionP
 			{isConnected && apikey ? (
 				<ApiKeyConnected state={apikey} onDelete={onDelete} onReplace={handleReplace} />
 			) : (
-				<ApiKeyEmpty provider={provider} onRegister={handleRegister} />
+				<ApiKeyEmpty provider={provider} onRegister={handleRegister} isPending={isPending} />
 			)}
 		</div>
 	)
