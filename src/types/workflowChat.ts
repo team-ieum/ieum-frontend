@@ -45,5 +45,5 @@ export interface WorkflowChatHistoryPage {
 	content: WorkflowChatResponseData[]
 	size: number
 	hasNext: boolean
-	nextCursor: string
+	nextCursor: string | null
 }
