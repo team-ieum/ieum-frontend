@@ -2,19 +2,26 @@ import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 import { useModalStore } from '@/stores/useModalStore'
-import { handleIntegrationOAuthReturn, isOAuthReturnSearchParams } from '@/utils/integration/integrationOAuthReturn'
+import { useHandleOAuthReturn } from '@/hooks/integration/useHandleOAuthReturn'
+import { isOAuthReturnSearchParams } from '@/utils/integration/integrationOAuthReturn'
 
 export const useIntegrationOAuthReturn = () => {
 	const [searchParams, setSearchParams] = useSearchParams()
 	const queryClient = useQueryClient()
 	const openModal = useModalStore(state => state.open)
+	const handleOAuthReturn = useHandleOAuthReturn(queryClient, openModal)
 
 	useEffect(() => {
 		if (!isOAuthReturnSearchParams(searchParams)) return
 
 		void (async () => {
-			await handleIntegrationOAuthReturn(searchParams, queryClient, openModal)
-			setSearchParams({}, { replace: true })
+			try {
+				await handleOAuthReturn(searchParams)
+			} catch {
+				// Modal / cache invalidation failures must not leave OAuth query params in the URL.
+			} finally {
+				setSearchParams({}, { replace: true })
+			}
 		})()
-	}, [openModal, queryClient, searchParams, setSearchParams])
+	}, [handleOAuthReturn, searchParams, setSearchParams])
 }

@@ -1,6 +1,3 @@
-import type { QueryClient } from '@tanstack/react-query'
-import { oauthConnectionsQueryKey } from '@/hooks/oauthConnections/queries/useOAuthConnectionsQuery'
-
 export type IntegrationOAuthProvider = 'github' | 'notion'
 
 const OAUTH_RETURN_QUERY_KEYS = [
@@ -22,8 +19,6 @@ const OAUTH_SUCCESS_MESSAGES: Record<IntegrationOAuthProvider, string> = {
 	github: 'GitHub 계정이 연결되었습니다.',
 	notion: 'Notion 계정이 연결되었습니다.',
 }
-
-type OAuthReturnModal = (title: string, message: string) => void
 
 export const isOAuthReturnSearchParams = (searchParams: URLSearchParams): boolean =>
 	OAUTH_RETURN_QUERY_KEYS.some(key => searchParams.has(key))
@@ -102,17 +97,4 @@ export const getOAuthReturnMessage = (
 	}
 
 	return null
-}
-
-export const handleIntegrationOAuthReturn = async (
-	searchParams: URLSearchParams,
-	queryClient: QueryClient,
-	openModal: OAuthReturnModal,
-	pathname = ''
-) => {
-	const provider = detectOAuthProvider(pathname, searchParams)
-	await queryClient.invalidateQueries({ queryKey: oauthConnectionsQueryKey })
-
-	const modalMessage = getOAuthReturnMessage(searchParams, provider)
-	if (modalMessage) openModal(modalMessage.title, modalMessage.message)
 }
