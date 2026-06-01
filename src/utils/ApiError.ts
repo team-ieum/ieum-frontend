@@ -1,4 +1,4 @@
-import type { ApiErrorCode } from '../types/api'
+import type { ApiErrorCode } from '@/types/api'
 
 export class ApiError extends Error {
 	readonly code: ApiErrorCode

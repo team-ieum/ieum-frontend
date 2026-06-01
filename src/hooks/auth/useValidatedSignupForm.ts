@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { signupSchema } from '../../schemas/auth'
-import { isApiError } from '../../utils/ApiError'
-import { useAuthMode } from '../../stores/useAuthMode'
-import { useModalStore } from '../../stores/useModalStore'
-import { useRegisterMutation } from './mutations/useRegisterMutation'
+import { signupSchema } from '@/schemas/auth'
+import { isApiError } from '@/utils/ApiError'
+import { useAuthMode } from '@/stores/useAuthMode'
+import { useModalStore } from '@/stores/useModalStore'
+import { useRegisterMutation } from '@/hooks/auth/mutations/useRegisterMutation'
 
 type SignupFormValues = {
 	name: string
