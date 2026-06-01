@@ -9,6 +9,8 @@ import AuthPage from '@/pages/AuthPage'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import WorkflowListPage from '@/pages/WorkflowListPage'
 import InterSettingPage from './pages/InterSettingPage'
+import IntegrationOAuthCallbackPage from './pages/IntegrationOAuthCallbackPage'
+import ApiPathRedirectPage from './pages/ApiPathRedirectPage'
 import UserPage from './pages/UserPage'
 
 const queryClient = new QueryClient({
@@ -28,6 +30,18 @@ const router = createBrowserRouter([
 	{
 		path: '/auth',
 		element: <AuthPage />,
+	},
+	{
+		path: '/api/*',
+		element: <ApiPathRedirectPage />,
+	},
+	{
+		path: '/oauth/*',
+		element: <IntegrationOAuthCallbackPage />,
+	},
+	{
+		path: '/oauth2/*',
+		element: <IntegrationOAuthCallbackPage />,
 	},
 	{
 		element: <Layout />,
