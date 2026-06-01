@@ -35,11 +35,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
 api.interceptors.response.use(
 	response => response,
 	async error => {
-		if (!isAxiosError(error) || !error.response?.data?.code) {
+		if (!isAxiosError(error) || error.response?.data?.success !== false) {
 			return Promise.reject(error)
 		}
 
-		const { code, message } = error.response.data as ApiErrorResponse
+		const { code = 'INTERNAL_SERVER_ERROR', message } = error.response.data as ApiErrorResponse
 		const originalRequest = error.config!
 
 		if (code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
