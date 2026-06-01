@@ -16,6 +16,10 @@ const InterSettingPage = () => {
 		currentService,
 		connectedCount,
 		availableCount,
+		isConnectedLoading,
+		isConnectedError,
+		isAvailableLoading,
+		isAvailableError,
 		isListView,
 		availableSectionRef,
 		goDetail,
@@ -47,6 +51,10 @@ const InterSettingPage = () => {
 							available={available}
 							onManage={goDetail}
 							onConnect={onConnect}
+							isConnectedLoading={isConnectedLoading}
+							isConnectedError={isConnectedError}
+							isAvailableLoading={isAvailableLoading}
+							isAvailableError={isAvailableError}
 							availableSectionRef={availableSectionRef}
 						/>
 						<AiCredentialsSection />
