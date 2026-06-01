@@ -28,9 +28,19 @@ const TypingIndicator = () => (
 	</motion.div>
 )
 
-const WorkflowChat = () => {
+type WorkflowChatProps = {
+	workflowId: string
+	currentNodes: unknown[]
+	currentEdges: unknown[]
+}
+
+const WorkflowChat = ({ workflowId, currentNodes, currentEdges }: WorkflowChatProps) => {
 	const [isOpen, setIsOpen] = useState(false)
-	const { messages, input, setInput, isTyping, handleSend, handleKeyDown, bodyRef } = useWorkflowChat()
+	const { messages, input, setInput, isTyping, handleSend, handleKeyDown, bodyRef } = useWorkflowChat(
+		workflowId,
+		currentNodes,
+		currentEdges
+	)
 
 	return (
 		<>
@@ -103,11 +113,24 @@ const WorkflowChat = () => {
 										>
 											<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
 										</span>
-										<div
-											className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800 max-w-[280px]'
-											style={{ background: '#F0F4FC' }}
-										>
-											{msg.body}
+										<div className='flex flex-col gap-2 max-w-[280px]'>
+											<div
+												className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+												style={{ background: '#F0F4FC' }}
+											>
+												{msg.body}
+											</div>
+											{msg.actions?.map((action, j) => (
+												<a
+													key={j}
+													href={action.oauthUrl}
+													target='_blank'
+													rel='noreferrer'
+													className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
+												>
+													{action.label}
+												</a>
+											))}
 										</div>
 									</div>
 								) : (

@@ -9,6 +9,8 @@ export type WorkflowErrorCode =
 	| 'WEBHOOK_TRIGGER_MISMATCH'
 	| 'EXECUTION_NOT_FOUND'
 	| 'INVALID_CURSOR'
+	| 'WORKFLOW_HAS_NO_AI_NODE'
+	| 'CHAT_SESSION_NOT_FOUND'
 
 // --- API response types ---
 
