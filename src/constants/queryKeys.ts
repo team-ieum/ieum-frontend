@@ -2,6 +2,7 @@ export const queryKeys = {
 	workflows: {
 		all: () => ['workflows'] as const,
 		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.all(), 'list', params] as const,
+		detail: (id: string) => [...queryKeys.workflows.all(), 'detail', id] as const,
 	},
 	credentials: {
 		all: () => ['credentials'] as const,

@@ -87,11 +87,16 @@ const WorkflowListPage = (): ReactElement => {
 										key={workflow.id}
 										workflow={workflow}
 										onOpen={viewModel.handleOpenWorkflow}
+										onDelete={viewModel.handleDeleteWorkflow}
 									/>
 								))}
 							</div>
 						) : (
-							<WorkflowListTable workflows={viewModel.workflows} onOpen={viewModel.handleOpenWorkflow} />
+							<WorkflowListTable
+								workflows={viewModel.workflows}
+								onOpen={viewModel.handleOpenWorkflow}
+								onDelete={viewModel.handleDeleteWorkflow}
+							/>
 						)}
 					</div>
 				</main>

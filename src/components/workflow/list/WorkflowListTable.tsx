@@ -1,14 +1,15 @@
-import { ChevronRight } from 'lucide-react'
 import type { ReactElement } from 'react'
 import type { WorkflowListItem } from '@/types/workflowList'
 import { CategoryPill, ServiceChain, StatusDot, TriggerPill } from './WorkflowListPrimitives'
+import { WorkflowMoreMenu } from './WorkflowMoreMenu'
 
 type WorkflowListTableProps = {
 	workflows: WorkflowListItem[]
 	onOpen: (workflowId: string, workflowName: string) => void
+	onDelete: (workflowId: string) => void
 }
 
-const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): ReactElement => (
+const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTableProps): ReactElement => (
 	<div className='overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)]'>
 		<div className='overflow-x-auto'>
 			<table className='w-full min-w-[760px] border-collapse'>
@@ -46,8 +47,8 @@ const WorkflowListTable = ({ workflows, onOpen }: WorkflowListTableProps): React
 							<td className='px-3 py-3'>
 								<TriggerPill trigger={workflow.trigger} />
 							</td>
-							<td className='px-4 py-3 text-neutral-400'>
-								<ChevronRight size={17} />
+							<td className='px-4 py-3'>
+								<WorkflowMoreMenu onDelete={() => onDelete(workflow.id)} />
 							</td>
 						</tr>
 					))}
