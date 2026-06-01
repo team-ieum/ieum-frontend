@@ -13,8 +13,6 @@ type IntegrationListBodyProps = {
 	onConnect: (id: string) => void
 	isConnectedLoading?: boolean
 	isConnectedError?: boolean
-	isAvailableLoading?: boolean
-	isAvailableError?: boolean
 	availableSectionRef?: RefObject<HTMLElement | null>
 }
 
@@ -25,8 +23,6 @@ const IntegrationListBody = ({
 	onConnect,
 	isConnectedLoading = false,
 	isConnectedError = false,
-	isAvailableLoading = false,
-	isAvailableError = false,
 	availableSectionRef,
 }: IntegrationListBodyProps) => (
 	<div className={cn('w-full py-6 pb-10', INTEGRATION_PAGE_X)}>
@@ -68,15 +64,7 @@ const IntegrationListBody = ({
 				desc='검증된 통합 모듈. 클릭 한 번으로 인증을 시작할 수 있습니다.'
 			/>
 			<div className={cn('mt-3.5 items-stretch', INTEGRATION_CARD_GRID)}>
-				{isAvailableLoading ? (
-					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-neutral-500'>
-						연결 가능한 서비스를 불러오는 중…
-					</p>
-				) : isAvailableError ? (
-					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-danger-700'>
-						Google 연동 가능 목록을 불러오지 못했습니다.
-					</p>
-				) : available.length === 0 ? (
+				{available.length === 0 ? (
 					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-neutral-500'>
 						연결 가능한 서비스가 없습니다.
 					</p>

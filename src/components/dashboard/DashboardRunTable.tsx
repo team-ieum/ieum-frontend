@@ -1,9 +1,13 @@
-import { useDashboardRunLogs } from '../../hooks/dashboard/useDashboardRunLogs'
+import type { DashboardExpandableListState, RunRow } from '@/types/dashboard'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 import DashboardStatusBadge from './DashboardStatusBadge'
 
 const TABLE_HEADERS = ['실행 ID', '워크플로우', '상태', '소요 시간', '트리거', '시각'] as const
+
+type DashboardRunTableProps = {
+	runs: DashboardExpandableListState<RunRow>
+}
 
 type DashboardTriggerChipProps = {
 	kind: string
@@ -15,8 +19,8 @@ const TriggerChip = ({ kind }: DashboardTriggerChipProps) => (
 	</span>
 )
 
-const DashboardRunTable = () => {
-	const { visibleRuns, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = useDashboardRunLogs()
+const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
+	const { visibleItems, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = runs
 
 	return (
 		<DashboardCard className='w-full'>
@@ -45,7 +49,7 @@ const DashboardRunTable = () => {
 						</tr>
 					</thead>
 					<tbody>
-						{isLoading && visibleRuns.length === 0 ? (
+						{isLoading && visibleItems.length === 0 ? (
 							<tr>
 								<td
 									colSpan={TABLE_HEADERS.length}
@@ -54,7 +58,7 @@ const DashboardRunTable = () => {
 									불러오는 중…
 								</td>
 							</tr>
-						) : visibleRuns.length === 0 ? (
+						) : visibleItems.length === 0 ? (
 							<tr>
 								<td
 									colSpan={TABLE_HEADERS.length}
@@ -64,7 +68,7 @@ const DashboardRunTable = () => {
 								</td>
 							</tr>
 						) : (
-							visibleRuns.map(run => (
+							visibleItems.map(run => (
 								<tr
 									key={run.id}
 									className='border-b border-neutral-100 transition-colors last:border-b-0 hover:bg-neutral-50/80'

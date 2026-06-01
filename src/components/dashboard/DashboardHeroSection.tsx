@@ -1,6 +1,6 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useDashboardHeroMetrics } from '../../hooks/dashboard/useDashboardHeroMetrics'
-import { cn } from '../../utils/cn'
+import type { DashboardHeroMetrics, HourlyExecution } from '@/types/dashboard'
+import { cn } from '@/utils/cn'
 import DashboardIcon from './DashboardIcon'
 
 type DashboardChartTooltipPayload = {
@@ -16,6 +16,13 @@ type DashboardChartTooltipProps = {
 type DashboardMiniStatProps = {
 	label: string
 	value: string
+}
+
+type DashboardHeroSectionProps = {
+	hero: DashboardHeroMetrics
+	hourlyExecutions: HourlyExecution[]
+	isLoading: boolean
+	isError: boolean
 }
 
 const ChartTooltip = ({ active, payload, label }: DashboardChartTooltipProps) => {
@@ -36,8 +43,7 @@ const MiniStat = ({ label, value }: DashboardMiniStatProps) => (
 	</div>
 )
 
-const DashboardHeroSection = () => {
-	const { hero, hourlyExecutions, isLoading, isError } = useDashboardHeroMetrics()
+const DashboardHeroSection = ({ hero, hourlyExecutions, isLoading, isError }: DashboardHeroSectionProps) => {
 	const isPositiveChange = hero.changePercent >= 0
 
 	return (

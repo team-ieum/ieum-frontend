@@ -1,5 +1,3 @@
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { formatRelativeTime } from '@/utils/formatRelativeTime'
 
-export const formatIntegrationLastSync = (isoDate: string): string =>
-	formatDistanceToNow(new Date(isoDate), { addSuffix: true, locale: ko })
+export const formatIntegrationLastSync = (isoDate: string): string => formatRelativeTime(isoDate)

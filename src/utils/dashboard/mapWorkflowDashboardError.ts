@@ -1,6 +1,6 @@
 import type { WorkflowDashboardErrorDto } from '@/types/workflowDashboard'
 import type { ErrorRow } from '@/types/dashboard'
-import { formatIntegrationLastSync } from '@/utils/integration/formatIntegrationLastSync'
+import { formatRelativeTime } from '@/utils/formatRelativeTime'
 
 const formatErrorCode = (executionId: string): string => {
 	const compact = executionId.replace(/-/g, '').toUpperCase()
@@ -13,5 +13,5 @@ export const mapWorkflowDashboardErrorToRow = (error: WorkflowDashboardErrorDto)
 	severity: 'error',
 	title: error.errorMessage,
 	flow: error.workflowName,
-	when: formatIntegrationLastSync(error.finishedAt ?? error.startedAt),
+	when: formatRelativeTime(error.finishedAt ?? error.startedAt),
 })

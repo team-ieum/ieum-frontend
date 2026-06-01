@@ -1,7 +1,7 @@
 import type { WorkflowExecutionDto } from '@/types/workflowDashboard'
 import type { RunRow, RunStatus } from '@/types/dashboard'
 import { formatDashboardDuration } from '@/utils/dashboard/mapWorkflowDashboardSummary'
-import { formatIntegrationLastSync } from '@/utils/integration/formatIntegrationLastSync'
+import { formatRelativeTime } from '@/utils/formatRelativeTime'
 
 const TRIGGER_LABELS: Record<string, string> = {
 	MANUAL: '수동',
@@ -41,6 +41,6 @@ export const mapWorkflowExecutionToRunRow = (execution: WorkflowExecutionDto): R
 		status,
 		time: mapDuration(status, execution.durationSeconds),
 		trigger: mapTriggerLabel(execution.triggerType),
-		when: formatIntegrationLastSync(whenSource),
+		when: formatRelativeTime(whenSource),
 	}
 }
