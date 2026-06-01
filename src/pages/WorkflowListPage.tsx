@@ -73,7 +73,11 @@ const WorkflowListPage = (): ReactElement => {
 
 					{/* 결과 영역 */}
 					<div className='mt-4'>
-						{viewModel.workflows.length === 0 ? (
+						{viewModel.isLoading ? (
+							<div className='flex items-center justify-center py-20 typo-body2_regular text-neutral-400'>
+								불러오는 중...
+							</div>
+						) : viewModel.workflows.length === 0 ? (
 							<WorkflowEmptyState onReset={viewModel.clearFilters} onCreate={viewModel.handleCreateWorkflow} />
 						) : viewModel.view === 'card' ? (
 							<div className='grid gap-3 md:grid-cols-2 2xl:grid-cols-3'>
