@@ -10,9 +10,9 @@ import {
 import { useCallback, useState } from 'react'
 import type { WorkflowNodeType } from '@/types/workflow'
 
-export const useWorkflowEditor = () => {
-	const [nodes, setNodes] = useState<WorkflowNodeType[]>([])
-	const [edges, setEdges] = useState<Edge[]>([])
+export const useWorkflowEditor = (initialNodes: WorkflowNodeType[] = [], initialEdges: Edge[] = []) => {
+	const [nodes, setNodes] = useState<WorkflowNodeType[]>(initialNodes)
+	const [edges, setEdges] = useState<Edge[]>(initialEdges)
 
 	const onNodesChange = useCallback(
 		(changes: NodeChange<WorkflowNodeType>[]) => setNodes(nds => applyNodeChanges(changes, nds)),
