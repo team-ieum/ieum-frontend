@@ -1,10 +1,13 @@
+import type { CredentialProvider } from '@/types/credential'
+
 export type AuthMethod = 'apikey' | 'oauth'
 export type ConnectionStatus = 'connected' | 'empty'
 export type IntegrationTab = 'connected' | 'ai-creds' | 'browser'
 
 export interface ApiKeyState {
 	status: ConnectionStatus
-	masked?: string
+	credentialId?: string
+	keyHint?: string
 }
 
 export interface OAuthState {
@@ -18,7 +21,7 @@ export interface ProviderState {
 }
 
 export interface AiProvider {
-	id: string
+	id: CredentialProvider
 	name: string
 	desc: string
 	methods: AuthMethod[]
