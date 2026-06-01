@@ -16,11 +16,14 @@ import {
 import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
 import { findServiceById } from '../../utils/integration/selectors'
 import { useIntegrationConnect } from './useIntegrationConnect'
+import { useIntegrationOAuthReturn } from './useIntegrationOAuthReturn'
 
 const filterCatalogAvailable = (catalog: IntegrationService[], excludedBrands: Set<IntegrationBrand>) =>
 	catalog.filter(service => !excludedBrands.has(service.brand))
 
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
+	useIntegrationOAuthReturn()
+
 	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
 	const [activeTab, setActiveTab] = useState<IntegrationTabId>('connected')
 
@@ -105,8 +108,6 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		availableCount: available.length,
 		isConnectedLoading,
 		isConnectedError,
-		isAvailableLoading: false,
-		isAvailableError: false,
 		isListView: view.kind === 'list',
 		availableSectionRef,
 		goDetail,

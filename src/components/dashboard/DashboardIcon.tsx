@@ -2,6 +2,7 @@ import {
 	Activity,
 	AlertCircle,
 	AlertTriangle,
+	ArrowDown,
 	ArrowUp,
 	CheckCircle2,
 	ChevronDown,
@@ -30,6 +31,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 	error_outline: AlertCircle,
 	warning: AlertTriangle,
 	arrow_upward: ArrowUp,
+	arrow_downward: ArrowDown,
 	monitoring: Activity,
 }
 

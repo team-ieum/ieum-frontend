@@ -41,10 +41,6 @@ export type IntegrationTabItem = {
 	label: string
 }
 
-export type IntegrationData = {
-	services: IntegrationService[]
-}
-
 export type IntegrationStatusLabelConfig = {
 	text: string
 	className: string
@@ -68,8 +64,6 @@ export type UseIntegrationSettingResult = {
 	availableCount: number
 	isConnectedLoading: boolean
 	isConnectedError: boolean
-	isAvailableLoading: boolean
-	isAvailableError: boolean
 	isListView: boolean
 	availableSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void

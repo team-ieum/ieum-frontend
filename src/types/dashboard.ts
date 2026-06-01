@@ -4,6 +4,7 @@ export type RunStatus = 'success' | 'error' | 'running'
 
 export type RunRow = {
 	id: string
+	displayId: string
 	name: string
 	status: RunStatus
 	time: string
@@ -14,6 +15,7 @@ export type RunRow = {
 export type ErrorSeverity = 'error' | 'warning'
 
 export type ErrorRow = {
+	id: string
 	code: string
 	severity: ErrorSeverity
 	title: string
@@ -47,12 +49,14 @@ export type DashboardWorkflowSummary = {
 	pills: StatusPillItem[]
 }
 
-export type DashboardData = {
-	hero: DashboardHeroMetrics
-	hourlyExecutions: HourlyExecution[]
-	workflow: DashboardWorkflowSummary
-	runs: RunRow[]
-	errors: ErrorRow[]
+export type DashboardExpandableListState<TRow> = {
+	visibleItems: TRow[]
+	hasMore: boolean
+	isExpanded: boolean
+	isLoading: boolean
+	isError: boolean
+	footerLabel: string
+	handleFooterClick: () => void
 }
 
 // --- View (컴포넌트) ---
@@ -75,26 +79,12 @@ export type StatusPillSkins = Record<PillTone, StatusPillSkin>
 
 // --- ViewModel (훅) ---
 
-export type UseDashboardHeroMetricsResult = {
+export type DashboardViewModel = {
 	hero: DashboardHeroMetrics
 	hourlyExecutions: HourlyExecution[]
-}
-
-export type UseDashboardRunLogsResult = {
-	visibleRuns: RunRow[]
-	hasMore: boolean
-	isExpanded: boolean
-	toggleExpanded: () => void
-}
-
-export type UseDashboardErrorSummaryResult = {
-	visibleErrors: ErrorRow[]
-	errorCount: number
-	hasMore: boolean
-	isExpanded: boolean
-	toggleExpanded: () => void
-}
-
-export type UseWorkflowStatusSummaryResult = {
+	isSummaryLoading: boolean
+	isSummaryError: boolean
 	workflow: DashboardWorkflowSummary
+	runs: DashboardExpandableListState<RunRow>
+	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
 }
