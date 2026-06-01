@@ -3,6 +3,13 @@ import { ArrowUp, X } from 'lucide-react'
 import { useState } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
+import type { CredentialProvider } from '@/types/credential'
+
+const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
+	OPENAI: 'OpenAI',
+	CLAUDE: 'Claude',
+	GEMINI: 'Gemini',
+}
 
 const TypingIndicator = () => (
 	<motion.div
@@ -28,9 +35,27 @@ const TypingIndicator = () => (
 	</motion.div>
 )
 
-const WorkflowChat = () => {
+type WorkflowChatProps = {
+	workflowId: string
+	currentNodes: unknown[]
+	currentEdges: unknown[]
+	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+}
+
+const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
 	const [isOpen, setIsOpen] = useState(false)
-	const { messages, input, setInput, isTyping, handleSend, handleKeyDown, bodyRef } = useWorkflowChat()
+	const {
+		messages,
+		input,
+		setInput,
+		isTyping,
+		handleSend,
+		handleKeyDown,
+		bodyRef,
+		credentials,
+		selectedCredentialId,
+		setSelectedCredentialId,
+	} = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
 
 	return (
 		<>
@@ -103,11 +128,24 @@ const WorkflowChat = () => {
 										>
 											<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
 										</span>
-										<div
-											className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800 max-w-[280px]'
-											style={{ background: '#F0F4FC' }}
-										>
-											{msg.body}
+										<div className='flex flex-col gap-2 max-w-[280px]'>
+											<div
+												className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+												style={{ background: '#F0F4FC' }}
+											>
+												{msg.body}
+											</div>
+											{msg.actions?.map((action, j) => (
+												<a
+													key={j}
+													href={action.oauthUrl}
+													target='_blank'
+													rel='noreferrer'
+													className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
+												>
+													{action.label}
+												</a>
+											))}
 										</div>
 									</div>
 								) : (
@@ -122,7 +160,21 @@ const WorkflowChat = () => {
 						</div>
 
 						{/* 입력창 */}
-						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0'>
+						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0 flex flex-col gap-2'>
+							{credentials.length > 0 && (
+								<select
+									value={selectedCredentialId ?? ''}
+									onChange={e => setSelectedCredentialId(e.target.value || null)}
+									className='w-22 self-start rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 typo-caption1_medium text-neutral-700 outline-none focus:border-main-blue'
+								>
+									<option value=''>크레덴셜 선택 (선택 안 함)</option>
+									{credentials.map(c => (
+										<option key={c.id} value={c.id}>
+											{PROVIDER_DISPLAY_NAME[c.provider]}
+										</option>
+									))}
+								</select>
+							)}
 							<div className='flex items-center gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>
 								<input
 									value={input}
