@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { sendWorkflowChat } from '@/api/workflow'
 import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
 import type { ChatMessage } from '@/types/workflowChat'
@@ -19,7 +19,15 @@ export const useWorkflowChat = (
 	const bodyRef = useRef<HTMLDivElement>(null)
 
 	const { data: credentialsData } = useCredentialsQuery()
-	const credentials = credentialsData?.data ?? []
+	const credentials = useMemo(() => credentialsData?.data ?? [], [credentialsData])
+
+	useEffect(() => {
+		if (!credentialsData) return
+		if (selectedCredentialId && !credentials.find(c => c.id === selectedCredentialId)) {
+			setSelectedCredentialIdState(null)
+			localStorage.removeItem('ieum-chat-credential-id')
+		}
+	}, [credentialsData, credentials, selectedCredentialId])
 
 	const setSelectedCredentialId = (id: string | null) => {
 		setSelectedCredentialIdState(id)
