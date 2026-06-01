@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { signupSchema } from '../../schemas/auth'
 import { isApiError } from '../../utils/ApiError'
 import { useAuthMode } from '../../stores/useAuthMode'
+import { useModalStore } from '../../stores/useModalStore'
 import { useRegisterMutation } from './mutations/useRegisterMutation'
 
 type SignupFormValues = {
@@ -23,14 +24,13 @@ const INITIAL_VALUES: SignupFormValues = {
 export const useValidatedSignupForm = () => {
 	const toLogin = useAuthMode(state => state.toLogin)
 	const { mutateAsync, isPending } = useRegisterMutation()
+	const openModal = useModalStore(state => state.open)
 	const [values, setValues] = useState<SignupFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<SignupFormErrors>({})
-	const [serverError, setServerError] = useState<string | undefined>(undefined)
 
 	const handleChange = (field: keyof SignupFormValues, value: string) => {
 		setValues(prev => ({ ...prev, [field]: value }))
 		setErrors(prev => ({ ...prev, [field]: undefined }))
-		setServerError(undefined)
 	}
 
 	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -50,7 +50,6 @@ export const useValidatedSignupForm = () => {
 		}
 
 		setErrors({})
-		setServerError(undefined)
 
 		try {
 			const { name, email, password } = parseResult.data
@@ -61,13 +60,13 @@ export const useValidatedSignupForm = () => {
 				if (error.code === 'EMAIL_ALREADY_EXISTS') {
 					setErrors({ email: error.message })
 				} else {
-					setServerError(error.message)
+					openModal('회원가입 오류', error.message)
 				}
 			} else {
-				setServerError('회원가입에 실패했어요. 다시 시도해주세요.')
+				openModal('회원가입 오류', '회원가입에 실패했어요. 다시 시도해주세요.')
 			}
 		}
 	}
 
-	return { values, errors, serverError, isPending, handleChange, handleSubmit }
+	return { values, errors, isPending, handleChange, handleSubmit }
 }
