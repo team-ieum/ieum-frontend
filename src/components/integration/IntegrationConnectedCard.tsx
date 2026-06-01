@@ -39,10 +39,12 @@ const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCar
 				</span>
 			</div>
 
-			<div className='flex items-center justify-between border-t border-neutral-100 px-4 py-3'>
-				<span className='typo-caption1_regular text-neutral-400'>연동 워크플로우</span>
-				<span className='typo-body3_semibold text-neutral-800'>{service.workflowCount ?? 0}개</span>
-			</div>
+			{service.workflowCount !== undefined && (
+				<div className='flex items-center justify-between border-t border-neutral-100 px-4 py-3'>
+					<span className='typo-caption1_regular text-neutral-400'>연동 워크플로우</span>
+					<span className='typo-body3_semibold text-neutral-800'>{service.workflowCount}개</span>
+				</div>
+			)}
 
 			<div className='mt-auto px-4 pb-4 pt-1'>
 				<button

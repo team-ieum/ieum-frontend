@@ -3,10 +3,15 @@ import IntegrationListBody from '../components/integration/IntegrationListBody'
 import IntegrationSettingLayout from '../components/integration/IntegrationSettingLayout'
 import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
+import { useIntegrationOAuthReturn } from '../hooks/integration/useIntegrationOAuthReturn'
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
+import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
+import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
 
 const InterSettingPage = () => {
+	useIntegrationOAuthReturn()
+
 	const {
 		view,
 		activeTab,
@@ -15,12 +20,18 @@ const InterSettingPage = () => {
 		currentService,
 		connectedCount,
 		availableCount,
+		isConnectedLoading,
+		isConnectedError,
+		isAvailableLoading,
+		isAvailableError,
 		isListView,
 		availableSectionRef,
 		goDetail,
 		goList,
 		handleTabChange,
 		onConnect,
+		webhookConnectServiceId,
+		closeWebhookConnect,
 	} = useIntegrationSetting()
 
 	const isMissingDetail = !isListView && !currentService
@@ -40,13 +51,20 @@ const InterSettingPage = () => {
 		>
 			<div className='flex-1 bg-neutral-50'>
 				{isListView ? (
-					<IntegrationListBody
-						connected={connected}
-						available={available}
-						onManage={goDetail}
-						onConnect={onConnect}
-						availableSectionRef={availableSectionRef}
-					/>
+					<>
+						<IntegrationListBody
+							connected={connected}
+							available={available}
+							onManage={goDetail}
+							onConnect={onConnect}
+							isConnectedLoading={isConnectedLoading}
+							isConnectedError={isConnectedError}
+							isAvailableLoading={isAvailableLoading}
+							isAvailableError={isAvailableError}
+							availableSectionRef={availableSectionRef}
+						/>
+						<AiCredentialsSection />
+					</>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>
 						<IntegrationConnectedDetail service={currentService} onBack={goList} />
@@ -60,6 +78,9 @@ const InterSettingPage = () => {
 					</div>
 				)}
 			</div>
+			{webhookConnectServiceId ? (
+				<WebhookCredentialConnectModalContainer serviceId={webhookConnectServiceId} onClose={closeWebhookConnect} />
+			) : null}
 		</IntegrationSettingLayout>
 	)
 }

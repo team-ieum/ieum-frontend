@@ -1,7 +1,7 @@
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
-import { useValidatedSignupForm } from '../../hooks/auth/useValidatedSignupForm'
-import { useAuthMode } from '../../stores/useAuthMode'
+import { useValidatedSignupForm } from '@/hooks/auth/useValidatedSignupForm'
+import { useAuthMode } from '@/stores/useAuthMode'
 
 const SignupForm = () => {
 	const { values, errors, handleChange, handleSubmit } = useValidatedSignupForm()
@@ -12,6 +12,7 @@ const SignupForm = () => {
 			<h1 className='typo-title2_bold text-center text-main-deep-blue'>회원가입</h1>
 
 			<div className='space-y-4 mt-16'>
+				<TextInput text='name' value={values.name} onChange={value => handleChange('name', value)} error={errors.name} />
 				<TextInput
 					text='email'
 					value={values.email}
