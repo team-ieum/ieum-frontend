@@ -5,9 +5,17 @@ import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
+import { useModalStore } from '@/stores/useModalStore'
+import { handleIntegrationOAuthReturn } from '@/utils/integration/handleIntegrationOAuthReturn'
 
 const InterSettingPage = () => {
+	const [searchParams, setSearchParams] = useSearchParams()
+	const queryClient = useQueryClient()
+	const openModal = useModalStore(state => state.open)
+
 	const {
 		view,
 		activeTab,
@@ -34,6 +42,16 @@ const InterSettingPage = () => {
 		if (!isMissingDetail) return
 		goList()
 	}, [isMissingDetail, goList])
+
+	useEffect(() => {
+		const hasOAuthReturn = ['error', 'oauth_error', 'success', 'oauth_success', 'oauth'].some(key => searchParams.has(key))
+		if (!hasOAuthReturn) return
+
+		void (async () => {
+			await handleIntegrationOAuthReturn(searchParams, queryClient, openModal)
+			setSearchParams({}, { replace: true })
+		})()
+	}, [openModal, queryClient, searchParams, setSearchParams])
 
 	return (
 		<IntegrationSettingLayout
