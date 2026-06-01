@@ -58,7 +58,11 @@ export const useValidatedSignupForm = () => {
 			toLogin()
 		} catch (error) {
 			if (isApiError(error)) {
-				setServerError(error.message)
+				if (error.code === 'EMAIL_ALREADY_EXISTS') {
+					setErrors({ email: error.message })
+				} else {
+					setServerError(error.message)
+				}
 			} else {
 				setServerError('회원가입에 실패했어요. 다시 시도해주세요.')
 			}

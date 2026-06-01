@@ -12,6 +12,11 @@ export type ApiErrorCode =
 	| 'FORBIDDEN'
 	| 'NOT_SUPPORTED'
 	| 'INTERNAL_SERVER_ERROR'
+	| 'EMAIL_ALREADY_EXISTS'
+	| 'SOCIAL_LOGIN_EMAIL_CONFLICT'
+	| 'INVALID_CREDENTIALS'
+	| 'TOKEN_EXPIRED'
+	| 'TOKEN_INVALID'
 
 export interface ApiErrorResponse {
 	success: false
