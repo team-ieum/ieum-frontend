@@ -39,3 +39,18 @@ export type CreateWorkflowRequest = {
 }
 
 export type CreateWorkflowResponse = ApiResponse<WorkflowDto>
+
+export interface WorkflowExecutionDto {
+	id: string
+	workflowId: string
+	workflowVersionId: string
+	status: string
+	triggerType: string
+	startedAt: string
+	finishedAt: string
+	createdAt: string
+}
+
+export interface ExecuteWorkflowRequest {
+	triggerData?: Record<string, unknown>
+}

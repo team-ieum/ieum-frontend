@@ -8,6 +8,7 @@ import WorkflowChat from '@/components/workflow/WorkflowChat'
 import { useWorkflowEditor } from '@/hooks/workflow/useWorkflowEditor'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useExecuteWorkflowMutation } from '@/hooks/workflow/mutations/useExecuteWorkflowMutation'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import type { WorkflowDto, WorkflowNodeDto, WorkflowEdgeDto } from '@/types/workflowList'
@@ -73,6 +74,15 @@ const WorkFlowPage = () => {
 
 	const openModal = useModalStore(state => state.open)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
+	const executeMutation = useExecuteWorkflowMutation(workflowId ?? '')
+
+	const handleExecute = async () => {
+		try {
+			await executeMutation.mutateAsync()
+		} catch (error) {
+			openModal('실행 오류', isApiError(error) ? error.message : '워크플로우 실행에 실패했어요. 다시 시도해주세요.')
+		}
+	}
 
 	// undefined = API 데이터 우선, boolean = 사용자가 토글한 로컬 override
 	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
@@ -97,6 +107,7 @@ const WorkFlowPage = () => {
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
 				onToggleActive={handleToggleActive}
+				onExecute={handleExecute}
 			/>
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
