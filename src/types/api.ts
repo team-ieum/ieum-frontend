@@ -20,6 +20,7 @@ export type ApiErrorCode =
 
 export interface ApiErrorResponse {
 	success: false
+	data: null
 	message: string
-	code: ApiErrorCode
+	code?: ApiErrorCode
 }
