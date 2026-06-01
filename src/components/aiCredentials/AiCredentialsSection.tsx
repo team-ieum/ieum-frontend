@@ -2,7 +2,7 @@ import { useAiCredentials } from '@/hooks/aiCredentials/useAiCredentials'
 import { ProviderCard } from './ProviderCard'
 
 export const AiCredentialsSection = () => {
-	const { providers, registerApiKey, deleteApiKey, connectOAuth, disconnectOAuth } = useAiCredentials()
+	const { providers, registerApiKey, deleteApiKey, connectOAuth, disconnectOAuth, isPending } = useAiCredentials()
 
 	return (
 		<div className='mx-auto max-w-[1100px] px-8 pb-14 pt-7'>
@@ -26,6 +26,7 @@ export const AiCredentialsSection = () => {
 						onDeleteApiKey={() => deleteApiKey(provider.id)}
 						onConnectOAuth={() => connectOAuth(provider.id, 'user@company.com')}
 						onDisconnectOAuth={() => disconnectOAuth(provider.id)}
+						isPending={isPending}
 					/>
 				))}
 			</div>
