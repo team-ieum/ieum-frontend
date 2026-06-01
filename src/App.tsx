@@ -47,27 +47,27 @@ const router = createBrowserRouter([
 		element: <Layout />,
 		children: [
 			{
-				path: '/main',
+				path: 'main',
 				element: <MainPage />,
 			},
 			{
-				path: '/workflow',
+				path: 'workflow',
 				element: <WorkflowListPage />,
 			},
 			{
-				path: '/workflow/new',
+				path: 'workflow/new',
 				element: <WorkFlowPage />,
 			},
 			{
-				path: '/workflow/:workflowId',
+				path: 'workflow/:workflowId',
 				element: <WorkFlowPage />,
 			},
 			{
-				path: '/inter-setting',
+				path: 'inter-setting',
 				element: <InterSettingPage />,
 			},
 			{
-				path: '/user',
+				path: 'user',
 				element: <UserPage />,
 			},
 		],
