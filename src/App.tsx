@@ -3,6 +3,7 @@ import Modal from '@/components/common/Modal'
 import { Layout } from '@/components/layout/Layout'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import ProtectedRoute from '@/components/routing/ProtectedRoute'
 import LandingPage from './pages/LandingPage'
 import MainPage from '@/pages/MainPage'
 import AuthPage from '@/pages/AuthPage'
@@ -44,31 +45,36 @@ const router = createBrowserRouter([
 		element: <IntegrationOAuthCallbackPage />,
 	},
 	{
-		element: <Layout />,
+		element: <ProtectedRoute />,
 		children: [
 			{
-				path: 'main',
-				element: <MainPage />,
-			},
-			{
-				path: 'workflow',
-				element: <WorkflowListPage />,
-			},
-			{
-				path: 'workflow/new',
-				element: <WorkFlowPage />,
-			},
-			{
-				path: 'workflow/:workflowId',
-				element: <WorkFlowPage />,
-			},
-			{
-				path: 'inter-setting',
-				element: <InterSettingPage />,
-			},
-			{
-				path: 'user',
-				element: <UserPage />,
+				element: <Layout />,
+				children: [
+					{
+						path: 'main',
+						element: <MainPage />,
+					},
+					{
+						path: 'workflow',
+						element: <WorkflowListPage />,
+					},
+					{
+						path: 'workflow/new',
+						element: <WorkFlowPage />,
+					},
+					{
+						path: 'workflow/:workflowId',
+						element: <WorkFlowPage />,
+					},
+					{
+						path: 'inter-setting',
+						element: <InterSettingPage />,
+					},
+					{
+						path: 'user',
+						element: <UserPage />,
+					},
+				],
 			},
 		],
 	},
