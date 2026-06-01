@@ -7,7 +7,7 @@ import { useIntegrationOAuthReturn } from '../hooks/integration/useIntegrationOA
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
-import WebhookCredentialConnectModal from '@/components/integration/WebhookCredentialConnectModal'
+import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
 
 const InterSettingPage = () => {
 	useIntegrationOAuthReturn()
@@ -79,7 +79,7 @@ const InterSettingPage = () => {
 				)}
 			</div>
 			{webhookConnectServiceId ? (
-				<WebhookCredentialConnectModal serviceId={webhookConnectServiceId} onClose={closeWebhookConnect} />
+				<WebhookCredentialConnectModalContainer serviceId={webhookConnectServiceId} onClose={closeWebhookConnect} />
 			) : null}
 		</IntegrationSettingLayout>
 	)
