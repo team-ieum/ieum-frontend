@@ -27,6 +27,14 @@ export interface ResponseLoginDto {
 	updatedAt: string
 }
 
+export interface ResponseLoginDto {
+	accessToken: string
+	refreshToken: string
+	expiresIn: number
+}
+
+export type LoginResponse = ApiResponse<ResponseLoginDto>
+
 export type AuthMode = 'login' | 'signup'
 
 export type SwapDirection = 1 | -1
