@@ -6,6 +6,7 @@ export interface ApiResponse<T> {
 }
 
 import type { AuthErrorCode } from '@/types/auth'
+import type { CredentialErrorCode } from '@/types/credential'
 import type { WorkflowErrorCode } from '@/types/workflowList'
 
 export type CommonErrorCode =
@@ -16,7 +17,7 @@ export type CommonErrorCode =
 	| 'NOT_SUPPORTED'
 	| 'INTERNAL_SERVER_ERROR'
 
-export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode
+export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode | CredentialErrorCode
 
 export interface ApiErrorResponse {
 	success: false
