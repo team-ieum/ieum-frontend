@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react'
-
 // --- Model (도메인) ---
 
 export type RunStatus = 'success' | 'error' | 'running'
@@ -58,41 +56,6 @@ export type DashboardData = {
 }
 
 // --- View (컴포넌트) ---
-
-export type DashboardChartTooltipPayload = {
-	value?: number
-}
-
-export type DashboardChartTooltipProps = {
-	active?: boolean
-	payload?: DashboardChartTooltipPayload[]
-	label?: string
-}
-
-export type DashboardMiniStatProps = {
-	label: string
-	value: string
-}
-
-export type DashboardIconProps = {
-	name: string
-	size?: number
-	fill?: 0 | 1
-	className?: string
-}
-
-export type DashboardStatusBadgeProps = {
-	status: RunStatus
-}
-
-export type DashboardCardProps = {
-	children: ReactNode
-	className?: string
-}
-
-export type DashboardTriggerChipProps = {
-	kind: string
-}
 
 export type StatusBadgeConfig = {
 	label: string

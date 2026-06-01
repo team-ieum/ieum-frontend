@@ -1,5 +1,9 @@
-import type { DashboardStatusBadgeProps, RunStatus, StatusBadgeConfig } from '../../types/dashboard'
+import type { RunStatus, StatusBadgeConfig } from '../../types/dashboard'
 import DashboardIcon from './DashboardIcon'
+
+type DashboardStatusBadgeProps = {
+	status: RunStatus
+}
 
 const STATUS_MAP: Record<RunStatus, StatusBadgeConfig> = {
 	success: {
