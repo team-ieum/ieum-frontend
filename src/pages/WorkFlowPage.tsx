@@ -112,7 +112,11 @@ const WorkFlowPage = () => {
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
 				{canvas && <WorkflowCanvas key={workflowId} initialNodes={canvas.nodes} initialEdges={canvas.edges} />}
-				<WorkflowChat />
+				<WorkflowChat
+					workflowId={workflowId ?? ''}
+					currentNodes={workflow?.nodes ?? []}
+					currentEdges={workflow?.edges ?? []}
+				/>
 			</div>
 		</div>
 	)
