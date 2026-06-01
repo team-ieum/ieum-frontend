@@ -6,6 +6,7 @@ import { useRegisterCredentialMutation } from '@/hooks/aiCredentials/mutations/u
 import { useDeleteCredentialMutation } from '@/hooks/aiCredentials/mutations/useDeleteCredentialMutation'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
+import type { CredentialProvider } from '@/types/credential'
 import type { AiProvider, AuthMethod } from '@/types/aiCredentials'
 
 const isProviderConnected = (p: AiProvider) => Object.values(p.state).some(s => s?.status === 'connected')
@@ -54,7 +55,7 @@ export function useAiCredentials() {
 
 	const connectedCount = providers.filter(isProviderConnected).length
 
-	const registerApiKey = async (providerId: string, key: string) => {
+	const registerApiKey = async (providerId: CredentialProvider, key: string) => {
 		const provider = providers.find(p => p.id === providerId)
 		if (!provider) return
 		try {
