@@ -1,5 +1,4 @@
 /* eslint-disable react-refresh/only-export-components */
-import React from 'react'
 import { render, type RenderOptions } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router' // React Router v7 기준
