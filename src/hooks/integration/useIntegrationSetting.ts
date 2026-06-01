@@ -1,106 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
+import { GOOGLE_SCOPE_BRANDS } from '@/constants/integration/googleScopeGroups'
+import { useGoogleMyScopesQuery } from '@/hooks/googleOAuth/queries/useGoogleMyScopesQuery'
+import { useGoogleScopesQuery } from '@/hooks/googleOAuth/queries/useGoogleScopesQuery'
+import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
 import type { IntegrationService, IntegrationTabId, IntegrationView, UseIntegrationSettingResult } from '../../types/integration'
-import { findServiceById, partitionServices } from '../../utils/integration/selectors'
+import {
+	mapGoogleMyScopesToConnectedService,
+	mapGoogleScopesToAvailableServices,
+} from '../../utils/integration/mapGoogleOAuthToIntegrationService'
+import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
+import { findServiceById } from '../../utils/integration/selectors'
 import { useIntegrationConnect } from './useIntegrationConnect'
 
-const MOCK_SERVICES: IntegrationService[] = [
-	{
-		id: 'slack',
-		name: 'Slack',
-		brand: 'slack',
-		status: 'connected',
-		account: 'ieum-workspace.slack.com',
-		lastSync: '5분 전',
-		workflowCount: 4,
-		scopes: ['channels:read', 'chat:write', 'users:read'],
-	},
-	{
-		id: 'notion',
-		name: 'Notion',
-		brand: 'notion',
-		status: 'connected',
-		account: 'IEUM 팀 워크스페이스',
-		lastSync: '12분 전',
-		workflowCount: 3,
-		scopes: ['pages:read', 'pages:write', 'databases:read'],
-	},
-	{
-		id: 'github',
-		name: 'GitHub',
-		brand: 'github',
-		status: 'connected',
-		account: 'ieum-org',
-		lastSync: '1시간 전',
-		workflowCount: 2,
-		scopes: ['repo', 'issues:write', 'workflow'],
-	},
-	{
-		id: 'openai',
-		name: 'OpenAI',
-		brand: 'openai',
-		status: 'error',
-		account: 'sk-...7f2a',
-		lastSync: '어제',
-		workflowCount: 6,
-		scopes: ['completions', 'embeddings'],
-	},
-	{
-		id: 'gmail',
-		name: 'Gmail',
-		brand: 'gmail',
-		status: 'available',
-		desc: '이메일 발송 및 수신 트리거',
-	},
-	{
-		id: 'sheets',
-		name: 'Google Sheets',
-		brand: 'sheets',
-		status: 'available',
-		desc: '스프레드시트 읽기 / 쓰기',
-	},
-	{
-		id: 'jira',
-		name: 'Jira',
-		brand: 'jira',
-		status: 'available',
-		desc: '이슈 생성 및 상태 업데이트',
-	},
-	{
-		id: 'airtable',
-		name: 'Airtable',
-		brand: 'airtable',
-		status: 'available',
-		desc: '레코드 CRUD 자동화',
-	},
-	{
-		id: 'discord',
-		name: 'Discord',
-		brand: 'discord',
-		status: 'available',
-		desc: '채널 메시지 및 웹훅',
-	},
-	{
-		id: 'linear',
-		name: 'Linear',
-		brand: 'linear',
-		status: 'available',
-		desc: '이슈 트래킹 연동',
-	},
-	{
-		id: 'webhook',
-		name: 'Webhook',
-		brand: 'webhook',
-		status: 'available',
-		desc: '커스텀 HTTP 엔드포인트',
-	},
-	{
-		id: 'google',
-		name: 'Google Drive',
-		brand: 'google',
-		status: 'available',
-		desc: '파일 업로드 및 폴더 감시',
-	},
-]
+const filterCatalogAvailable = (
+	catalog: IntegrationService[],
+	webhookConnected: IntegrationService[],
+	googleConnected: boolean
+) => {
+	const connectedBrands = new Set(webhookConnected.map(service => service.brand))
+
+	return catalog.filter(service => {
+		if (connectedBrands.has(service.brand)) return false
+		if (googleConnected && GOOGLE_SCOPE_BRANDS.includes(service.brand)) return false
+		return true
+	})
+}
 
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
@@ -108,12 +33,49 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 
 	const { connect } = useIntegrationConnect()
 
+	const { data: webhookCredentials = [], isLoading: isWebhookLoading, isError: isWebhookError } = useWebhookCredentialsQuery()
+
+	const { data: googleScopesData, isLoading: isGoogleScopesLoading, isError: isGoogleScopesError } = useGoogleScopesQuery()
+
+	const {
+		data: googleMyScopesData,
+		isLoading: isGoogleMyScopesLoading,
+		isError: isGoogleMyScopesError,
+	} = useGoogleMyScopesQuery()
+
 	const availableSectionRef = useRef<HTMLElement>(null)
 	const shouldScrollToAvailableRef = useRef(false)
 
-	const { connected, available } = useMemo(() => partitionServices(MOCK_SERVICES), [])
+	const webhookConnected = useMemo(() => webhookCredentials.map(mapWebhookCredentialToIntegrationService), [webhookCredentials])
 
-	const currentService = view.kind === 'detail' ? findServiceById(MOCK_SERVICES, view.id) : undefined
+	const googleConnectedService = useMemo(
+		() => (googleMyScopesData ? mapGoogleMyScopesToConnectedService(googleMyScopesData) : null),
+		[googleMyScopesData]
+	)
+
+	const googleConnected = Boolean(googleConnectedService)
+
+	const connected = useMemo(() => {
+		const items = [...webhookConnected]
+		if (googleConnectedService) items.push(googleConnectedService)
+		return items
+	}, [webhookConnected, googleConnectedService])
+
+	const googleAvailable = useMemo(() => {
+		if (googleConnected || !googleScopesData) return []
+		return mapGoogleScopesToAvailableServices(googleScopesData)
+	}, [googleConnected, googleScopesData])
+
+	const available = useMemo(() => {
+		const filteredCatalog = filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, webhookConnected, googleConnected)
+		const googleBrands = new Set(googleAvailable.map(service => service.brand))
+		const catalogWithoutGoogleDupes = filteredCatalog.filter(service => !googleBrands.has(service.brand))
+		return [...catalogWithoutGoogleDupes, ...googleAvailable]
+	}, [webhookConnected, googleConnected, googleAvailable])
+
+	const services = useMemo(() => [...connected, ...available], [connected, available])
+
+	const currentService = view.kind === 'detail' ? findServiceById(services, view.id) : undefined
 
 	const goDetail = useCallback((id: string) => {
 		setView({ kind: 'detail', id })
@@ -149,6 +111,11 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		[connect]
 	)
 
+	const isConnectedLoading = isWebhookLoading || isGoogleMyScopesLoading
+	const isConnectedError = isWebhookError || isGoogleMyScopesError
+	const isAvailableLoading = isGoogleScopesLoading
+	const isAvailableError = isGoogleScopesError
+
 	return {
 		view,
 		activeTab,
@@ -157,6 +124,10 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		currentService,
 		connectedCount: connected.length,
 		availableCount: available.length,
+		isConnectedLoading,
+		isConnectedError,
+		isAvailableLoading,
+		isAvailableError,
 		isListView: view.kind === 'list',
 		availableSectionRef,
 		goDetail,

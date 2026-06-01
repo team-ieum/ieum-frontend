@@ -66,6 +66,10 @@ export type UseIntegrationSettingResult = {
 	currentService: IntegrationService | undefined
 	connectedCount: number
 	availableCount: number
+	isConnectedLoading: boolean
+	isConnectedError: boolean
+	isAvailableLoading: boolean
+	isAvailableError: boolean
 	isListView: boolean
 	availableSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void
