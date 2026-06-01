@@ -41,10 +41,6 @@ export type IntegrationTabItem = {
 	label: string
 }
 
-export type IntegrationData = {
-	services: IntegrationService[]
-}
-
 export type IntegrationStatusLabelConfig = {
 	text: string
 	className: string
@@ -66,10 +62,14 @@ export type UseIntegrationSettingResult = {
 	currentService: IntegrationService | undefined
 	connectedCount: number
 	availableCount: number
+	isConnectedLoading: boolean
+	isConnectedError: boolean
 	isListView: boolean
 	availableSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void
 	onConnect: (id: string) => void
+	webhookConnectServiceId: 'slack' | 'discord' | null
+	closeWebhookConnect: () => void
 }

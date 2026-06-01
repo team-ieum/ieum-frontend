@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { loginSchema } from '../../schemas/auth'
+import { loginSchema } from '@/schemas/auth'
+import { isApiError } from '@/utils/ApiError'
+import { useAuthStore } from '@/stores/useAuthStore'
+import { useModalStore } from '@/stores/useModalStore'
+import { useLoginMutation } from '@/hooks/auth/mutations/useLoginMutation'
 
 type LoginFormValues = {
 	email: string
@@ -16,6 +20,9 @@ const INITIAL_VALUES: LoginFormValues = {
 
 export const useValidatedLoginForm = () => {
 	const navigate = useNavigate()
+	const { mutateAsync, isPending } = useLoginMutation()
+	const setAuth = useAuthStore(state => state.setAuth)
+	const openModal = useModalStore(state => state.open)
 	const [values, setValues] = useState<LoginFormValues>(INITIAL_VALUES)
 	const [errors, setErrors] = useState<LoginFormErrors>({})
 
@@ -24,7 +31,7 @@ export const useValidatedLoginForm = () => {
 		setErrors(prev => ({ ...prev, [field]: undefined }))
 	}
 
-	const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 
 		const parseResult = loginSchema.safeParse(values)
@@ -39,9 +46,20 @@ export const useValidatedLoginForm = () => {
 		}
 
 		setErrors({})
-		// TODO: 추후 실제 로그인 API 연동
-		navigate('/main')
+
+		try {
+			const { email, password } = parseResult.data
+			const response = await mutateAsync({ email, password })
+			setAuth(response.data.accessToken, response.data.refreshToken)
+			navigate('/main')
+		} catch (error) {
+			if (isApiError(error)) {
+				openModal('로그인 오류', error.message)
+			} else {
+				openModal('로그인 오류', '로그인에 실패했어요. 다시 시도해주세요.')
+			}
+		}
 	}
 
-	return { values, errors, handleChange, handleSubmit }
+	return { values, errors, isPending, handleChange, handleSubmit }
 }

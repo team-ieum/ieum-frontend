@@ -1,1 +1,1 @@
-export type InputText = 'email' | 'password' | 'passwordConfirm'
+export type InputText = 'email' | 'password' | 'passwordConfirm' | 'name'

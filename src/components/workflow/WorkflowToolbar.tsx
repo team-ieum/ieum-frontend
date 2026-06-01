@@ -1,12 +1,79 @@
-import { ArrowLeft, Bug, CloudCheck, History, Rocket, Share2 } from 'lucide-react'
+import { ArrowLeft, CloudCheck, History, Rocket, Save, Share2 } from 'lucide-react'
+import { useRef } from 'react'
+import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
+import type { WorkflowStatus } from '@/types/workflowList'
+
+type ActiveToggleProps = {
+	active: boolean
+	onToggle: () => void
+}
+
+const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
+	const startX = useRef<number | null>(null)
+
+	const handlePointerDown = (e: React.PointerEvent) => {
+		startX.current = e.clientX
+	}
+
+	const handlePointerUp = (e: React.PointerEvent) => {
+		if (startX.current === null) return
+		const delta = e.clientX - startX.current
+		startX.current = null
+
+		// 드래그: 8px 이상 이동 시 방향으로 결정, 미만이면 클릭으로 처리
+		if (Math.abs(delta) >= 8) {
+			const shouldActivate = delta > 0
+			if (shouldActivate !== active) onToggle()
+		} else {
+			onToggle()
+		}
+	}
+
+	return (
+		<div className='flex items-center gap-2 shrink-0'>
+			<button
+				type='button'
+				role='switch'
+				aria-checked={active}
+				aria-label={active ? '워크플로우 비활성화' : '워크플로우 활성화'}
+				onPointerDown={handlePointerDown}
+				onPointerUp={handlePointerUp}
+				className={`relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer select-none touch-none ${
+					active ? 'bg-node-green' : 'bg-neutral-300'
+				}`}
+			>
+				<span
+					className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+						active ? 'translate-x-5' : 'translate-x-0.5'
+					}`}
+				/>
+			</button>
+			<span className={`text-xs font-semibold ${active ? 'text-node-green' : 'text-neutral-400'}`}>
+				{active ? WORKFLOW_STATUS_META.active.label : WORKFLOW_STATUS_META.paused.label}
+			</span>
+		</div>
+	)
+}
 
 type WorkflowToolbarProps = {
 	defaultTitle?: string
+	status?: WorkflowStatus
+	active?: boolean
+	onToggleActive?: () => void
+	onExecute?: () => void
 }
 
-const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowToolbarProps) => {
+const WorkflowToolbar = ({
+	defaultTitle = '워크플로우 제목',
+	status = 'paused',
+	active,
+	onToggleActive,
+	onExecute,
+}: WorkflowToolbarProps) => {
 	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
+	const statusMeta = WORKFLOW_STATUS_META[status]
+	const isToggleable = status !== 'error' && active !== undefined && onToggleActive
 
 	return (
 		<div
@@ -30,10 +97,16 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 					className='text-xl font-bold text-main-deep-blue tracking-wide outline-none bg-transparent rounded-md px-2 py-1 hover:bg-neutral-100 focus:bg-neutral-100 transition-colors min-w-0'
 					style={{ fontFamily: 'var(--font-sans)' }}
 				/>
-				<span className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-main-light-blue text-main-deep-blue border border-[#cde9f4] text-xs font-semibold shrink-0'>
-					<span className='w-1.5 h-1.5 rounded-full bg-main-blue' />
-					DRAFT
-				</span>
+				{isToggleable ? (
+					<ActiveToggle active={active} onToggle={onToggleActive} />
+				) : (
+					<span
+						className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold shrink-0 ${statusMeta.toneClass}`}
+					>
+						<span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dotBgClass}`} />
+						{statusMeta.label}
+					</span>
+				)}
 			</div>
 
 			<span className='inline-flex items-center gap-1 text-xs text-neutral-400 shrink-0'>
@@ -61,11 +134,12 @@ const WorkflowToolbar = ({ defaultTitle = '워크플로우 제목' }: WorkflowTo
 				type='button'
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer'
 			>
-				<Bug size={15} />
-				테스트
+				<Save size={15} />
+				저장
 			</button>
 			<button
 				type='button'
+				onClick={onExecute}
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer'
 			>
 				<Rocket size={15} />
