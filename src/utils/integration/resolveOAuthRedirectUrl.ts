@@ -35,10 +35,3 @@ export const resolveOAuthRedirectUrl = (url: string): string => {
 		return trimmed
 	}
 }
-
-/** 주소창이 localhost인데 /api/... 인 경우 (OAuth 잘못된 리다이렉트 폴백) */
-export const resolveApiPathFromBrowserLocation = (): string | null => {
-	const { pathname, search, hash } = window.location
-	if (!pathname.startsWith('/api/')) return null
-	return resolveOAuthRedirectUrl(`${pathname}${search}${hash}`)
-}

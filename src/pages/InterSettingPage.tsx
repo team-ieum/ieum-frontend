@@ -3,18 +3,14 @@ import IntegrationListBody from '../components/integration/IntegrationListBody'
 import IntegrationSettingLayout from '../components/integration/IntegrationSettingLayout'
 import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
+import { useIntegrationOAuthReturn } from '../hooks/integration/useIntegrationOAuthReturn'
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
-import { useModalStore } from '@/stores/useModalStore'
-import { handleIntegrationOAuthReturn } from '@/utils/integration/handleIntegrationOAuthReturn'
+import WebhookCredentialConnectModal from '@/components/integration/WebhookCredentialConnectModal'
 
 const InterSettingPage = () => {
-	const [searchParams, setSearchParams] = useSearchParams()
-	const queryClient = useQueryClient()
-	const openModal = useModalStore(state => state.open)
+	useIntegrationOAuthReturn()
 
 	const {
 		view,
@@ -34,6 +30,8 @@ const InterSettingPage = () => {
 		goList,
 		handleTabChange,
 		onConnect,
+		webhookConnectServiceId,
+		closeWebhookConnect,
 	} = useIntegrationSetting()
 
 	const isMissingDetail = !isListView && !currentService
@@ -42,16 +40,6 @@ const InterSettingPage = () => {
 		if (!isMissingDetail) return
 		goList()
 	}, [isMissingDetail, goList])
-
-	useEffect(() => {
-		const hasOAuthReturn = ['error', 'oauth_error', 'success', 'oauth_success', 'oauth'].some(key => searchParams.has(key))
-		if (!hasOAuthReturn) return
-
-		void (async () => {
-			await handleIntegrationOAuthReturn(searchParams, queryClient, openModal)
-			setSearchParams({}, { replace: true })
-		})()
-	}, [openModal, queryClient, searchParams, setSearchParams])
 
 	return (
 		<IntegrationSettingLayout
@@ -90,6 +78,9 @@ const InterSettingPage = () => {
 					</div>
 				)}
 			</div>
+			{webhookConnectServiceId ? (
+				<WebhookCredentialConnectModal serviceId={webhookConnectServiceId} onClose={closeWebhookConnect} />
+			) : null}
 		</IntegrationSettingLayout>
 	)
 }

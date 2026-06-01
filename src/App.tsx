@@ -36,15 +36,11 @@ const router = createBrowserRouter([
 		element: <ApiPathRedirectPage />,
 	},
 	{
-		path: '/oauth/google/callback',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
-		path: '/oauth/callback/google',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
 		path: '/oauth/*',
+		element: <IntegrationOAuthCallbackPage />,
+	},
+	{
+		path: '/oauth2/*',
 		element: <IntegrationOAuthCallbackPage />,
 	},
 	{
