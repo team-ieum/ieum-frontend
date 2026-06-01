@@ -7,6 +7,9 @@ import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import { useWorkflowEditor } from '@/hooks/workflow/useWorkflowEditor'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
+import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useModalStore } from '@/stores/useModalStore'
+import { isApiError } from '@/utils/ApiError'
 import type { WorkflowDto, WorkflowNodeDto, WorkflowEdgeDto } from '@/types/workflowList'
 import type { WorkflowNodeType } from '@/types/workflow'
 
@@ -68,9 +71,24 @@ const WorkFlowPage = () => {
 	const workflow = data?.data
 	const canvas = workflow ? toCanvasData(workflow) : null
 
+	const openModal = useModalStore(state => state.open)
+	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
+
 	// undefined = API 데이터 우선, boolean = 사용자가 토글한 로컬 override
 	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
 	const active = localActive ?? workflow?.active
+
+	const handleToggleActive = async () => {
+		const next = !(active ?? false)
+		setLocalActive(next)
+		try {
+			await toggleMutation.mutateAsync(next)
+			setLocalActive(undefined)
+		} catch (error) {
+			setLocalActive(undefined)
+			openModal('오류', isApiError(error) ? error.message : '상태 변경에 실패했어요. 다시 시도해주세요.')
+		}
+	}
 
 	return (
 		<div className='-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col' style={{ height: 'calc(100vh - var(--layout-header-height))' }}>
@@ -78,7 +96,7 @@ const WorkFlowPage = () => {
 				defaultTitle={workflow?.name}
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
-				onToggleActive={() => setLocalActive(!(active ?? false))}
+				onToggleActive={handleToggleActive}
 			/>
 			<div className='relative flex-1'>
 				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
