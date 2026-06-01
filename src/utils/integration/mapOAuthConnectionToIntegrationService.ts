@@ -28,6 +28,5 @@ export const mapOAuthConnectionToIntegrationService = (connection: OAuthConnecti
 		account: connection.providerAccountId,
 		lastSync: formatIntegrationLastSync(connection.createdAt),
 		scopes: connection.scopes,
-		workflowCount: 0,
 	}
 }

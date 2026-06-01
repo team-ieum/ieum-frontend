@@ -13,5 +13,4 @@ export const mapWebhookCredentialToIntegrationService = (credential: WebhookCred
 	status: credential.enabled ? 'connected' : 'error',
 	account: credential.defaultChannel,
 	lastSync: formatIntegrationLastSync(credential.createdAt),
-	workflowCount: 0,
 })
