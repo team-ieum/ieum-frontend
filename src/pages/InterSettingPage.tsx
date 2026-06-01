@@ -5,6 +5,7 @@ import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
 import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
 import { cn } from '../utils/cn'
 import { useEffect } from 'react'
+import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
 
 const InterSettingPage = () => {
 	const {
@@ -40,13 +41,16 @@ const InterSettingPage = () => {
 		>
 			<div className='flex-1 bg-neutral-50'>
 				{isListView ? (
-					<IntegrationListBody
-						connected={connected}
-						available={available}
-						onManage={goDetail}
-						onConnect={onConnect}
-						availableSectionRef={availableSectionRef}
-					/>
+					<>
+						<IntegrationListBody
+							connected={connected}
+							available={available}
+							onManage={goDetail}
+							onConnect={onConnect}
+							availableSectionRef={availableSectionRef}
+						/>
+						<AiCredentialsSection />
+					</>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>
 						<IntegrationConnectedDetail service={currentService} onBack={goList} />
