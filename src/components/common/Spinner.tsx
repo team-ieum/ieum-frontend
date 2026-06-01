@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { cn } from '@/utils/cn'
 
 type SpinnerSize = 'sm' | 'md' | 'lg'
@@ -13,7 +14,7 @@ const sizeClass: Record<SpinnerSize, string> = {
 	lg: 'size-12 border-4',
 }
 
-const Spinner = ({ size = 'md', className }: SpinnerProps) => (
+const Spinner = ({ size = 'md', className }: SpinnerProps): ReactElement => (
 	<span
 		role='status'
 		aria-label='로딩 중'
