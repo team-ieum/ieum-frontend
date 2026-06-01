@@ -1,12 +1,21 @@
-import { Header } from '../components/common/Header'
+import LandingCta from '@/components/landing/LandingCta'
+import LandingFeatures from '@/components/landing/LandingFeatures'
+import LandingFooter from '@/components/landing/LandingFooter'
+import LandingHero from '@/components/landing/LandingHero'
+import LandingIntegrations from '@/components/landing/LandingIntegrations'
+import LandingNav from '@/components/landing/LandingNav'
 
-const LandingPage = () => {
-	return (
-		<section className='space-y-3'>
-			<Header onMenuClick={() => {}} />
-			<h1 className='text-2xl font-semibold text-neutral-800 m-[50px]'>랜딩페이지입니다</h1>
-		</section>
-	)
-}
+const LandingPage = () => (
+	<div className='min-h-screen bg-neutral-white'>
+		<LandingNav />
+		<main>
+			<LandingHero />
+			<LandingFeatures />
+			<LandingIntegrations />
+			<LandingCta />
+		</main>
+		<LandingFooter />
+	</div>
+)
 
 export default LandingPage
