@@ -1,15 +1,17 @@
-import type { StatusPillItem, UseWorkflowStatusSummaryResult } from '../../types/dashboard'
+import { useMemo } from 'react'
+import { useWorkflowDashboardSummaryQuery } from '@/hooks/dashboard/queries/useWorkflowDashboardSummaryQuery'
+import type { DashboardWorkflowSummary, UseWorkflowStatusSummaryResult } from '@/types/dashboard'
+import { mapDashboardSummaryToWorkflow } from '@/utils/dashboard/mapWorkflowDashboardSummary'
 
-const MOCK_WORKFLOW_PILLS: StatusPillItem[] = [
-	{ label: '활성', value: 8, sub: '정상 실행 중', tone: 'active' },
-	{ label: '비활성', value: 3, sub: '중지됨', tone: 'inactive' },
-	{ label: '오류 있음', value: 1, sub: '점검 필요', tone: 'error' },
-	{ label: '실행 중', value: 2, sub: '지금 처리 중', tone: 'running' },
-]
+const EMPTY_WORKFLOW: DashboardWorkflowSummary = {
+	totalCount: 0,
+	pills: [],
+}
 
-export const useWorkflowStatusSummary = (): UseWorkflowStatusSummaryResult => ({
-	workflow: {
-		totalCount: 12,
-		pills: MOCK_WORKFLOW_PILLS,
-	},
-})
+export const useWorkflowStatusSummary = (): UseWorkflowStatusSummaryResult => {
+	const { data, isLoading, isError } = useWorkflowDashboardSummaryQuery()
+
+	const workflow = useMemo(() => (data ? mapDashboardSummaryToWorkflow(data) : EMPTY_WORKFLOW), [data])
+
+	return { workflow, isLoading, isError }
+}

@@ -78,6 +78,8 @@ export type StatusPillSkins = Record<PillTone, StatusPillSkin>
 export type UseDashboardHeroMetricsResult = {
 	hero: DashboardHeroMetrics
 	hourlyExecutions: HourlyExecution[]
+	isLoading: boolean
+	isError: boolean
 }
 
 export type UseDashboardRunLogsResult = {
@@ -97,4 +99,6 @@ export type UseDashboardErrorSummaryResult = {
 
 export type UseWorkflowStatusSummaryResult = {
 	workflow: DashboardWorkflowSummary
+	isLoading: boolean
+	isError: boolean
 }

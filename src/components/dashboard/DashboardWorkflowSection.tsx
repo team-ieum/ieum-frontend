@@ -1,6 +1,7 @@
 import { PILL_SKINS } from '../../constants/dashboard/pillSkins'
 import { useWorkflowStatusSummary } from '../../hooks/dashboard/useWorkflowStatusSummary'
 import type { StatusPillItem } from '../../types/dashboard'
+import { cn } from '../../utils/cn'
 import DashboardIcon from './DashboardIcon'
 
 const StatusPill = ({ label, value, sub, tone }: StatusPillItem) => {
@@ -26,10 +27,15 @@ const StatusPill = ({ label, value, sub, tone }: StatusPillItem) => {
 }
 
 const DashboardWorkflowSection = () => {
-	const { workflow } = useWorkflowStatusSummary()
+	const { workflow, isLoading, isError } = useWorkflowStatusSummary()
 
 	return (
-		<section className='flex flex-col gap-4'>
+		<section className={cn('flex flex-col gap-4', isLoading && 'opacity-60')}>
+			{isError && (
+				<p className='m-0 rounded-brand-sm border border-danger-200 bg-danger-50 px-3 py-2 typo-caption1_medium text-danger-700'>
+					워크플로우 현황을 불러오지 못했습니다.
+				</p>
+			)}
 			<header className='flex items-center gap-2'>
 				<DashboardIcon name='monitoring' size={18} className='text-main-blue' />
 				<h2 className='typo-title3_semibold m-0 text-neutral-900'>전체 워크플로우 현황</h2>
