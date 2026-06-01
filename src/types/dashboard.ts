@@ -4,6 +4,7 @@ export type RunStatus = 'success' | 'error' | 'running'
 
 export type RunRow = {
 	id: string
+	displayId: string
 	name: string
 	status: RunStatus
 	time: string
@@ -14,6 +15,7 @@ export type RunRow = {
 export type ErrorSeverity = 'error' | 'warning'
 
 export type ErrorRow = {
+	id: string
 	code: string
 	severity: ErrorSeverity
 	title: string
@@ -86,7 +88,10 @@ export type UseDashboardRunLogsResult = {
 	visibleRuns: RunRow[]
 	hasMore: boolean
 	isExpanded: boolean
-	toggleExpanded: () => void
+	isLoading: boolean
+	isError: boolean
+	footerLabel: string
+	handleFooterClick: () => void
 }
 
 export type UseDashboardErrorSummaryResult = {
@@ -94,7 +99,10 @@ export type UseDashboardErrorSummaryResult = {
 	errorCount: number
 	hasMore: boolean
 	isExpanded: boolean
-	toggleExpanded: () => void
+	isLoading: boolean
+	isError: boolean
+	footerLabel: string
+	handleFooterClick: () => void
 }
 
 export type UseWorkflowStatusSummaryResult = {

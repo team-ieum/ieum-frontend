@@ -3,6 +3,8 @@ export const queryKeys = {
 		all: () => ['workflows'] as const,
 		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.all(), 'list', params] as const,
 		dashboardSummary: () => [...queryKeys.workflows.all(), 'dashboard', 'summary'] as const,
+		dashboardExecutions: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'executions', { size }] as const,
+		dashboardErrors: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'errors', { size }] as const,
 	},
 	credentials: {
 		all: () => ['credentials'] as const,
