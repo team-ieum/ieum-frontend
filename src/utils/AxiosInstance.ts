@@ -58,10 +58,12 @@ api.interceptors.response.use(
 			const { refreshToken, setAuth, clearAuth } = useAuthStore.getState()
 
 			if (!refreshToken) {
+				const apiError = new ApiError(code, message)
+				processQueue(apiError)
 				isRefreshing = false
 				clearAuth()
 				window.location.href = '/auth'
-				return Promise.reject(new ApiError(code, message))
+				return Promise.reject(apiError)
 			}
 
 			try {
