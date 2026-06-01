@@ -61,6 +61,7 @@ type WorkflowToolbarProps = {
 	status?: WorkflowStatus
 	active?: boolean
 	onToggleActive?: () => void
+	onExecute?: () => void
 }
 
 const WorkflowToolbar = ({
@@ -68,6 +69,7 @@ const WorkflowToolbar = ({
 	status = 'paused',
 	active,
 	onToggleActive,
+	onExecute,
 }: WorkflowToolbarProps) => {
 	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
 	const statusMeta = WORKFLOW_STATUS_META[status]
@@ -137,6 +139,7 @@ const WorkflowToolbar = ({
 			</button>
 			<button
 				type='button'
+				onClick={onExecute}
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer'
 			>
 				<Rocket size={15} />
