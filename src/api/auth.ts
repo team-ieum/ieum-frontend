@@ -1,5 +1,5 @@
-import { api } from '../utils/AxiosInstance'
-import type { RequestRegisterDto, RegisterResponse } from '../types/auth'
+import { api } from '@/utils/AxiosInstance'
+import type { RequestRegisterDto, RegisterResponse } from '@/types/auth'
 
 export const login = async (email: string, password: string) => {
 	const response = await api.post('/auth/login', { email, password })

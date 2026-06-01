@@ -1,7 +1,7 @@
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
-import { useValidatedSignupForm } from '../../hooks/auth/useValidatedSignupForm'
-import { useAuthMode } from '../../stores/useAuthMode'
+import { useValidatedSignupForm } from '@/hooks/auth/useValidatedSignupForm'
+import { useAuthMode } from '@/stores/useAuthMode'
 
 const SignupForm = () => {
 	const { values, errors, handleChange, handleSubmit } = useValidatedSignupForm()
