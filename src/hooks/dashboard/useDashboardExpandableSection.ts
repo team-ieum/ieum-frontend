@@ -51,8 +51,8 @@ export const useDashboardExpandableSection = <TItem, TRow>({
 	)
 
 	const hasMore = useMemo(() => {
-		if (!isExpanded) return allItems.length > previewCount || Boolean(hasNextPage)
-		return Boolean(hasNextPage)
+		if (isExpanded) return true
+		return allItems.length > previewCount || Boolean(hasNextPage)
 	}, [allItems.length, hasNextPage, isExpanded, previewCount])
 
 	const footerLabel = useMemo(() => {
@@ -62,6 +62,8 @@ export const useDashboardExpandableSection = <TItem, TRow>({
 	}, [expandLabel, hasNextPage, isExpanded, isFetchingNextPage])
 
 	const handleFooterClick = useCallback(() => {
+		if (isFetchingNextPage) return
+
 		if (!isExpanded) {
 			setIsExpanded(true)
 			return
@@ -71,7 +73,7 @@ export const useDashboardExpandableSection = <TItem, TRow>({
 			return
 		}
 		setIsExpanded(false)
-	}, [fetchNextPage, hasNextPage, isExpanded])
+	}, [fetchNextPage, hasNextPage, isExpanded, isFetchingNextPage])
 
 	return {
 		visibleItems,
