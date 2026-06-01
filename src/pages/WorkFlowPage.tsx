@@ -86,11 +86,13 @@ const WorkFlowPage = () => {
 
 	const [aiCanvasVersion, setAiCanvasVersion] = useState(0)
 	const [aiCanvas, setAiCanvas] = useState<{ nodes: WorkflowNodeType[]; edges: Edge[] } | null>(null)
+	const [aiRawCanvas, setAiRawCanvas] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null)
 
 	const handleCanvasUpdate = (rawNodes: unknown[], rawEdges: unknown[]) => {
 		const nodes = (rawNodes as WorkflowNodeDto[]).map((n, i) => toReactFlowNode(n, i))
 		const edges = (rawEdges as WorkflowEdgeDto[]).map(toReactFlowEdge)
 		setAiCanvas({ nodes, edges })
+		setAiRawCanvas({ nodes: rawNodes, edges: rawEdges })
 		setAiCanvasVersion(v => v + 1)
 	}
 
@@ -130,8 +132,8 @@ const WorkFlowPage = () => {
 				)}
 				<WorkflowChat
 					workflowId={workflowId ?? ''}
-					currentNodes={workflow?.nodes ?? []}
-					currentEdges={workflow?.edges ?? []}
+					currentNodes={aiRawCanvas?.nodes ?? workflow?.nodes ?? []}
+					currentEdges={aiRawCanvas?.edges ?? workflow?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
 				/>
 			</div>
