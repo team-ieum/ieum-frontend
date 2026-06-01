@@ -7,7 +7,7 @@ export const loginSchema = z.object({
 
 export const signupSchema = loginSchema
 	.extend({
-		name: z.string().min(1, '이름을 입력해주세요!'),
+		name: z.string().trim().min(1, '이름을 입력해주세요!'),
 		passwordConfirm: z.string().min(1, '비밀번호 확인 입력은 필수예요!'),
 	})
 	.refine(data => data.password === data.passwordConfirm, {
