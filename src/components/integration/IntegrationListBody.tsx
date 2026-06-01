@@ -42,7 +42,7 @@ const IntegrationListBody = ({
 				</p>
 			) : isConnectedError ? (
 				<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-danger-700'>
-					웹훅 자격증명 목록을 불러오지 못했습니다.
+					연결된 서비스 목록을 불러오지 못했습니다.
 				</p>
 			) : connected.length === 0 ? (
 				<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-neutral-500'>
@@ -75,6 +75,10 @@ const IntegrationListBody = ({
 				) : isAvailableError ? (
 					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-danger-700'>
 						Google 연동 가능 목록을 불러오지 못했습니다.
+					</p>
+				) : available.length === 0 ? (
+					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-neutral-500'>
+						연결 가능한 서비스가 없습니다.
 					</p>
 				) : (
 					available.map(service => (
