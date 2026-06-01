@@ -9,6 +9,7 @@ import {
 } from '@/constants/workflow/workflowList'
 import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
 import { useCreateWorkflowMutation } from '@/hooks/workflow/mutations/useCreateWorkflowMutation'
+import { useDeleteWorkflowMutation } from '@/hooks/workflow/mutations/useDeleteWorkflowMutation'
 import { TEMP_INITIAL_NODES } from '@/constants/workflow/tempNodes'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
@@ -120,6 +121,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const { data, isLoading, isError, error, hasNextPage, fetchNextPage } = useWorkflowListQuery()
 	const openModal = useModalStore(state => state.open)
 	const createMutation = useCreateWorkflowMutation()
+	const deleteMutation = useDeleteWorkflowMutation()
 
 	useEffect(() => {
 		if (isError && error) {
@@ -235,6 +237,17 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		[navigate]
 	)
 
+	const handleDeleteWorkflow = useCallback(
+		async (workflowId: string) => {
+			try {
+				await deleteMutation.mutateAsync(workflowId)
+			} catch (err) {
+				openModal('삭제 오류', isApiError(err) ? err.message : '워크플로우 삭제에 실패했어요. 다시 시도해주세요.')
+			}
+		},
+		[deleteMutation, openModal]
+	)
+
 	return {
 		search,
 		sort,
@@ -261,5 +274,6 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		onViewChange,
 		handleCreateWorkflow,
 		handleOpenWorkflow,
+		handleDeleteWorkflow,
 	}
 }
