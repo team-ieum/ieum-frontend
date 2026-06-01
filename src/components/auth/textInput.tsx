@@ -1,4 +1,4 @@
-import { AtSignIcon, LockKeyhole } from 'lucide-react'
+import { AtSignIcon, LockKeyhole, UserIcon } from 'lucide-react'
 import type { InputText } from '../../types/textInput'
 import { cn } from '../../utils/cn'
 
@@ -13,6 +13,7 @@ const inputMeta: Record<InputText, { label: string; type: string; placeholder: s
 	email: { label: '이메일', type: 'email', placeholder: 'email@email.com', icon: <AtSignIcon /> },
 	password: { label: '비밀번호', type: 'password', placeholder: '••••••••', icon: <LockKeyhole /> },
 	passwordConfirm: { label: '비밀번호 확인', type: 'password', placeholder: '••••••••', icon: <LockKeyhole /> },
+	name: { label: '이름', type: 'text', placeholder: '홍길동', icon: <UserIcon /> },
 }
 
 const TextInput = ({ text, value, onChange, error }: TextInputProps) => {
