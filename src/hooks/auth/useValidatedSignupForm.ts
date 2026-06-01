@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { isAxiosError } from 'axios'
 import { signupSchema } from '../../schemas/auth'
+import { isApiError } from '../../utils/ApiError'
 import { useAuthMode } from '../../stores/useAuthMode'
 import { useRegisterMutation } from './mutations/useRegisterMutation'
 
@@ -57,8 +57,8 @@ export const useValidatedSignupForm = () => {
 			await mutateAsync({ name, email, password })
 			toLogin()
 		} catch (error) {
-			if (isAxiosError(error)) {
-				setServerError(error.response?.data?.message ?? '회원가입에 실패했어요. 다시 시도해주세요.')
+			if (isApiError(error)) {
+				setServerError(error.message)
 			} else {
 				setServerError('회원가입에 실패했어요. 다시 시도해주세요.')
 			}
