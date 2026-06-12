@@ -33,7 +33,7 @@ export type IntegrationService = {
 
 export type IntegrationView = { kind: 'list' } | { kind: 'detail'; id: string }
 
-export type IntegrationTabId = 'connected' | 'available'
+export type IntegrationTabId = 'services' | 'aiCredentials'
 
 export type IntegrationTabItem = {
 	id: IntegrationTabId
@@ -64,7 +64,7 @@ export type UseIntegrationSettingResult = {
 	isConnectedLoading: boolean
 	isConnectedError: boolean
 	isListView: boolean
-	availableSectionRef: RefObject<HTMLElement | null>
+	aiCredentialsSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void

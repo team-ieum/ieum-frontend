@@ -15,6 +15,7 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 	<div
 		className={cn(
 			INTEGRATION_PAGE_X,
+			'sticky top-(--layout-header-height) z-10',
 			'flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 bg-neutral-white pt-5 pb-4'
 		)}
 	>

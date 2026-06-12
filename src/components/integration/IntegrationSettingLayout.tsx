@@ -20,7 +20,7 @@ const IntegrationSettingLayout = ({
 }>) => (
 	<div
 		className={cn(
-			'-mx-6 -mt-6 -mb-6 flex flex-col overflow-hidden',
+			'-mx-6 -mt-6 -mb-6 flex flex-col',
 			'min-h-[calc(100vh-var(--layout-header-height))] border-y border-neutral-200 bg-neutral-white'
 		)}
 	>

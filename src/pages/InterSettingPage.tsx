@@ -20,7 +20,7 @@ const InterSettingPage = () => {
 		isConnectedLoading,
 		isConnectedError,
 		isListView,
-		availableSectionRef,
+		aiCredentialsSectionRef,
 		goDetail,
 		goList,
 		handleTabChange,
@@ -54,9 +54,15 @@ const InterSettingPage = () => {
 							onConnect={onConnect}
 							isConnectedLoading={isConnectedLoading}
 							isConnectedError={isConnectedError}
-							availableSectionRef={availableSectionRef}
 						/>
-						<AiCredentialsSection />
+						<section
+							ref={aiCredentialsSectionRef}
+							id='ai-credentials'
+							className='scroll-mt-[calc(var(--layout-header-height)+4.75rem)]'
+							aria-label='AI 자격 증명'
+						>
+							<AiCredentialsSection />
+						</section>
 					</>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>

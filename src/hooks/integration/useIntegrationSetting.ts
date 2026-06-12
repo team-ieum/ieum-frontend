@@ -25,7 +25,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	useIntegrationOAuthReturn()
 
 	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
-	const [activeTab, setActiveTab] = useState<IntegrationTabId>('connected')
+	const [activeTab, setActiveTab] = useState<IntegrationTabId>('services')
 
 	const { connect, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
 
@@ -37,8 +37,10 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		isError: isOAuthConnectionsError,
 	} = useOAuthConnectionsQuery()
 
-	const availableSectionRef = useRef<HTMLElement>(null)
-	const shouldScrollToAvailableRef = useRef(false)
+	const aiCredentialsSectionRef = useRef<HTMLElement>(null)
+	const shouldScrollToAiCredentialsRef = useRef(false)
+	const isAutoScrollingRef = useRef(false)
+	const autoScrollIdleTimerRef = useRef<number | undefined>(undefined)
 
 	const webhookConnected = useMemo(() => webhookCredentials.map(mapWebhookCredentialToIntegrationService), [webhookCredentials])
 
@@ -70,23 +72,55 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	}, [])
 
 	const handleTabChange = useCallback((tab: IntegrationTabId) => {
-		if (tab === 'available') {
-			shouldScrollToAvailableRef.current = true
-			setView(prev => (prev.kind === 'detail' ? { kind: 'list' } : prev))
+		setView(prev => (prev.kind === 'detail' ? { kind: 'list' } : prev))
+		isAutoScrollingRef.current = true
+		if (tab === 'aiCredentials') {
+			shouldScrollToAiCredentialsRef.current = true
+		} else {
+			window.scrollTo({ top: 0, behavior: 'smooth' })
 		}
 		setActiveTab(tab)
 	}, [])
 
 	useEffect(() => {
-		if (!shouldScrollToAvailableRef.current || activeTab !== 'available' || view.kind !== 'list') {
+		if (!shouldScrollToAiCredentialsRef.current || activeTab !== 'aiCredentials' || view.kind !== 'list') {
 			return
 		}
 
-		shouldScrollToAvailableRef.current = false
+		shouldScrollToAiCredentialsRef.current = false
 		requestAnimationFrame(() => {
-			availableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+			aiCredentialsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 		})
 	}, [activeTab, view.kind])
+
+	// 수동 스크롤 시 화면에 보이는 섹션에 맞춰 활성 탭 동기화 (스크롤 스파이)
+	useEffect(() => {
+		if (view.kind !== 'list') return
+
+		const handleScroll = () => {
+			// 탭 클릭으로 인한 자동 스크롤 중에는 탭 상태를 건드리지 않고,
+			// 스크롤이 멈춘 뒤(200ms)부터 스파이를 다시 활성화한다.
+			if (isAutoScrollingRef.current) {
+				window.clearTimeout(autoScrollIdleTimerRef.current)
+				autoScrollIdleTimerRef.current = window.setTimeout(() => {
+					isAutoScrollingRef.current = false
+				}, 200)
+				return
+			}
+
+			const section = aiCredentialsSectionRef.current
+			if (!section) return
+
+			const isAiCredentialsInView = section.getBoundingClientRect().top <= window.innerHeight / 3
+			setActiveTab(isAiCredentialsInView ? 'aiCredentials' : 'services')
+		}
+
+		window.addEventListener('scroll', handleScroll, { passive: true })
+		return () => {
+			window.removeEventListener('scroll', handleScroll)
+			window.clearTimeout(autoScrollIdleTimerRef.current)
+		}
+	}, [view.kind])
 
 	const onConnect = useCallback(
 		(id: string) => {
@@ -109,7 +143,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		isConnectedLoading,
 		isConnectedError,
 		isListView: view.kind === 'list',
-		availableSectionRef,
+		aiCredentialsSectionRef,
 		goDetail,
 		goList,
 		handleTabChange,
