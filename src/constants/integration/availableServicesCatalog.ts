@@ -24,13 +24,6 @@ export const AVAILABLE_INTEGRATION_CATALOG: IntegrationService[] = [
 		desc: '리포지토리·이슈·PR 자동화',
 	},
 	{
-		id: 'openai',
-		name: 'OpenAI',
-		brand: 'openai',
-		status: 'available',
-		desc: 'GPT 모델 API 연동',
-	},
-	{
 		id: 'gmail',
 		name: 'Gmail',
 		brand: 'gmail',

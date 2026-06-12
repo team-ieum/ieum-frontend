@@ -7,7 +7,6 @@ export type IntegrationBrand =
 	| 'notion'
 	| 'github'
 	| 'google'
-	| 'openai'
 	| 'gmail'
 	| 'sheets'
 	| 'jira'
