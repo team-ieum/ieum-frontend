@@ -11,6 +11,7 @@ export const mapWebhookCredentialToIntegrationService = (credential: WebhookCred
 	name: credential.displayName,
 	brand: mapProviderToBrand(credential.provider),
 	status: credential.enabled ? 'connected' : 'error',
+	origin: 'webhook',
 	account: credential.defaultChannel,
 	lastSync: formatIntegrationLastSync(credential.createdAt),
 })

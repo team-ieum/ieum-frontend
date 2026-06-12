@@ -25,6 +25,7 @@ export const mapOAuthConnectionToIntegrationService = (connection: OAuthConnecti
 		name: INTEGRATION_BRAND_CONFIG[brand].label,
 		brand,
 		status: 'connected',
+		origin: 'oauth',
 		account: connection.providerAccountId,
 		lastSync: formatIntegrationLastSync(connection.createdAt),
 		scopes: connection.scopes,

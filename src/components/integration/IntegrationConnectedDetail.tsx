@@ -36,13 +36,15 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 							연결 오류
 						</span>
 					)}
-					<button
-						type='button'
-						className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100'
-					>
-						<Trash2 size={15} />
-						연결 해제
-					</button>
+					{service.origin === 'webhook' && (
+						<button
+							type='button'
+							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100'
+						>
+							<Trash2 size={15} />
+							연결 해제
+						</button>
+					)}
 				</div>
 
 				{service.workflowCount !== undefined && (
