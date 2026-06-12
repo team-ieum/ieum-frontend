@@ -1,4 +1,4 @@
-import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import type { IntegrationService } from '../../types/integration'
 
@@ -50,7 +50,7 @@ const IntegrationConnectedDetail = ({
 							disabled={isDisconnecting}
 							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
 						>
-							<Trash2 size={15} />
+							<Link2Off size={15} />
 							{isDisconnecting ? '해제 중…' : '연결 해제'}
 						</button>
 					)}
