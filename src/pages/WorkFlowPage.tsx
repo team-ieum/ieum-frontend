@@ -24,6 +24,7 @@ const toReactFlowNode = (dto: WorkflowNodeDto, index: number): WorkflowNodeType 
 	type: 'workflowNode',
 	position: { x: index * 300, y: 100 },
 	data: {
+		nodeType: dto.type as WorkflowNodeType['data']['nodeType'],
 		brand: (dto.config?.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
 		title: dto.label,
 		method: (dto.config?.method as string) ?? '',

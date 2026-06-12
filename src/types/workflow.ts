@@ -8,6 +8,7 @@ import type { NodeExecutionStatus } from './workflowExecution'
 export type WorkflowNodeBrand = IntegrationBrand | 'openai' | 'filter' | 'warning'
 
 export type WorkflowNodeData = {
+	nodeType: 'TRIGGER' | 'HTTP' | 'CONDITION' | 'TRANSFORM' | 'AI'
 	brand: WorkflowNodeBrand
 	title: string
 	method: string
