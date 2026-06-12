@@ -5,9 +5,16 @@ import type { IntegrationService } from '../../types/integration'
 type IntegrationConnectedDetailProps = {
 	service: IntegrationService
 	onBack: () => void
+	onDisconnect?: () => void
+	isDisconnecting?: boolean
 }
 
-const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDetailProps) => {
+const IntegrationConnectedDetail = ({
+	service,
+	onBack,
+	onDisconnect,
+	isDisconnecting = false,
+}: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
 	const isError = service.status === 'error'
 
@@ -39,10 +46,12 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 					{service.origin === 'webhook' && (
 						<button
 							type='button'
-							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100'
+							onClick={onDisconnect}
+							disabled={isDisconnecting}
+							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
 						>
 							<Trash2 size={15} />
-							연결 해제
+							{isDisconnecting ? '해제 중…' : '연결 해제'}
 						</button>
 					)}
 				</div>

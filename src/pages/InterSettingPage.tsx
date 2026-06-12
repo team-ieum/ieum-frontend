@@ -7,6 +7,7 @@ import { cn } from '../utils/cn'
 import { useEffect } from 'react'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
 import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
+import { useDeleteWebhookCredentialMutation } from '@/hooks/webhookCredentials/mutations/useDeleteWebhookCredentialMutation'
 
 const InterSettingPage = () => {
 	const {
@@ -35,6 +36,20 @@ const InterSettingPage = () => {
 		if (!isMissingDetail) return
 		goList()
 	}, [isMissingDetail, goList])
+
+	const { mutate: deleteWebhookCredential, isPending: isDisconnecting } = useDeleteWebhookCredentialMutation()
+
+	const handleDisconnect = () => {
+		if (!currentService || isDisconnecting) return
+		if (
+			!window.confirm(
+				`${currentService.name} 연결을 해제할까요?\n이 서비스를 사용하는 워크플로우가 동작하지 않을 수 있습니다.`
+			)
+		) {
+			return
+		}
+		deleteWebhookCredential(currentService.id, { onSuccess: goList })
+	}
 
 	return (
 		<IntegrationSettingLayout
@@ -66,7 +81,12 @@ const InterSettingPage = () => {
 					</>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>
-						<IntegrationConnectedDetail service={currentService} onBack={goList} />
+						<IntegrationConnectedDetail
+							service={currentService}
+							onBack={goList}
+							onDisconnect={handleDisconnect}
+							isDisconnecting={isDisconnecting}
+						/>
 					</div>
 				) : (
 					<div className={cn('w-full py-10', INTEGRATION_PAGE_X)}>
