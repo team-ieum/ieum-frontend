@@ -1,3 +1,5 @@
+import type { IntegrationServiceType } from '@/types/integrationWorkflows'
+
 export const queryKeys = {
 	workflows: {
 		all: () => ['workflows'] as const,
@@ -25,7 +27,7 @@ export const queryKeys = {
 	},
 	integrations: {
 		all: () => ['integrations'] as const,
-		workflows: (serviceType: string, params?: { size?: number }) =>
+		workflows: (serviceType: IntegrationServiceType, params?: { size?: number }) =>
 			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
 	},
 } as const
