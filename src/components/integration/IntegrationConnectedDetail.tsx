@@ -1,6 +1,7 @@
 import { ArrowLeft, RefreshCw, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import type { IntegrationService } from '../../types/integration'
+import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
 type IntegrationConnectedDetailProps = {
 	service: IntegrationService
@@ -56,15 +57,6 @@ const IntegrationConnectedDetail = ({
 					)}
 				</div>
 
-				{service.workflowCount !== undefined && (
-					<div className='border-t border-neutral-100 px-6 py-5'>
-						<dl className='m-0 flex flex-col gap-1'>
-							<dt className='typo-caption1_regular text-neutral-400'>연동 워크플로우</dt>
-							<dd className='typo-body2_semibold m-0 text-neutral-900'>{service.workflowCount}개</dd>
-						</dl>
-					</div>
-				)}
-
 				{service.scopes && service.scopes.length > 0 && (
 					<div className='border-t border-neutral-100 px-6 py-5'>
 						<h3 className='typo-body2_semibold m-0 mb-3 text-neutral-900'>권한 범위</h3>
@@ -101,6 +93,8 @@ const IntegrationConnectedDetail = ({
 					</div>
 				)}
 			</div>
+
+			<IntegrationServiceWorkflowList service={service} />
 		</div>
 	)
 }

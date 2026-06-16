@@ -23,6 +23,11 @@ export const queryKeys = {
 		all: () => ['webhook-credentials'] as const,
 		list: () => [...queryKeys.webhookCredentials.all(), 'list'] as const,
 	},
+	integrations: {
+		all: () => ['integrations'] as const,
+		workflows: (serviceType: string, params?: { size?: number }) =>
+			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
+	},
 } as const
 
 export const oauthConnectionsQueryKey = queryKeys.oauthConnections.list()
