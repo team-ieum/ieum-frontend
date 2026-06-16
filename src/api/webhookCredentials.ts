@@ -17,6 +17,7 @@ export const createWebhookCredential = async (body: CreateWebhookCredentialReque
 }
 
 export const deleteWebhookCredential = async (id: string): Promise<ApiResponse<Record<string, never>>> => {
-	const response = await api.delete(`/api/v1/webhook-credentials/${id}`)
+	const encodedId = encodeURIComponent(id)
+	const response = await api.delete(`/api/v1/webhook-credentials/${encodedId}`)
 	return response.data
 }

@@ -1,4 +1,4 @@
-import { ArrowLeft, RefreshCw, Link2Off } from 'lucide-react'
+import { ArrowLeft, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import type { IntegrationService } from '../../types/integration'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
@@ -44,7 +44,7 @@ const IntegrationConnectedDetail = ({
 							연결 오류
 						</span>
 					)}
-					{service.origin === 'webhook' && (
+					{service.origin === 'webhook' && onDisconnect && (
 						<button
 							type='button'
 							onClick={onDisconnect}
@@ -78,18 +78,6 @@ const IntegrationConnectedDetail = ({
 						<div className='rounded-brand-sm border border-danger-300 bg-danger-50 px-4 py-3 typo-body3_regular text-danger-700'>
 							API 키가 만료되었거나 권한이 변경되었습니다. 재연결 후 워크플로우가 정상 동작합니다.
 						</div>
-					</div>
-				)}
-
-				{isError && (
-					<div className='flex flex-wrap gap-2 border-t border-neutral-100 px-6 py-4'>
-						<button
-							type='button'
-							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-200 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue'
-						>
-							<RefreshCw size={15} />
-							재연결
-						</button>
 					</div>
 				)}
 			</div>
