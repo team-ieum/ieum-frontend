@@ -2,9 +2,16 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useModalStore } from '@/stores/useModalStore'
+import { cn } from '@/utils/cn'
 
 const Modal = () => {
-	const { isOpen, title, message, close } = useModalStore()
+	const { isOpen, title, message, confirmText, cancelText, variant, onConfirm, close } = useModalStore()
+	const isConfirm = onConfirm !== undefined
+
+	const handleConfirm = () => {
+		onConfirm?.()
+		close()
+	}
 
 	return createPortal(
 		<AnimatePresence>
@@ -34,16 +41,47 @@ const Modal = () => {
 							<X size={18} />
 						</button>
 
-						{title && <h2 className='typo-body1_bold mb-3 text-main-deep-blue'>{title}</h2>}
+						{title && (
+							<h2
+								className={cn(
+									'typo-body1_bold mb-3',
+									variant === 'danger' ? 'text-danger-700' : 'text-main-deep-blue'
+								)}
+							>
+								{title}
+							</h2>
+						)}
 						<p className='typo-body2_regular text-neutral-600'>{message}</p>
 
-						<button
-							type='button'
-							onClick={close}
-							className='mt-6 w-full rounded-brand-md bg-main-blue py-2.5 typo-body2_bold text-neutral-white transition hover:brightness-105'
-						>
-							확인
-						</button>
+						{isConfirm ? (
+							<div className='mt-6 flex gap-2'>
+								<button
+									type='button'
+									onClick={close}
+									className='flex-1 rounded-brand-md border border-neutral-200 bg-neutral-white py-2.5 typo-body2_bold text-neutral-600 transition hover:bg-neutral-50'
+								>
+									{cancelText}
+								</button>
+								<button
+									type='button'
+									onClick={handleConfirm}
+									className={cn(
+										'flex-1 rounded-brand-md py-2.5 typo-body2_bold text-neutral-white transition hover:brightness-105',
+										variant === 'danger' ? 'bg-danger-700' : 'bg-main-blue'
+									)}
+								>
+									{confirmText}
+								</button>
+							</div>
+						) : (
+							<button
+								type='button'
+								onClick={close}
+								className='mt-6 w-full rounded-brand-md bg-main-blue py-2.5 typo-body2_bold text-neutral-white transition hover:brightness-105'
+							>
+								확인
+							</button>
+						)}
 					</motion.div>
 				</motion.div>
 			)}

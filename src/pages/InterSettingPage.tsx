@@ -7,6 +7,8 @@ import { cn } from '../utils/cn'
 import { useEffect } from 'react'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
 import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
+import { useDeleteWebhookCredentialMutation } from '@/hooks/webhookCredentials/mutations/useDeleteWebhookCredentialMutation'
+import { useModalStore } from '@/stores/useModalStore'
 
 const InterSettingPage = () => {
 	const {
@@ -20,7 +22,7 @@ const InterSettingPage = () => {
 		isConnectedLoading,
 		isConnectedError,
 		isListView,
-		availableSectionRef,
+		aiCredentialsSectionRef,
 		goDetail,
 		goList,
 		handleTabChange,
@@ -35,6 +37,21 @@ const InterSettingPage = () => {
 		if (!isMissingDetail) return
 		goList()
 	}, [isMissingDetail, goList])
+
+	const { mutate: deleteWebhookCredential, isPending: isDisconnecting } = useDeleteWebhookCredentialMutation()
+	const openConfirm = useModalStore(state => state.openConfirm)
+
+	const handleDisconnect = () => {
+		if (!currentService || isDisconnecting) return
+		const serviceId = currentService.id
+		openConfirm({
+			title: '연결 해제',
+			message: `${currentService.name} 연결을 해제할까요? 이 서비스를 사용하는 워크플로우가 동작하지 않을 수 있습니다.`,
+			confirmText: '연결 해제',
+			variant: 'danger',
+			onConfirm: () => deleteWebhookCredential(serviceId, { onSuccess: goList }),
+		})
+	}
 
 	return (
 		<IntegrationSettingLayout
@@ -54,13 +71,24 @@ const InterSettingPage = () => {
 							onConnect={onConnect}
 							isConnectedLoading={isConnectedLoading}
 							isConnectedError={isConnectedError}
-							availableSectionRef={availableSectionRef}
 						/>
-						<AiCredentialsSection />
+						<section
+							ref={aiCredentialsSectionRef}
+							id='ai-credentials'
+							className='scroll-mt-[calc(var(--layout-header-height)+4.75rem)]'
+							aria-label='AI 자격 증명'
+						>
+							<AiCredentialsSection />
+						</section>
 					</>
 				) : currentService ? (
 					<div className={cn('w-full py-6 pb-9', INTEGRATION_PAGE_X)}>
-						<IntegrationConnectedDetail service={currentService} onBack={goList} />
+						<IntegrationConnectedDetail
+							service={currentService}
+							onBack={goList}
+							onDisconnect={handleDisconnect}
+							isDisconnecting={isDisconnecting}
+						/>
 					</div>
 				) : (
 					<div className={cn('w-full py-10', INTEGRATION_PAGE_X)}>

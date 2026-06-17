@@ -6,7 +6,6 @@ import GmailIcon from '../../assets/serviceIcon/gmail.png'
 import JiraIcon from '../../assets/serviceIcon/jira.png'
 import LinearIcon from '../../assets/serviceIcon/linear.png'
 import NotionIcon from '../../assets/serviceIcon/notion.png'
-import OpenaiIcon from '../../assets/serviceIcon/openai.png'
 import GoogleSheetsIcon from '../../assets/serviceIcon/googlesheets.png'
 import SlackIcon from '../../assets/serviceIcon/slack.png'
 import WebhookIcon from '../../assets/serviceIcon/webhook.png'
@@ -21,7 +20,6 @@ export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrand
 	slack: { tint: '#e8f5f0', icon: brandLogo(SlackIcon, 'Slack 로고'), label: 'Slack' },
 	notion: { tint: '#f0f0f0', icon: brandLogo(NotionIcon, 'Notion 로고'), label: 'Notion' },
 	github: { tint: '#eef0f2', icon: brandLogo(GithubIcon, 'GitHub 로고'), label: 'GitHub' },
-	openai: { tint: '#e8eaed', icon: brandLogo(OpenaiIcon, 'OpenAI 로고'), label: 'OpenAI' },
 	gmail: { tint: '#fce8e6', icon: brandLogo(GmailIcon, 'Gmail 로고'), label: 'Gmail' },
 	sheets: { tint: '#e6f4ea', icon: brandLogo(GoogleSheetsIcon, 'Google Sheets 로고'), label: 'Sheets' },
 	jira: { tint: '#e8f0fe', icon: brandLogo(JiraIcon, 'Jira 로고'), label: 'Jira' },

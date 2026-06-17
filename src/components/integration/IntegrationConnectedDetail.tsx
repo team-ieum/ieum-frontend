@@ -1,14 +1,21 @@
-import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import type { IntegrationService } from '../../types/integration'
-import { cn } from '../../utils/cn'
+import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
 type IntegrationConnectedDetailProps = {
 	service: IntegrationService
 	onBack: () => void
+	onDisconnect?: () => void
+	isDisconnecting?: boolean
 }
 
-const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDetailProps) => {
+const IntegrationConnectedDetail = ({
+	service,
+	onBack,
+	onDisconnect,
+	isDisconnecting = false,
+}: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
 	const isError = service.status === 'error'
 
@@ -32,24 +39,23 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 						<h2 className='typo-title2_bold m-0 text-neutral-900'>{service.name}</h2>
 						<p className='typo-body3_regular m-0 text-neutral-600'>{service.account}</p>
 					</div>
-					<span
-						className={cn(
-							'rounded-full px-3 py-1 typo-caption1_semibold',
-							isError ? 'bg-danger-100 text-danger-700' : 'bg-main-light-blue text-main-deep-blue'
-						)}
-					>
-						{isError ? '연결 오류' : '연결됨'}
-					</span>
+					{isError && (
+						<span className='rounded-full bg-danger-100 px-3 py-1 typo-caption1_semibold text-danger-700'>
+							연결 오류
+						</span>
+					)}
+					{service.origin === 'webhook' && onDisconnect && (
+						<button
+							type='button'
+							onClick={onDisconnect}
+							disabled={isDisconnecting}
+							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
+						>
+							<Link2Off size={15} />
+							{isDisconnecting ? '해제 중…' : '연결 해제'}
+						</button>
+					)}
 				</div>
-
-				{service.workflowCount !== undefined && (
-					<div className='border-t border-neutral-100 px-6 py-5'>
-						<dl className='m-0 flex flex-col gap-1'>
-							<dt className='typo-caption1_regular text-neutral-400'>연동 워크플로우</dt>
-							<dd className='typo-body2_semibold m-0 text-neutral-900'>{service.workflowCount}개</dd>
-						</dl>
-					</div>
-				)}
 
 				{service.scopes && service.scopes.length > 0 && (
 					<div className='border-t border-neutral-100 px-6 py-5'>
@@ -74,24 +80,9 @@ const IntegrationConnectedDetail = ({ service, onBack }: IntegrationConnectedDet
 						</div>
 					</div>
 				)}
-
-				<div className='flex flex-wrap gap-2 border-t border-neutral-100 px-6 py-4'>
-					<button
-						type='button'
-						className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-200 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue'
-					>
-						<RefreshCw size={15} />
-						{isError ? '재연결' : '연결 테스트'}
-					</button>
-					<button
-						type='button'
-						className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100'
-					>
-						<Trash2 size={15} />
-						연결 해제
-					</button>
-				</div>
 			</div>
+
+			<IntegrationServiceWorkflowList service={service} />
 		</div>
 	)
 }

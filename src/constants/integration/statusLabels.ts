@@ -1,8 +1,8 @@
 import type { IntegrationConnectedDisplayStatus, IntegrationStatusLabelConfig, IntegrationTabItem } from '../../types/integration'
 
 export const INTEGRATION_TABS: IntegrationTabItem[] = [
-	{ id: 'connected', label: '연결됨' },
-	{ id: 'available', label: '사용 가능' },
+	{ id: 'services', label: '서비스 관리' },
+	{ id: 'aiCredentials', label: 'AI 자격증명' },
 ]
 
 export const INTEGRATION_STATUS_LABEL: Record<IntegrationConnectedDisplayStatus, IntegrationStatusLabelConfig> = {

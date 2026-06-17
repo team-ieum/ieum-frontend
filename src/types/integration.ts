@@ -7,7 +7,6 @@ export type IntegrationBrand =
 	| 'notion'
 	| 'github'
 	| 'google'
-	| 'openai'
 	| 'gmail'
 	| 'sheets'
 	| 'jira'
@@ -20,11 +19,15 @@ export type IntegrationStatus = 'connected' | 'available' | 'error' | 'expired'
 
 export type IntegrationConnectedDisplayStatus = 'connected' | 'error' | 'expired'
 
+/** 연결된 서비스의 출처 (웹훅 자격증명 / OAuth 연동) */
+export type IntegrationOrigin = 'webhook' | 'oauth'
+
 export type IntegrationService = {
 	id: string
 	name: string
 	brand: IntegrationBrand
 	status: IntegrationStatus
+	origin?: IntegrationOrigin
 	desc?: string
 	account?: string
 	lastSync?: string
@@ -34,7 +37,7 @@ export type IntegrationService = {
 
 export type IntegrationView = { kind: 'list' } | { kind: 'detail'; id: string }
 
-export type IntegrationTabId = 'connected' | 'available'
+export type IntegrationTabId = 'services' | 'aiCredentials'
 
 export type IntegrationTabItem = {
 	id: IntegrationTabId
@@ -65,7 +68,7 @@ export type UseIntegrationSettingResult = {
 	isConnectedLoading: boolean
 	isConnectedError: boolean
 	isListView: boolean
-	availableSectionRef: RefObject<HTMLElement | null>
+	aiCredentialsSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void

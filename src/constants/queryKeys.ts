@@ -1,3 +1,5 @@
+import type { IntegrationServiceType } from '@/types/integrationWorkflows'
+
 export const queryKeys = {
 	workflows: {
 		all: () => ['workflows'] as const,
@@ -22,6 +24,11 @@ export const queryKeys = {
 	webhookCredentials: {
 		all: () => ['webhook-credentials'] as const,
 		list: () => [...queryKeys.webhookCredentials.all(), 'list'] as const,
+	},
+	integrations: {
+		all: () => ['integrations'] as const,
+		workflows: (serviceType: IntegrationServiceType, params?: { size?: number }) =>
+			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
 	},
 } as const
 
