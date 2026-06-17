@@ -14,7 +14,10 @@ import type {
 const CHAT_STREAM_DESTINATION = '/user/queue/chat/stream'
 const CONNECTION_TIMEOUT_MS = 8000
 
-const getWebSocketUrl = () => `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/ws`
+const getWebSocketUrl = (): string | null => {
+	const apiUrl = import.meta.env.VITE_API_URL?.trim()
+	return apiUrl ? `${apiUrl.replace(/\/$/, '')}/ws` : null
+}
 
 const withTimeout = <T>(promise: Promise<T>, ms: number, message: string) =>
 	new Promise<T>((resolve, reject) => {
@@ -161,7 +164,7 @@ export const useWorkflowChat = (
 				return
 			}
 
-			if (response.type === 'complete') {
+			if (response.type === 'complete' || (response.type === 'done' && !response.data)) {
 				setIsTyping(false)
 				setCurrentStage(null)
 				streamingAssistantIndexRef.current = null
@@ -203,6 +206,12 @@ export const useWorkflowChat = (
 			return
 		}
 
+		const webSocketUrl = getWebSocketUrl()
+		if (!webSocketUrl) {
+			queueMicrotask(() => setConnectionStatus('error'))
+			return
+		}
+
 		createConnectionReady()
 
 		const client = new Client({
@@ -213,7 +222,7 @@ export const useWorkflowChat = (
 			heartbeatIncoming: 4000,
 			heartbeatOutgoing: 4000,
 			reconnectDelay: 3000,
-			webSocketFactory: () => new SockJS(getWebSocketUrl()),
+			webSocketFactory: () => new SockJS(webSocketUrl),
 			onConnect: () => {
 				subscriptionRef.current?.unsubscribe()
 				subscriptionRef.current = client.subscribe(CHAT_STREAM_DESTINATION, handleStreamMessage)

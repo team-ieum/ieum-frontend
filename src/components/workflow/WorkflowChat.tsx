@@ -1,7 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUp, X } from 'lucide-react'
 import { useState } from 'react'
+import type { ReactElement } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
+import { CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
 import type { CredentialProvider } from '@/types/credential'
 
@@ -11,13 +13,12 @@ const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
 	GEMINI: 'Gemini',
 }
 
-const CHAT_STAGE_LABEL: Record<string, string> = {
-	designing: '워크플로우를 설계하고 있어요',
-	reviewing: '결과를 검토하고 있어요',
+type TypingIndicatorProps = {
+	stage?: string | null
 }
 
-const TypingIndicator = ({ stage }: { stage?: string | null }) => {
-	const stageLabel = stage ? (CHAT_STAGE_LABEL[stage] ?? '응답을 준비하고 있어요') : null
+const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
+	const stageLabel = stage ? (CHAT_STAGE_LABEL[stage] ?? CHAT_STAGE_FALLBACK_LABEL) : null
 
 	return (
 		<motion.div
