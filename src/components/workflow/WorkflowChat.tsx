@@ -11,29 +11,44 @@ const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
 	GEMINI: 'Gemini',
 }
 
-const TypingIndicator = () => (
-	<motion.div
-		className='flex gap-2 items-start'
-		initial={{ opacity: 0, y: 6 }}
-		animate={{ opacity: 1, y: 0 }}
-		exit={{ opacity: 0, y: 6 }}
-		transition={{ duration: 0.2 }}
-	>
-		<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center' style={{ background: '#e0f6ff' }}>
-			<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
-		</span>
-		<div className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-1.5' style={{ background: '#F0F4FC' }}>
-			{[0, 1, 2].map(i => (
-				<motion.span
-					key={i}
-					className='block w-1.5 h-1.5 rounded-full bg-main-blue'
-					animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
-					transition={{ duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
-				/>
-			))}
-		</div>
-	</motion.div>
-)
+const CHAT_STAGE_LABEL: Record<string, string> = {
+	designing: '워크플로우를 설계하고 있어요',
+	reviewing: '결과를 검토하고 있어요',
+}
+
+const TypingIndicator = ({ stage }: { stage?: string | null }) => {
+	const stageLabel = stage ? (CHAT_STAGE_LABEL[stage] ?? '응답을 준비하고 있어요') : null
+
+	return (
+		<motion.div
+			className='flex gap-2 items-start'
+			initial={{ opacity: 0, y: 6 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: 6 }}
+			transition={{ duration: 0.2 }}
+		>
+			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center' style={{ background: '#e0f6ff' }}>
+				<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
+			</span>
+			<div
+				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-[280px] flex-wrap'
+				style={{ background: '#F0F4FC' }}
+			>
+				<div className='flex items-center gap-1.5'>
+					{[0, 1, 2].map(i => (
+						<motion.span
+							key={i}
+							className='block w-1.5 h-1.5 rounded-full bg-main-blue'
+							animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+							transition={{ duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+						/>
+					))}
+				</div>
+				{stageLabel && <span className='typo-caption1_medium text-main-blue leading-none'>{stageLabel}</span>}
+			</div>
+		</motion.div>
+	)
+}
 
 type WorkflowChatProps = {
 	workflowId: string
@@ -55,6 +70,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 		credentials,
 		selectedCredentialId,
 		setSelectedCredentialId,
+		currentStage,
 	} = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
 
 	return (
@@ -156,7 +172,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 									</div>
 								)
 							)}
-							<AnimatePresence>{isTyping && <TypingIndicator />}</AnimatePresence>
+							<AnimatePresence>{isTyping && <TypingIndicator stage={currentStage} />}</AnimatePresence>
 						</div>
 
 						{/* 입력창 */}
