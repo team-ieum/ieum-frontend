@@ -27,7 +27,7 @@ export const queryKeys = {
 	},
 	integrations: {
 		all: () => ['integrations'] as const,
-		workflows: (serviceType: IntegrationServiceType, params?: { size?: number }) =>
+		workflows: (serviceType: IntegrationServiceType | 'UNKNOWN', params?: { size?: number }) =>
 			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
 	},
 } as const
