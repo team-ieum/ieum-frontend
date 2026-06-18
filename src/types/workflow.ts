@@ -1,10 +1,13 @@
 import type { Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
+import type { IntegrationBrand } from './integration'
 import type { WorkflowDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
 
+export type WorkflowNodeBrand = IntegrationBrand | 'openai' | 'filter' | 'warning'
+
 export type WorkflowNodeData = {
-	brand: 'webhook' | 'openai' | 'filter' | 'slack' | 'notion' | 'warning'
+	brand: WorkflowNodeBrand
 	title: string
 	method: string
 	url: string
