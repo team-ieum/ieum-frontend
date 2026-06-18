@@ -1,4 +1,4 @@
-import { ArrowLeft, CloudCheck, History, Rocket, Save, Share2 } from 'lucide-react'
+import { ArrowLeft, CloudCheck, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
@@ -62,6 +62,7 @@ type WorkflowToolbarProps = {
 	active?: boolean
 	onToggleActive?: () => void
 	onExecute?: () => void
+	isExecuting?: boolean
 }
 
 const WorkflowToolbar = ({
@@ -70,6 +71,7 @@ const WorkflowToolbar = ({
 	active,
 	onToggleActive,
 	onExecute,
+	isExecuting = false,
 }: WorkflowToolbarProps) => {
 	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
 	const statusMeta = WORKFLOW_STATUS_META[status]
@@ -140,10 +142,11 @@ const WorkflowToolbar = ({
 			<button
 				type='button'
 				onClick={onExecute}
-				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer'
+				disabled={isExecuting}
+				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'
 			>
-				<Rocket size={15} />
-				Deploy
+				{isExecuting ? <Loader2 size={15} className='animate-spin' /> : <Rocket size={15} />}
+				{isExecuting ? '실행 중…' : 'Deploy'}
 			</button>
 		</div>
 	)
