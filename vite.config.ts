@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
 	const apiTarget = env.VITE_API_URL?.replace(/\/$/, '')
 
 	return {
+		define: {
+			global: 'globalThis',
+		},
 		plugins: [
 			react({
 				babel: {

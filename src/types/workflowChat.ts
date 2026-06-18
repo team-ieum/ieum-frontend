@@ -21,6 +21,19 @@ export interface WorkflowChatRequest {
 	credentialId?: string
 }
 
+export type WorkflowChatConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error'
+
+export type WorkflowChatStreamType = 'token' | 'stage' | 'done' | 'complete' | 'error'
+
+export interface WorkflowChatStreamResponse {
+	type: WorkflowChatStreamType
+	content?: string
+	index?: number
+	totalTokens?: number
+	stage?: string
+	data?: WorkflowChatResponseData
+}
+
 export interface WorkflowChatResponseData {
 	messageId: string
 	sessionId: string
