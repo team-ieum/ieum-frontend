@@ -26,5 +26,18 @@ export const useWorkflowEditor = (initialNodes: WorkflowNodeType[] = [], initial
 		[]
 	)
 
-	return { nodes, edges, onNodesChange, onEdgesChange, onConnect }
+	// 채팅 등으로 캔버스가 갱신될 때 기존 노드 위치는 유지하고 신규 노드만 추가한다.
+	// 신규 노드 id만 새로 mount되어 등장 애니메이션이 실행된다(기존 노드는 재애니 없음).
+	const syncCanvas = useCallback((nextNodes: WorkflowNodeType[], nextEdges: Edge[]) => {
+		setNodes(prev => {
+			const prevById = new Map(prev.map(n => [n.id, n]))
+			return nextNodes.map(n => {
+				const existing = prevById.get(n.id)
+				return existing ? { ...n, position: existing.position } : n
+			})
+		})
+		setEdges(nextEdges)
+	}, [])
+
+	return { nodes, edges, onNodesChange, onEdgesChange, onConnect, syncCanvas }
 }
