@@ -3,6 +3,7 @@ import type { ApiResponse } from './api'
 import type { IntegrationBrand } from './integration'
 import type { WorkflowDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
+import type { NodeExecutionStatus } from './workflowExecution'
 
 export type WorkflowNodeBrand = IntegrationBrand | 'openai' | 'filter' | 'warning'
 
@@ -13,6 +14,8 @@ export type WorkflowNodeData = {
 	url: string
 	check?: boolean
 	warn?: boolean
+	index?: number
+	status?: NodeExecutionStatus
 }
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
