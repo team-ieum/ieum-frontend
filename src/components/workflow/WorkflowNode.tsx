@@ -43,7 +43,7 @@ const BRAND_CONFIG: Record<WorkflowNodeBrand, BrandConfig> = {
 }
 
 const getBrandConfig = (brand: unknown): BrandConfig => {
-	if (typeof brand === 'string' && brand in BRAND_CONFIG) {
+	if (typeof brand === 'string' && Object.prototype.hasOwnProperty.call(BRAND_CONFIG, brand)) {
 		return BRAND_CONFIG[brand as WorkflowNodeBrand]
 	}
 
