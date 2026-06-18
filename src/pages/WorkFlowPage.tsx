@@ -120,6 +120,16 @@ const WorkFlowPage = () => {
 	const [aiCanvas, setAiCanvas] = useState<{ nodes: WorkflowNodeType[]; edges: Edge[] } | null>(null)
 	const [aiRawCanvas, setAiRawCanvas] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null)
 
+	// 다른 워크플로우로 전환되면 이전 워크플로우의 AI 캔버스 잔여 상태를 비운다.
+	// effect 대신 렌더 중 직전 값과 비교해 즉시 초기화한다(cascading render 방지).
+	const [trackedWorkflowId, setTrackedWorkflowId] = useState(workflowId)
+	if (trackedWorkflowId !== workflowId) {
+		setTrackedWorkflowId(workflowId)
+		setAiCanvas(null)
+		setAiRawCanvas(null)
+		setAiCanvasVersion(0)
+	}
+
 	const handleCanvasUpdate = (rawNodes: unknown[], rawEdges: unknown[]) => {
 		const nodes = rawNodes.filter(isValidRawNode).map((n, i) => toReactFlowNode(n, i))
 		const edges = (rawEdges as WorkflowEdgeDto[]).map(toReactFlowEdge)
