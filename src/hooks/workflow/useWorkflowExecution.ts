@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { subscribeSSE } from '@/api/sse'
 import { executeWorkflow } from '@/api/workflow'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useExecutionStore } from '@/stores/useExecutionStore'
-import { subscribeSSE } from '@/utils/sseClient'
 import type { ExecutionEvent } from '@/types/workflowExecution'
 
 // 실행 종료 후 노드 상태 비주얼을 잠시 유지했다가 정리한다 (성공/실패 확인 여유)
@@ -36,6 +36,13 @@ export const useWorkflowExecution = (workflowId: string) => {
 
 	useEffect(() => cleanup, [cleanup])
 
+	// 실행 종료(완료/에러/정상 EOF) 시 공통 정리. 기존 타이머를 비워 중복 예약을 막는다.
+	const scheduleReset = useCallback(() => {
+		finish()
+		if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current)
+		resetTimerRef.current = window.setTimeout(() => reset(), RESET_DELAY_MS)
+	}, [finish, reset])
+
 	const handleEvent = useCallback(
 		(raw: string) => {
 			let event: ExecutionEvent
@@ -51,8 +58,7 @@ export const useWorkflowExecution = (workflowId: string) => {
 			seenRef.current.add(key)
 
 			if (event.type === 'EXECUTION_COMPLETED') {
-				finish()
-				resetTimerRef.current = window.setTimeout(() => reset(), RESET_DELAY_MS)
+				scheduleReset()
 				abortRef.current?.abort()
 				abortRef.current = null
 				return
@@ -70,7 +76,7 @@ export const useWorkflowExecution = (workflowId: string) => {
 			} else if (event.type === 'NODE_COMPLETED') setNodeStatus(event.nodeId, 'success')
 			else if (event.type === 'NODE_FAILED') setNodeStatus(event.nodeId, 'failed')
 		},
-		[finish, reset, setNodeStatus]
+		[scheduleReset, setNodeStatus]
 	)
 
 	const execute = useCallback(async () => {
@@ -97,14 +103,13 @@ export const useWorkflowExecution = (workflowId: string) => {
 			token: accessToken,
 			signal: controller.signal,
 			onEvent: handleEvent,
-			onError: () => {
-				finish()
-				resetTimerRef.current = window.setTimeout(() => reset(), RESET_DELAY_MS)
-			},
+			// 정상 EOF(onDone)·에러(onError) 모두 실행 상태를 정리한다 (isExecuting 영구 set 방지).
+			onDone: scheduleReset,
+			onError: scheduleReset,
 		})
 
 		return executionId
-	}, [accessToken, cleanup, isExecuting, finish, handleEvent, reset, start, workflowId])
+	}, [accessToken, cleanup, isExecuting, scheduleReset, handleEvent, start, workflowId])
 
 	return { execute, isExecuting }
 }
