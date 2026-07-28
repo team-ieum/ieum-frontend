@@ -8,7 +8,11 @@ permissions:
 
 concurrency:
   group: frontend_main_server
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
 
 env:
   NODE_VERSION: ${{ secrets.NODE_VERSION }}
@@ -17,6 +21,7 @@ env:
   DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
   DOCKER_NETWORK_SUBNET: ${{ secrets.DOCKER_NETWORK_SUBNET }}
   FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
+  IMAGE_RETENTION_COUNT: ${{ vars.IMAGE_RETENTION_COUNT }}
 
 jobs:
   deploy:
@@ -28,6 +33,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Validate deploy secrets
         run: |
@@ -124,25 +131,106 @@ jobs:
             -t "$IMAGE_NAME:${{ github.sha }}" \
             -t "$IMAGE_NAME:latest" .
 
-      - name: Restart frontend container
+      - name: Deploy frontend container
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
           set -euo pipefail
+
+          CANDIDATE_CONTAINER="${CONTAINER_NAME}-candidate-${IMAGE_TAG:0:12}"
+          PREVIOUS_IMAGE_ID="$(docker inspect -f '{{.Image}}' "$CONTAINER_NAME" 2>/dev/null || true)"
+          REPLACEMENT_STARTED=false
+
+          cleanup_candidate() {
+            docker rm -f "$CANDIDATE_CONTAINER" >/dev/null 2>&1 || true
+          }
+
+          rollback() {
+            cleanup_candidate
+
+            if [ "$REPLACEMENT_STARTED" = "true" ] && [ -n "$PREVIOUS_IMAGE_ID" ]; then
+              docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+              docker run -d \
+                --name "$CONTAINER_NAME" \
+                --restart unless-stopped \
+                --network "$DOCKER_NETWORK" \
+                --ip "$FRONTEND_IP" \
+                "$PREVIOUS_IMAGE_ID" >/dev/null || true
+            fi
+          }
+
+          wait_for_http() {
+            local url="$1"
+            local logs_container="$2"
+
+            for i in $(seq 1 30); do
+              if curl -fsS "$url" >/dev/null; then
+                return 0
+              fi
+
+              sleep 2
+            done
+
+            docker logs --tail 100 "$logs_container" || true
+            return 1
+          }
+
+          trap rollback ERR INT TERM
 
           docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 \
             || docker network create --subnet "$DOCKER_NETWORK_SUBNET" "$DOCKER_NETWORK"
 
+          cleanup_candidate
+
+          docker run -d \
+            --name "$CANDIDATE_CONTAINER" \
+            --restart no \
+            --network "$DOCKER_NETWORK" \
+            "$IMAGE_NAME:$IMAGE_TAG" >/dev/null
+
+          CANDIDATE_IP="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CANDIDATE_CONTAINER")"
+          wait_for_http "http://$CANDIDATE_IP/" "$CANDIDATE_CONTAINER"
+          cleanup_candidate
+
           docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+          REPLACEMENT_STARTED=true
 
           docker run -d \
             --name "$CONTAINER_NAME" \
             --restart unless-stopped \
             --network "$DOCKER_NETWORK" \
             --ip "$FRONTEND_IP" \
-            "$IMAGE_NAME:latest"
+            "$IMAGE_NAME:$IMAGE_TAG" >/dev/null
 
-      - name: Health check
+          wait_for_http "http://$FRONTEND_IP/" "$CONTAINER_NAME"
+
+          trap - ERR INT TERM
+
+      - name: Clean up old frontend images
+        if: success()
         run: |
           set -euo pipefail
 
-          sleep 3
-          curl -fsS "http://$FRONTEND_IP/" >/dev/null
+          RETENTION_COUNT="${IMAGE_RETENTION_COUNT:-5}"
+
+          if ! [[ "$RETENTION_COUNT" =~ ^[0-9]+$ ]] || [ "$RETENTION_COUNT" -lt 1 ]; then
+            echo "::error::IMAGE_RETENTION_COUNT must be a positive integer"
+            exit 1
+          fi
+
+          mapfile -t OLD_IMAGES < <(
+            docker images "$IMAGE_NAME" --format '{{.Repository}}:{{.Tag}}' |
+              awk -v image="$IMAGE_NAME" -v keep="$RETENTION_COUNT" '
+                index($0, image ":") == 1 {
+                  tag = substr($0, length(image) + 2)
+                  if (tag ~ /^[0-9a-f]{40}$/) {
+                    count++
+                    if (count > keep) print $0
+                  }
+                }
+              '
+          )
+
+          if [ ${#OLD_IMAGES[@]} -gt 0 ]; then
+            docker rmi "${OLD_IMAGES[@]}" || true
+          fi
