@@ -18,11 +18,12 @@ defaults:
 
 env:
   NODE_VERSION: ${{ secrets.NODE_VERSION }}
-  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
-  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
-  DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
-  DOCKER_NETWORK_SUBNET: ${{ secrets.DOCKER_NETWORK_SUBNET }}
-  FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
+  IMAGE_NAME: ${{ secrets.AWS_FRONTEND_IMAGE_NAME }}
+  CONTAINER_NAME: ${{ secrets.AWS_FRONTEND_CONTAINER_NAME }}
+  DOCKER_NETWORK: ${{ secrets.AWS_DOCKER_NETWORK }}
+  DOCKER_NETWORK_SUBNET: ${{ secrets.AWS_DOCKER_NETWORK_SUBNET }}
+  FRONTEND_IP: ${{ secrets.AWS_FRONTEND_IP }}
+  FRONTEND_HOST_PORT: ${{ secrets.AWS_FRONTEND_HOST_PORT }}
   IMAGE_RETENTION_COUNT: ${{ vars.IMAGE_RETENTION_COUNT }}
 
 jobs:
@@ -49,7 +50,8 @@ jobs:
             CONTAINER_NAME \
             DOCKER_NETWORK \
             DOCKER_NETWORK_SUBNET \
-            FRONTEND_IP
+            FRONTEND_IP \
+            FRONTEND_HOST_PORT
           do
             [ -n "${!name}" ] || missing_vars+=("$name")
           done
@@ -61,7 +63,7 @@ jobs:
 
       - name: Validate app secrets
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ secrets.AWS_VITE_API_URL }}
         run: |
           set -euo pipefail
 
@@ -89,7 +91,7 @@ jobs:
       - name: Build frontend
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_URL: ${{ secrets.AWS_VITE_API_URL }}
 
       - name: Write nginx config
         run: |
@@ -155,6 +157,7 @@ jobs:
               docker run -d \
                 --name "$CONTAINER_NAME" \
                 --restart unless-stopped \
+                -p "$FRONTEND_HOST_PORT:80" \
                 --network "$DOCKER_NETWORK" \
                 --ip "$FRONTEND_IP" \
                 "$PREVIOUS_IMAGE_ID" >/dev/null || true
@@ -200,11 +203,13 @@ jobs:
           docker run -d \
             --name "$CONTAINER_NAME" \
             --restart unless-stopped \
+            -p "$FRONTEND_HOST_PORT:80" \
             --network "$DOCKER_NETWORK" \
             --ip "$FRONTEND_IP" \
             "$IMAGE_NAME:$IMAGE_TAG" >/dev/null
 
           wait_for_http "http://$FRONTEND_IP/" "$CONTAINER_NAME"
+          wait_for_http "http://127.0.0.1:$FRONTEND_HOST_PORT/" "$CONTAINER_NAME"
 
           trap - ERR INT TERM
 
