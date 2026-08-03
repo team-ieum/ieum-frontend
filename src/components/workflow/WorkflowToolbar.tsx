@@ -1,4 +1,4 @@
-import { ArrowLeft, CloudCheck, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
+import { ArrowLeft, CloudCheck, Code2, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
@@ -63,6 +63,8 @@ type WorkflowToolbarProps = {
 	onToggleActive?: () => void
 	onExecute?: () => void
 	isExecuting?: boolean
+	technicalMode?: boolean
+	onToggleTechnicalMode?: () => void
 }
 
 const WorkflowToolbar = ({
@@ -72,6 +74,8 @@ const WorkflowToolbar = ({
 	onToggleActive,
 	onExecute,
 	isExecuting = false,
+	technicalMode = false,
+	onToggleTechnicalMode,
 }: WorkflowToolbarProps) => {
 	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
 	const statusMeta = WORKFLOW_STATUS_META[status]
@@ -79,7 +83,7 @@ const WorkflowToolbar = ({
 
 	return (
 		<div
-			className='flex items-center gap-3.5 px-6 border-b border-neutral-200 shrink-0'
+			className='flex items-center gap-3.5 px-6 border-b border-neutral-200 shrink-0 overflow-x-auto'
 			style={{ height: 64, background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)' }}
 		>
 			<button
@@ -117,6 +121,34 @@ const WorkflowToolbar = ({
 			</span>
 
 			<div className='flex-1' />
+
+			{onToggleTechnicalMode ? (
+				<button
+					type='button'
+					role='switch'
+					aria-checked={technicalMode}
+					aria-label='기술 정보'
+					onClick={onToggleTechnicalMode}
+					className={`inline-flex items-center gap-2 h-9 px-3 rounded-[10px] border text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+						technicalMode
+							? 'border-node-purple bg-purple-50 text-node-purple'
+							: 'border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50'
+					}`}
+				>
+					<Code2 size={15} aria-hidden='true' />
+					기술 정보
+					<span
+						aria-hidden='true'
+						className={`relative h-4.5 w-8 rounded-full transition-colors ${technicalMode ? 'bg-node-purple' : 'bg-neutral-300'}`}
+					>
+						<span
+							className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${
+								technicalMode ? 'translate-x-3.5' : 'translate-x-0'
+							}`}
+						/>
+					</span>
+				</button>
+			) : null}
 
 			<button
 				type='button'

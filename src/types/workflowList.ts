@@ -18,13 +18,18 @@ export type WorkflowNodeDto = {
 	id: string
 	type: string
 	label: string
+	description?: string
+	position?: {
+		x: number
+		y: number
+	}
 	config: Record<string, unknown>
 }
 
 export type WorkflowEdgeDto = {
 	source: string
 	target: string
-	conditionType: string
+	conditionType?: string | null
 }
 
 export type WorkflowDto = {

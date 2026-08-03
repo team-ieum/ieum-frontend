@@ -1,22 +1,26 @@
 import type { Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
-import type { IntegrationBrand } from './integration'
 import type { WorkflowDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
-import type { NodeExecutionStatus } from './workflowExecution'
 
-export type WorkflowNodeBrand = IntegrationBrand | 'openai' | 'filter' | 'warning'
+export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
+export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error'
 
 export type WorkflowNodeData = {
-	nodeType: 'TRIGGER' | 'HTTP' | 'CONDITION' | 'TRANSFORM' | 'AI'
-	brand: WorkflowNodeBrand
+	nodeType: string
+	role: WorkflowNodeRole
+	typeLabel: string
+	step: number
 	title: string
-	method: string
-	url: string
-	check?: boolean
-	warn?: boolean
-	index?: number
-	status?: NodeExecutionStatus
+	description?: string
+	method?: string
+	url?: string
+	modelId?: string
+	modelName?: string
+	status: WorkflowNodeStatus
+	technicalMode: boolean
+	hasIncoming: boolean
+	hasOutgoing: boolean
 }
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
