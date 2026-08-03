@@ -84,6 +84,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 						STATUS_CLASS[data.status]
 					)}
 					title={status.description}
+					role='img'
 					aria-label={status.label}
 				>
 					<StatusIcon status={data.status} />
@@ -92,11 +93,9 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 
 			<div className='flex flex-col gap-[0.55rem] p-[0.85rem]'>
 				<div className='flex items-center gap-[0.55rem]'>
-					<span
-						className='grid size-6 shrink-0 place-items-center rounded-full bg-(--node-color) text-[0.7rem] font-bold text-white'
-						aria-label={`${data.step}단계`}
-					>
-						{data.step}
+					<span className='grid size-6 shrink-0 place-items-center rounded-full bg-(--node-color) text-[0.7rem] font-bold text-white'>
+						<span aria-hidden='true'>{data.step}</span>
+						<span className='sr-only'>{data.step}단계</span>
 					</span>
 					<h3
 						className='min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.9rem] font-bold text-[#27273b]'

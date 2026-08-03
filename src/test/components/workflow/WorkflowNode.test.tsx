@@ -37,7 +37,9 @@ describe('WorkflowNode', () => {
 
 		expect(screen.getByText('AI가 문의를 분류해요')).toBeInTheDocument()
 		expect(screen.getByText('Gemini 2.5 Flash')).toBeInTheDocument()
-		expect(screen.getByLabelText('준비')).toBeInTheDocument()
+		expect(screen.getByRole('img', { name: '준비' })).toBeInTheDocument()
+		expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
+		expect(screen.getByText('2단계')).toHaveClass('sr-only')
 		expect(screen.getAllByTestId('handle')).toHaveLength(2)
 		expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button')).not.toBeInTheDocument()
