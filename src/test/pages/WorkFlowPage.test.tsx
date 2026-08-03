@@ -14,7 +14,14 @@ vi.mock('@xyflow/react', async () => {
 	const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react')
 	type CanvasNode = {
 		id: string
-		data: { technicalMode: boolean; description?: string; method?: string; modelName?: string; status: string }
+		data: {
+			technicalMode: boolean
+			description?: string
+			method?: string
+			modelName?: string
+			status: string
+			hasOutgoing: boolean
+		}
 	}
 	return {
 		...actual,
@@ -24,6 +31,7 @@ vi.mock('@xyflow/react', async () => {
 				{nodes.map(node => (
 					<div key={node.id}>
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
+						<span data-testid={`outgoing-${node.id}`}>{String(node.data.hasOutgoing)}</span>
 						<span>{node.data.technicalMode ? (node.data.method ?? '정보 없음') : node.data.description}</span>
 						{node.data.modelName ? <span>{node.data.modelName}</span> : null}
 					</div>
@@ -58,7 +66,10 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 						config: { model: 'server-unknown-model' },
 					},
 				],
-				edges: [{ source: 'trigger', target: 'ai', conditionType: null }],
+				edges: [
+					{ source: 'trigger', target: 'ai', conditionType: null },
+					{ source: 'ai', target: 'missing-node', conditionType: null },
+				],
 			},
 		},
 	}),
@@ -115,7 +126,13 @@ describe('WorkFlowPage', () => {
 
 		expect(screen.getByText('새 문의가 들어오면 시작해요')).toBeInTheDocument()
 		expect(screen.getByText('server-unknown-model')).toBeInTheDocument()
+	})
+
+	it('존재하지 않는 노드를 참조하는 연결선을 제외한다', () => {
+		renderPage()
+
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+		expect(screen.getByTestId('outgoing-ai')).toHaveTextContent('false')
 	})
 
 	it('툴바 스위치로 모든 노드를 기술 정보 모드로 전환한다', () => {

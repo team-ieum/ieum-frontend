@@ -97,7 +97,10 @@ const WorkFlowPage = () => {
 	const canvas = useMemo(() => {
 		if (!workflow && !aiRawCanvas) return null
 		const nodes = (aiRawCanvas?.nodes ?? workflow?.nodes ?? []).filter(isWorkflowNodeDto)
-		const edges = (aiRawCanvas?.edges ?? workflow?.edges ?? []).filter(isWorkflowEdgeDto)
+		const nodeIds = new Set(nodes.map(node => node.id))
+		const edges = (aiRawCanvas?.edges ?? workflow?.edges ?? [])
+			.filter(isWorkflowEdgeDto)
+			.filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
 		return {
 			nodes: toWorkflowCanvasNodes(nodes, edges, modelNames, technicalMode),
 			edges: toWorkflowCanvasEdges(edges),
