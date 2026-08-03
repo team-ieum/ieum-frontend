@@ -3,6 +3,7 @@ import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import {
 	createModelNameMap,
+	isWorkflowNodeDto,
 	toWorkflowCanvasEdges,
 	toWorkflowCanvasNodes,
 	toWorkflowNodeStatus,
@@ -54,6 +55,15 @@ const nodes: WorkflowNodeDto[] = [
 ]
 
 describe('mapWorkflowCanvas', () => {
+	it('잘못된 AI 캔버스 위치를 노드 DTO로 허용하지 않는다', () => {
+		const node = { id: 'ai', type: 'AI', label: 'AI 작업', config: {} }
+
+		expect(isWorkflowNodeDto(node)).toBe(true)
+		expect(isWorkflowNodeDto({ ...node, position: { x: 40, y: 80 } })).toBe(true)
+		expect(isWorkflowNodeDto({ ...node, position: { x: 'bad', y: 0 } })).toBe(false)
+		expect(isWorkflowNodeDto({ ...node, position: { x: 0, y: Number.POSITIVE_INFINITY } })).toBe(false)
+	})
+
 	it('API 노드를 컬러 블록 표시 데이터로 변환한다', () => {
 		const modelNames = createModelNameMap(providers)
 		const result = toWorkflowCanvasNodes(nodes, edges, modelNames, false)

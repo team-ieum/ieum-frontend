@@ -21,10 +21,26 @@ export const createModelNameMap = (providers: ProviderInfo[] = []) => {
 	return modelNames
 }
 
+const hasValidPosition = (position: unknown): position is { x: number; y: number } => {
+	if (typeof position !== 'object' || position === null) return false
+	const candidate = position as Partial<{ x: unknown; y: unknown }>
+	return (
+		typeof candidate.x === 'number' &&
+		Number.isFinite(candidate.x) &&
+		typeof candidate.y === 'number' &&
+		Number.isFinite(candidate.y)
+	)
+}
+
 export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 	if (typeof value !== 'object' || value === null) return false
 	const node = value as Partial<WorkflowNodeDto>
-	return typeof node.id === 'string' && typeof node.type === 'string' && typeof node.label === 'string'
+	return (
+		typeof node.id === 'string' &&
+		typeof node.type === 'string' &&
+		typeof node.label === 'string' &&
+		(node.position === undefined || hasValidPosition(node.position))
+	)
 }
 
 export const isWorkflowEdgeDto = (value: unknown): value is WorkflowEdgeDto => {
