@@ -91,16 +91,6 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 							{!collapsed && (
 								<>
 									<span className='flex-1 text-left'>{item.label}</span>
-									{item.count != null && (
-										<span
-											className={cn(
-												'rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none',
-												isActive ? 'bg-white/18 text-white' : 'bg-main-blue/10 text-main-blue'
-											)}
-										>
-											{item.count}
-										</span>
-									)}
 									{item.dot && item.count == null && (
 										<span className='h-1.5 w-1.5 rounded-full bg-node-orange' />
 									)}
