@@ -1,4 +1,4 @@
-import { Plus, Sparkles } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import type { ReactElement } from 'react'
 import WorkflowActiveFilters from '@/components/workflow/list/WorkflowActiveFilters'
 import WorkflowEmptyState from '@/components/workflow/list/WorkflowEmptyState'
@@ -23,15 +23,6 @@ const WorkflowListPage = (): ReactElement => {
 					</p>
 				</div>
 				<div className='flex flex-wrap gap-2'>
-					<button
-						type='button'
-						disabled
-						aria-disabled='true'
-						className='inline-flex h-10 cursor-not-allowed items-center gap-2 rounded-[10px] border border-[#cde9f4] bg-white px-4 typo-body2_semibold text-main-deep-blue/50 opacity-60'
-					>
-						<Sparkles size={15} />
-						<span>템플릿</span>
-					</button>
 					<button
 						type='button'
 						onClick={viewModel.handleCreateWorkflow}
