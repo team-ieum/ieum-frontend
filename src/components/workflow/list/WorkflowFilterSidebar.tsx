@@ -98,7 +98,7 @@ const WorkflowFilterSidebar = ({
 	onToggleStatus,
 	onClearFilters,
 }: WorkflowFilterSidebarProps): ReactElement => (
-	<aside className='rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:sticky lg:top-[calc(var(--layout-header-height)+1.5rem)] lg:max-h-[calc(100vh-var(--layout-header-height)-3rem)] lg:overflow-y-auto'>
+	<aside className='rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:sticky lg:top-[calc(var(--layout-header-height)+1.5rem)] lg:max-h-[calc(100vh-var(--layout-header-height)-3rem)] lg:overflow-y-auto lg:[scrollbar-width:none] lg:[-ms-overflow-style:none] lg:[&::-webkit-scrollbar]:hidden'>
 		{/* 필터 헤더 */}
 		<div className='mb-1 flex items-center justify-between gap-3'>
 			<div className='flex items-center gap-2'>
