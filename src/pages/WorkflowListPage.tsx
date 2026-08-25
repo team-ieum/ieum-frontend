@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { useRef, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import WorkflowActiveFilters from '@/components/workflow/list/WorkflowActiveFilters'
 import WorkflowEmptyState from '@/components/workflow/list/WorkflowEmptyState'
 import WorkflowFilterSidebar from '@/components/workflow/list/WorkflowFilterSidebar'
@@ -16,10 +16,29 @@ const HEADER_TO_CONTENT_GAP_PX = 24
 const WorkflowListPage = (): ReactElement => {
 	const viewModel = useWorkflowListViewModel()
 	const headerRef = useRef<HTMLElement>(null)
+	const [headerHeight, setHeaderHeight] = useState(0)
 	useSnapPastHeader(headerRef, HEADER_TO_CONTENT_GAP_PX)
 
+	useEffect(() => {
+		const header = headerRef.current
+		if (!header) return
+
+		const updateHeight = () => setHeaderHeight(header.offsetHeight)
+		updateHeight()
+
+		const observer = new ResizeObserver(updateHeight)
+		observer.observe(header)
+		return () => observer.disconnect()
+	}, [])
+
 	return (
-		<section className='flex flex-col gap-6'>
+		<section
+			className='flex flex-col gap-6'
+			style={{
+				// 필터가 짧아도 헤더를 끝까지 올릴 수 있도록: 화면 높이 + 헤더(+간격)
+				minHeight: `calc(100vh - var(--layout-header-height) - 3rem + ${headerHeight + HEADER_TO_CONTENT_GAP_PX}px)`,
+			}}
+		>
 			{/* 페이지 헤더 — 스크롤 시 밑선까지 깔끔하게 사라짐 */}
 			<header
 				ref={headerRef}
