@@ -1,21 +1,30 @@
 import { Plus } from 'lucide-react'
-import type { ReactElement } from 'react'
+import { useRef, type ReactElement } from 'react'
 import WorkflowActiveFilters from '@/components/workflow/list/WorkflowActiveFilters'
 import WorkflowEmptyState from '@/components/workflow/list/WorkflowEmptyState'
 import WorkflowFilterSidebar from '@/components/workflow/list/WorkflowFilterSidebar'
 import WorkflowListCard from '@/components/workflow/list/WorkflowListCard'
 import WorkflowListTable from '@/components/workflow/list/WorkflowListTable'
 import WorkflowListToolbar from '@/components/workflow/list/WorkflowListToolbar'
+import { useSnapPastHeader } from '@/hooks/workflow/useSnapPastHeader'
 import { useWorkflowListViewModel } from '@/hooks/workflow/useWorkflowListViewModel'
 import Spinner from '@/components/common/Spinner'
 
+/** section gap-6 = 1.5rem — 헤더↔필터 간격과 스냅 거리 맞춤 */
+const HEADER_TO_CONTENT_GAP_PX = 24
+
 const WorkflowListPage = (): ReactElement => {
 	const viewModel = useWorkflowListViewModel()
+	const headerRef = useRef<HTMLElement>(null)
+	useSnapPastHeader(headerRef, HEADER_TO_CONTENT_GAP_PX)
 
 	return (
-		<section className='flex flex-col gap-5'>
-			{/* 페이지 헤더 */}
-			<header className='flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:flex-row lg:items-center lg:justify-between'>
+		<section className='flex flex-col gap-6'>
+			{/* 페이지 헤더 — 스크롤 시 밑선까지 깔끔하게 사라짐 */}
+			<header
+				ref={headerRef}
+				className='flex flex-col gap-4 rounded-xl border border-neutral-200 bg-white px-5 py-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:flex-row lg:items-center lg:justify-between'
+			>
 				<div>
 					<h1 className='typo-title2_bold text-main-deep-blue'>워크플로우</h1>
 					<p className='mt-1 typo-body2_regular text-neutral-500'>
@@ -34,7 +43,7 @@ const WorkflowListPage = (): ReactElement => {
 				</div>
 			</header>
 
-			<div className='grid gap-5 lg:grid-cols-[256px_minmax(0,1fr)]'>
+			<div className='grid items-start gap-5 lg:grid-cols-[256px_minmax(0,1fr)]'>
 				<WorkflowFilterSidebar
 					filters={viewModel.filters}
 					serviceCounts={viewModel.serviceCounts}
@@ -63,7 +72,6 @@ const WorkflowListPage = (): ReactElement => {
 						<WorkflowActiveFilters filters={viewModel.activeFilters} onRemove={viewModel.removeFilter} />
 					</div>
 
-					{/* 결과 영역 */}
 					<div className='mt-4'>
 						{viewModel.isLoading ? (
 							<div className='flex items-center justify-center py-20'>

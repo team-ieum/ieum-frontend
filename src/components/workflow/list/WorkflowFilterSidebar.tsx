@@ -98,9 +98,9 @@ const WorkflowFilterSidebar = ({
 	onToggleStatus,
 	onClearFilters,
 }: WorkflowFilterSidebarProps): ReactElement => (
-	<aside className='rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:sticky lg:top-[calc(var(--layout-header-height)+1.5rem)] lg:max-h-[calc(100vh-var(--layout-header-height)-3rem)] lg:overflow-y-auto lg:[scrollbar-width:none] lg:[-ms-overflow-style:none] lg:[&::-webkit-scrollbar]:hidden'>
-		{/* 필터 헤더 */}
-		<div className='mb-1 flex items-center justify-between gap-3'>
+	<aside className='flex min-h-0 w-full flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)] lg:sticky lg:top-[calc(var(--layout-header-height)+1.5rem)] lg:max-h-[calc(100vh-var(--layout-header-height)-3rem)]'>
+		{/* 필터 헤더 — 사이드바 내부 스크롤과 분리되어 고정 */}
+		<div className='flex shrink-0 items-center justify-between gap-3 border-b border-neutral-100 px-4 py-3'>
 			<div className='flex items-center gap-2'>
 				<ListFilter size={17} className='text-main-deep-blue' />
 				<h2 className='typo-title3_semibold text-neutral-800'>필터</h2>
@@ -117,49 +117,51 @@ const WorkflowFilterSidebar = ({
 			)}
 		</div>
 
-		{/* 서비스 */}
-		<FilterGroup icon={<Cable size={16} />} title='사용 서비스' count={WORKFLOW_SERVICES.length}>
-			{[...WORKFLOW_SERVICES]
-				.sort((a, b) => serviceCounts[b.id] - serviceCounts[a.id])
-				.map(service => (
+		<div className='min-h-0 flex-1 overflow-y-auto px-4 pb-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'>
+			{/* 서비스 */}
+			<FilterGroup icon={<Cable size={16} />} title='사용 서비스' count={WORKFLOW_SERVICES.length}>
+				{[...WORKFLOW_SERVICES]
+					.sort((a, b) => serviceCounts[b.id] - serviceCounts[a.id])
+					.map(service => (
+						<FilterRow
+							key={service.id}
+							active={filters.services.includes(service.id)}
+							label={service.name}
+							count={serviceCounts[service.id]}
+							leading={<ServiceLogo id={service.id} size={18} />}
+							onClick={() => onToggleService(service.id)}
+						/>
+					))}
+			</FilterGroup>
+
+			{/* 카테고리 */}
+			<FilterGroup icon={<Tag size={16} />} title='카테고리' count={WORKFLOW_CATEGORIES.length}>
+				{WORKFLOW_CATEGORIES.map(category => (
 					<FilterRow
-						key={service.id}
-						active={filters.services.includes(service.id)}
-						label={service.name}
-						count={serviceCounts[service.id]}
-						leading={<ServiceLogo id={service.id} size={18} />}
-						onClick={() => onToggleService(service.id)}
+						key={category.id}
+						active={filters.categories.includes(category.id)}
+						label={category.label}
+						count={categoryCounts[category.id]}
+						leading={<span className={cn('h-2.5 w-2.5 shrink-0 rounded-[3px]', category.dotClass)} />}
+						onClick={() => onToggleCategory(category.id)}
 					/>
 				))}
-		</FilterGroup>
+			</FilterGroup>
 
-		{/* 카테고리 */}
-		<FilterGroup icon={<Tag size={16} />} title='카테고리' count={WORKFLOW_CATEGORIES.length}>
-			{WORKFLOW_CATEGORIES.map(category => (
-				<FilterRow
-					key={category.id}
-					active={filters.categories.includes(category.id)}
-					label={category.label}
-					count={categoryCounts[category.id]}
-					leading={<span className={cn('h-2.5 w-2.5 shrink-0 rounded-[3px]', category.dotClass)} />}
-					onClick={() => onToggleCategory(category.id)}
-				/>
-			))}
-		</FilterGroup>
-
-		{/* 상태 */}
-		<FilterGroup icon={<Circle size={16} />} title='상태' count={WORKFLOW_STATUS_ORDER.length}>
-			{WORKFLOW_STATUS_ORDER.map(status => (
-				<FilterRow
-					key={status}
-					active={filters.statuses.includes(status)}
-					label={WORKFLOW_STATUS_META[status].label}
-					count={statusCounts[status]}
-					leading={<StatusDot status={status} />}
-					onClick={() => onToggleStatus(status)}
-				/>
-			))}
-		</FilterGroup>
+			{/* 상태 */}
+			<FilterGroup icon={<Circle size={16} />} title='상태' count={WORKFLOW_STATUS_ORDER.length}>
+				{WORKFLOW_STATUS_ORDER.map(status => (
+					<FilterRow
+						key={status}
+						active={filters.statuses.includes(status)}
+						label={WORKFLOW_STATUS_META[status].label}
+						count={statusCounts[status]}
+						leading={<StatusDot status={status} />}
+						onClick={() => onToggleStatus(status)}
+					/>
+				))}
+			</FilterGroup>
+		</div>
 	</aside>
 )
 
