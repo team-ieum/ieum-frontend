@@ -1,0 +1,20 @@
+@keyframes account-pattern-drift {
+	0%,
+	100% {
+		transform: translate3d(0, 0, 0);
+	}
+
+	50% {
+		transform: translate3d(4px, -4px, 0);
+	}
+}
+
+.account-pattern-drift {
+	animation: account-pattern-drift 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.account-pattern-drift {
+		animation: none;
+	}
+}
