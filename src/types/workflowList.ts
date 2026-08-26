@@ -119,6 +119,9 @@ export type WorkflowListItem = {
 	category: WorkflowCategoryId
 	status: WorkflowStatus
 	trigger: WorkflowTriggerType
+	cronExpression?: string | null
+	nodeCount?: number
+	updatedAt?: IsoDateString
 	lastRun: IsoDateString
 	success: number
 }
