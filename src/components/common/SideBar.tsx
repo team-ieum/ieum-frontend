@@ -1,7 +1,14 @@
+import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router'
 import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { NAV_ITEMS, RECENTS } from '@/constants/layout'
+import { NAV_ITEMS } from '@/constants/layout'
+import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
+import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
+import { formatRelativeTime } from '@/utils/formatRelativeTime'
+
+const RECENT_LIMIT = 5
 
 type SideBarProps = {
 	isOpen?: boolean
@@ -14,6 +21,19 @@ type SideBarProps = {
 export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
 	const navigate = useNavigate()
 	const { pathname } = useLocation()
+	const { data, isLoading } = useWorkflowListQuery()
+
+	const recentWorkflows = useMemo(() => {
+		const workflows = (data?.pages ?? []).flatMap(page => page.data.content.map(mapWorkflowDtoToListItem))
+		return [...workflows]
+			.sort((a, b) => {
+				const aTime = new Date(a.updatedAt ?? a.lastRun).getTime()
+				const bTime = new Date(b.updatedAt ?? b.lastRun).getTime()
+				return bTime - aTime
+			})
+			.slice(0, RECENT_LIMIT)
+	}, [data])
+
 	const handleCreateCanvas = () => {
 		navigate('/workflow/new')
 		onClose?.()
@@ -101,30 +121,56 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 				})}
 			</nav>
 
-			{/* 최근 작업 */}
+			{/* 최근 작업 — 워크플로우 수정순 */}
 			{!collapsed && (
-				<div className='mt-5 px-3'>
+				<div className='mt-5 min-h-0 px-3'>
 					<div className='flex items-center justify-between px-3 pb-2'>
 						<span className='text-[11px] font-semibold uppercase tracking-[.08em] text-main-gray'>최근 작업</span>
 						<MoreHorizontal size={13} className='text-main-gray' />
 					</div>
 					<div className='flex flex-col'>
-						{RECENTS.map((r, i) => (
-							<button
-								key={i}
-								type='button'
-								className={cn(
-									'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
-									i === 0 ? 'border border-[#cde9f4] bg-white/70' : 'border border-transparent'
-								)}
-							>
-								<span className={`h-2 w-2 shrink-0 rounded-full ${r.dotClass}`} />
-								<div className='min-w-0 flex-1'>
-									<div className='truncate text-[13px] font-semibold text-neutral-800'>{r.name}</div>
-									<div className='mt-0.5 text-[11px] text-neutral-500'>{r.when}</div>
-								</div>
-							</button>
-						))}
+						{isLoading ? (
+							<p className='px-3 py-2 text-[12px] text-neutral-500'>불러오는 중…</p>
+						) : recentWorkflows.length === 0 ? (
+							<p className='px-3 py-2 text-[12px] text-neutral-500'>최근 워크플로우가 없습니다.</p>
+						) : (
+							recentWorkflows.map((workflow, index) => {
+								const updatedAt = workflow.updatedAt ?? workflow.lastRun
+								const isCurrent = pathname === `/workflow/${workflow.id}`
+
+								return (
+									<button
+										key={workflow.id}
+										type='button'
+										onClick={() => {
+											navigate(`/workflow/${workflow.id}`, { state: { name: workflow.name } })
+											onClose?.()
+										}}
+										className={cn(
+											'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
+											index === 0 || isCurrent
+												? 'border border-[#cde9f4] bg-white/70'
+												: 'border border-transparent'
+										)}
+									>
+										<span
+											className={cn(
+												'h-2 w-2 shrink-0 rounded-full',
+												WORKFLOW_STATUS_META[workflow.status].dotBgClass
+											)}
+										/>
+										<div className='min-w-0 flex-1'>
+											<div className='truncate text-[13px] font-semibold text-neutral-800'>
+												{workflow.name}
+											</div>
+											<div className='mt-0.5 text-[11px] text-neutral-500'>
+												{formatRelativeTime(updatedAt)}
+											</div>
+										</div>
+									</button>
+								)
+							})
+						)}
 					</div>
 				</div>
 			)}
