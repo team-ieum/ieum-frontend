@@ -16,7 +16,7 @@ vi.mock('@xyflow/react', async () => {
 	}
 })
 
-const createProps = (selected: boolean) =>
+const createProps = (selected: boolean, flowing = false) =>
 	({
 		id: 'edge-1',
 		source: 'trigger',
@@ -29,10 +29,36 @@ const createProps = (selected: boolean) =>
 		targetPosition: 'left',
 		selected,
 		markerEnd: 'marker',
-		data: {},
+		data: { flowing },
 	}) as unknown as EdgeProps
 
 describe('AnimatedEdge', () => {
+	it('기본 연결선은 저채도 중성색으로 표시한다', () => {
+		const { container } = render(
+			<svg>
+				<AnimatedEdge {...createProps(false)} />
+			</svg>
+		)
+
+		expect(container.querySelector('.react-flow__edge-path')).toHaveStyle({
+			stroke: '#a8b0ba',
+			strokeWidth: '1.5',
+		})
+		expect(container.querySelectorAll('path')).toHaveLength(1)
+	})
+
+	it('실행 중인 연결선에만 강조색 흐름을 덧그린다', () => {
+		const { container } = render(
+			<svg>
+				<AnimatedEdge {...createProps(false, true)} />
+			</svg>
+		)
+
+		const paths = container.querySelectorAll('path')
+		expect(paths).toHaveLength(2)
+		expect(paths[1]).toHaveStyle({ stroke: '#007ba7', strokeWidth: '2.5' })
+	})
+
 	it('선택한 연결선에 삭제 버튼을 표시하고 삭제 요청을 전달한다', () => {
 		render(
 			<svg>

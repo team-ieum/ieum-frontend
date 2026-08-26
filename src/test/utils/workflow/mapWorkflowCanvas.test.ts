@@ -168,7 +168,8 @@ describe('mapWorkflowCanvas', () => {
 		expect(result).toHaveLength(2)
 		expect(result[0]).toMatchObject({ source: 'trigger', target: 'ai', type: 'animated' })
 		expect(result[0].data).toEqual({ conditionType: null })
-		expect(result[0].markerEnd).toMatchObject({ color: '#6d5ce7' })
+		expect(result[0]).toMatchObject({ style: { stroke: '#a8b0ba', strokeWidth: 1.5 } })
+		expect(result[0].markerEnd).toMatchObject({ color: '#a8b0ba' })
 	})
 
 	it('실행 실패 상태를 노드 오류 상태로 변환한다', () => {

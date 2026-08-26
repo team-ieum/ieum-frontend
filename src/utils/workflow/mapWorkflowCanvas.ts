@@ -1,11 +1,11 @@
 import { MarkerType } from '@xyflow/react'
+import { WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeType, WorkflowNodeStatus, WorkflowNodeType, WorkflowTechnicalDetail } from '@/types/workflow'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 
-const EDGE_COLOR = '#6d5ce7'
 const FALLBACK_DESCRIPTION = '설명 정보가 아직 없어요'
 
 const readConfigString = (config: Record<string, unknown>, key: string) => {
@@ -152,8 +152,8 @@ export const createWorkflowCanvasEdge = (edge: WorkflowEdgeDto, id: string): Wor
 	target: edge.target,
 	type: 'animated',
 	data: { conditionType: edge.conditionType ?? null },
-	style: { stroke: EDGE_COLOR, strokeWidth: 2 },
-	markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+	style: { stroke: WORKFLOW_EDGE_COLOR, strokeWidth: 1.5 },
+	markerEnd: { type: MarkerType.ArrowClosed, color: WORKFLOW_EDGE_COLOR },
 })
 
 export const toWorkflowCanvasEdges = (edges: WorkflowEdgeDto[]): WorkflowEdgeType[] =>

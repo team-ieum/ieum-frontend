@@ -1,6 +1,7 @@
 import { EdgeToolbar, getBezierPath, type EdgeProps, useReactFlow } from '@xyflow/react'
 import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
+import { WORKFLOW_EDGE_ACTIVE_COLOR, WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
 
 // 엣지가 그려지는(draw-in) 애니메이션. pathLength 0→1로 stroke를 점진적으로 채운다.
 // data.flowing=true면 실행 중 데이터 흐름을 나타내는 대시 흐름을 위에 덧그린다.
@@ -37,7 +38,7 @@ const AnimatedEdge = ({
 					d={edgePath}
 					fill='none'
 					className='react-flow__edge-path'
-					style={{ stroke: '#007ba7', strokeWidth: 1.5, ...style }}
+					style={{ stroke: WORKFLOW_EDGE_COLOR, strokeWidth: 1.5, ...style }}
 					markerEnd={markerEnd}
 					initial={{ pathLength: 0 }}
 					animate={{ pathLength: 1 }}
@@ -47,7 +48,12 @@ const AnimatedEdge = ({
 					<motion.path
 						d={edgePath}
 						fill='none'
-						style={{ stroke: '#007ba7', strokeWidth: 2.5, strokeDasharray: '6 8', strokeLinecap: 'round' }}
+						style={{
+							stroke: WORKFLOW_EDGE_ACTIVE_COLOR,
+							strokeWidth: 2.5,
+							strokeDasharray: '6 8',
+							strokeLinecap: 'round',
+						}}
 						initial={{ strokeDashoffset: 28 }}
 						animate={{ strokeDashoffset: 0 }}
 						transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
