@@ -1,6 +1,5 @@
 import { LayoutDashboard, Workflow, Blocks, UserRoundCog } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { WORKFLOW_LIST } from '@/mocks/workflow/workflowListMock'
 
 export type SidebarNavId = 'dashboard' | 'canvas' | 'refs' | 'settings'
 
@@ -20,7 +19,7 @@ export type CollabAvatar = {
 
 export const NAV_ITEMS: NavItem[] = [
 	{ id: 'dashboard', icon: LayoutDashboard, label: '대시보드', path: '/main' },
-	{ id: 'canvas', icon: Workflow, label: '워크플로우', path: '/workflow', count: WORKFLOW_LIST.length },
+	{ id: 'canvas', icon: Workflow, label: '워크플로우', path: '/workflow' },
 	{ id: 'refs', icon: Blocks, label: '통합 설정', path: '/inter-setting' },
 	{ id: 'settings', icon: UserRoundCog, label: '계정 설정', path: '/user' },
 ]

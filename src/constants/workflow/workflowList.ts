@@ -1,3 +1,4 @@
+import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
 import type {
 	WorkflowCategoryId,
 	WorkflowCategoryMeta,
@@ -10,24 +11,25 @@ import type {
 	WorkflowTriggerType,
 } from '@/types/workflowList'
 
+/** 통합설정에서 연결 가능한 서비스 메타 (필터·목록 표시용) */
 export const WORKFLOW_SERVICE_META: Record<WorkflowServiceId, WorkflowServiceMeta> = {
-	google: { id: 'google', name: 'Google', initial: 'G', bgClass: 'bg-[#4285F4]' },
 	slack: { id: 'slack', name: 'Slack', initial: 'S', bgClass: 'bg-[#4A154B]' },
-	hubspot: { id: 'hubspot', name: 'HubSpot', initial: 'H', bgClass: 'bg-[#FF7A59]' },
-	salesforce: { id: 'salesforce', name: 'Salesforce', initial: 'Sf', bgClass: 'bg-[#00A1E0]' },
-	airtable: { id: 'airtable', name: 'Airtable', initial: 'A', bgClass: 'bg-[#18BFFF]' },
 	notion: { id: 'notion', name: 'Notion', initial: 'N', bgClass: 'bg-[#191919]' },
 	github: { id: 'github', name: 'GitHub', initial: 'Gh', bgClass: 'bg-[#24292F]' },
-	linear: { id: 'linear', name: 'Linear', initial: 'L', bgClass: 'bg-[#5E6AD2]' },
-	figma: { id: 'figma', name: 'Figma', initial: 'F', bgClass: 'bg-[#A259FF]' },
+	gmail: { id: 'gmail', name: 'Gmail', initial: 'Gm', bgClass: 'bg-[#EA4335]' },
+	sheets: { id: 'sheets', name: 'Google Sheets', initial: 'Sh', bgClass: 'bg-[#0F9D58]' },
+	google: { id: 'google', name: 'Google Drive', initial: 'Gd', bgClass: 'bg-[#4285F4]' },
 	jira: { id: 'jira', name: 'Jira', initial: 'J', bgClass: 'bg-[#0C66E4]' },
-	dropbox: { id: 'dropbox', name: 'Dropbox', initial: 'D', bgClass: 'bg-[#0061FF]' },
+	airtable: { id: 'airtable', name: 'Airtable', initial: 'A', bgClass: 'bg-[#18BFFF]' },
 	discord: { id: 'discord', name: 'Discord', initial: 'Di', bgClass: 'bg-[#5865F2]' },
-	zapier: { id: 'zapier', name: 'Zapier', initial: 'Z', bgClass: 'bg-[#FF4A00]' },
-	asana: { id: 'asana', name: 'Asana', initial: 'As', bgClass: 'bg-[#F06A6A]' },
+	linear: { id: 'linear', name: 'Linear', initial: 'L', bgClass: 'bg-[#5E6AD2]' },
+	webhook: { id: 'webhook', name: 'Webhook', initial: 'Wh', bgClass: 'bg-[#4F5D75]' },
 }
 
-export const WORKFLOW_SERVICES = Object.values(WORKFLOW_SERVICE_META)
+/** 통합설정 카탈로그 순서와 동일한 필터용 서비스 목록 */
+export const WORKFLOW_SERVICES: WorkflowServiceMeta[] = AVAILABLE_INTEGRATION_CATALOG.map(
+	service => WORKFLOW_SERVICE_META[service.brand as WorkflowServiceId]
+).filter(Boolean)
 
 export const WORKFLOW_CATEGORY_META: Record<WorkflowCategoryId, WorkflowCategoryMeta> = {
 	cs: { id: 'cs', label: '고객지원', dotClass: 'bg-[#E2725B]' },

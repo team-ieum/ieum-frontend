@@ -6,18 +6,13 @@ const BRAND_TO_SERVICE: Record<string, WorkflowServiceId> = {
 	notion: 'notion',
 	github: 'github',
 	google: 'google',
-	gmail: 'google',
-	sheets: 'google',
+	gmail: 'gmail',
+	sheets: 'sheets',
 	discord: 'discord',
 	airtable: 'airtable',
 	jira: 'jira',
 	linear: 'linear',
-	hubspot: 'hubspot',
-	salesforce: 'salesforce',
-	figma: 'figma',
-	dropbox: 'dropbox',
-	zapier: 'zapier',
-	asana: 'asana',
+	webhook: 'webhook',
 }
 
 const knownServiceIds = new Set(Object.keys(WORKFLOW_SERVICE_META) as WorkflowServiceId[])

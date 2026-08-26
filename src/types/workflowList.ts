@@ -54,20 +54,17 @@ export type WorkflowListResponse = ApiResponse<WorkflowPageDto>
 // --- UI types ---
 
 export type WorkflowServiceId =
-	| 'google'
 	| 'slack'
-	| 'hubspot'
-	| 'salesforce'
-	| 'airtable'
 	| 'notion'
 	| 'github'
-	| 'linear'
-	| 'figma'
+	| 'gmail'
+	| 'sheets'
+	| 'google'
 	| 'jira'
-	| 'dropbox'
+	| 'airtable'
 	| 'discord'
-	| 'zapier'
-	| 'asana'
+	| 'linear'
+	| 'webhook'
 
 // prettier-ignore
 export type WorkflowCategoryId =
