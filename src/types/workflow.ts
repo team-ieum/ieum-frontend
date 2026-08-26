@@ -1,4 +1,4 @@
-import type { Node } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
 import type { WorkflowDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
@@ -19,11 +19,16 @@ export type WorkflowNodeData = {
 	modelName?: string
 	status: WorkflowNodeStatus
 	technicalMode: boolean
-	hasIncoming: boolean
-	hasOutgoing: boolean
 }
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
+
+export type WorkflowEdgeData = {
+	conditionType?: string | null
+	flowing?: boolean
+}
+
+export type WorkflowEdgeType = Edge<WorkflowEdgeData>
 
 export type CreateWorkflowNodeDto = {
 	id: string

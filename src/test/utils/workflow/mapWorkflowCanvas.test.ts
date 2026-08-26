@@ -62,14 +62,16 @@ describe('mapWorkflowCanvas', () => {
 		expect(isWorkflowNodeDto({ ...node, position: { x: 40, y: 80 } })).toBe(true)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 'bad', y: 0 } })).toBe(false)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 0, y: Number.POSITIVE_INFINITY } })).toBe(false)
+		expect(isWorkflowNodeDto({ id: 'ai', type: 'AI', label: 'AI 작업' })).toBe(false)
 	})
 
 	it('API 노드를 컬러 블록 표시 데이터로 변환한다', () => {
 		const modelNames = createModelNameMap(providers)
-		const result = toWorkflowCanvasNodes(nodes, edges, modelNames, false)
+		const result = toWorkflowCanvasNodes(nodes, modelNames, false)
 
 		expect(result[0]).toMatchObject({
 			position: { x: 40, y: 80 },
+			deletable: false,
 			data: {
 				role: 'trigger',
 				typeLabel: '시작 조건',
@@ -78,8 +80,6 @@ describe('mapWorkflowCanvas', () => {
 				method: 'POST',
 				url: '/hooks/inquiry',
 				status: 'idle',
-				hasIncoming: false,
-				hasOutgoing: true,
 			},
 		})
 		expect(result[1]).toMatchObject({
@@ -90,8 +90,6 @@ describe('mapWorkflowCanvas', () => {
 				description: '설명 정보가 아직 없어요',
 				modelId: 'gemini-2.5-flash',
 				modelName: 'Gemini 2.5 Flash',
-				hasIncoming: true,
-				hasOutgoing: true,
 			},
 		})
 		expect(result[2].data).toMatchObject({ role: 'action', typeLabel: '조건', step: 3 })
@@ -100,7 +98,6 @@ describe('mapWorkflowCanvas', () => {
 	it('Provider에 없는 모델은 원본 ID를 사용하고 기술 정보 모드를 반영한다', () => {
 		const result = toWorkflowCanvasNodes(
 			[{ id: 'ai', type: 'AI', label: 'AI 작업', config: { model: 'custom-model' } }],
-			[],
 			new Map(),
 			true
 		)
@@ -113,6 +110,7 @@ describe('mapWorkflowCanvas', () => {
 
 		expect(result).toHaveLength(2)
 		expect(result[0]).toMatchObject({ source: 'trigger', target: 'ai', type: 'animated' })
+		expect(result[0].data).toEqual({ conditionType: null })
 		expect(result[0].markerEnd).toMatchObject({ color: '#6d5ce7' })
 	})
 

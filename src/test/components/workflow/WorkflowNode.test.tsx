@@ -6,16 +6,19 @@ import type { WorkflowNodeType } from '@/types/workflow'
 
 vi.mock('@xyflow/react', async () => {
 	const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react')
-	return { ...actual, Handle: () => <span data-testid='handle' /> }
+	return {
+		...actual,
+		Handle: ({ type }: { type: string }) => <span data-testid={`handle-${type}`} />,
+	}
 })
 
-const createProps = (technicalMode: boolean) =>
+const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 	({
 		id: 'ai-node',
 		data: {
-			nodeType: 'AI',
-			role: 'ai',
-			typeLabel: 'AI 작업',
+			nodeType: role === 'trigger' ? 'TRIGGER' : 'AI',
+			role,
+			typeLabel: role === 'trigger' ? '시작 조건' : 'AI 작업',
 			step: 2,
 			title: '문의 유형 나누기',
 			description: 'AI가 문의를 분류해요',
@@ -25,11 +28,9 @@ const createProps = (technicalMode: boolean) =>
 			modelName: 'Gemini 2.5 Flash',
 			status: 'idle',
 			technicalMode,
-			hasIncoming: true,
-			hasOutgoing: true,
 		},
 		selected: false,
-	}) as NodeProps<WorkflowNodeType>
+	}) as unknown as NodeProps<WorkflowNodeType>
 
 describe('WorkflowNode', () => {
 	it('일반 모드에서 설명과 읽기 전용 모델 정보를 표시한다', () => {
@@ -40,9 +41,17 @@ describe('WorkflowNode', () => {
 		expect(screen.getByRole('img', { name: '준비' })).toBeInTheDocument()
 		expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true')
 		expect(screen.getByText('2단계')).toHaveClass('sr-only')
-		expect(screen.getAllByTestId('handle')).toHaveLength(2)
+		expect(screen.getByTestId('handle-target')).toBeInTheDocument()
+		expect(screen.getByTestId('handle-source')).toBeInTheDocument()
 		expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button')).not.toBeInTheDocument()
+	})
+
+	it('시작 조건에는 출력 핸들만 표시한다', () => {
+		render(<WorkflowNode {...createProps(false, 'trigger')} />)
+
+		expect(screen.queryByTestId('handle-target')).not.toBeInTheDocument()
+		expect(screen.getByTestId('handle-source')).toBeInTheDocument()
 	})
 
 	it('기술 정보 모드에서 실제 Method와 URL을 표시한다', () => {

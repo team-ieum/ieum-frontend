@@ -19,7 +19,7 @@ const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 }
 
 const HANDLE_CLASS = cn(
-	'pointer-events-none !z-[3] !h-[1.1rem] !w-[1.1rem] !border-[3px] !border-white',
+	'!z-[3] !h-[1.1rem] !w-[1.1rem] !cursor-crosshair !border-[3px] !border-white',
 	'!bg-(--node-color) !shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]'
 )
 
@@ -51,12 +51,8 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 				ROLE_CLASS[data.role]
 			)}
 		>
-			{data.hasIncoming ? (
-				<Handle type='target' position={Position.Left} className={HANDLE_CLASS} isConnectable={false} />
-			) : null}
-			{data.hasOutgoing ? (
-				<Handle type='source' position={Position.Right} className={HANDLE_CLASS} isConnectable={false} />
-			) : null}
+			{data.role === 'trigger' ? null : <Handle type='target' position={Position.Left} className={HANDLE_CLASS} />}
+			<Handle type='source' position={Position.Right} className={HANDLE_CLASS} />
 
 			<header
 				className={cn(

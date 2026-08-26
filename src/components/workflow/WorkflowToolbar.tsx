@@ -1,4 +1,4 @@
-import { ArrowLeft, CloudCheck, Code2, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
+import { ArrowLeft, Code2, HardDrive, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
@@ -57,7 +57,10 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 }
 
 type WorkflowToolbarProps = {
-	defaultTitle?: string
+	title: string
+	onTitleChange: (title: string) => void
+	hasUnsavedChanges?: boolean
+	isDraftPersisted?: boolean
 	status?: WorkflowStatus
 	active?: boolean
 	onToggleActive?: () => void
@@ -68,7 +71,10 @@ type WorkflowToolbarProps = {
 }
 
 const WorkflowToolbar = ({
-	defaultTitle = '워크플로우 제목',
+	title,
+	onTitleChange,
+	hasUnsavedChanges = false,
+	isDraftPersisted = false,
 	status = 'paused',
 	active,
 	onToggleActive,
@@ -77,7 +83,7 @@ const WorkflowToolbar = ({
 	technicalMode = false,
 	onToggleTechnicalMode,
 }: WorkflowToolbarProps) => {
-	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
+	const { handleBack } = useWorkflowToolbar()
 	const statusMeta = WORKFLOW_STATUS_META[status]
 	const isToggleable = status !== 'error' && active !== undefined && onToggleActive
 
@@ -96,13 +102,23 @@ const WorkflowToolbar = ({
 			</button>
 
 			<div className='flex items-center gap-2.5'>
-				<input
-					value={title}
-					onChange={e => handleTitleChange(e.target.value)}
-					aria-label='워크플로우 제목'
-					className='text-xl font-bold text-main-deep-blue tracking-wide outline-none bg-transparent rounded-md px-2 py-1 hover:bg-neutral-100 focus:bg-neutral-100 transition-colors min-w-0'
-					style={{ fontFamily: 'var(--font-sans)' }}
-				/>
+				<div className='flex min-w-0 items-center gap-1.5'>
+					<input
+						value={title}
+						onChange={e => onTitleChange(e.target.value)}
+						aria-label='워크플로우 제목'
+						className='min-w-0 rounded-md bg-transparent px-2 py-1 text-xl font-bold tracking-wide text-main-deep-blue outline-none transition-colors hover:bg-neutral-100 focus:bg-neutral-100'
+						style={{ fontFamily: 'var(--font-sans)' }}
+					/>
+					{hasUnsavedChanges ? (
+						<span
+							role='status'
+							title='저장되지 않은 변경사항'
+							aria-label='저장되지 않은 변경사항'
+							className='size-2 shrink-0 rounded-full bg-amber-500'
+						/>
+					) : null}
+				</div>
 				{isToggleable ? (
 					<ActiveToggle active={active} onToggle={onToggleActive} />
 				) : (
@@ -115,10 +131,12 @@ const WorkflowToolbar = ({
 				)}
 			</div>
 
-			<span className='inline-flex items-center gap-1 text-xs text-neutral-400 shrink-0'>
-				<CloudCheck size={14} className='text-node-green' />
-				방금 전 자동 저장됨
-			</span>
+			{hasUnsavedChanges && isDraftPersisted ? (
+				<span className='inline-flex shrink-0 items-center gap-1 text-xs text-neutral-400'>
+					<HardDrive size={14} className='text-node-green' />
+					브라우저에 임시 보관됨
+				</span>
+			) : null}
 
 			<div className='flex-1' />
 

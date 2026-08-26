@@ -1,7 +1,7 @@
-import { MarkerType, type Edge } from '@xyflow/react'
+import { MarkerType } from '@xyflow/react'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import type { ProviderInfo } from '@/types/credential'
-import type { WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
+import type { WorkflowEdgeType, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 
@@ -32,6 +32,9 @@ const hasValidPosition = (position: unknown): position is { x: number; y: number
 	)
 }
 
+const isConfig = (config: unknown): config is Record<string, unknown> =>
+	typeof config === 'object' && config !== null && !Array.isArray(config)
+
 export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 	if (typeof value !== 'object' || value === null) return false
 	const node = value as Partial<WorkflowNodeDto>
@@ -39,7 +42,8 @@ export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 		typeof node.id === 'string' &&
 		typeof node.type === 'string' &&
 		typeof node.label === 'string' &&
-		(node.position === undefined || hasValidPosition(node.position))
+		(node.position === undefined || hasValidPosition(node.position)) &&
+		isConfig(node.config)
 	)
 }
 
@@ -56,13 +60,9 @@ export const toWorkflowNodeStatus = (status?: NodeExecutionStatus): WorkflowNode
 
 export const toWorkflowCanvasNodes = (
 	nodes: WorkflowNodeDto[],
-	edges: WorkflowEdgeDto[],
 	modelNames: ReadonlyMap<string, string>,
 	technicalMode: boolean
 ): WorkflowNodeType[] => {
-	const incomingNodeIds = new Set(edges.map(edge => edge.target))
-	const outgoingNodeIds = new Set(edges.map(edge => edge.source))
-
 	return nodes.map((dto, index) => {
 		const meta = getWorkflowNodeMeta(dto.type)
 		const config = dto.config ?? {}
@@ -71,6 +71,7 @@ export const toWorkflowCanvasNodes = (
 		return {
 			id: dto.id,
 			type: 'workflowNode',
+			deletable: false,
 			// TODO: 서버가 노드 위치를 항상 반환하면 배열 순서 기반 배치를 제거합니다.
 			position: dto.position ?? { x: index * 360, y: 100 },
 			data: {
@@ -87,19 +88,27 @@ export const toWorkflowCanvasNodes = (
 				modelName: modelId ? (modelNames.get(modelId) ?? modelId) : undefined,
 				status: 'idle',
 				technicalMode,
-				hasIncoming: incomingNodeIds.has(dto.id),
-				hasOutgoing: outgoingNodeIds.has(dto.id),
 			},
 		}
 	})
 }
 
-export const toWorkflowCanvasEdges = (edges: WorkflowEdgeDto[]): Edge[] =>
-	edges.map((edge, index) => ({
-		id: `${edge.source}-${edge.target}-${index}`,
+export const createWorkflowCanvasEdge = (edge: WorkflowEdgeDto, id: string): WorkflowEdgeType => ({
+	id,
+	source: edge.source,
+	target: edge.target,
+	type: 'animated',
+	data: { conditionType: edge.conditionType ?? null },
+	style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+	markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+})
+
+export const toWorkflowCanvasEdges = (edges: WorkflowEdgeDto[]): WorkflowEdgeType[] =>
+	edges.map((edge, index) => createWorkflowCanvasEdge(edge, `${edge.source}-${edge.target}-${index}`))
+
+export const toWorkflowEdgeDtos = (edges: WorkflowEdgeType[]): WorkflowEdgeDto[] =>
+	edges.map(edge => ({
 		source: edge.source,
 		target: edge.target,
-		type: 'animated',
-		style: { stroke: EDGE_COLOR, strokeWidth: 2 },
-		markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+		conditionType: edge.data?.conditionType ?? null,
 	}))
