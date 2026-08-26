@@ -19,7 +19,7 @@ const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 }
 
 const HANDLE_CLASS = cn(
-	'!z-[3] !h-[1.1rem] !w-[1.1rem] !cursor-crosshair !border-[3px] !border-white',
+	'!z-[3] !size-4.5 !cursor-crosshair !border-[3px] !border-white',
 	'!bg-(--node-color) !shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]'
 )
 
@@ -42,8 +42,8 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 
 	return (
 		<motion.article
-			initial={{ opacity: 0, scale: 0.96, y: 8 }}
-			animate={{ opacity: 1, scale: 1, y: 0 }}
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
 			transition={{ duration: 0.25, delay: (data.step - 1) * 0.06, ease: 'easeOut' }}
 			className={cn(
 				'relative w-66 rounded-[1.2rem] border-2 border-(--node-color) bg-white',

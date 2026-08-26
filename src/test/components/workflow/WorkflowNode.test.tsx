@@ -34,7 +34,7 @@ const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 
 describe('WorkflowNode', () => {
 	it('일반 모드에서 설명과 읽기 전용 모델 정보를 표시한다', () => {
-		render(<WorkflowNode {...createProps(false)} />)
+		const { container } = render(<WorkflowNode {...createProps(false)} />)
 
 		expect(screen.getByText('AI가 문의를 분류해요')).toBeInTheDocument()
 		expect(screen.getByText('Gemini 2.5 Flash')).toBeInTheDocument()
@@ -45,6 +45,7 @@ describe('WorkflowNode', () => {
 		expect(screen.getByTestId('handle-source')).toBeInTheDocument()
 		expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button')).not.toBeInTheDocument()
+		expect(container.querySelector('article')?.style.transform).toBe('')
 	})
 
 	it('시작 조건에는 출력 핸들만 표시한다', () => {
