@@ -19,7 +19,7 @@ vi.mock('@xyflow/react', async () => {
 		data: {
 			technicalMode: boolean
 			description?: string
-			method?: string
+			technicalDetails: { label: string; value: string }[]
 			modelName?: string
 			status: string
 		}
@@ -66,7 +66,17 @@ vi.mock('@xyflow/react', async () => {
 				{nodes.map(node => (
 					<div key={node.id}>
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
-						<span>{node.data.technicalMode ? (node.data.method ?? '정보 없음') : node.data.description}</span>
+						{node.data.technicalMode ? (
+							node.data.technicalDetails.length > 0 ? (
+								node.data.technicalDetails.map(detail => (
+									<span key={detail.label}>{`${detail.label}: ${detail.value}`}</span>
+								))
+							) : (
+								<span>표시할 기술 정보가 없어요</span>
+							)
+						) : (
+							<span>{node.data.description}</span>
+						)}
 						{node.data.modelName ? <span>{node.data.modelName}</span> : null}
 					</div>
 				))}
@@ -126,15 +136,25 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 						type: 'TRIGGER',
 						label: '문의가 도착하면',
 						description: '새 문의가 들어오면 시작해요',
-						config: { method: 'POST', url: '/hooks/inquiry' },
+						config: { triggerType: 'MANUAL', brand: 'webhook' },
 					},
 					{
 						id: 'ai',
 						type: 'AI',
 						label: '문의 분류하기',
-						config: { model: 'server-unknown-model' },
+						config: {
+							llmProvider: 'GEMINI',
+							model: 'server-unknown-model',
+							credentialId: 'credential-secret',
+							prompt: 'private prompt',
+						},
 					},
-					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
+					{
+						id: 'action',
+						type: 'HTTP',
+						label: '담당자에게 알리기',
+						config: { method: 'POST', url: 'https://example.com/notify' },
+					},
 				],
 				edges: [
 					{ source: 'trigger', target: 'ai', conditionType: null },
@@ -231,7 +251,11 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(technicalSwitch)
 
 		expect(technicalSwitch).toHaveAttribute('aria-checked', 'true')
-		expect(screen.getByText('POST')).toBeInTheDocument()
+		expect(screen.getByText('실행 방식: 수동 실행 (MANUAL)')).toBeInTheDocument()
+		expect(screen.getByText('Method: POST')).toBeInTheDocument()
+		expect(screen.getByText('제공자: GEMINI')).toBeInTheDocument()
+		expect(screen.queryByText('credential-secret')).not.toBeInTheDocument()
+		expect(screen.queryByText('private prompt')).not.toBeInTheDocument()
 		expect(screen.queryByText('새 문의가 들어오면 시작해요')).not.toBeInTheDocument()
 	})
 

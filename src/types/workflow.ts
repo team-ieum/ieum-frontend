@@ -5,6 +5,12 @@ import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
 
 export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
 export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error'
+export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'workflow'
+
+export type WorkflowTechnicalDetail = {
+	label: string
+	value: string
+}
 
 export type WorkflowNodeData = {
 	nodeType: string
@@ -13,8 +19,7 @@ export type WorkflowNodeData = {
 	step: number
 	title: string
 	description?: string
-	method?: string
-	url?: string
+	technicalDetails: WorkflowTechnicalDetail[]
 	modelId?: string
 	modelName?: string
 	status: WorkflowNodeStatus

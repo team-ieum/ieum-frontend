@@ -1,15 +1,9 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import { Bot, Check, CircleAlert, CircleDashed, LoaderCircle, Play, Send } from 'lucide-react'
-import { WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
-import type { WorkflowNodeRole, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
+import { Bot, Check, CircleAlert, CircleDashed, GitBranch, Globe2, LoaderCircle, Play, Shuffle, Workflow } from 'lucide-react'
+import { getWorkflowNodeMeta, WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
+import type { WorkflowNodeIconKey, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
 import { cn } from '@/utils/cn'
-
-const ROLE_CLASS: Record<WorkflowNodeRole, string> = {
-	trigger: '[--node-color:#2e8b68] [--node-tint:#dff2e9]',
-	ai: '[--node-color:#6d5ce7] [--node-tint:#eeeafd]',
-	action: '[--node-color:#e76f61] [--node-tint:#fbe5e1]',
-}
 
 const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 	idle: 'bg-[#eef1f3] text-[#5a6975]',
@@ -23,10 +17,13 @@ const HANDLE_CLASS = cn(
 	'!bg-(--node-color) !shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]'
 )
 
-const RoleIcon = ({ role }: { role: WorkflowNodeRole }) => {
-	if (role === 'trigger') return <Play size={20} aria-hidden='true' />
-	if (role === 'ai') return <Bot size={20} aria-hidden='true' />
-	return <Send size={20} aria-hidden='true' />
+const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
+	if (iconKey === 'play') return <Play size={20} aria-hidden='true' />
+	if (iconKey === 'globe') return <Globe2 size={20} aria-hidden='true' />
+	if (iconKey === 'shuffle') return <Shuffle size={20} aria-hidden='true' />
+	if (iconKey === 'branch') return <GitBranch size={20} aria-hidden='true' />
+	if (iconKey === 'bot') return <Bot size={20} aria-hidden='true' />
+	return <Workflow size={20} aria-hidden='true' />
 }
 
 const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
@@ -39,6 +36,7 @@ const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
 
 const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 	const status = WORKFLOW_NODE_STATUS[data.status]
+	const nodeMeta = getWorkflowNodeMeta(data.nodeType)
 
 	return (
 		<motion.article
@@ -48,7 +46,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 			className={cn(
 				'relative w-66 rounded-[1.2rem] border-2 border-(--node-color) bg-white',
 				'shadow-[0.5rem_0.6rem_0_var(--node-tint),0_14px_30px_rgba(65,52,139,0.1)]',
-				ROLE_CLASS[data.role]
+				nodeMeta.toneClass
 			)}
 		>
 			{data.role === 'trigger' ? null : <Handle type='target' position={Position.Left} className={HANDLE_CLASS} />}
@@ -67,7 +65,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 						'[box-shadow:0_4px_0_color-mix(in_srgb,var(--node-color)_78%,black)]'
 					)}
 				>
-					<RoleIcon role={data.role} />
+					<NodeTypeIcon iconKey={nodeMeta.iconKey} />
 				</span>
 				<span>{data.typeLabel}</span>
 				<motion.span
@@ -101,7 +99,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					</h3>
 				</div>
 
-				{data.technicalMode ? (
+				{data.technicalMode && data.technicalDetails.length > 0 ? (
 					<dl
 						className={cn(
 							'm-0 grid gap-[0.35rem] rounded-[0.65rem] border p-[0.55rem_0.6rem] font-mono',
@@ -109,31 +107,27 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 							'[background:color-mix(in_srgb,var(--node-tint)_55%,white)]'
 						)}
 					>
-						<div className='grid grid-cols-[3.6rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
-							<dt className='text-[0.58rem] font-bold tracking-[0.03em] text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
-								Method
-							</dt>
-							<dd className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.62rem] font-semibold text-[#353442]'>
-								{data.method ?? '정보 없음'}
-							</dd>
-						</div>
-						<div className='grid grid-cols-[3.6rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
-							<dt className='text-[0.58rem] font-bold tracking-[0.03em] text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
-								URL
-							</dt>
-							<dd
-								className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.62rem] font-semibold text-[#353442]'
-								title={data.url}
-							>
-								{data.url ?? '정보 없음'}
-							</dd>
-						</div>
+						{data.technicalDetails.map(detail => (
+							<div key={detail.label} className='grid grid-cols-[4.1rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
+								<dt className='text-[0.58rem] font-bold tracking-[0.03em] text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
+									{detail.label}
+								</dt>
+								<dd
+									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.62rem] font-semibold text-[#353442]'
+									title={detail.value}
+								>
+									{detail.value}
+								</dd>
+							</div>
+						))}
 					</dl>
+				) : data.technicalMode ? (
+					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>표시할 기술 정보가 없어요</p>
 				) : (
 					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>{data.description}</p>
 				)}
 
-				{data.role === 'ai' ? (
+				{data.role === 'ai' && !data.technicalMode ? (
 					<span
 						className={cn(
 							'inline-flex min-h-8 w-full items-center rounded-[0.65rem] border px-[0.6rem] py-[0.28rem]',

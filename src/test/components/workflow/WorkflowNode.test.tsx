@@ -22,8 +22,10 @@ const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 			step: 2,
 			title: '문의 유형 나누기',
 			description: 'AI가 문의를 분류해요',
-			method: 'POST',
-			url: '/ai/classify-inquiry',
+			technicalDetails: [
+				{ label: '제공자', value: 'GEMINI' },
+				{ label: '모델 ID', value: 'gemini-2.5-flash' },
+			],
 			modelId: 'gemini-2.5-flash',
 			modelName: 'Gemini 2.5 Flash',
 			status: 'idle',
@@ -55,21 +57,22 @@ describe('WorkflowNode', () => {
 		expect(screen.getByTestId('handle-source')).toBeInTheDocument()
 	})
 
-	it('기술 정보 모드에서 실제 Method와 URL을 표시한다', () => {
+	it('기술 정보 모드에서 허용된 타입별 상세 정보만 표시한다', () => {
 		render(<WorkflowNode {...createProps(true)} />)
 
 		expect(screen.queryByText('AI가 문의를 분류해요')).not.toBeInTheDocument()
-		expect(screen.getByText('Method')).toBeInTheDocument()
-		expect(screen.getByText('POST')).toBeInTheDocument()
-		expect(screen.getByText('/ai/classify-inquiry')).toBeInTheDocument()
+		expect(screen.getByText('제공자')).toBeInTheDocument()
+		expect(screen.getByText('GEMINI')).toBeInTheDocument()
+		expect(screen.getByText('모델 ID')).toBeInTheDocument()
+		expect(screen.getByText('gemini-2.5-flash')).toBeInTheDocument()
+		expect(screen.queryByText('Gemini 2.5 Flash')).not.toBeInTheDocument()
 	})
 
 	it('기술 정보가 없으면 명시적인 대체 문구를 표시한다', () => {
 		const props = createProps(true)
-		props.data.method = undefined
-		props.data.url = undefined
+		props.data.technicalDetails = []
 		render(<WorkflowNode {...props} />)
 
-		expect(screen.getAllByText('정보 없음')).toHaveLength(2)
+		expect(screen.getByText('표시할 기술 정보가 없어요')).toBeInTheDocument()
 	})
 })
