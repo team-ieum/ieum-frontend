@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
@@ -10,6 +10,7 @@ import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQue
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
+import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
@@ -22,16 +23,9 @@ import {
 	isWorkflowNodeDto,
 	toWorkflowCanvasEdges,
 	toWorkflowCanvasNodes,
-	toWorkflowEdgeDtos,
 	toWorkflowNodeStatus,
 } from '@/utils/workflow/mapWorkflowCanvas'
-import {
-	isSameWorkflowDraft,
-	inspectWorkflowDraft,
-	removeWorkflowDraft,
-	type WorkflowDraftData,
-	writeWorkflowDraft,
-} from '@/utils/workflow/workflowDraftStorage'
+import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
 const edgeTypes = { animated: AnimatedEdge }
@@ -116,21 +110,12 @@ const WorkflowCanvas = ({ nodes, edges, onNodePositionCommit, onEdgesCommit }: W
 	)
 }
 
-type WorkflowEditorSession = {
-	key: string
-	document: WorkflowDraftData
-	isDraftPersisted: boolean
-	canvasRevision: number
-	staleDraftWorkflowId: string | null
-}
-
 const WorkFlowPage = () => {
 	const { workflowId } = useParams<{ workflowId: string }>()
 	const { data } = useWorkflowQuery(workflowId)
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
-	const [editorSession, setEditorSession] = useState<WorkflowEditorSession | null>(null)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -142,37 +127,20 @@ const WorkFlowPage = () => {
 		return { title: workflow.name, nodes, edges }
 	}, [workflow])
 
-	const editorKey = workflow ? `${workflow.id}:${workflow.version}` : ''
-	if (workflow && serverDocument && editorSession?.key !== editorKey) {
-		const { draft, shouldRemove } = inspectWorkflowDraft(workflow.id, workflow.version)
-		const draftDocument = draft ? { title: draft.title, nodes: draft.nodes, edges: draft.edges } : null
-		const hasDraftChanges = Boolean(draftDocument && !isSameWorkflowDraft(draftDocument, serverDocument))
-		setEditorSession({
-			key: editorKey,
-			document: hasDraftChanges && draftDocument ? draftDocument : serverDocument,
-			isDraftPersisted: hasDraftChanges,
-			canvasRevision: 0,
-			staleDraftWorkflowId: shouldRemove || (draftDocument && !hasDraftChanges) ? workflow.id : null,
-		})
-	}
-
-	const editorSessionKey = editorSession?.key
-	const staleDraftWorkflowId = editorSession?.staleDraftWorkflowId
-	useEffect(() => {
-		if (!editorSessionKey || !staleDraftWorkflowId) return
-		removeWorkflowDraft(staleDraftWorkflowId)
-		const clearDraftId = window.setTimeout(() => {
-			setEditorSession(current =>
-				current?.key === editorSessionKey && current.staleDraftWorkflowId === staleDraftWorkflowId
-					? { ...current, staleDraftWorkflowId: null }
-					: current
-			)
-		}, 0)
-		return () => window.clearTimeout(clearDraftId)
-	}, [editorSessionKey, staleDraftWorkflowId])
-
-	const document = editorSession?.key === editorKey ? editorSession.document : serverDocument
-	const hasUnsavedChanges = Boolean(document && serverDocument && !isSameWorkflowDraft(document, serverDocument))
+	const {
+		document,
+		hasUnsavedChanges,
+		isDraftPersisted,
+		canvasKey,
+		handleTitleChange,
+		handleNodePositionCommit,
+		handleEdgesCommit,
+		handleCanvasUpdate,
+	} = useWorkflowEditorViewModel({
+		workflowId: workflow?.id,
+		workflowVersion: workflow?.version,
+		serverDocument,
+	})
 	const modelNames = useMemo(() => createModelNameMap(providersData?.data.providers), [providersData?.data.providers])
 	const canvas = useMemo(() => {
 		if (!document) return null
@@ -181,69 +149,6 @@ const WorkFlowPage = () => {
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
 	}, [document, modelNames, technicalMode])
-
-	const commitDocument = useCallback(
-		(nextDocument: WorkflowDraftData, remountCanvas = false) => {
-			if (!workflow || !serverDocument) return
-			const dirty = !isSameWorkflowDraft(nextDocument, serverDocument)
-			const isDraftPersisted = dirty
-				? writeWorkflowDraft(workflow.id, workflow.version, nextDocument)
-				: (removeWorkflowDraft(workflow.id), false)
-
-			setEditorSession(current => {
-				if (!current || current.key !== editorKey) return current
-				return {
-					...current,
-					document: nextDocument,
-					isDraftPersisted,
-					canvasRevision: remountCanvas ? current.canvasRevision + 1 : current.canvasRevision,
-				}
-			})
-		},
-		[editorKey, serverDocument, workflow]
-	)
-
-	const handleTitleChange = useCallback(
-		(title: string) => {
-			if (!document) return
-			commitDocument({ ...document, title })
-		},
-		[commitDocument, document]
-	)
-
-	const handleNodePositionCommit = useCallback(
-		(nodeId: string, position: { x: number; y: number }) => {
-			if (!document) return
-			commitDocument({
-				...document,
-				nodes: document.nodes.map(node => (node.id === nodeId ? { ...node, position } : node)),
-			})
-		},
-		[commitDocument, document]
-	)
-
-	const handleEdgesCommit = useCallback(
-		(edges: WorkflowEdgeType[]) => {
-			if (!document) return
-			commitDocument({ ...document, edges: toWorkflowEdgeDtos(edges) })
-		},
-		[commitDocument, document]
-	)
-
-	const handleCanvasUpdate = useCallback(
-		(rawNodes: unknown[], rawEdges: unknown[]) => {
-			if (!document) return
-			const previousPositions = new Map(document.nodes.map(node => [node.id, node.position]))
-			const nodes = rawNodes.filter(isWorkflowNodeDto).map(node => {
-				const position = previousPositions.get(node.id)
-				return position ? { ...node, position } : node
-			})
-			const nodeIds = new Set(nodes.map(node => node.id))
-			const edges = rawEdges.filter(isWorkflowEdgeDto).filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
-			commitDocument({ ...document, nodes, edges }, true)
-		},
-		[commitDocument, document]
-	)
 
 	const openModal = useModalStore(state => state.open)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
@@ -278,7 +183,7 @@ const WorkFlowPage = () => {
 				title={document?.title ?? workflow?.name ?? '워크플로우 제목'}
 				onTitleChange={handleTitleChange}
 				hasUnsavedChanges={hasUnsavedChanges}
-				isDraftPersisted={Boolean(hasUnsavedChanges && editorSession?.isDraftPersisted)}
+				isDraftPersisted={isDraftPersisted}
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
 				onToggleActive={handleToggleActive}
@@ -288,9 +193,9 @@ const WorkFlowPage = () => {
 				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
 			/>
 			<div className='relative flex-1'>
-				{canvas && editorSession ? (
+				{canvas && canvasKey ? (
 					<WorkflowCanvas
-						key={`${editorSession.key}:${editorSession.canvasRevision}`}
+						key={canvasKey}
 						nodes={canvas.nodes}
 						edges={canvas.edges}
 						onNodePositionCommit={handleNodePositionCommit}
