@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { deleteWebhookCredential } from '@/api/webhookCredentials'
-import { webhookCredentialsQueryKey } from '@/constants/queryKeys'
+import { queryKeys } from '@/constants/queryKeys'
 
 export const useDeleteWebhookCredentialMutation = () => {
 	const queryClient = useQueryClient()
@@ -8,7 +8,7 @@ export const useDeleteWebhookCredentialMutation = () => {
 	return useMutation({
 		mutationFn: (id: string) => deleteWebhookCredential(id),
 		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: webhookCredentialsQueryKey })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.webhookCredentials.list() })
 		},
 	})
 }

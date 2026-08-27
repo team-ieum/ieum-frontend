@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
-import { oauthConnectionsQueryKey } from '@/constants/queryKeys'
+import { queryKeys } from '@/constants/queryKeys'
 import { useModalStore } from '@/stores/useModalStore'
 import { detectOAuthProvider, getOAuthReturnMessage, isOAuthReturnSearchParams } from '@/utils/integration/integrationOAuthReturn'
 
@@ -13,7 +13,7 @@ export const useIntegrationOAuthReturn = () => {
 	const handleOAuthReturn = useCallback(
 		async (params: URLSearchParams, pathname = '') => {
 			const provider = detectOAuthProvider(pathname, params)
-			await queryClient.invalidateQueries({ queryKey: oauthConnectionsQueryKey })
+			await queryClient.invalidateQueries({ queryKey: queryKeys.oauthConnections.list() })
 
 			const modalMessage = getOAuthReturnMessage(params, provider)
 			if (modalMessage) openModal(modalMessage.title, modalMessage.message)
