@@ -7,7 +7,7 @@ export const useCreateWorkflowMutation = () => {
 	return useMutation({
 		mutationFn: createWorkflow,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.workflows.all() })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.workflows.all() })
 		},
 	})
 }

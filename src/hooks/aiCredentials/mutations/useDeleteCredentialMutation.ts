@@ -7,7 +7,7 @@ export const useDeleteCredentialMutation = () => {
 	return useMutation({
 		mutationFn: deleteCredential,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all() })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all() })
 		},
 	})
 }
