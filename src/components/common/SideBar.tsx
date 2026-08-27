@@ -1,14 +1,9 @@
-import { useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router'
 import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { NAV_ITEMS } from '@/constants/layout'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
-import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
-import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
-import { formatRelativeTime } from '@/utils/formatRelativeTime'
-
-const RECENT_LIMIT = 5
+import { useSidebarViewModel } from '@/hooks/layout/useSidebarViewModel'
 
 type SideBarProps = {
 	isOpen?: boolean
@@ -21,18 +16,7 @@ type SideBarProps = {
 export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
 	const navigate = useNavigate()
 	const { pathname } = useLocation()
-	const { data, isLoading } = useWorkflowListQuery()
-
-	const recentWorkflows = useMemo(() => {
-		const workflows = (data?.pages ?? []).flatMap(page => page.data.content.map(mapWorkflowDtoToListItem))
-		return [...workflows]
-			.sort((a, b) => {
-				const aTime = new Date(a.updatedAt ?? a.lastRun).getTime()
-				const bTime = new Date(b.updatedAt ?? b.lastRun).getTime()
-				return bTime - aTime
-			})
-			.slice(0, RECENT_LIMIT)
-	}, [data])
+	const { recentWorkflows, isRecentWorkflowsLoading, onRecentWorkflowClick } = useSidebarViewModel({ onClose })
 
 	const handleCreateCanvas = () => {
 		navigate('/workflow/new')
@@ -129,23 +113,19 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 						<MoreHorizontal size={13} className='text-main-gray' />
 					</div>
 					<div className='flex flex-col'>
-						{isLoading ? (
+						{isRecentWorkflowsLoading ? (
 							<p className='px-3 py-2 text-[12px] text-neutral-500'>불러오는 중…</p>
 						) : recentWorkflows.length === 0 ? (
 							<p className='px-3 py-2 text-[12px] text-neutral-500'>최근 워크플로우가 없습니다.</p>
 						) : (
 							recentWorkflows.map((workflow, index) => {
-								const updatedAt = workflow.updatedAt ?? workflow.lastRun
 								const isCurrent = pathname === `/workflow/${workflow.id}`
 
 								return (
 									<button
 										key={workflow.id}
 										type='button'
-										onClick={() => {
-											navigate(`/workflow/${workflow.id}`, { state: { name: workflow.name } })
-											onClose?.()
-										}}
+										onClick={() => onRecentWorkflowClick(workflow)}
 										className={cn(
 											'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
 											index === 0 || isCurrent
@@ -163,9 +143,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 											<div className='truncate text-[13px] font-semibold text-neutral-800'>
 												{workflow.name}
 											</div>
-											<div className='mt-0.5 text-[11px] text-neutral-500'>
-												{formatRelativeTime(updatedAt)}
-											</div>
+											<div className='mt-0.5 text-[11px] text-neutral-500'>{workflow.updatedAtLabel}</div>
 										</div>
 									</button>
 								)
