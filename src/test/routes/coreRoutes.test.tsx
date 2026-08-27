@@ -5,11 +5,22 @@ import {
 	createAllFailureHandlers,
 	createDelayedSuccessHandlers,
 	createEmptyHandlers,
+	createObservedSuccessHandlers,
 	createPartialFailureHandlers,
+	type ApiMockResource,
 } from '@/mocks/apiScenarios'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { renderAppRoute } from '@/test/renderAppRoute'
+
+const countRequests = (requestObserver: ReturnType<typeof vi.fn>, resource: ApiMockResource) =>
+	requestObserver.mock.calls.filter(([requestedResource]) => requestedResource === resource).length
+
+const markQueryStale = (queryClient: ReturnType<typeof createTestQueryClient>, queryKey: readonly unknown[]) => {
+	const data = queryClient.getQueryData(queryKey)
+	expect(data).toBeDefined()
+	queryClient.setQueryData(queryKey, data, { updatedAt: 1 })
+}
 
 describe('주요 route 테스트 harness', () => {
 	it('/main cold 진입에서 shell과 loading을 유지한 뒤 데이터를 표시한다', async () => {
@@ -24,8 +35,10 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
 	})
 
-	it('/main warm 재방문은 캐시 콘텐츠를 즉시 표시하고 background refetch를 허용한다', async () => {
+	it('/main fresh 재방문은 캐시 콘텐츠를 유지하고 dashboard를 다시 요청하지 않는다', async () => {
 		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest))
 		const { router } = renderAppRoute('/main', { queryClient })
 		await screen.findByText('외부 서비스 응답 지연')
 		await waitFor(() => {
@@ -34,7 +47,29 @@ describe('주요 route 테스트 harness', () => {
 			expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardErrors(20) })).toBe(0)
 		})
 		await act(async () => router.navigate('/user'))
-		server.use(...createDelayedSuccessHandlers(40))
+		await act(async () => router.navigate('/main'))
+
+		expect(screen.getByText('총 8개 워크플로우')).toBeInTheDocument()
+		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
+		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardSummary() })).toBe(0)
+		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardExecutions(20) })).toBe(0)
+		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardErrors(20) })).toBe(0)
+		expect(countRequests(observeRequest, 'dashboardSummary')).toBe(1)
+		expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(1)
+		expect(countRequests(observeRequest, 'dashboardErrors')).toBe(1)
+	})
+
+	it('/main stale 재방문은 캐시 콘텐츠를 유지하고 dashboard를 background refetch한다', async () => {
+		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest, 40))
+		const { router } = renderAppRoute('/main', { queryClient })
+		await screen.findByText('외부 서비스 응답 지연')
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+		markQueryStale(queryClient, queryKeys.workflows.dashboardSummary())
+		markQueryStale(queryClient, queryKeys.workflows.dashboardExecutions(20))
+		markQueryStale(queryClient, queryKeys.workflows.dashboardErrors(20))
+		await act(async () => router.navigate('/user'))
 		await act(async () => router.navigate('/main'))
 
 		expect(screen.getByText('총 8개 워크플로우')).toBeInTheDocument()
@@ -42,7 +77,10 @@ describe('주요 route 테스트 harness', () => {
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardSummary() })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardExecutions(20) })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardErrors(20) })).toBe(1)
-		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardSummary() })).toBe(0))
+		expect(countRequests(observeRequest, 'dashboardSummary')).toBe(2)
+		expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(2)
+		expect(countRequests(observeRequest, 'dashboardErrors')).toBe(2)
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
 	it('/main empty 결과를 독립적으로 재현한다', async () => {
@@ -90,20 +128,39 @@ describe('주요 route 테스트 harness', () => {
 		expect(await screen.findByRole('heading', { level: 2, name: '조건에 맞는 워크플로우가 없어요' })).toBeInTheDocument()
 	})
 
-	it('/workflow warm 재방문은 SideBar와 공유하는 cache로 page 콘텐츠를 즉시 복원한다', async () => {
+	it('/workflow fresh 재방문은 SideBar와 공유하는 cache를 사용하고 다시 요청하지 않는다', async () => {
 		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest))
 		const { router } = renderAppRoute('/workflow', { queryClient })
 		await screen.findByRole('button', { name: '고객 문의 자동 분류 열기' })
 		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.workflows.list({ size: 20 }) })).toBe(0))
 		await act(async () => router.navigate('/user'))
 		expect(screen.queryByRole('button', { name: '고객 문의 자동 분류 열기' })).not.toBeInTheDocument()
-		server.use(...createDelayedSuccessHandlers(40))
+		await act(async () => router.navigate('/workflow'))
+
+		expect(screen.getByRole('button', { name: '고객 문의 자동 분류 열기' })).toBeInTheDocument()
+		expect(screen.queryByRole('status', { name: '로딩 중' })).not.toBeInTheDocument()
+		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.list({ size: 20 }) })).toBe(0)
+		expect(countRequests(observeRequest, 'workflowList')).toBe(1)
+	})
+
+	it('/workflow stale 재방문은 기존 목록을 유지하고 background refetch한다', async () => {
+		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest, 40))
+		const { router } = renderAppRoute('/workflow', { queryClient })
+		await screen.findByRole('button', { name: '고객 문의 자동 분류 열기' })
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+		markQueryStale(queryClient, queryKeys.workflows.list({ size: 20 }))
+		await act(async () => router.navigate('/user'))
 		await act(async () => router.navigate('/workflow'))
 
 		expect(screen.getByRole('button', { name: '고객 문의 자동 분류 열기' })).toBeInTheDocument()
 		expect(screen.queryByRole('status', { name: '로딩 중' })).not.toBeInTheDocument()
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.list({ size: 20 }) })).toBe(1)
-		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.workflows.list({ size: 20 }) })).toBe(0))
+		expect(countRequests(observeRequest, 'workflowList')).toBe(2)
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
 	it('/workflow 전체 실패를 modal과 query error로 재현한다', async () => {
@@ -129,8 +186,10 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.queryByText('Google Gemini')).not.toBeInTheDocument()
 	})
 
-	it('/inter-setting warm 재방문은 연결과 AI credential cache를 즉시 사용한다', async () => {
+	it('/inter-setting fresh 재방문은 연결과 AI credential cache를 사용하고 다시 요청하지 않는다', async () => {
 		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest))
 		const { router } = renderAppRoute('/inter-setting', { queryClient })
 		await screen.findByText('팀 Slack')
 		await screen.findByText('Google Gemini')
@@ -141,7 +200,33 @@ describe('주요 route 테스트 harness', () => {
 			expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(0)
 		})
 		await act(async () => router.navigate('/user'))
-		server.use(...createDelayedSuccessHandlers(40))
+		await act(async () => router.navigate('/inter-setting'))
+
+		expect(screen.getByText('팀 Slack')).toBeInTheDocument()
+		expect(screen.getByText('Google Gemini')).toBeInTheDocument()
+		expect(screen.queryByText('연결된 서비스를 불러오는 중…')).not.toBeInTheDocument()
+		expect(queryClient.isFetching({ queryKey: queryKeys.webhookCredentials.list() })).toBe(0)
+		expect(queryClient.isFetching({ queryKey: queryKeys.oauthConnections.list() })).toBe(0)
+		expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
+		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(0)
+		expect(countRequests(observeRequest, 'webhookCredentials')).toBe(1)
+		expect(countRequests(observeRequest, 'oauthConnections')).toBe(1)
+		expect(countRequests(observeRequest, 'providers')).toBe(1)
+		expect(countRequests(observeRequest, 'credentials')).toBe(1)
+	})
+
+	it('/inter-setting stale 재방문은 기존 데이터를 유지하고 동적 query를 background refetch한다', async () => {
+		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest, 40))
+		const { router } = renderAppRoute('/inter-setting', { queryClient })
+		await screen.findByText('팀 Slack')
+		await screen.findByText('Google Gemini')
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+		markQueryStale(queryClient, queryKeys.webhookCredentials.list())
+		markQueryStale(queryClient, queryKeys.oauthConnections.list())
+		markQueryStale(queryClient, queryKeys.credentials.list())
+		await act(async () => router.navigate('/user'))
 		await act(async () => router.navigate('/inter-setting'))
 
 		expect(screen.getByText('팀 Slack')).toBeInTheDocument()
@@ -151,7 +236,11 @@ describe('주요 route 테스트 harness', () => {
 		expect(queryClient.isFetching({ queryKey: queryKeys.oauthConnections.list() })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
 		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(1)
-		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.webhookCredentials.list() })).toBe(0))
+		expect(countRequests(observeRequest, 'webhookCredentials')).toBe(2)
+		expect(countRequests(observeRequest, 'oauthConnections')).toBe(2)
+		expect(countRequests(observeRequest, 'providers')).toBe(1)
+		expect(countRequests(observeRequest, 'credentials')).toBe(2)
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
 	it('/inter-setting 일부 API 실패는 현재 통합 오류 상태를 재현한다', async () => {

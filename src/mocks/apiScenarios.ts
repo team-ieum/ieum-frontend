@@ -105,9 +105,16 @@ const endpointDefinitions: EndpointDefinition[] = [
 
 const createHandler = (
 	definition: EndpointDefinition,
-	options: { delayMs?: number; empty?: boolean; failure?: boolean; exposeTiming?: boolean } = {}
+	options: {
+		delayMs?: number
+		empty?: boolean
+		failure?: boolean
+		exposeTiming?: boolean
+		onRequest?: (resource: ApiMockResource) => void
+	} = {}
 ) =>
 	http.get(`*${definition.path}`, async () => {
+		options.onRequest?.(definition.resource)
 		if (options.delayMs) await delay(options.delayMs)
 		if (options.failure) return new HttpResponse(null, { status: 500 })
 		return HttpResponse.json(options.empty ? definition.emptyBody : definition.successBody, {
@@ -119,6 +126,9 @@ export const createSuccessHandlers = (): HttpHandler[] => endpointDefinitions.ma
 
 export const createDelayedSuccessHandlers = (delayMs: number): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { delayMs, exposeTiming: true }))
+
+export const createObservedSuccessHandlers = (onRequest: (resource: ApiMockResource) => void, delayMs?: number): HttpHandler[] =>
+	endpointDefinitions.map(definition => createHandler(definition, { delayMs, onRequest }))
 
 export const createEmptyHandlers = (): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { empty: true }))
