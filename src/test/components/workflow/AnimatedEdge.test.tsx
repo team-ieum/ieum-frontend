@@ -29,6 +29,7 @@ const createProps = (selected: boolean, flowing = false) =>
 		targetPosition: 'left',
 		selected,
 		markerEnd: 'marker',
+		style: { strokeWidth: 1.5 },
 		data: { flowing },
 	}) as unknown as EdgeProps
 
@@ -60,12 +61,13 @@ describe('AnimatedEdge', () => {
 	})
 
 	it('선택한 연결선에 삭제 버튼을 표시하고 삭제 요청을 전달한다', () => {
-		render(
+		const { container } = render(
 			<svg>
 				<AnimatedEdge {...createProps(true)} />
 			</svg>
 		)
 
+		expect(container.querySelector('.react-flow__edge-path')).toHaveStyle({ strokeWidth: '2.5' })
 		fireEvent.click(screen.getByRole('button', { name: '연결 삭제' }))
 
 		expect(mocks.deleteElements).toHaveBeenCalledWith({ edges: [{ id: 'edge-1' }] })
