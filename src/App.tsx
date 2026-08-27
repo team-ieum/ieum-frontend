@@ -1,91 +1,21 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import Modal from '@/components/common/Modal'
-import { Layout } from '@/components/layout/Layout'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import ProtectedRoute from '@/components/routing/ProtectedRoute'
-import LandingPage from './pages/LandingPage'
-import MainPage from '@/pages/MainPage'
-import AuthPage from '@/pages/AuthPage'
-import WorkFlowPage from '@/pages/WorkFlowPage'
-import WorkflowListPage from '@/pages/WorkflowListPage'
-import InterSettingPage from './pages/InterSettingPage'
-import IntegrationOAuthCallbackPage from './pages/IntegrationOAuthCallbackPage'
-import ApiPathRedirectPage from './pages/ApiPathRedirectPage'
-import UserPage from './pages/UserPage'
+import { createAppQueryClient } from '@/app/createAppQueryClient'
+import { appRoutes } from '@/app/routes'
 
-const queryClient = new QueryClient({
-	defaultOptions: {
-		queries: {
-			refetchOnWindowFocus: false,
-			retry: 3,
-		},
-	},
-})
-
-const router = createBrowserRouter([
-	{
-		path: '/',
-		element: <LandingPage />,
-	},
-	{
-		path: '/auth',
-		element: <AuthPage />,
-	},
-	{
-		path: '/api/*',
-		element: <ApiPathRedirectPage />,
-	},
-	{
-		path: '/oauth/*',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
-		path: '/oauth2/*',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
-		element: <ProtectedRoute />,
-		children: [
-			{
-				element: <Layout />,
-				children: [
-					{
-						path: 'main',
-						element: <MainPage />,
-					},
-					{
-						path: 'workflow',
-						element: <WorkflowListPage />,
-					},
-					{
-						path: 'workflow/new',
-						element: <WorkFlowPage />,
-					},
-					{
-						path: 'workflow/:workflowId',
-						element: <WorkFlowPage />,
-					},
-					{
-						path: 'inter-setting',
-						element: <InterSettingPage />,
-					},
-					{
-						path: 'user',
-						element: <UserPage />,
-					},
-				],
-			},
-		],
-	},
-])
+const queryClient = createAppQueryClient()
+const router = createBrowserRouter(appRoutes)
 
 function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<RouterProvider router={router} />
 			<Modal />
-			{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+			{import.meta.env.DEV && import.meta.env.VITE_MEASUREMENT_MODE !== 'true' && (
+				<ReactQueryDevtools initialIsOpen={false} />
+			)}
 		</QueryClientProvider>
 	)
 }
