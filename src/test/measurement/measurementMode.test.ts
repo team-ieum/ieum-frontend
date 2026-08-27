@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { isApiScenarioTargetRequest } from '@/mocks/apiScenarios'
+import { createDelayedSuccessHandlers, isApiScenarioTargetRequest } from '@/mocks/apiScenarios'
 import { seedMeasurementAuthState } from '@/measurement/measurementAuth'
 import { isMeasurementApiRequest, onMeasurementUnhandledRequest } from '@/measurement/measurementRequestPolicy'
+import { server } from '@/mocks/server'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 describe('measurement mode', () => {
@@ -53,5 +54,14 @@ describe('measurement mode', () => {
 
 		expect(error).toHaveBeenCalledTimes(targets.length + trailingSlashTargets.length + 2)
 		expect(warning).not.toHaveBeenCalled()
+	})
+
+	it('측정 성공 응답에 Resource Timing 상세 노출 헤더를 포함한다', async () => {
+		server.use(...createDelayedSuccessHandlers(0))
+
+		const response = await fetch('https://api.example.com/api/v1/workflows')
+
+		expect(response.status).toBe(200)
+		expect(response.headers.get('Timing-Allow-Origin')).toBe('*')
 	})
 })

@@ -1,6 +1,9 @@
 import type { ProfilerOnRenderCallback } from 'react'
+import { logMeasurementEvent, MEASUREMENT_PROFILER_PREFIX } from './measurementConsole'
+import { measurementSessionId } from './measurementSession'
 
 export type MeasurementProfilerCommit = {
+	sessionId: string
 	id: string
 	phase: Parameters<ProfilerOnRenderCallback>[1]
 	actualDuration: number
@@ -32,7 +35,18 @@ export const recordMeasurementCommit: ProfilerOnRenderCallback = (
 	startTime,
 	commitTime
 ) => {
-	commits.push({ id, phase, actualDuration, baseDuration, startTime, commitTime, pathname: window.location.pathname })
+	const commit = {
+		sessionId: measurementSessionId,
+		id,
+		phase,
+		actualDuration,
+		baseDuration,
+		startTime,
+		commitTime,
+		pathname: window.location.pathname,
+	}
+	commits.push(commit)
+	logMeasurementEvent(MEASUREMENT_PROFILER_PREFIX, commit)
 }
 
 export const installMeasurementProfilerApi = () => {

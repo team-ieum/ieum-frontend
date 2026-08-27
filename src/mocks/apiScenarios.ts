@@ -103,17 +103,22 @@ const endpointDefinitions: EndpointDefinition[] = [
 	},
 ]
 
-const createHandler = (definition: EndpointDefinition, options: { delayMs?: number; empty?: boolean; failure?: boolean } = {}) =>
+const createHandler = (
+	definition: EndpointDefinition,
+	options: { delayMs?: number; empty?: boolean; failure?: boolean; exposeTiming?: boolean } = {}
+) =>
 	http.get(`*${definition.path}`, async () => {
 		if (options.delayMs) await delay(options.delayMs)
 		if (options.failure) return new HttpResponse(null, { status: 500 })
-		return HttpResponse.json(options.empty ? definition.emptyBody : definition.successBody)
+		return HttpResponse.json(options.empty ? definition.emptyBody : definition.successBody, {
+			headers: options.exposeTiming ? { 'Timing-Allow-Origin': '*' } : undefined,
+		})
 	})
 
 export const createSuccessHandlers = (): HttpHandler[] => endpointDefinitions.map(definition => createHandler(definition))
 
 export const createDelayedSuccessHandlers = (delayMs: number): HttpHandler[] =>
-	endpointDefinitions.map(definition => createHandler(definition, { delayMs }))
+	endpointDefinitions.map(definition => createHandler(definition, { delayMs, exposeTiming: true }))
 
 export const createEmptyHandlers = (): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { empty: true }))
