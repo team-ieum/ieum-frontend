@@ -1,24 +1,39 @@
-import type { Node } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
-import type { IntegrationBrand } from './integration'
 import type { WorkflowDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
-import type { NodeExecutionStatus } from './workflowExecution'
 
-export type WorkflowNodeBrand = IntegrationBrand | 'openai' | 'filter' | 'warning'
+export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
+export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error'
+export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'workflow'
+
+export type WorkflowTechnicalDetail = {
+	label: string
+	value: string
+}
 
 export type WorkflowNodeData = {
-	brand: WorkflowNodeBrand
+	nodeType: string
+	role: WorkflowNodeRole
+	typeLabel: string
+	step: number
 	title: string
-	method: string
-	url: string
-	check?: boolean
-	warn?: boolean
-	index?: number
-	status?: NodeExecutionStatus
+	description?: string
+	technicalDetails: WorkflowTechnicalDetail[]
+	modelId?: string
+	modelName?: string
+	status: WorkflowNodeStatus
+	technicalMode: boolean
 }
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
+
+export type WorkflowEdgeData = {
+	conditionType?: string | null
+	flowing?: boolean
+}
+
+export type WorkflowEdgeType = Edge<WorkflowEdgeData>
 
 export type CreateWorkflowNodeDto = {
 	id: string

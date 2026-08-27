@@ -1,4 +1,4 @@
-import { ArrowLeft, CloudCheck, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
+import { ArrowLeft, Code2, HardDrive, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
@@ -57,29 +57,39 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 }
 
 type WorkflowToolbarProps = {
-	defaultTitle?: string
+	title: string
+	onTitleChange: (title: string) => void
+	hasUnsavedChanges?: boolean
+	isDraftPersisted?: boolean
 	status?: WorkflowStatus
 	active?: boolean
 	onToggleActive?: () => void
 	onExecute?: () => void
 	isExecuting?: boolean
+	technicalMode?: boolean
+	onToggleTechnicalMode?: () => void
 }
 
 const WorkflowToolbar = ({
-	defaultTitle = '워크플로우 제목',
+	title,
+	onTitleChange,
+	hasUnsavedChanges = false,
+	isDraftPersisted = false,
 	status = 'paused',
 	active,
 	onToggleActive,
 	onExecute,
 	isExecuting = false,
+	technicalMode = false,
+	onToggleTechnicalMode,
 }: WorkflowToolbarProps) => {
-	const { title, handleTitleChange, handleBack } = useWorkflowToolbar(defaultTitle)
+	const { handleBack } = useWorkflowToolbar()
 	const statusMeta = WORKFLOW_STATUS_META[status]
 	const isToggleable = status !== 'error' && active !== undefined && onToggleActive
 
 	return (
 		<div
-			className='flex items-center gap-3.5 px-6 border-b border-neutral-200 shrink-0'
+			className='flex items-center gap-3.5 px-6 border-b border-neutral-200 shrink-0 overflow-x-auto'
 			style={{ height: 64, background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)' }}
 		>
 			<button
@@ -92,13 +102,23 @@ const WorkflowToolbar = ({
 			</button>
 
 			<div className='flex items-center gap-2.5'>
-				<input
-					value={title}
-					onChange={e => handleTitleChange(e.target.value)}
-					aria-label='워크플로우 제목'
-					className='text-xl font-bold text-main-deep-blue tracking-wide outline-none bg-transparent rounded-md px-2 py-1 hover:bg-neutral-100 focus:bg-neutral-100 transition-colors min-w-0'
-					style={{ fontFamily: 'var(--font-sans)' }}
-				/>
+				<div className='flex min-w-0 items-center gap-1.5'>
+					<input
+						value={title}
+						onChange={e => onTitleChange(e.target.value)}
+						aria-label='워크플로우 제목'
+						className='min-w-0 rounded-md bg-transparent px-2 py-1 text-xl font-bold tracking-wide text-main-deep-blue outline-none transition-colors hover:bg-neutral-100 focus:bg-neutral-100'
+						style={{ fontFamily: 'var(--font-sans)' }}
+					/>
+					{hasUnsavedChanges ? (
+						<span
+							role='status'
+							title='저장되지 않은 변경사항'
+							aria-label='저장되지 않은 변경사항'
+							className='size-2 shrink-0 rounded-full bg-amber-500'
+						/>
+					) : null}
+				</div>
 				{isToggleable ? (
 					<ActiveToggle active={active} onToggle={onToggleActive} />
 				) : (
@@ -111,12 +131,42 @@ const WorkflowToolbar = ({
 				)}
 			</div>
 
-			<span className='inline-flex items-center gap-1 text-xs text-neutral-400 shrink-0'>
-				<CloudCheck size={14} className='text-node-green' />
-				방금 전 자동 저장됨
-			</span>
+			{hasUnsavedChanges && isDraftPersisted ? (
+				<span className='inline-flex shrink-0 items-center gap-1 text-xs text-neutral-400'>
+					<HardDrive size={14} className='text-node-green' />
+					브라우저에 임시 보관됨
+				</span>
+			) : null}
 
 			<div className='flex-1' />
+
+			{onToggleTechnicalMode ? (
+				<button
+					type='button'
+					role='switch'
+					aria-checked={technicalMode}
+					aria-label='기술 정보'
+					onClick={onToggleTechnicalMode}
+					className={`inline-flex items-center gap-2 h-9 px-3 rounded-[10px] border text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+						technicalMode
+							? 'border-node-purple bg-purple-50 text-node-purple'
+							: 'border-neutral-200 bg-white text-neutral-500 hover:bg-neutral-50'
+					}`}
+				>
+					<Code2 size={15} aria-hidden='true' />
+					기술 정보
+					<span
+						aria-hidden='true'
+						className={`relative h-4.5 w-8 rounded-full transition-colors ${technicalMode ? 'bg-node-purple' : 'bg-neutral-300'}`}
+					>
+						<span
+							className={`absolute top-0.5 left-0.5 w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${
+								technicalMode ? 'translate-x-3.5' : 'translate-x-0'
+							}`}
+						/>
+					</span>
+				</button>
+			) : null}
 
 			<button
 				type='button'

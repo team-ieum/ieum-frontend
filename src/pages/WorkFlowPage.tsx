@@ -1,108 +1,154 @@
-import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, type Edge } from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
+import '@/styles/react-flow.css'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
+import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
-import WorkflowChat from '@/components/workflow/WorkflowChat'
-import { useWorkflowEditor } from '@/hooks/workflow/useWorkflowEditor'
-import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
+import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
+import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
+import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
+import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
 import { isApiError } from '@/utils/ApiError'
-import type { WorkflowDto, WorkflowNodeDto, WorkflowEdgeDto } from '@/types/workflowList'
-import type { WorkflowNodeType } from '@/types/workflow'
+import { cn } from '@/utils/cn'
+import {
+	createModelNameMap,
+	isWorkflowEdgeDto,
+	isWorkflowNodeDto,
+	toWorkflowCanvasEdges,
+	toWorkflowCanvasNodes,
+	toWorkflowNodeStatus,
+} from '@/utils/workflow/mapWorkflowCanvas'
+import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
 const edgeTypes = { animated: AnimatedEdge }
 
-const toReactFlowNode = (dto: WorkflowNodeDto, index: number): WorkflowNodeType => ({
-	id: dto.id,
-	type: 'workflowNode',
-	position: { x: index * 300, y: 100 },
-	data: {
-		brand: (dto.config?.brand as WorkflowNodeType['data']['brand']) ?? 'webhook',
-		title: dto.label,
-		method: (dto.config?.method as string) ?? '',
-		url: (dto.config?.url as string) ?? '',
-		index,
-	},
-})
-
-const isValidRawNode = (n: unknown): n is WorkflowNodeDto => typeof n === 'object' && n !== null && 'id' in n && 'label' in n
-
-const toReactFlowEdge = (dto: WorkflowEdgeDto): Edge => ({
-	id: `${dto.source}-${dto.target}`,
-	source: dto.source,
-	target: dto.target,
-	type: 'animated',
-	style: { stroke: '#007ba7' },
-})
+const WORKFLOW_CANVAS_CLASS = cn(
+	'bg-[#f7f6fc]',
+	'[&_.react-flow__controls]:overflow-hidden [&_.react-flow__controls]:rounded-[0.7rem]',
+	'[&_.react-flow__controls]:border [&_.react-flow__controls]:border-[#d8e3e7]',
+	'[&_.react-flow__controls]:shadow-[0_8px_20px_rgba(43,72,86,0.09)]',
+	'[&_.react-flow__controls-button]:size-8 [&_.react-flow__controls-button]:border-b-[#e5ecef]',
+	'[&_.react-flow__minimap]:rounded-xl [&_.react-flow__minimap]:border [&_.react-flow__minimap]:border-[#d8e3e7]',
+	'[&_.react-flow__minimap]:bg-white/90 [&_.react-flow__minimap]:shadow-[0_8px_20px_rgba(43,72,86,0.08)]',
+	'[&_.react-flow__edge.selected_.react-flow__edge-path]:stroke-[2px]',
+	'max-[560px]:[&_.react-flow__minimap]:hidden'
+)
 
 type WorkflowCanvasProps = {
-	canvasNodes: WorkflowNodeType[]
-	canvasEdges: Edge[]
-	syncSignal: number
+	nodes: WorkflowNodeType[]
+	edges: WorkflowEdgeType[]
+	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
+	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
 }
 
-const WorkflowCanvas = ({ canvasNodes, canvasEdges, syncSignal }: WorkflowCanvasProps) => {
-	const { nodes, edges, onNodesChange, onEdgesChange, onConnect, syncCanvas } = useWorkflowEditor(canvasNodes, canvasEdges)
-
-	// 첫 마운트 이후 캔버스 데이터가 바뀔 때만(syncSignal 변경) 기존 위치 유지하며 동기화한다.
-	const isFirst = useRef(true)
-	useEffect(() => {
-		if (isFirst.current) {
-			isFirst.current = false
-			return
-		}
-		syncCanvas(canvasNodes, canvasEdges)
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [syncSignal])
-
-	// 실행 상태를 node.data / edge.data에 주입한다. React Flow는 store 직접 구독으로는
-	// 커스텀 노드를 리렌더하지 않으므로, data를 갱신해 노드/엣지 리렌더를 유발한다.
+const WorkflowCanvas = ({ nodes, edges, onNodePositionCommit, onEdgesCommit }: WorkflowCanvasProps) => {
 	const nodeStatus = useExecutionStore(state => state.nodeStatus)
+	const editor = useWorkflowCanvasEditor({ initialNodes: nodes, initialEdges: edges, onNodePositionCommit, onEdgesCommit })
+	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
-		() => nodes.map(n => ({ ...n, data: { ...n.data, status: nodeStatus[n.id] } })),
-		[nodes, nodeStatus]
+		() =>
+			editor.nodes.map(node => {
+				const presentation = nodePresentation.get(node.id)
+				return {
+					...node,
+					data: {
+						...(presentation?.data ?? node.data),
+						status: toWorkflowNodeStatus(nodeStatus[node.id]),
+					},
+				}
+			}),
+		[editor.nodes, nodePresentation, nodeStatus]
 	)
 	const displayEdges = useMemo(
-		() => edges.map(e => ({ ...e, data: { ...e.data, flowing: nodeStatus[e.target] === 'running' } })),
-		[edges, nodeStatus]
+		() =>
+			editor.edges.map(edge => ({
+				...edge,
+				data: { ...edge.data, flowing: nodeStatus[edge.target] === 'running' },
+			})),
+		[editor.edges, nodeStatus]
 	)
 
 	return (
 		<ReactFlow
+			className={WORKFLOW_CANVAS_CLASS}
 			nodes={displayNodes}
 			edges={displayEdges}
 			nodeTypes={nodeTypes}
 			edgeTypes={edgeTypes}
-			onNodesChange={onNodesChange}
-			onEdgesChange={onEdgesChange}
-			onConnect={onConnect}
+			onNodesChange={editor.onNodesChange}
+			onEdgesChange={editor.onEdgesChange}
+			onNodeDragStop={editor.onNodeDragStop}
+			onConnect={editor.onConnect}
+			onReconnect={editor.onReconnect}
+			onReconnectStart={editor.onReconnectStart}
+			onReconnectEnd={editor.onReconnectEnd}
+			isValidConnection={editor.isValidConnection}
+			nodesDraggable
+			nodesConnectable
+			edgesReconnectable
+			elementsSelectable
+			panOnDrag
+			deleteKeyCode={['Backspace', 'Delete']}
 			fitView
-			fitViewOptions={{ padding: 0.2 }}
+			fitViewOptions={{ padding: 0.24, minZoom: 0.78, maxZoom: 1 }}
+			minZoom={0.5}
+			maxZoom={1.4}
+			proOptions={{ hideAttribution: true }}
 		>
-			<Background variant={BackgroundVariant.Dots} gap={18} size={3} color='rgba(125,140,196,.25)' />
-			<Controls />
-			<MiniMap />
+			<Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color='rgba(74, 101, 124, 0.18)' />
+			<Controls showInteractive={false} />
+			<MiniMap pannable zoomable nodeStrokeWidth={3} />
 		</ReactFlow>
 	)
 }
 
-const toCanvasData = (workflow: WorkflowDto) => ({
-	nodes: workflow.nodes.map((n, i) => toReactFlowNode(n, i)),
-	edges: workflow.edges.map(toReactFlowEdge),
-})
-
 const WorkFlowPage = () => {
 	const { workflowId } = useParams<{ workflowId: string }>()
 	const { data } = useWorkflowQuery(workflowId)
+	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
-	const canvas = workflow ? toCanvasData(workflow) : null
+	const [technicalMode, setTechnicalMode] = useState(false)
+
+	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
+		if (!workflow) return null
+		const nodes = workflow.nodes.filter(isWorkflowNodeDto)
+		const nodeIds = new Set(nodes.map(node => node.id))
+		const edges = workflow.edges
+			.filter(isWorkflowEdgeDto)
+			.filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
+		return { title: workflow.name, nodes, edges }
+	}, [workflow])
+
+	const {
+		document,
+		hasUnsavedChanges,
+		isDraftPersisted,
+		canvasKey,
+		handleTitleChange,
+		handleNodePositionCommit,
+		handleEdgesCommit,
+		handleCanvasUpdate,
+	} = useWorkflowEditorViewModel({
+		workflowId: workflow?.id,
+		workflowVersion: workflow?.version,
+		serverDocument,
+	})
+	const modelNames = useMemo(() => createModelNameMap(providersData?.data.providers), [providersData?.data.providers])
+	const canvas = useMemo(() => {
+		if (!document) return null
+		return {
+			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode),
+			edges: toWorkflowCanvasEdges(document.edges),
+		}
+	}, [document, modelNames, technicalMode])
 
 	const openModal = useModalStore(state => state.open)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
@@ -116,29 +162,6 @@ const WorkFlowPage = () => {
 		}
 	}
 
-	const [aiCanvasVersion, setAiCanvasVersion] = useState(0)
-	const [aiCanvas, setAiCanvas] = useState<{ nodes: WorkflowNodeType[]; edges: Edge[] } | null>(null)
-	const [aiRawCanvas, setAiRawCanvas] = useState<{ nodes: unknown[]; edges: unknown[] } | null>(null)
-
-	// 다른 워크플로우로 전환되면 이전 워크플로우의 AI 캔버스 잔여 상태를 비운다.
-	// effect 대신 렌더 중 직전 값과 비교해 즉시 초기화한다(cascading render 방지).
-	const [trackedWorkflowId, setTrackedWorkflowId] = useState(workflowId)
-	if (trackedWorkflowId !== workflowId) {
-		setTrackedWorkflowId(workflowId)
-		setAiCanvas(null)
-		setAiRawCanvas(null)
-		setAiCanvasVersion(0)
-	}
-
-	const handleCanvasUpdate = (rawNodes: unknown[], rawEdges: unknown[]) => {
-		const nodes = rawNodes.filter(isValidRawNode).map((n, i) => toReactFlowNode(n, i))
-		const edges = (rawEdges as WorkflowEdgeDto[]).map(toReactFlowEdge)
-		setAiCanvas({ nodes, edges })
-		setAiRawCanvas({ nodes: rawNodes, edges: rawEdges })
-		setAiCanvasVersion(v => v + 1)
-	}
-
-	// undefined = API 데이터 우선, boolean = 사용자가 토글한 로컬 override
 	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
 	const active = localActive ?? workflow?.active
 
@@ -157,27 +180,32 @@ const WorkFlowPage = () => {
 	return (
 		<div className='-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col' style={{ height: 'calc(100vh - var(--layout-header-height))' }}>
 			<WorkflowToolbar
-				defaultTitle={workflow?.name}
+				title={document?.title ?? workflow?.name ?? '워크플로우 제목'}
+				onTitleChange={handleTitleChange}
+				hasUnsavedChanges={hasUnsavedChanges}
+				isDraftPersisted={isDraftPersisted}
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
 				onToggleActive={handleToggleActive}
 				onExecute={handleExecute}
 				isExecuting={isExecuting}
+				technicalMode={technicalMode}
+				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
 			/>
 			<div className='relative flex-1'>
-				<style>{`.react-flow__edge.selected .react-flow__edge-path { stroke-width: 3px !important; }`}</style>
-				{(aiCanvas ?? canvas) && (
+				{canvas && canvasKey ? (
 					<WorkflowCanvas
-						key={workflowId}
-						canvasNodes={(aiCanvas ?? canvas)!.nodes}
-						canvasEdges={(aiCanvas ?? canvas)!.edges}
-						syncSignal={aiCanvasVersion}
+						key={canvasKey}
+						nodes={canvas.nodes}
+						edges={canvas.edges}
+						onNodePositionCommit={handleNodePositionCommit}
+						onEdgesCommit={handleEdgesCommit}
 					/>
-				)}
+				) : null}
 				<WorkflowChat
 					workflowId={workflowId ?? ''}
-					currentNodes={aiRawCanvas?.nodes ?? workflow?.nodes ?? []}
-					currentEdges={aiRawCanvas?.edges ?? workflow?.edges ?? []}
+					currentNodes={document?.nodes ?? []}
+					currentEdges={document?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
 				/>
 			</div>
