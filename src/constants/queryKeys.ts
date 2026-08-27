@@ -31,6 +31,3 @@ export const queryKeys = {
 			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
 	},
 } as const
-
-export const oauthConnectionsQueryKey = queryKeys.oauthConnections.list()
-export const webhookCredentialsQueryKey = queryKeys.webhookCredentials.list()

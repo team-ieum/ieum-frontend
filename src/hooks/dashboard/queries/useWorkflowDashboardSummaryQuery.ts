@@ -1,11 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
-import { getWorkflowDashboardSummary } from '@/api/workflowDashboard'
-import { queryKeys } from '@/constants/queryKeys'
+import { workflowDashboardSummaryQueryOptions } from '@/hooks/dashboard/queries/workflowDashboardQueryOptions'
 import type { WorkflowDashboardSummaryData } from '@/types/workflowDashboard'
 
 export const useWorkflowDashboardSummaryQuery = (): UseQueryResult<WorkflowDashboardSummaryData, Error> =>
-	useQuery({
-		queryKey: queryKeys.workflows.dashboardSummary(),
-		queryFn: getWorkflowDashboardSummary,
-		select: response => response.data,
-	})
+	useQuery(workflowDashboardSummaryQueryOptions())

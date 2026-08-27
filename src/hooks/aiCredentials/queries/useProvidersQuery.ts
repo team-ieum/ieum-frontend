@@ -1,10 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { getProviders } from '@/api/credential'
-import { queryKeys } from '@/constants/queryKeys'
+import { providersQueryOptions } from '@/hooks/aiCredentials/queries/aiCredentialsQueryOptions'
 
-export const useProvidersQuery = () =>
-	useQuery({
-		queryKey: queryKeys.providers.list(),
-		queryFn: getProviders,
-		staleTime: 5 * 60 * 1000,
-	})
+export const useProvidersQuery = () => useQuery(providersQueryOptions())

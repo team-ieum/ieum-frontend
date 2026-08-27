@@ -40,7 +40,7 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toBeInTheDocument()
 	})
 
-	it('warm 재방문은 detail과 credential cache를 즉시 표시한 뒤 refetch한다', async () => {
+	it('warm 재방문은 cache를 즉시 표시하고 stale detail만 refetch한다', async () => {
 		const queryClient = createTestQueryClient()
 		const { router } = renderAppRoute(detailPath, { queryClient })
 		await screen.findByDisplayValue('고객 문의 자동 분류')
@@ -55,7 +55,7 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(screen.getByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
-		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(1)
+		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(0)
 		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0))
 	})
 

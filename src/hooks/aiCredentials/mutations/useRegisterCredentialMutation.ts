@@ -7,7 +7,7 @@ export const useRegisterCredentialMutation = () => {
 	return useMutation({
 		mutationFn: registerCredential,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all() })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.credentials.all() })
 		},
 	})
 }

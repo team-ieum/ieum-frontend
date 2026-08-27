@@ -7,7 +7,7 @@ export const useDeleteWorkflowMutation = () => {
 	return useMutation({
 		mutationFn: deleteWorkflow,
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: queryKeys.workflows.all() })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.workflows.all() })
 		},
 	})
 }

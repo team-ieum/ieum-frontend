@@ -1,9 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { getCredentials } from '@/api/credential'
-import { queryKeys } from '@/constants/queryKeys'
+import { credentialsQueryOptions } from '@/hooks/aiCredentials/queries/aiCredentialsQueryOptions'
 
-export const useCredentialsQuery = () =>
-	useQuery({
-		queryKey: queryKeys.credentials.list(),
-		queryFn: getCredentials,
-	})
+export const useCredentialsQuery = () => useQuery(credentialsQueryOptions())

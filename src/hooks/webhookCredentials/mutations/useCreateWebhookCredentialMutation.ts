@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query'
 import { createWebhookCredential } from '@/api/webhookCredentials'
-import { webhookCredentialsQueryKey } from '@/constants/queryKeys'
+import { queryKeys } from '@/constants/queryKeys'
 import type { CreateWebhookCredentialRequest, CreateWebhookCredentialResponse } from '@/types/webhookCredentials'
 
 export const useCreateWebhookCredentialMutation = (): UseMutationResult<
@@ -13,7 +13,7 @@ export const useCreateWebhookCredentialMutation = (): UseMutationResult<
 	return useMutation({
 		mutationFn: (body: CreateWebhookCredentialRequest) => createWebhookCredential(body),
 		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: webhookCredentialsQueryKey })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.webhookCredentials.list() })
 		},
 	})
 }
