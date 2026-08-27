@@ -1,10 +1,10 @@
 import type { ReactElement } from 'react'
-import type { WorkflowListItem } from '@/types/workflowList'
-import { CategoryPill, ServiceChain, StatusDot, TriggerPill } from './WorkflowListPrimitives'
+import type { WorkflowListRowView } from '@/types/workflowList'
+import { ServiceChain, StatusDot, TriggerPill } from './WorkflowListPrimitives'
 import { WorkflowMoreMenu } from './WorkflowMoreMenu'
 
 type WorkflowListTableProps = {
-	workflows: WorkflowListItem[]
+	workflows: WorkflowListRowView[]
 	onOpen: (workflowId: string, workflowName: string) => void
 	onDelete: (workflowId: string) => void
 }
@@ -12,14 +12,15 @@ type WorkflowListTableProps = {
 const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTableProps): ReactElement => (
 	<div className='overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)]'>
 		<div className='overflow-x-auto'>
-			<table className='w-full min-w-[760px] border-collapse'>
+			<table className='w-full min-w-[820px] border-collapse'>
 				<thead className='bg-neutral-100'>
 					<tr className='text-left typo-caption1_semibold text-neutral-500'>
 						<th className='w-8 px-4 py-3' />
 						<th className='px-3 py-3'>이름</th>
 						<th className='px-3 py-3'>사용 서비스</th>
-						<th className='px-3 py-3'>카테고리</th>
 						<th className='px-3 py-3'>트리거</th>
+						<th className='px-3 py-3'>노드</th>
+						<th className='px-3 py-3'>수정</th>
 						<th className='w-10 px-4 py-3' />
 					</tr>
 				</thead>
@@ -29,24 +30,40 @@ const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTablePro
 							<td className='px-4 py-3'>
 								<StatusDot status={workflow.status} />
 							</td>
-							<td className='max-w-[240px] px-3 py-3'>
+							<td className='max-w-[280px] px-3 py-3'>
 								<button
 									type='button'
 									onClick={() => onOpen(workflow.id, workflow.name)}
-									className='block w-full truncate rounded text-left typo-body2_semibold text-neutral-800 outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'
+									className='block w-full rounded text-left outline-none focus-visible:ring-2 focus-visible:ring-main-blue focus-visible:ring-offset-2'
 								>
-									{workflow.name}
+									<span className='block truncate typo-body2_semibold text-neutral-800'>{workflow.name}</span>
+									<span className='mt-0.5 block truncate typo-caption1_regular text-neutral-500'>
+										{workflow.hasServices ? workflow.serviceNamesLabel : '연결된 서비스 없음'}
+									</span>
 								</button>
 							</td>
 							<td className='px-3 py-3'>
-								<ServiceChain services={workflow.services} size={24} max={5} showArrow={false} />
+								{workflow.hasServices ? (
+									<ServiceChain services={workflow.services} size={24} max={5} showArrow={false} />
+								) : (
+									<span className='typo-caption1_regular text-neutral-400'>—</span>
+								)}
 							</td>
 							<td className='px-3 py-3'>
-								<CategoryPill category={workflow.category} />
+								<div className='flex flex-col gap-0.5'>
+									<TriggerPill trigger={workflow.trigger} />
+									{workflow.trigger === 'schedule' && workflow.cronExpression ? (
+										<span
+											className='truncate typo-caption1_regular text-neutral-400'
+											title={workflow.cronExpression}
+										>
+											{workflow.cronExpression}
+										</span>
+									) : null}
+								</div>
 							</td>
-							<td className='px-3 py-3'>
-								<TriggerPill trigger={workflow.trigger} />
-							</td>
+							<td className='px-3 py-3 typo-caption1_regular text-neutral-600'>{workflow.nodeCount}개</td>
+							<td className='px-3 py-3 typo-caption1_regular text-neutral-500'>{workflow.updatedAtRelative}</td>
 							<td className='px-4 py-3'>
 								<WorkflowMoreMenu onDelete={() => onDelete(workflow.id)} />
 							</td>

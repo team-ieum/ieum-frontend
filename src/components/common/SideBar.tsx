@@ -1,7 +1,7 @@
-import { useNavigate, useLocation } from 'react-router'
 import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
 import { cn } from '@/utils/cn'
-import { NAV_ITEMS, RECENTS } from '@/constants/layout'
+import { NAV_ITEMS } from '@/constants/layout'
+import { useSidebarViewModel } from '@/hooks/layout/useSidebarViewModel'
 
 type SideBarProps = {
 	isOpen?: boolean
@@ -11,13 +11,14 @@ type SideBarProps = {
 	onLogout?: () => void
 }
 
+const NAV_ICON_BY_ID = Object.fromEntries(NAV_ITEMS.map(item => [item.id, item.icon])) as Record<
+	(typeof NAV_ITEMS)[number]['id'],
+	(typeof NAV_ITEMS)[number]['icon']
+>
+
 export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
-	const navigate = useNavigate()
-	const { pathname } = useLocation()
-	const handleCreateCanvas = () => {
-		navigate('/workflow/new')
-		onClose?.()
-	}
+	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onNavItemClick, onCreateCanvasClick, onRecentWorkflowClick } =
+		useSidebarViewModel({ onClose })
 
 	return (
 		<aside
@@ -48,7 +49,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 			<div className='p-3.5'>
 				<button
 					type='button'
-					onClick={handleCreateCanvas}
+					onClick={onCreateCanvasClick}
 					className={cn(
 						'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
 						collapsed ? 'justify-center' : 'justify-between px-3.5'
@@ -68,39 +69,26 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 
 			{/* 네비게이션 */}
 			<nav className='flex flex-col gap-0.5 px-3'>
-				{NAV_ITEMS.map(item => {
-					const Icon = item.icon
-					const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`)
+				{navItems.map(item => {
+					const Icon = NAV_ICON_BY_ID[item.id]
+
 					return (
 						<button
 							key={item.id}
 							type='button'
-							onClick={() => {
-								navigate(item.path)
-								onClose?.()
-							}}
+							onClick={() => onNavItemClick(item.path)}
 							className={cn(
 								'flex h-10 w-full items-center gap-2.5 rounded-xl text-sm transition-colors',
 								collapsed ? 'justify-center' : 'px-3.5',
-								isActive
+								item.isActive
 									? 'bg-main-deep-blue font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.4)]'
 									: 'font-normal text-main-deep-blue hover:bg-white/50'
 							)}
 						>
-							<Icon size={18} className={isActive ? 'text-white' : 'text-main-deep-blue/70'} />
+							<Icon size={18} className={item.isActive ? 'text-white' : 'text-main-deep-blue/70'} />
 							{!collapsed && (
 								<>
 									<span className='flex-1 text-left'>{item.label}</span>
-									{item.count != null && (
-										<span
-											className={cn(
-												'rounded-full px-1.5 py-0.5 text-[11px] font-bold leading-none',
-												isActive ? 'bg-white/18 text-white' : 'bg-main-blue/10 text-main-blue'
-											)}
-										>
-											{item.count}
-										</span>
-									)}
 									{item.dot && item.count == null && (
 										<span className='h-1.5 w-1.5 rounded-full bg-node-orange' />
 									)}
@@ -111,30 +99,39 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 				})}
 			</nav>
 
-			{/* 최근 작업 */}
+			{/* 최근 작업 — 워크플로우 수정순 */}
 			{!collapsed && (
-				<div className='mt-5 px-3'>
+				<div className='mt-5 min-h-0 px-3'>
 					<div className='flex items-center justify-between px-3 pb-2'>
 						<span className='text-[11px] font-semibold uppercase tracking-[.08em] text-main-gray'>최근 작업</span>
 						<MoreHorizontal size={13} className='text-main-gray' />
 					</div>
 					<div className='flex flex-col'>
-						{RECENTS.map((r, i) => (
-							<button
-								key={i}
-								type='button'
-								className={cn(
-									'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
-									i === 0 ? 'border border-[#cde9f4] bg-white/70' : 'border border-transparent'
-								)}
-							>
-								<span className={`h-2 w-2 shrink-0 rounded-full ${r.dotClass}`} />
-								<div className='min-w-0 flex-1'>
-									<div className='truncate text-[13px] font-semibold text-neutral-800'>{r.name}</div>
-									<div className='mt-0.5 text-[11px] text-neutral-500'>{r.when}</div>
-								</div>
-							</button>
-						))}
+						{isRecentWorkflowsLoading ? (
+							<p className='px-3 py-2 text-[12px] text-neutral-500'>불러오는 중…</p>
+						) : recentWorkflows.length === 0 ? (
+							<p className='px-3 py-2 text-[12px] text-neutral-500'>최근 워크플로우가 없습니다.</p>
+						) : (
+							recentWorkflows.map(workflow => (
+								<button
+									key={workflow.id}
+									type='button'
+									onClick={() => onRecentWorkflowClick(workflow)}
+									className={cn(
+										'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
+										workflow.isHighlighted
+											? 'border border-[#cde9f4] bg-white/70'
+											: 'border border-transparent'
+									)}
+								>
+									<span className={cn('h-2 w-2 shrink-0 rounded-full', workflow.statusDotClass)} />
+									<div className='min-w-0 flex-1'>
+										<div className='truncate text-[13px] font-semibold text-neutral-800'>{workflow.name}</div>
+										<div className='mt-0.5 text-[11px] text-neutral-500'>{workflow.updatedAtLabel}</div>
+									</div>
+								</button>
+							))
+						)}
 					</div>
 				</div>
 			)}

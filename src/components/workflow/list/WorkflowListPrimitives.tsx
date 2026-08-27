@@ -6,6 +6,8 @@ import {
 	WORKFLOW_STATUS_META,
 	WORKFLOW_TRIGGER_META,
 } from '@/constants/workflow/workflowList'
+import { getBrandConfig } from '@/constants/integration/brandConfig'
+import type { IntegrationBrand } from '@/types/integration'
 import type { WorkflowCategoryId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
@@ -25,21 +27,22 @@ type ServiceLogoProps = {
 }
 
 export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps): ReactElement => {
+	const brand = getBrandConfig(id as IntegrationBrand)
 	const service = WORKFLOW_SERVICE_META[id]
 
 	return (
 		<span
 			className={cn(
-				'grid shrink-0 place-items-center rounded-lg font-bold leading-none text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.18)]',
-				service.bgClass,
+				'grid shrink-0 place-items-center overflow-hidden rounded-md bg-white',
 				SQUARE_SIZE_CLASS[size],
-				size <= 22 ? 'text-[10px]' : 'text-xs',
 				className
 			)}
 			title={service.name}
 			aria-label={service.name}
 		>
-			{service.initial}
+			<span className='flex h-[85%] w-[85%] items-center justify-center [&_img]:!h-full [&_img]:!w-full [&_img]:object-contain'>
+				{brand.icon}
+			</span>
 		</span>
 	)
 }

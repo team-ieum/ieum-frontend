@@ -12,32 +12,19 @@ import { useCreateWorkflowMutation } from '@/hooks/workflow/mutations/useCreateW
 import { useDeleteWorkflowMutation } from '@/hooks/workflow/mutations/useDeleteWorkflowMutation'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
+import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
+import { mapWorkflowListItemToRowView } from '@/utils/workflow/mapWorkflowListItemToRowView'
 import type {
 	WorkflowActiveFilter,
 	WorkflowCategoryId,
-	WorkflowDto,
 	WorkflowListFilters,
 	WorkflowListItem,
 	WorkflowServiceId,
 	WorkflowSortKey,
 	WorkflowStatus,
-	WorkflowTriggerType,
 	WorkflowViewMode,
 	WorkflowListViewModel,
 } from '@/types/workflowList'
-
-const toWorkflowListItem = (dto: WorkflowDto): WorkflowListItem => ({
-	id: dto.id,
-	name: dto.name,
-	desc: dto.description,
-	tags: [],
-	services: [],
-	category: 'ops',
-	status: dto.active ? 'active' : 'paused',
-	trigger: dto.triggerType.toLowerCase() as WorkflowTriggerType,
-	lastRun: dto.updatedAt,
-	success: 0,
-})
 
 const createEmptyFilters = (): WorkflowListFilters => ({
 	services: [],
@@ -74,6 +61,7 @@ const matchesSearch = (workflow: WorkflowListItem, search: string): boolean => {
 	const serviceNames = workflow.services.map(serviceId => WORKFLOW_SERVICE_META[serviceId].name)
 	const searchableText = [
 		workflow.name,
+		workflow.desc,
 		WORKFLOW_CATEGORY_META[workflow.category].label,
 		WORKFLOW_STATUS_META[workflow.status].label,
 		WORKFLOW_TRIGGER_META[workflow.trigger].label,
@@ -130,7 +118,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	}, [isError, error, openModal])
 
 	const allWorkflows = useMemo<WorkflowListItem[]>(
-		() => (data?.pages ?? []).flatMap(page => page.data.content.map(toWorkflowListItem)),
+		() => (data?.pages ?? []).flatMap(page => page.data.content.map(mapWorkflowDtoToListItem)),
 		[data]
 	)
 
@@ -149,7 +137,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		return createCountMap(statusIds, Object.keys(WORKFLOW_STATUS_META) as WorkflowStatus[])
 	}, [allWorkflows])
 
-	const workflows = useMemo(
+	const filteredWorkflows = useMemo(
 		() =>
 			sortWorkflows(
 				allWorkflows.filter(workflow => filterWorkflow(workflow, filters, search)),
@@ -157,6 +145,8 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 			),
 		[allWorkflows, filters, search, sort]
 	)
+
+	const workflows = useMemo(() => filteredWorkflows.map(mapWorkflowListItemToRowView), [filteredWorkflows])
 
 	const activeFilters = useMemo<WorkflowActiveFilter[]>(
 		() => [
@@ -214,7 +204,6 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		try {
 			const res = await createMutation.mutateAsync({
 				name: '새 워크플로우',
-				description: '새로 생성된 워크플로우입니다.',
 				nodes: [],
 				edges: [],
 				triggerType: 'MANUAL',

@@ -13,7 +13,8 @@ const WorkflowEmptyState = ({ onReset, onCreate }: WorkflowEmptyStateProps): Rea
 		</div>
 		<h2 className='mt-4 typo-title3_semibold text-neutral-800'>조건에 맞는 워크플로우가 없어요</h2>
 		<p className='mt-2 max-w-[360px] typo-body3_regular text-neutral-500'>
-			필터를 줄이거나 검색어를 바꿔보세요. 새 워크플로우로 바로 시작할 수도 있습니다.
+			필터를 줄이거나 검색어를 바꿔보세요.
+			<br />새 워크플로우로 바로 시작할 수도 있습니다.
 		</p>
 		<div className='mt-5 flex flex-wrap justify-center gap-2'>
 			<button

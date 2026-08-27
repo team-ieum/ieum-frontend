@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import type { ApiResponse } from '@/types/api'
 
 export type WorkflowErrorCode =
@@ -54,20 +55,17 @@ export type WorkflowListResponse = ApiResponse<WorkflowPageDto>
 // --- UI types ---
 
 export type WorkflowServiceId =
-	| 'google'
 	| 'slack'
-	| 'hubspot'
-	| 'salesforce'
-	| 'airtable'
 	| 'notion'
 	| 'github'
-	| 'linear'
-	| 'figma'
+	| 'gmail'
+	| 'sheets'
+	| 'google'
 	| 'jira'
-	| 'dropbox'
+	| 'airtable'
 	| 'discord'
-	| 'zapier'
-	| 'asana'
+	| 'linear'
+	| 'webhook'
 
 // prettier-ignore
 export type WorkflowCategoryId =
@@ -119,8 +117,25 @@ export type WorkflowListItem = {
 	category: WorkflowCategoryId
 	status: WorkflowStatus
 	trigger: WorkflowTriggerType
+	cronExpression?: string | null
+	nodeCount?: number
+	updatedAt?: IsoDateString
 	lastRun: IsoDateString
 	success: number
+}
+
+export type WorkflowListRowView = {
+	id: string
+	name: string
+	services: WorkflowServiceId[]
+	serviceNamesLabel: string
+	hasServices: boolean
+	nodeCount: number
+	updatedAtRelative: string
+	status: WorkflowStatus
+	statusBarClass: string
+	trigger: WorkflowTriggerType
+	cronExpression?: string | null
 }
 
 export type WorkflowActiveFilter = {
@@ -167,7 +182,7 @@ export type WorkflowListViewModel = {
 	sort: WorkflowSortKey
 	view: WorkflowViewMode
 	filters: WorkflowListFilters
-	workflows: WorkflowListItem[]
+	workflows: WorkflowListRowView[]
 	activeFilters: WorkflowActiveFilter[]
 	activeFilterCount: number
 	totalCount: number
@@ -189,4 +204,10 @@ export type WorkflowListViewModel = {
 	handleCreateWorkflow: () => void
 	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
 	handleDeleteWorkflow: (workflowId: string) => void
+}
+
+export type WorkflowListPageViewModel = {
+	list: WorkflowListViewModel
+	headerRef: RefObject<HTMLElement | null>
+	sectionMinHeight: string
 }

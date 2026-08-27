@@ -1,12 +1,12 @@
 import type { ReactElement } from 'react'
-import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
-import type { WorkflowListItem } from '@/types/workflowList'
+import { Boxes } from 'lucide-react'
+import type { WorkflowListRowView } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
-import { CategoryPill, ServiceChain, StatusBadge, TriggerPill } from './WorkflowListPrimitives'
+import { StatusBadge, TriggerPill } from './WorkflowListPrimitives'
 import { WorkflowMoreMenu } from './WorkflowMoreMenu'
 
 type WorkflowListCardProps = {
-	workflow: WorkflowListItem
+	workflow: WorkflowListRowView
 	onOpen: (workflowId: string, workflowName: string) => void
 	onDelete: (workflowId: string) => void
 }
@@ -20,10 +20,9 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 		>
 			<span className='sr-only'>{workflow.name} 열기</span>
 		</button>
-		<span className={cn('absolute inset-y-0 left-0 w-1', WORKFLOW_STATUS_META[workflow.status].barClass)} />
+		<span className={cn('absolute inset-y-0 left-0 w-1', workflow.statusBarClass)} />
 
 		<div className='pointer-events-none relative z-20 flex flex-1 flex-col gap-3'>
-			{/* 카드 헤더 */}
 			<div className='flex items-start gap-3 pl-1'>
 				<div className='min-w-0 flex-1'>
 					<h3 className='truncate typo-body1_semibold text-neutral-800'>{workflow.name}</h3>
@@ -31,12 +30,30 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 				<WorkflowMoreMenu className='pointer-events-auto relative z-30' onDelete={() => onDelete(workflow.id)} />
 			</div>
 
-			<ServiceChain services={workflow.services} showArrow={false} />
+			<div className='mt-auto flex flex-col gap-3'>
+				<div className='flex items-center gap-2 pl-1'>
+					<p className='min-w-0 flex-1 truncate typo-caption1_regular text-neutral-500'>
+						{workflow.hasServices ? workflow.serviceNamesLabel : '연결된 서비스 없음'}
+					</p>
+					<span className='inline-flex shrink-0 items-center gap-1.5 typo-caption1_regular text-neutral-400'>
+						<Boxes size={14} />
+						노드 {workflow.nodeCount}개
+					</span>
+					<div className='flex shrink-0 items-center gap-1.5'>
+						<TriggerPill trigger={workflow.trigger} />
+						{workflow.trigger === 'schedule' && workflow.cronExpression ? (
+							<span
+								className='max-w-24 truncate typo-caption1_regular text-neutral-400'
+								title={workflow.cronExpression}
+							>
+								{workflow.cronExpression}
+							</span>
+						) : null}
+					</div>
+				</div>
 
-			<div className='mt-auto border-t border-neutral-200 pt-3'>
-				<div className='flex flex-wrap items-center gap-2'>
-					<CategoryPill category={workflow.category} />
-					<TriggerPill trigger={workflow.trigger} />
+				<div className='flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-3'>
+					<span className='typo-caption1_regular text-neutral-400'>{workflow.updatedAtRelative} 수정</span>
 					<span className='flex-1' />
 					<StatusBadge status={workflow.status} />
 				</div>
