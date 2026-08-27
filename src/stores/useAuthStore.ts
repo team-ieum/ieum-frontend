@@ -1,7 +1,5 @@
 import { create } from 'zustand'
-
-const ACCESS_TOKEN_KEY = 'accessToken'
-const REFRESH_TOKEN_KEY = 'refreshToken'
+import { LOCAL_STORAGE_KEY } from '@/constants/key'
 
 interface AuthState {
 	accessToken: string | null
@@ -11,16 +9,16 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>(set => ({
-	accessToken: localStorage.getItem(ACCESS_TOKEN_KEY),
-	refreshToken: localStorage.getItem(REFRESH_TOKEN_KEY),
+	accessToken: localStorage.getItem(LOCAL_STORAGE_KEY.ACCESS_TOKEN),
+	refreshToken: localStorage.getItem(LOCAL_STORAGE_KEY.REFRESH_TOKEN),
 	setAuth: (accessToken, refreshToken) => {
-		localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
-		localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+		localStorage.setItem(LOCAL_STORAGE_KEY.ACCESS_TOKEN, accessToken)
+		localStorage.setItem(LOCAL_STORAGE_KEY.REFRESH_TOKEN, refreshToken)
 		set({ accessToken, refreshToken })
 	},
 	clearAuth: () => {
-		localStorage.removeItem(ACCESS_TOKEN_KEY)
-		localStorage.removeItem(REFRESH_TOKEN_KEY)
+		localStorage.removeItem(LOCAL_STORAGE_KEY.ACCESS_TOKEN)
+		localStorage.removeItem(LOCAL_STORAGE_KEY.REFRESH_TOKEN)
 		set({ accessToken: null, refreshToken: null })
 	},
 }))
