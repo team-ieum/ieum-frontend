@@ -1,11 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
-import { getOAuthConnections } from '@/api/oauthConnections'
-import { oauthConnectionsQueryKey } from '@/constants/queryKeys'
+import { oauthConnectionsQueryOptions } from '@/hooks/oauthConnections/queries/oauthConnectionsQueryOptions'
 import type { OAuthConnectionDto } from '@/types/oauthConnections'
 
 export const useOAuthConnectionsQuery = (): UseQueryResult<OAuthConnectionDto[], Error> =>
-	useQuery({
-		queryKey: oauthConnectionsQueryKey,
-		queryFn: getOAuthConnections,
-		select: response => response.data,
-	})
+	useQuery(oauthConnectionsQueryOptions())
