@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import type { ApiResponse } from '@/types/api'
 
 export type WorkflowErrorCode =
@@ -123,6 +124,20 @@ export type WorkflowListItem = {
 	success: number
 }
 
+export type WorkflowListRowView = {
+	id: string
+	name: string
+	services: WorkflowServiceId[]
+	serviceNamesLabel: string
+	hasServices: boolean
+	nodeCount: number
+	updatedAtRelative: string
+	status: WorkflowStatus
+	statusBarClass: string
+	trigger: WorkflowTriggerType
+	cronExpression?: string | null
+}
+
 export type WorkflowActiveFilter = {
 	kind: keyof WorkflowListFilters
 	id: string
@@ -167,7 +182,7 @@ export type WorkflowListViewModel = {
 	sort: WorkflowSortKey
 	view: WorkflowViewMode
 	filters: WorkflowListFilters
-	workflows: WorkflowListItem[]
+	workflows: WorkflowListRowView[]
 	activeFilters: WorkflowActiveFilter[]
 	activeFilterCount: number
 	totalCount: number
@@ -189,4 +204,10 @@ export type WorkflowListViewModel = {
 	handleCreateWorkflow: () => void
 	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
 	handleDeleteWorkflow: (workflowId: string) => void
+}
+
+export type WorkflowListPageViewModel = {
+	list: WorkflowListViewModel
+	headerRef: RefObject<HTMLElement | null>
+	sectionMinHeight: string
 }

@@ -13,6 +13,7 @@ import { useDeleteWorkflowMutation } from '@/hooks/workflow/mutations/useDeleteW
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
+import { mapWorkflowListItemToRowView } from '@/utils/workflow/mapWorkflowListItemToRowView'
 import type {
 	WorkflowActiveFilter,
 	WorkflowCategoryId,
@@ -136,7 +137,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		return createCountMap(statusIds, Object.keys(WORKFLOW_STATUS_META) as WorkflowStatus[])
 	}, [allWorkflows])
 
-	const workflows = useMemo(
+	const filteredWorkflows = useMemo(
 		() =>
 			sortWorkflows(
 				allWorkflows.filter(workflow => filterWorkflow(workflow, filters, search)),
@@ -144,6 +145,8 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 			),
 		[allWorkflows, filters, search, sort]
 	)
+
+	const workflows = useMemo(() => filteredWorkflows.map(mapWorkflowListItemToRowView), [filteredWorkflows])
 
 	const activeFilters = useMemo<WorkflowActiveFilter[]>(
 		() => [
