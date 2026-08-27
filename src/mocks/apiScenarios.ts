@@ -40,6 +40,7 @@ export type ApiMockResource =
 type EndpointDefinition = {
 	resource: ApiMockResource
 	path: string
+	matchesPath?: (pathname: string) => boolean
 	successBody: Record<string, unknown>
 	emptyBody: Record<string, unknown>
 }
@@ -47,62 +48,63 @@ type EndpointDefinition = {
 const endpointDefinitions: EndpointDefinition[] = [
 	{
 		resource: 'workflowList',
-		path: '*/api/v1/workflows',
+		path: '/api/v1/workflows',
 		successBody: workflowListResponse,
 		emptyBody: emptyWorkflowListResponse,
 	},
 	{
 		resource: 'workflowDetail',
-		path: '*/api/v1/workflows/:workflowId',
+		path: '/api/v1/workflows/:workflowId',
+		matchesPath: pathname => /^\/api\/v1\/workflows\/[^/]+$/.test(pathname),
 		successBody: workflowDetailResponse,
 		emptyBody: emptyWorkflowDetailResponse,
 	},
 	{
 		resource: 'dashboardSummary',
-		path: '*/api/v1/workflows/dashboard/summary',
+		path: '/api/v1/workflows/dashboard/summary',
 		successBody: dashboardSummaryResponse,
 		emptyBody: emptyDashboardSummaryResponse,
 	},
 	{
 		resource: 'dashboardExecutions',
-		path: '*/api/v1/workflows/dashboard/executions',
+		path: '/api/v1/workflows/dashboard/executions',
 		successBody: dashboardExecutionsResponse,
 		emptyBody: emptyDashboardExecutionsResponse,
 	},
 	{
 		resource: 'dashboardErrors',
-		path: '*/api/v1/workflows/dashboard/errors',
+		path: '/api/v1/workflows/dashboard/errors',
 		successBody: dashboardErrorsResponse,
 		emptyBody: emptyDashboardErrorsResponse,
 	},
 	{
 		resource: 'webhookCredentials',
-		path: '*/api/v1/webhook-credentials',
+		path: '/api/v1/webhook-credentials',
 		successBody: webhookCredentialsResponse,
 		emptyBody: emptyWebhookCredentialsResponse,
 	},
 	{
 		resource: 'oauthConnections',
-		path: '*/api/v1/oauth/connections',
+		path: '/api/v1/oauth/connections',
 		successBody: oauthConnectionsResponse,
 		emptyBody: emptyOAuthConnectionsResponse,
 	},
 	{
 		resource: 'providers',
-		path: '*/api/v1/providers',
+		path: '/api/v1/providers',
 		successBody: providersResponse,
 		emptyBody: emptyProvidersResponse,
 	},
 	{
 		resource: 'credentials',
-		path: '*/api/v1/credentials',
+		path: '/api/v1/credentials',
 		successBody: credentialsResponse,
 		emptyBody: emptyCredentialsResponse,
 	},
 ]
 
 const createHandler = (definition: EndpointDefinition, options: { delayMs?: number; empty?: boolean; failure?: boolean } = {}) =>
-	http.get(definition.path, async () => {
+	http.get(`*${definition.path}`, async () => {
 		if (options.delayMs) await delay(options.delayMs)
 		if (options.failure) return new HttpResponse(null, { status: 500 })
 		return HttpResponse.json(options.empty ? definition.emptyBody : definition.successBody)
@@ -124,4 +126,11 @@ export const createPartialFailureHandlers = (resources: ApiMockResource[]): Http
 	return endpointDefinitions
 		.filter(definition => failures.has(definition.resource))
 		.map(definition => createHandler(definition, { failure: true }))
+}
+
+export const isApiScenarioTargetRequest = (request: Request): boolean => {
+	if (request.method !== 'GET') return false
+	const requestPathname = new URL(request.url).pathname
+	const pathname = requestPathname.length > 1 ? requestPathname.replace(/\/+$/, '') : requestPathname
+	return endpointDefinitions.some(definition => definition.matchesPath?.(pathname) ?? definition.path === pathname)
 }

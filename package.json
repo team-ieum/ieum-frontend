@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:measurement": "vite --mode measurement",
     "build": "tsc -b --noEmit && vite build",
+    "build:measurement": "tsc -b --noEmit && vite build --mode measurement --outDir dist-measurement",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:measurement": "npm run build:measurement && vite preview --mode measurement --outDir dist-measurement",
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",

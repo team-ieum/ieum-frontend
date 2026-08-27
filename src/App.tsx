@@ -13,7 +13,9 @@ function App() {
 		<QueryClientProvider client={queryClient}>
 			<RouterProvider router={router} />
 			<Modal />
-			{import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+			{import.meta.env.DEV && import.meta.env.VITE_MEASUREMENT_MODE !== 'true' && (
+				<ReactQueryDevtools initialIsOpen={false} />
+			)}
 		</QueryClientProvider>
 	)
 }

@@ -201,7 +201,7 @@ export const useWorkflowChat = (
 	)
 
 	useEffect(() => {
-		if (!workflowId || !accessToken) {
+		if (import.meta.env.VITE_MEASUREMENT_MODE === 'true' || !workflowId || !accessToken) {
 			queueMicrotask(() => setConnectionStatus('idle'))
 			return
 		}
