@@ -65,23 +65,26 @@ const parseDraft = (value: string): WorkflowDraftRecord | null => {
 	}
 }
 
-export const readWorkflowDraft = (workflowId: string, workflowVersion: number) => {
+export const inspectWorkflowDraft = (workflowId: string, workflowVersion: number) => {
 	let stored: string | null
 
 	try {
 		stored = getStorage()?.getItem(getWorkflowDraftKey(workflowId)) ?? null
 	} catch {
-		return null
+		return { draft: null, shouldRemove: false }
 	}
 
-	if (!stored) return null
+	if (!stored) return { draft: null, shouldRemove: false }
 	const draft = parseDraft(stored)
-	if (!draft || draft.workflowVersion !== workflowVersion) {
-		removeDraft(workflowId)
-		return null
-	}
+	if (!draft || draft.workflowVersion !== workflowVersion) return { draft: null, shouldRemove: true }
 
-	return draft
+	return { draft, shouldRemove: false }
+}
+
+export const readWorkflowDraft = (workflowId: string, workflowVersion: number) => {
+	const result = inspectWorkflowDraft(workflowId, workflowVersion)
+	if (result.shouldRemove) removeDraft(workflowId)
+	return result.draft
 }
 
 export const writeWorkflowDraft = (workflowId: string, workflowVersion: number, draft: WorkflowDraftData) => {

@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
@@ -27,7 +27,7 @@ import {
 } from '@/utils/workflow/mapWorkflowCanvas'
 import {
 	isSameWorkflowDraft,
-	readWorkflowDraft,
+	inspectWorkflowDraft,
 	removeWorkflowDraft,
 	type WorkflowDraftData,
 	writeWorkflowDraft,
@@ -121,6 +121,7 @@ type WorkflowEditorSession = {
 	document: WorkflowDraftData
 	isDraftPersisted: boolean
 	canvasRevision: number
+	staleDraftWorkflowId: string | null
 }
 
 const WorkFlowPage = () => {
@@ -143,17 +144,32 @@ const WorkFlowPage = () => {
 
 	const editorKey = workflow ? `${workflow.id}:${workflow.version}` : ''
 	if (workflow && serverDocument && editorSession?.key !== editorKey) {
-		const draft = readWorkflowDraft(workflow.id, workflow.version)
+		const { draft, shouldRemove } = inspectWorkflowDraft(workflow.id, workflow.version)
 		const draftDocument = draft ? { title: draft.title, nodes: draft.nodes, edges: draft.edges } : null
 		const hasDraftChanges = Boolean(draftDocument && !isSameWorkflowDraft(draftDocument, serverDocument))
-		if (draftDocument && !hasDraftChanges) removeWorkflowDraft(workflow.id)
 		setEditorSession({
 			key: editorKey,
 			document: hasDraftChanges && draftDocument ? draftDocument : serverDocument,
 			isDraftPersisted: hasDraftChanges,
 			canvasRevision: 0,
+			staleDraftWorkflowId: shouldRemove || (draftDocument && !hasDraftChanges) ? workflow.id : null,
 		})
 	}
+
+	const editorSessionKey = editorSession?.key
+	const staleDraftWorkflowId = editorSession?.staleDraftWorkflowId
+	useEffect(() => {
+		if (!editorSessionKey || !staleDraftWorkflowId) return
+		removeWorkflowDraft(staleDraftWorkflowId)
+		const clearDraftId = window.setTimeout(() => {
+			setEditorSession(current =>
+				current?.key === editorSessionKey && current.staleDraftWorkflowId === staleDraftWorkflowId
+					? { ...current, staleDraftWorkflowId: null }
+					: current
+			)
+		}, 0)
+		return () => window.clearTimeout(clearDraftId)
+	}, [editorSessionKey, staleDraftWorkflowId])
 
 	const document = editorSession?.key === editorKey ? editorSession.document : serverDocument
 	const hasUnsavedChanges = Boolean(document && serverDocument && !isSameWorkflowDraft(document, serverDocument))

@@ -337,4 +337,57 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByText('브라우저에 임시 보관됨')).toBeInTheDocument()
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
 	})
+
+	it('서버 원본과 같은 초안은 페이지가 마운트된 뒤 정리한다', () => {
+		localStorage.setItem(
+			getWorkflowDraftKey('workflow-1'),
+			JSON.stringify({
+				schemaVersion: 1,
+				workflowVersion: 1,
+				updatedAt: new Date().toISOString(),
+				title: '고객 문의 분류',
+				nodes: [
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						label: '문의가 도착하면',
+						description: '새 문의가 들어오면 시작해요',
+						config: { triggerType: 'MANUAL', brand: 'webhook' },
+					},
+					{
+						id: 'ai',
+						type: 'AI',
+						label: '문의 분류하기',
+						config: {
+							llmProvider: 'GEMINI',
+							model: 'server-unknown-model',
+							credentialId: 'credential-secret',
+							prompt: 'private prompt',
+						},
+					},
+					{
+						id: 'action',
+						type: 'HTTP',
+						label: '담당자에게 알리기',
+						config: { method: 'POST', url: 'https://example.com/notify' },
+					},
+				],
+				edges: [{ source: 'trigger', target: 'ai', conditionType: null }],
+			})
+		)
+
+		renderPage()
+
+		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
+		expect(screen.queryByRole('status', { name: '저장되지 않은 변경사항' })).not.toBeInTheDocument()
+	})
+
+	it('손상된 초안은 페이지가 마운트된 뒤 정리하고 서버 원본을 사용한다', () => {
+		localStorage.setItem(getWorkflowDraftKey('workflow-1'), '{bad json')
+
+		renderPage()
+
+		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
+		expect(screen.getByText('새 문의가 들어오면 시작해요')).toBeInTheDocument()
+	})
 })

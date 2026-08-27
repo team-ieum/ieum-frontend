@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 import {
 	getWorkflowDraftKey,
+	inspectWorkflowDraft,
 	isSameWorkflowDraft,
 	readWorkflowDraft,
 	removeWorkflowDraft,
@@ -37,6 +38,16 @@ describe('workflowDraftStorage', () => {
 		localStorage.setItem(getWorkflowDraftKey('broken'), '{bad json')
 		expect(readWorkflowDraft('broken', 1)).toBeNull()
 		expect(localStorage.getItem(getWorkflowDraftKey('broken'))).toBeNull()
+	})
+
+	it('초안 검사는 손상되거나 버전이 다른 데이터를 삭제하지 않고 정리 필요 상태만 반환한다', () => {
+		writeWorkflowDraft('versioned', 2, draft)
+		expect(inspectWorkflowDraft('versioned', 3)).toEqual({ draft: null, shouldRemove: true })
+		expect(localStorage.getItem(getWorkflowDraftKey('versioned'))).not.toBeNull()
+
+		localStorage.setItem(getWorkflowDraftKey('broken'), '{bad json')
+		expect(inspectWorkflowDraft('broken', 1)).toEqual({ draft: null, shouldRemove: true })
+		expect(localStorage.getItem(getWorkflowDraftKey('broken'))).toBe('{bad json')
 	})
 
 	it('잘못된 노드 위치는 초안을 무효화하고 고아 연결선은 제외한다', () => {
