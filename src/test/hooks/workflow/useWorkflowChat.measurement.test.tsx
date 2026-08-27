@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -24,6 +24,7 @@ vi.mock('@/hooks/aiCredentials/queries/useCredentialsQuery', () => ({
 
 describe('useWorkflowChat measurement mode', () => {
 	beforeEach(() => {
+		vi.stubEnv('VITE_API_URL', 'https://api.test.invalid')
 		useAuthStore.setState({ accessToken: 'test-access-token', refreshToken: 'test-refresh-token' })
 	})
 
@@ -41,13 +42,15 @@ describe('useWorkflowChat measurement mode', () => {
 		expect(mocks.activate).not.toHaveBeenCalled()
 	})
 
-	it('일반 모드에서는 기존처럼 STOMP client를 활성화한다', () => {
+	it('일반 모드에서는 기존처럼 STOMP client를 활성화한다', async () => {
 		vi.stubEnv('VITE_MEASUREMENT_MODE', 'false')
 
 		const { unmount } = renderHook(() => useWorkflowChat('workflow-id', [], []))
 
-		expect(mocks.client).toHaveBeenCalledTimes(1)
-		expect(mocks.activate).toHaveBeenCalledTimes(1)
+		await waitFor(() => {
+			expect(mocks.client).toHaveBeenCalledTimes(1)
+			expect(mocks.activate).toHaveBeenCalledTimes(1)
+		})
 		unmount()
 	})
 })
