@@ -103,4 +103,64 @@ describe('mutation query invalidation', () => {
 		await waitFor(() => expect(observeWebhookRequest).toHaveBeenCalledTimes(2))
 		queryClient.clear()
 	})
+
+	it('webhook mutation은 API 성공 후 완료되고 active list refetch는 background에서 계속한다', async () => {
+		const queryClient = createTestQueryClient()
+		let webhookRequestCount = 0
+		let releaseRefetch = () => {}
+		const refetchGate = new Promise<void>(resolve => {
+			releaseRefetch = resolve
+		})
+		const refreshedWebhookCredentialsResponse = {
+			...webhookCredentialsResponse,
+			data: [
+				...webhookCredentialsResponse.data,
+				{
+					...webhookCredentialsResponse.data[0],
+					id: '77777777-7777-4777-8777-777777777777',
+					displayName: '새 Slack',
+				},
+			],
+		}
+		server.use(
+			http.get('*/api/v1/webhook-credentials', async () => {
+				webhookRequestCount += 1
+				if (webhookRequestCount === 1) return HttpResponse.json(webhookCredentialsResponse)
+				await refetchGate
+				return HttpResponse.json(refreshedWebhookCredentialsResponse)
+			}),
+			http.post('*/api/v1/webhook-credentials', () =>
+				HttpResponse.json({ ...webhookCredentialsResponse, data: webhookCredentialsResponse.data[0] })
+			)
+		)
+		const { result } = renderHook(
+			() => ({ query: useWebhookCredentialsQuery(), mutation: useCreateWebhookCredentialMutation() }),
+			{ wrapper: createWrapper(queryClient) }
+		)
+
+		try {
+			await waitFor(() => expect(result.current.query.isSuccess).toBe(true))
+			await act(async () => {
+				await result.current.mutation.mutateAsync({
+					provider: 'SLACK',
+					displayName: '새 Slack',
+					webhookUrl: 'https://example.com/webhook',
+				})
+			})
+			await waitFor(() => expect(webhookRequestCount).toBe(2))
+
+			expect(result.current.mutation.isPending).toBe(false)
+			expect(result.current.query.isFetching).toBe(true)
+			expect(result.current.query.data).toEqual(webhookCredentialsResponse.data)
+
+			await act(async () => releaseRefetch())
+			await waitFor(() => {
+				expect(result.current.query.isFetching).toBe(false)
+				expect(result.current.query.data).toEqual(refreshedWebhookCredentialsResponse.data)
+			})
+		} finally {
+			releaseRefetch()
+			queryClient.clear()
+		}
+	})
 })
