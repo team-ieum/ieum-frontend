@@ -1,11 +1,12 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
 import { useMemo, useState } from 'react'
-import { useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
+import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
@@ -29,6 +30,7 @@ import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
 const edgeTypes = { animated: AnimatedEdge }
+const workflowNotFoundCodes = new Set(['WORKFLOW_NOT_FOUND', 'WORKFLOW_DEFINITION_NOT_FOUND', 'NOT_FOUND'])
 
 const WORKFLOW_CANVAS_CLASS = cn(
 	'bg-[#f7f6fc]',
@@ -112,7 +114,9 @@ const WorkflowCanvas = ({ nodes, edges, onNodePositionCommit, onEdgesCommit }: W
 
 const WorkFlowPage = () => {
 	const { workflowId } = useParams<{ workflowId: string }>()
-	const { data } = useWorkflowQuery(workflowId)
+	const navigate = useNavigate()
+	const workflowQuery = useWorkflowQuery(workflowId)
+	const { data } = workflowQuery
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
@@ -177,10 +181,25 @@ const WorkFlowPage = () => {
 		}
 	}
 
+	if (!workflow && workflowQuery.isLoading) {
+		return <WorkflowDetailSkeleton />
+	}
+
+	if (!workflow) {
+		const isNotFound = isApiError(workflowQuery.error) && workflowNotFoundCodes.has(workflowQuery.error.code)
+		return (
+			<WorkflowDetailError
+				isNotFound={isNotFound || !workflowId}
+				onRetry={() => void workflowQuery.refetch()}
+				onBackToList={() => navigate('/workflow')}
+			/>
+		)
+	}
+
 	return (
 		<div className='-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col' style={{ height: 'calc(100vh - var(--layout-header-height))' }}>
 			<WorkflowToolbar
-				title={document?.title ?? workflow?.name ?? '워크플로우 제목'}
+				title={document?.title ?? workflow.name}
 				onTitleChange={handleTitleChange}
 				hasUnsavedChanges={hasUnsavedChanges}
 				isDraftPersisted={isDraftPersisted}
@@ -191,6 +210,9 @@ const WorkFlowPage = () => {
 				isExecuting={isExecuting}
 				technicalMode={technicalMode}
 				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
+				isRefreshing={workflowQuery.isRefetching}
+				isRefreshError={workflowQuery.isRefetchError}
+				onRetryRefresh={() => void workflowQuery.refetch()}
 			/>
 			<div className='relative flex-1'>
 				{canvas && canvasKey ? (
