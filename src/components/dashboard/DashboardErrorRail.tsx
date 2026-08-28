@@ -3,7 +3,7 @@ import type { DashboardExpandableListState, ErrorRow } from '@/types/dashboard'
 import { cn } from '@/utils/cn'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
-import { DashboardRefreshFeedback } from './DashboardAsyncState'
+import { DashboardRefreshFeedback, DashboardResourceStatus } from './DashboardAsyncState'
 
 type DashboardErrorRailProps = {
 	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
@@ -14,7 +14,11 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 
 	return (
 		<DashboardCard className='flex min-h-[253px] w-full flex-col' aria-busy={resource.isLoading || resource.isRefetching}>
-			{resource.isLoading ? <span role='status' aria-label='오류 목록 불러오는 중' className='sr-only' /> : null}
+			<DashboardResourceStatus
+				{...resource}
+				loadingMessage='오류 목록 불러오는 중'
+				errorMessage='오류 목록을 불러오지 못했습니다. 다시 시도할 수 있습니다.'
+			/>
 			<div className='flex items-center justify-between border-b border-neutral-200 px-5 py-4'>
 				<div className='flex items-center gap-2'>
 					<DashboardIcon name='error_outline' size={16} fill={1} className='text-danger-600' />

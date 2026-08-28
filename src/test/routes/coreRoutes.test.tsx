@@ -33,16 +33,18 @@ describe('주요 route 테스트 harness', () => {
 
 		expect(screen.getByLabelText('사이드바')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: '대시보드' })).toBeInTheDocument()
-		expect(screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })).toBeInTheDocument()
-		const summarySkeleton = screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })
+		const summaryStatus = screen.getByText('대시보드 요약 불러오는 중')
+		expect(summaryStatus).toHaveAttribute('role', 'status')
+		expect(summaryStatus).toHaveAttribute('aria-atomic', 'true')
+		const summarySkeleton = summaryStatus.parentElement!
 		const summaryShimmers = summarySkeleton.querySelectorAll('.pointer-events-none')
 		expect(summaryShimmers).toHaveLength(12)
 		expect(summaryShimmers[0]?.getAttribute('style')).toContain('0.1')
 		expect(summaryShimmers[0]?.getAttribute('style')).toContain('0.06')
 		expect(summaryShimmers[7]?.getAttribute('style')).toContain('0.24')
 		expect(summaryShimmers[7]?.getAttribute('style')).toContain('0.14')
-		expect(screen.getByRole('status', { name: '최근 실행 로그 불러오는 중' })).toBeInTheDocument()
-		expect(screen.getByRole('status', { name: '오류 목록 불러오는 중' })).toBeInTheDocument()
+		expect(screen.getByText('최근 실행 로그 불러오는 중')).toHaveAttribute('role', 'status')
+		expect(screen.getByText('오류 목록 불러오는 중')).toHaveAttribute('role', 'status')
 		expect(document.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(52)
 		expect(screen.queryByText('오늘 총 실행')).not.toBeInTheDocument()
 		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
@@ -56,7 +58,7 @@ describe('주요 route 테스트 harness', () => {
 
 		renderAppRoute('/main')
 
-		const skeleton = screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })
+		const skeleton = screen.getByText('대시보드 요약 불러오는 중').parentElement!
 		expect(skeleton.querySelector('.pointer-events-none')).not.toBeInTheDocument()
 		warning.mockRestore()
 	})
@@ -140,10 +142,19 @@ describe('주요 route 테스트 harness', () => {
 		server.use(...createAllFailureHandlers())
 
 		renderAppRoute('/main')
+		const summaryStatus = screen.getByText('대시보드 요약 불러오는 중')
+		const executionsStatus = screen.getByText('최근 실행 로그 불러오는 중')
+		const errorsStatus = screen.getByText('오류 목록 불러오는 중')
+		expect(screen.getAllByRole('status')).toHaveLength(3)
 
 		expect(await screen.findByText('통계를 불러오지 못했습니다.')).toBeInTheDocument()
 		expect(screen.getByText('실행 로그를 불러오지 못했습니다.')).toBeInTheDocument()
 		expect(screen.getByText('오류 목록을 불러오지 못했습니다.')).toBeInTheDocument()
+		expect(await screen.findByText('대시보드 요약을 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(summaryStatus)
+		expect(screen.getByText('최근 실행 로그를 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(executionsStatus)
+		expect(screen.getByText('오류 목록을 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(errorsStatus)
+		expect(screen.getAllByRole('status')).toHaveLength(3)
+		expect(screen.getAllByRole('button', { name: '다시 시도' })).toHaveLength(3)
 	})
 
 	it('/main executions만 실패하면 다른 dashboard 데이터는 유지한다', async () => {

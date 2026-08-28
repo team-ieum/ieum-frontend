@@ -3,7 +3,7 @@ import type { DashboardExpandableListState, RunRow } from '@/types/dashboard'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 import DashboardStatusBadge from './DashboardStatusBadge'
-import { DashboardRefreshFeedback } from './DashboardAsyncState'
+import { DashboardRefreshFeedback, DashboardResourceStatus } from './DashboardAsyncState'
 
 const TABLE_HEADERS = ['실행 ID', '워크플로우', '상태', '소요 시간', '트리거', '시각'] as const
 
@@ -26,7 +26,11 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 
 	return (
 		<DashboardCard className='min-h-[319px] w-full' aria-busy={resource.isLoading || resource.isRefetching}>
-			{resource.isLoading ? <span role='status' aria-label='최근 실행 로그 불러오는 중' className='sr-only' /> : null}
+			<DashboardResourceStatus
+				{...resource}
+				loadingMessage='최근 실행 로그 불러오는 중'
+				errorMessage='최근 실행 로그를 불러오지 못했습니다. 다시 시도할 수 있습니다.'
+			/>
 			<div className='flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4'>
 				<h3 className='typo-body2_semibold m-0 text-neutral-900'>최근 실행 로그</h3>
 				<DashboardRefreshFeedback {...resource} />

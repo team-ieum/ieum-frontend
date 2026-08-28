@@ -2,7 +2,11 @@ import DashboardErrorRail from '@/components/dashboard/DashboardErrorRail'
 import DashboardHeroSection from '@/components/dashboard/DashboardHeroSection'
 import DashboardRunTable from '@/components/dashboard/DashboardRunTable'
 import DashboardWorkflowSection from '@/components/dashboard/DashboardWorkflowSection'
-import { DashboardSummaryError, DashboardSummarySkeleton } from '@/components/dashboard/DashboardAsyncState'
+import {
+	DashboardResourceStatus,
+	DashboardSummaryError,
+	DashboardSummarySkeleton,
+} from '@/components/dashboard/DashboardAsyncState'
 import { useDashboardViewModel } from '@/hooks/dashboard/useDashboardViewModel'
 
 const MainPage = () => {
@@ -16,6 +20,11 @@ const MainPage = () => {
 			</header>
 			<div className='flex flex-col gap-8'>
 				<div aria-busy={viewModel.summaryResource.isLoading || viewModel.summaryResource.isRefetching}>
+					<DashboardResourceStatus
+						{...viewModel.summaryResource}
+						loadingMessage='대시보드 요약 불러오는 중'
+						errorMessage='대시보드 요약을 불러오지 못했습니다. 다시 시도할 수 있습니다.'
+					/>
 					{viewModel.summaryResource.isLoading ? (
 						<DashboardSummarySkeleton />
 					) : viewModel.summaryResource.isLoadingError ? (

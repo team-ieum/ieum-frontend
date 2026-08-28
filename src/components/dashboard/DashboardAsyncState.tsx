@@ -5,35 +5,59 @@ import { cn } from '@/utils/cn'
 
 const skeletonClass = 'rounded bg-neutral-200'
 
-export const DashboardSummarySkeleton = (): ReactElement => (
-	<div role='status' aria-label='대시보드 요약 불러오는 중' className='flex flex-col gap-8'>
-		<div
-			aria-hidden='true'
-			className='grid min-h-[264px] gap-6 rounded-brand-md bg-main-deep-blue p-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8'
-		>
-			<div className='flex flex-col gap-4 lg:border-r lg:border-main-blue lg:pr-8'>
-				<SkeletonPulse className='h-4 w-24 rounded bg-main-blue' tone='brand' />
-				<SkeletonPulse className='h-12 w-36 rounded bg-main-blue' tone='brand' />
-				<SkeletonPulse className='h-7 w-40 rounded-full bg-main-blue' tone='brand' />
-				<div className='mt-auto flex gap-6'>
-					<SkeletonPulse className='h-12 w-20 rounded bg-main-blue' tone='brand' />
-					<SkeletonPulse className='h-12 w-20 rounded bg-main-blue' tone='brand' />
-				</div>
-			</div>
-			<div className='flex flex-col gap-4 lg:pl-8'>
-				<SkeletonPulse className='h-4 w-36 rounded bg-main-blue' tone='brand' />
-				<SkeletonPulse className='min-h-[200px] rounded-xl bg-main-blue' tone='brand' />
+const DashboardHeroSkeleton = (): ReactElement => (
+	<div
+		aria-hidden='true'
+		className='grid min-h-[264px] gap-6 rounded-brand-md bg-main-deep-blue p-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8'
+	>
+		<div className='flex flex-col gap-4 lg:border-r lg:border-main-blue lg:pr-8'>
+			<SkeletonPulse className='h-4 w-24 rounded bg-main-blue' tone='brand' />
+			<SkeletonPulse className='h-12 w-36 rounded bg-main-blue' tone='brand' />
+			<SkeletonPulse className='h-7 w-40 rounded-full bg-main-blue' tone='brand' />
+			<div className='mt-auto flex gap-6'>
+				<SkeletonPulse className='h-12 w-20 rounded bg-main-blue' tone='brand' />
+				<SkeletonPulse className='h-12 w-20 rounded bg-main-blue' tone='brand' />
 			</div>
 		</div>
-		<section aria-hidden='true' className='flex min-h-[116px] flex-col gap-4'>
-			<SkeletonPulse className={cn(skeletonClass, 'h-5 w-48')} />
-			<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
-				{Array.from({ length: 4 }, (_, index) => (
-					<SkeletonPulse key={index} className={cn(skeletonClass, 'h-20 rounded-brand-md')} />
-				))}
-			</div>
-		</section>
+		<div className='flex flex-col gap-4 lg:pl-8'>
+			<SkeletonPulse className='h-4 w-36 rounded bg-main-blue' tone='brand' />
+			<SkeletonPulse className='min-h-[200px] rounded-xl bg-main-blue' tone='brand' />
+		</div>
 	</div>
+)
+
+const DashboardWorkflowSkeleton = (): ReactElement => (
+	<section aria-hidden='true' className='flex min-h-[116px] flex-col gap-4'>
+		<SkeletonPulse className={cn(skeletonClass, 'h-5 w-48')} />
+		<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
+			{Array.from({ length: 4 }, (_, index) => (
+				<SkeletonPulse key={index} className={cn(skeletonClass, 'h-20 rounded-brand-md')} />
+			))}
+		</div>
+	</section>
+)
+
+export const DashboardSummarySkeleton = (): ReactElement => (
+	<div className='flex flex-col gap-8'>
+		<DashboardHeroSkeleton />
+		<DashboardWorkflowSkeleton />
+	</div>
+)
+
+type DashboardResourceStatusProps = Pick<AsyncResourceState, 'isLoading' | 'isLoadingError'> & {
+	loadingMessage: string
+	errorMessage: string
+}
+
+export const DashboardResourceStatus = ({
+	isLoading,
+	isLoadingError,
+	loadingMessage,
+	errorMessage,
+}: DashboardResourceStatusProps): ReactElement => (
+	<span role='status' aria-atomic='true' className='sr-only'>
+		{isLoading ? loadingMessage : isLoadingError ? errorMessage : ''}
+	</span>
 )
 
 export const DashboardSummaryError = ({ retry }: Pick<AsyncResourceState, 'retry'>): ReactElement => (
