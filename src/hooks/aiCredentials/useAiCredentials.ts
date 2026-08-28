@@ -13,8 +13,10 @@ const isProviderConnected = (p: AiProvider) => Object.values(p.state).some(s => 
 
 export function useAiCredentials() {
 	const openModal = useModalStore(state => state.open)
-	const { data: providersData } = useProvidersQuery()
-	const { data: credentialsData } = useCredentialsQuery()
+	const providersQuery = useProvidersQuery()
+	const credentialsQuery = useCredentialsQuery()
+	const providersData = providersQuery.data
+	const credentialsData = credentialsQuery.data
 	const registerMutation = useRegisterCredentialMutation()
 	const deleteMutation = useDeleteCredentialMutation()
 
@@ -95,5 +97,19 @@ export function useAiCredentials() {
 		registerApiKey,
 		deleteApiKey,
 		isPending: registerMutation.isPending || deleteMutation.isPending,
+		providersResource: {
+			isLoading: providersQuery.isLoading,
+			isRefetching: providersQuery.isRefetching,
+			isLoadingError: providersQuery.isLoadingError,
+			isRefetchError: providersQuery.isRefetchError,
+			retry: () => void providersQuery.refetch(),
+		},
+		credentialsResource: {
+			isLoading: credentialsQuery.isLoading,
+			isRefetching: credentialsQuery.isRefetching,
+			isLoadingError: credentialsQuery.isLoadingError,
+			isRefetchError: credentialsQuery.isRefetchError,
+			retry: () => void credentialsQuery.refetch(),
+		},
 	}
 }
