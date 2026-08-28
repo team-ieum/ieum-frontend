@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { AsyncResourceState } from '@/types/asyncResource'
 
 export const AiCredentialsSkeleton = ({ count = 1 }: { count?: number }): ReactElement => (
@@ -10,13 +11,13 @@ export const AiCredentialsSkeleton = ({ count = 1 }: { count?: number }): ReactE
 				className='flex min-h-[164px] flex-col gap-4 rounded-brand-md border border-neutral-200 bg-neutral-white p-5'
 			>
 				<div className='flex items-center gap-3'>
-					<div className='size-11 animate-pulse rounded-xl bg-neutral-200 motion-reduce:animate-none' />
+					<SkeletonPulse className='size-11 rounded-xl bg-neutral-200' />
 					<div className='flex flex-1 flex-col gap-2'>
-						<div className='h-5 w-40 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
-						<div className='h-4 w-64 max-w-full animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+						<SkeletonPulse className='h-5 w-40 rounded bg-neutral-200' />
+						<SkeletonPulse className='h-4 w-64 max-w-full rounded bg-neutral-200' />
 					</div>
 				</div>
-				<div className='mt-auto h-12 animate-pulse rounded-brand-sm bg-neutral-200 motion-reduce:animate-none' />
+				<SkeletonPulse className='mt-auto h-12 rounded-brand-sm bg-neutral-200' />
 			</article>
 		))}
 	</div>

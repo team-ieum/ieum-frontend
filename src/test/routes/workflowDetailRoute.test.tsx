@@ -41,7 +41,8 @@ describe('/workflow/:workflowId route harness', () => {
 
 		renderAppRoute(detailPath)
 
-		expect(screen.getByRole('status', { name: '워크플로우 상세 불러오는 중' })).toBeInTheDocument()
+		const skeleton = screen.getByRole('status', { name: '워크플로우 상세 불러오는 중' })
+		expect(skeleton.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(5)
 		expect(screen.queryByDisplayValue('워크플로우 제목')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()
 		expect(await screen.findByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()

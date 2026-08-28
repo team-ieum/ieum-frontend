@@ -1,3 +1,4 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { INTEGRATION_PAGE_X } from '../../constants/integration/layout'
 import { INTEGRATION_TABS } from '../../constants/integration/statusLabels'
 import type { IntegrationTabId, IntegrationView } from '../../types/integration'
@@ -38,7 +39,7 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 			))}
 		</div>
 		{view.kind === 'list' && isCountPending ? (
-			<span aria-hidden='true' className='h-4 w-40 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+			<SkeletonPulse as='span' className='h-4 w-40 rounded bg-neutral-200' />
 		) : (
 			<p className='m-0 typo-caption1_regular text-neutral-500'>
 				{view.kind === 'list'

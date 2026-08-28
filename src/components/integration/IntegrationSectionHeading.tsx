@@ -1,3 +1,5 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
+
 type IntegrationSectionHeadingProps = {
 	label: string
 	count: number
@@ -13,10 +15,7 @@ const IntegrationSectionHeading = ({ label, count, desc, headingId, isCountPendi
 				{label}
 			</h2>
 			{isCountPending ? (
-				<span
-					aria-hidden='true'
-					className='h-5 w-8 animate-pulse rounded-full bg-neutral-200 motion-reduce:animate-none'
-				/>
+				<SkeletonPulse as='span' className='h-5 w-8 rounded-full bg-neutral-200' />
 			) : (
 				<span className='inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-main-light-blue px-1.5 typo-caption1_semibold text-main-deep-blue'>
 					{count}

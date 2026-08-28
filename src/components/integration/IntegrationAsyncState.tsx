@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { INTEGRATION_CARD_GRID } from '@/constants/integration/layout'
 import type { AsyncResourceState } from '@/types/asyncResource'
 
@@ -11,13 +12,13 @@ export const IntegrationCardSkeletons = ({ count = 4 }: { count?: number }): Rea
 				className='flex min-h-[148px] flex-col gap-3 rounded-brand-md border border-neutral-200 bg-neutral-white p-4'
 			>
 				<div className='flex items-center gap-3'>
-					<div className='size-10 animate-pulse rounded-xl bg-neutral-200 motion-reduce:animate-none' />
+					<SkeletonPulse className='size-10 rounded-xl bg-neutral-200' />
 					<div className='flex flex-1 flex-col gap-2'>
-						<div className='h-4 w-24 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
-						<div className='h-3 w-32 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+						<SkeletonPulse className='h-4 w-24 rounded bg-neutral-200' />
+						<SkeletonPulse className='h-3 w-32 rounded bg-neutral-200' />
 					</div>
 				</div>
-				<div className='mt-auto h-9 animate-pulse rounded-brand-sm bg-neutral-200 motion-reduce:animate-none' />
+				<SkeletonPulse className='mt-auto h-9 rounded-brand-sm bg-neutral-200' />
 			</article>
 		))}
 	</div>

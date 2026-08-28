@@ -1,3 +1,4 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { DashboardExpandableListState, RunRow } from '@/types/dashboard'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
@@ -57,7 +58,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 								<tr key={index} aria-hidden='true' className='border-b border-neutral-100 last:border-b-0'>
 									{TABLE_HEADERS.map(header => (
 										<td key={header} className='px-5 py-3.5'>
-											<div className='h-4 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+											<SkeletonPulse className='h-4 rounded bg-neutral-200' />
 										</td>
 									))}
 								</tr>

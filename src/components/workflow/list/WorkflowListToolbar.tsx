@@ -1,5 +1,6 @@
 import { Check, ChevronDown, LayoutGrid, List, Search } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactElement } from 'react'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { WORKFLOW_SORT_OPTIONS } from '@/constants/workflow/workflowList'
 import type { WorkflowSortKey, WorkflowViewMode } from '@/types/workflowList'
 import type { AsyncResourceState } from '@/types/asyncResource'
@@ -83,7 +84,7 @@ const WorkflowListToolbar = ({
 			</label>
 
 			{resource.isLoading || resource.isLoadingError ? (
-				<span aria-hidden='true' className='h-4 w-16 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+				<SkeletonPulse as='span' className='h-4 w-16 rounded bg-neutral-200' />
 			) : (
 				<span className='typo-caption1_regular text-neutral-500'>
 					{resultCount === totalCount ? `총 ${totalCount}개` : `${resultCount}개 / 총 ${totalCount}개`}

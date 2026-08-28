@@ -1,8 +1,9 @@
 import type { ReactElement } from 'react'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { WorkflowViewMode } from '@/types/workflowList'
 
-const skeletonClass = 'animate-pulse rounded bg-neutral-200 motion-reduce:animate-none'
+const skeletonClass = 'rounded bg-neutral-200'
 
 export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): ReactElement => {
 	if (view === 'row') {
@@ -21,7 +22,7 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 								className='grid h-[73px] grid-cols-[56px_2fr_1.5fr_1fr_80px_100px_56px] items-center gap-3 border-t border-neutral-200 px-4'
 							>
 								{Array.from({ length: 7 }, (_, cellIndex) => (
-									<div key={cellIndex} className={skeletonClass} />
+									<SkeletonPulse key={cellIndex} className={skeletonClass} />
 								))}
 							</div>
 						))}
@@ -39,11 +40,11 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 					aria-hidden='true'
 					className='flex min-h-[148px] flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4'
 				>
-					<div className={`${skeletonClass} h-5 w-2/3`} />
-					<div className={`${skeletonClass} mt-auto h-4 w-full`} />
+					<SkeletonPulse className={`${skeletonClass} h-5 w-2/3`} />
+					<SkeletonPulse className={`${skeletonClass} mt-auto h-4 w-full`} />
 					<div className='flex gap-3 border-t border-neutral-200 pt-3'>
-						<div className={`${skeletonClass} h-4 w-24`} />
-						<div className={`${skeletonClass} ml-auto h-5 w-16 rounded-full`} />
+						<SkeletonPulse className={`${skeletonClass} h-4 w-24`} />
+						<SkeletonPulse className={`${skeletonClass} ml-auto h-5 w-16 rounded-full`} />
 					</div>
 				</article>
 			))}

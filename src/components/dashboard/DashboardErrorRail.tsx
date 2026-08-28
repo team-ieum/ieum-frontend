@@ -1,3 +1,4 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { DashboardExpandableListState, ErrorRow } from '@/types/dashboard'
 import { cn } from '@/utils/cn'
 import DashboardCard from './DashboardCard'
@@ -22,10 +23,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 				<div className='flex items-center gap-3'>
 					<DashboardRefreshFeedback {...resource} />
 					{resource.isLoading || resource.isLoadingError ? (
-						<span
-							aria-hidden='true'
-							className='h-6 w-12 animate-pulse rounded-full bg-neutral-200 motion-reduce:animate-none'
-						/>
+						<SkeletonPulse as='span' className='h-6 w-12 rounded-full bg-neutral-200' />
 					) : (
 						<span className='rounded-full border border-danger-300 bg-danger-100 px-2.5 py-0.5 typo-caption1_semibold text-danger-700'>
 							{errorCount}건
@@ -48,10 +46,10 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 							aria-hidden='true'
 							className='flex gap-3 border-b border-neutral-100 px-5 py-3.5 last:border-b-0'
 						>
-							<div className='size-7 animate-pulse rounded-lg bg-neutral-200 motion-reduce:animate-none' />
+							<SkeletonPulse className='size-7 rounded-lg bg-neutral-200' />
 							<div className='flex flex-1 flex-col gap-2'>
-								<div className='h-3 w-24 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
-								<div className='h-4 w-3/4 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+								<SkeletonPulse className='h-3 w-24 rounded bg-neutral-200' />
+								<SkeletonPulse className='h-4 w-3/4 rounded bg-neutral-200' />
 							</div>
 						</li>
 					))
