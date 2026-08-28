@@ -13,6 +13,7 @@ import {
 } from '@/mocks/apiScenarios'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
+import { setReducedMotion } from '@/test/domEnvironment'
 import { renderAppRoute } from '@/test/renderAppRoute'
 
 const countRequests = (requestObserver: ReturnType<typeof vi.fn>, resource: ApiMockResource) =>
@@ -33,11 +34,30 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.getByLabelText('사이드바')).toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 1, name: '대시보드' })).toBeInTheDocument()
 		expect(screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })).toBeInTheDocument()
+		const summarySkeleton = screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })
+		const summaryShimmers = summarySkeleton.querySelectorAll('.pointer-events-none')
+		expect(summaryShimmers).toHaveLength(12)
+		expect(summaryShimmers[0]?.getAttribute('style')).toContain('0.1')
+		expect(summaryShimmers[0]?.getAttribute('style')).toContain('0.06')
+		expect(summaryShimmers[7]?.getAttribute('style')).toContain('0.24')
+		expect(summaryShimmers[7]?.getAttribute('style')).toContain('0.14')
 		expect(screen.getByRole('status', { name: '최근 실행 로그 불러오는 중' })).toBeInTheDocument()
 		expect(screen.getByRole('status', { name: '오류 목록 불러오는 중' })).toBeInTheDocument()
 		expect(screen.queryByText('오늘 총 실행')).not.toBeInTheDocument()
 		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
 		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
+	})
+
+	it('/main summary skeleton은 reduced-motion에서 pulse를 정지한다', () => {
+		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		setReducedMotion(true)
+		server.use(...createDelayedSuccessHandlers(1_000))
+
+		renderAppRoute('/main')
+
+		const skeleton = screen.getByRole('status', { name: '대시보드 요약 불러오는 중' })
+		expect(skeleton.querySelector('.pointer-events-none')).not.toBeInTheDocument()
+		warning.mockRestore()
 	})
 
 	it('/main fresh 재방문은 캐시 콘텐츠를 유지하고 dashboard를 다시 요청하지 않는다', async () => {
