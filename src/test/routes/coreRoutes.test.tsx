@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/constants/queryKeys'
 import {
 	createAllFailureHandlers,
@@ -15,6 +15,8 @@ import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { setReducedMotion } from '@/test/domEnvironment'
 import { renderAppRoute } from '@/test/renderAppRoute'
+
+afterEach(() => vi.restoreAllMocks())
 
 const countRequests = (requestObserver: ReturnType<typeof vi.fn>, resource: ApiMockResource) =>
 	requestObserver.mock.calls.filter(([requestedResource]) => requestedResource === resource).length
@@ -52,7 +54,7 @@ describe('주요 route 테스트 harness', () => {
 	})
 
 	it('/main summary skeleton은 reduced-motion에서 pulse를 정지한다', () => {
-		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 		setReducedMotion(true)
 		server.use(...createDelayedSuccessHandlers(1_000))
 
@@ -60,7 +62,6 @@ describe('주요 route 테스트 harness', () => {
 
 		const skeleton = screen.getByText('대시보드 요약 불러오는 중').parentElement!
 		expect(skeleton.querySelector('.pointer-events-none')).not.toBeInTheDocument()
-		warning.mockRestore()
 	})
 
 	it('/main fresh 재방문은 캐시 콘텐츠를 유지하고 dashboard를 다시 요청하지 않는다', async () => {
@@ -513,7 +514,6 @@ describe('주요 route 테스트 harness', () => {
 		})
 		expect(services).toHaveClass('bg-main-deep-blue')
 		expect(aiCredentials).not.toHaveClass('bg-main-deep-blue')
-		scrollTo.mockRestore()
 	})
 
 	it('두 QueryClient와 runtime handler reset을 직접 격리한다', async () => {

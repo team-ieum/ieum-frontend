@@ -1,7 +1,9 @@
 import { render, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { setReducedMotion } from '@/test/domEnvironment'
+
+afterEach(() => vi.restoreAllMocks())
 
 describe('SkeletonPulse', () => {
 	it('neutral div 안에서 하이라이트를 왼쪽에서 오른쪽으로 이동시킨다', async () => {
@@ -27,12 +29,11 @@ describe('SkeletonPulse', () => {
 	})
 
 	it('reduced-motion에서는 움직이는 하이라이트를 렌더링하지 않는다', () => {
-		const warning = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined)
 		setReducedMotion(true)
 
 		const { container } = render(<SkeletonPulse className='h-4 w-20 bg-neutral-200' />)
 
 		expect(container.querySelector('[data-skeleton-highlight]')).not.toBeInTheDocument()
-		warning.mockRestore()
 	})
 })

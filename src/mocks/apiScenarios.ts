@@ -106,7 +106,9 @@ const endpointDefinitions: EndpointDefinition[] = [
 
 const getEndpointDefinition = (resource: ApiMockResource): EndpointDefinition => {
 	const definition = endpointDefinitions.find(candidate => candidate.resource === resource)
-	if (!definition) throw new Error(`Unknown API mock resource: ${resource}`)
+	if (!definition) {
+		throw new Error(`Unknown API mock resource: ${resource}`)
+	}
 	return definition
 }
 
