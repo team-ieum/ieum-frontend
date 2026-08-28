@@ -3,6 +3,11 @@ import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { INTEGRATION_CARD_GRID } from '@/constants/integration/layout'
 import type { AsyncResourceState } from '@/types/asyncResource'
 
+type IntegrationFailure = {
+	label: string
+	retry: AsyncResourceState['retry']
+}
+
 export const IntegrationCardSkeletons = ({ count = 4 }: { count?: number }): ReactElement => (
 	<div role='status' aria-label='통합 서비스 불러오는 중' className={INTEGRATION_CARD_GRID}>
 		{Array.from({ length: count }, (_, index) => (
@@ -33,7 +38,7 @@ export const IntegrationSourceError = ({ webhookResource, oauthResource }: Integ
 	const failures = [
 		webhookResource.isLoadingError ? { label: '웹훅 연결', retry: webhookResource.retry } : null,
 		oauthResource.isLoadingError ? { label: 'OAuth 연결', retry: oauthResource.retry } : null,
-	].filter((failure): failure is { label: string; retry: () => void } => failure !== null)
+	].filter((failure): failure is IntegrationFailure => failure !== null)
 
 	return (
 		<div className='col-span-full flex min-h-[148px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'>
@@ -69,7 +74,7 @@ export const IntegrationRefreshFeedback = ({
 	const failures = [
 		webhookResource.isRefetchError ? { label: '웹훅', retry: webhookResource.retry } : null,
 		oauthResource.isRefetchError ? { label: 'OAuth', retry: oauthResource.retry } : null,
-	].filter((failure): failure is { label: string; retry: () => void } => failure !== null)
+	].filter((failure): failure is IntegrationFailure => failure !== null)
 
 	if (failures.length > 0) {
 		return (
