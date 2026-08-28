@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { NAV_ITEMS } from '@/constants/layout'
+import { useSidebarRouteDataPrefetch } from '@/hooks/layout/useSidebarRouteDataPrefetch'
 import { useSidebarViewModel } from '@/hooks/layout/useSidebarViewModel'
 
 type SideBarProps = {
@@ -19,6 +20,7 @@ const NAV_ICON_BY_ID = Object.fromEntries(NAV_ITEMS.map(item => [item.id, item.i
 export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
 	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onNavItemClick, onCreateCanvasClick, onRecentWorkflowClick } =
 		useSidebarViewModel({ onClose })
+	const prefetchRouteData = useSidebarRouteDataPrefetch()
 
 	return (
 		<aside
@@ -76,6 +78,8 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 						<button
 							key={item.id}
 							type='button'
+							onPointerEnter={() => prefetchRouteData(item.id)}
+							onFocus={() => prefetchRouteData(item.id)}
 							onClick={() => onNavItemClick(item.path)}
 							className={cn(
 								'flex h-10 w-full items-center gap-2.5 rounded-xl text-sm transition-colors',
