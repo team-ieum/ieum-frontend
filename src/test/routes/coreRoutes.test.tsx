@@ -181,7 +181,14 @@ describe('주요 route 테스트 harness', () => {
 		expect(cardSkeleton.parentElement).toHaveAttribute('aria-busy', 'true')
 		fireEvent.click(screen.getByRole('button', { name: '행 보기' }))
 		const tableSkeleton = screen.getByRole('status', { name: '워크플로우 테이블 불러오는 중' })
-		expect(tableSkeleton.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(35)
+		const tableSkeletonHighlights = tableSkeleton.querySelectorAll('[data-skeleton-highlight]')
+		expect(tableSkeletonHighlights).toHaveLength(35)
+		expect(
+			Array.from(tableSkeletonHighlights).every(highlight => {
+				const skeleton = highlight.parentElement
+				return skeleton?.classList.contains('h-4') && skeleton.classList.contains('w-full')
+			})
+		).toBe(true)
 		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
 		delayed.dispose()
 

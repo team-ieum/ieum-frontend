@@ -15,6 +15,7 @@ import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorVi
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
+import type { ApiErrorCode } from '@/types/api'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
 import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
@@ -30,7 +31,11 @@ import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
 const edgeTypes = { animated: AnimatedEdge }
-const workflowNotFoundCodes = new Set(['WORKFLOW_NOT_FOUND', 'WORKFLOW_DEFINITION_NOT_FOUND', 'NOT_FOUND'])
+const workflowNotFoundCodes: ReadonlySet<ApiErrorCode> = new Set<ApiErrorCode>([
+	'WORKFLOW_NOT_FOUND',
+	'WORKFLOW_DEFINITION_NOT_FOUND',
+	'NOT_FOUND',
+])
 
 const WORKFLOW_CANVAS_CLASS = cn(
 	'bg-[#f7f6fc]',
@@ -181,7 +186,7 @@ const WorkFlowPage = () => {
 		}
 	}
 
-	if (!workflow && workflowQuery.isLoading) {
+	if (!workflow && workflowQuery.isEnabled && workflowQuery.isPending) {
 		return <WorkflowDetailSkeleton />
 	}
 

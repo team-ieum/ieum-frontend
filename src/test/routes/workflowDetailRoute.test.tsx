@@ -1,4 +1,5 @@
 import { act, screen, waitFor } from '@testing-library/react'
+import { onlineManager } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/constants/queryKeys'
 import {
@@ -34,6 +35,7 @@ vi.mock('@stomp/stompjs', () => ({
 }))
 
 const detailPath = `/workflow/${WORKFLOW_FIXTURE_ID}`
+const workflowNotFoundCodes = ['WORKFLOW_NOT_FOUND', 'WORKFLOW_DEFINITION_NOT_FOUND', 'NOT_FOUND'] as const
 
 describe('/workflow/:workflowId route harness', () => {
 	it('cold 진입에서 shell을 유지하고 HTTP 응답 뒤 실제 editor를 표시한다', async () => {
@@ -47,6 +49,30 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()
 		expect(await screen.findByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
 		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toBeInTheDocument()
+	})
+
+	it('offline cold 진입은 pending shell을 유지하고 온라인 복귀 후 editor를 표시한다', async () => {
+		let route: ReturnType<typeof renderAppRoute> | undefined
+
+		try {
+			onlineManager.setOnline(false)
+			const renderedRoute = renderAppRoute(detailPath)
+			route = renderedRoute
+			await waitFor(() => {
+				const detailState = renderedRoute.queryClient.getQueryState(queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID))
+				expect(detailState?.status).toBe('pending')
+				expect(detailState?.fetchStatus).toBe('paused')
+			})
+			expect(screen.getByRole('status', { name: '워크플로우 상세 불러오는 중' })).toBeInTheDocument()
+			expect(screen.queryByRole('heading', { name: '워크플로우를 불러오지 못했어요' })).not.toBeInTheDocument()
+
+			await act(async () => onlineManager.setOnline(true))
+
+			expect(await screen.findByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
+		} finally {
+			route?.dispose()
+			onlineManager.setOnline(true)
+		}
 	})
 
 	it('warm 재방문은 cache를 즉시 표시하고 stale detail만 refetch한다', async () => {
@@ -107,8 +133,8 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(observeRequest.mock.calls.every(([resource]) => ['workflowDetail', 'credentials'].includes(resource))).toBe(true)
 	})
 
-	it('not-found API code는 목록 이동 action을 표시하고 editor를 마운트하지 않는다', async () => {
-		server.use(createResourceApiErrorHandler('workflowDetail', 'WORKFLOW_NOT_FOUND'))
+	it.each(workflowNotFoundCodes)('%s API code는 목록 이동 action을 표시하고 editor를 마운트하지 않는다', async code => {
+		server.use(createResourceApiErrorHandler('workflowDetail', code))
 
 		renderAppRoute(detailPath)
 

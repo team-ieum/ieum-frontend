@@ -22,7 +22,7 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 								className='grid h-[73px] grid-cols-[56px_2fr_1.5fr_1fr_80px_100px_56px] items-center gap-3 border-t border-neutral-200 px-4'
 							>
 								{Array.from({ length: 7 }, (_, cellIndex) => (
-									<SkeletonPulse key={cellIndex} className={skeletonClass} />
+									<SkeletonPulse key={cellIndex} className={`${skeletonClass} h-4 w-full`} />
 								))}
 							</div>
 						))}
