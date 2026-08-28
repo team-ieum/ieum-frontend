@@ -1,7 +1,8 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { DashboardHeroMetrics, HourlyExecution } from '@/types/dashboard'
-import { cn } from '@/utils/cn'
+import type { AsyncResourceState } from '@/types/asyncResource'
 import DashboardIcon from './DashboardIcon'
+import { DashboardRefreshFeedback } from './DashboardAsyncState'
 
 type DashboardChartTooltipPayload = {
 	value?: number
@@ -21,8 +22,7 @@ type DashboardMiniStatProps = {
 type DashboardHeroSectionProps = {
 	hero: DashboardHeroMetrics
 	hourlyExecutions: HourlyExecution[]
-	isLoading: boolean
-	isError: boolean
+	resource: AsyncResourceState
 }
 
 const ChartTooltip = ({ active, payload, label }: DashboardChartTooltipProps) => {
@@ -43,21 +43,16 @@ const MiniStat = ({ label, value }: DashboardMiniStatProps) => (
 	</div>
 )
 
-const DashboardHeroSection = ({ hero, hourlyExecutions, isLoading, isError }: DashboardHeroSectionProps) => {
+const DashboardHeroSection = ({ hero, hourlyExecutions, resource }: DashboardHeroSectionProps) => {
 	const isPositiveChange = hero.changePercent >= 0
 
 	return (
-		<div
-			className={cn(
-				'relative grid items-stretch gap-6 overflow-hidden rounded-brand-md bg-main-deep-blue p-6 text-neutral-white shadow-md lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8',
-				isLoading && 'opacity-60'
-			)}
-		>
-			{isError && (
-				<p className='absolute right-4 top-4 z-10 m-0 rounded-brand-sm bg-danger-700/90 px-2.5 py-1 typo-caption1_medium text-neutral-white'>
-					통계를 불러오지 못했습니다.
-				</p>
-			)}
+		<div className='relative grid items-stretch gap-6 overflow-hidden rounded-brand-md bg-main-deep-blue p-6 text-neutral-white shadow-md lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8'>
+			{resource.isRefetching || resource.isRefetchError ? (
+				<div className='absolute right-4 top-4 z-10 rounded-brand-sm bg-neutral-white/95 px-2.5 py-1'>
+					<DashboardRefreshFeedback {...resource} />
+				</div>
+			) : null}
 			<div className='flex flex-col gap-4 lg:border-r lg:border-main-blue lg:pr-8'>
 				<span className='typo-caption1_semibold tracking-wide text-main-light-blue'>오늘 총 실행</span>
 				<div className='typo-display3_bold leading-none text-neutral-white tabular-nums'>

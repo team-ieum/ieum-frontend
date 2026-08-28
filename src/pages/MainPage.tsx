@@ -2,6 +2,7 @@ import DashboardErrorRail from '@/components/dashboard/DashboardErrorRail'
 import DashboardHeroSection from '@/components/dashboard/DashboardHeroSection'
 import DashboardRunTable from '@/components/dashboard/DashboardRunTable'
 import DashboardWorkflowSection from '@/components/dashboard/DashboardWorkflowSection'
+import { DashboardSummaryError, DashboardSummarySkeleton } from '@/components/dashboard/DashboardAsyncState'
 import { useDashboardViewModel } from '@/hooks/dashboard/useDashboardViewModel'
 
 const MainPage = () => {
@@ -14,17 +15,22 @@ const MainPage = () => {
 				<p className='typo-body2_regular mt-1 text-neutral-500'>워크플로우 실행 현황과 오류를 한눈에 확인하세요.</p>
 			</header>
 			<div className='flex flex-col gap-8'>
-				<DashboardHeroSection
-					hero={viewModel.hero}
-					hourlyExecutions={viewModel.hourlyExecutions}
-					isLoading={viewModel.isSummaryLoading}
-					isError={viewModel.isSummaryError}
-				/>
-				<DashboardWorkflowSection
-					workflow={viewModel.workflow}
-					isLoading={viewModel.isSummaryLoading}
-					isError={viewModel.isSummaryError}
-				/>
+				<div aria-busy={viewModel.summaryResource.isLoading || viewModel.summaryResource.isRefetching}>
+					{viewModel.summaryResource.isLoading ? (
+						<DashboardSummarySkeleton />
+					) : viewModel.summaryResource.isLoadingError ? (
+						<DashboardSummaryError retry={viewModel.summaryResource.retry} />
+					) : (
+						<div className='flex flex-col gap-8'>
+							<DashboardHeroSection
+								hero={viewModel.hero}
+								hourlyExecutions={viewModel.hourlyExecutions}
+								resource={viewModel.summaryResource}
+							/>
+							<DashboardWorkflowSection workflow={viewModel.workflow} />
+						</div>
+					)}
+				</div>
 				<div className='flex w-full flex-col gap-4'>
 					<DashboardRunTable runs={viewModel.runs} />
 					<DashboardErrorRail errors={viewModel.errors} />
