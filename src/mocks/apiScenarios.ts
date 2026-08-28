@@ -130,6 +130,16 @@ export const createDelayedSuccessHandlers = (delayMs: number): HttpHandler[] =>
 export const createObservedSuccessHandlers = (onRequest: (resource: ApiMockResource) => void, delayMs?: number): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { delayMs, onRequest }))
 
+export const createObservedFailureHandlers = (
+	resources: ApiMockResource[],
+	onRequest: (resource: ApiMockResource) => void
+): HttpHandler[] => {
+	const failures = new Set(resources)
+	return endpointDefinitions
+		.filter(definition => failures.has(definition.resource))
+		.map(definition => createHandler(definition, { failure: true, onRequest }))
+}
+
 export const createEmptyHandlers = (): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { empty: true }))
 
