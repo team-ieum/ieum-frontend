@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse, type HttpHandler } from 'msw'
+import type { ApiErrorCode } from '@/types/api'
 import {
 	credentialsResponse,
 	emptyCredentialsResponse,
@@ -103,6 +104,12 @@ const endpointDefinitions: EndpointDefinition[] = [
 	},
 ]
 
+const getEndpointDefinition = (resource: ApiMockResource): EndpointDefinition => {
+	const definition = endpointDefinitions.find(candidate => candidate.resource === resource)
+	if (!definition) throw new Error(`Unknown API mock resource: ${resource}`)
+	return definition
+}
+
 const createHandler = (
 	definition: EndpointDefinition,
 	options: {
@@ -151,6 +158,28 @@ export const createPartialFailureHandlers = (resources: ApiMockResource[]): Http
 	return endpointDefinitions
 		.filter(definition => failures.has(definition.resource))
 		.map(definition => createHandler(definition, { failure: true }))
+}
+
+export const createResourceSuccessHandler = (resource: ApiMockResource, delayMs?: number): HttpHandler =>
+	createHandler(getEndpointDefinition(resource), { delayMs })
+
+export const createResourceEmptyHandler = (resource: ApiMockResource): HttpHandler =>
+	createHandler(getEndpointDefinition(resource), { empty: true })
+
+export const createResourceApiErrorHandler = (resource: ApiMockResource, code: ApiErrorCode, status = 404): HttpHandler => {
+	const definition = getEndpointDefinition(resource)
+
+	return http.get(`*${definition.path}`, () =>
+		HttpResponse.json(
+			{
+				success: false,
+				data: null,
+				message: '요청한 리소스를 찾을 수 없습니다.',
+				code,
+			},
+			{ status }
+		)
+	)
 }
 
 export const isApiScenarioTargetRequest = (request: Request): boolean => {
