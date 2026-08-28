@@ -9,9 +9,10 @@ type IntegrationTabsProps = {
 	view: IntegrationView
 	connectedCount: number
 	availableCount: number
+	isCountPending: boolean
 }
 
-const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount }: IntegrationTabsProps) => (
+const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount, isCountPending }: IntegrationTabsProps) => (
 	<div
 		className={cn(
 			INTEGRATION_PAGE_X,
@@ -36,9 +37,15 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 				</button>
 			))}
 		</div>
-		<p className='m-0 typo-caption1_regular text-neutral-500'>
-			{view.kind === 'list' ? `연결됨 ${connectedCount}개 · 사용 가능 ${availableCount}개` : '연결된 서비스 / 상세 보기'}
-		</p>
+		{view.kind === 'list' && isCountPending ? (
+			<span aria-hidden='true' className='h-4 w-40 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+		) : (
+			<p className='m-0 typo-caption1_regular text-neutral-500'>
+				{view.kind === 'list'
+					? `연결됨 ${connectedCount}개 · 사용 가능 ${availableCount}개`
+					: '연결된 서비스 / 상세 보기'}
+			</p>
+		)}
 	</div>
 )
 

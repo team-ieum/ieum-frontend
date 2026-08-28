@@ -19,8 +19,9 @@ const InterSettingPage = () => {
 		currentService,
 		connectedCount,
 		availableCount,
-		isConnectedLoading,
-		isConnectedError,
+		canResolveAvailable,
+		webhookResource,
+		oauthResource,
 		isListView,
 		aiCredentialsSectionRef,
 		goDetail,
@@ -60,6 +61,7 @@ const InterSettingPage = () => {
 			view={view}
 			connectedCount={connectedCount}
 			availableCount={availableCount}
+			isCountPending={!canResolveAvailable}
 		>
 			<div className='flex-1 bg-neutral-50'>
 				{isListView ? (
@@ -69,8 +71,9 @@ const InterSettingPage = () => {
 							available={available}
 							onManage={goDetail}
 							onConnect={onConnect}
-							isConnectedLoading={isConnectedLoading}
-							isConnectedError={isConnectedError}
+							canResolveAvailable={canResolveAvailable}
+							webhookResource={webhookResource}
+							oauthResource={oauthResource}
 						/>
 						<section
 							ref={aiCredentialsSectionRef}
