@@ -2,7 +2,9 @@ import { Check, ChevronDown, LayoutGrid, List, Search } from 'lucide-react'
 import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactElement } from 'react'
 import { WORKFLOW_SORT_OPTIONS } from '@/constants/workflow/workflowList'
 import type { WorkflowSortKey, WorkflowViewMode } from '@/types/workflowList'
+import type { AsyncResourceState } from '@/types/asyncResource'
 import { cn } from '@/utils/cn'
+import { WorkflowListRefreshFeedback } from './WorkflowListAsyncState'
 
 type WorkflowListToolbarProps = {
 	search: string
@@ -10,6 +12,7 @@ type WorkflowListToolbarProps = {
 	view: WorkflowViewMode
 	resultCount: number
 	totalCount: number
+	resource: AsyncResourceState
 	onSearchChange: (value: string) => void
 	onSortChange: (value: WorkflowSortKey) => void
 	onViewChange: (value: WorkflowViewMode) => void
@@ -23,6 +26,7 @@ const WorkflowListToolbar = ({
 	view,
 	resultCount,
 	totalCount,
+	resource,
 	onSearchChange,
 	onSortChange,
 	onViewChange,
@@ -78,9 +82,15 @@ const WorkflowListToolbar = ({
 				/>
 			</label>
 
-			<span className='typo-caption1_regular text-neutral-500'>
-				{resultCount === totalCount ? `총 ${totalCount}개` : `${resultCount}개 / 총 ${totalCount}개`}
-			</span>
+			{resource.isLoading || resource.isLoadingError ? (
+				<span aria-hidden='true' className='h-4 w-16 animate-pulse rounded bg-neutral-200 motion-reduce:animate-none' />
+			) : (
+				<span className='typo-caption1_regular text-neutral-500'>
+					{resultCount === totalCount ? `총 ${totalCount}개` : `${resultCount}개 / 총 ${totalCount}개`}
+				</span>
+			)}
+
+			<WorkflowListRefreshFeedback {...resource} />
 
 			<div className='flex flex-wrap items-center gap-2 xl:ml-auto'>
 				<div ref={sortContainerRef} className='relative' onKeyDown={handleSortKeyDown} onBlur={handleSortBlur}>

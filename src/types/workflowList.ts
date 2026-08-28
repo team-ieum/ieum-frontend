@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import type { ApiResponse } from '@/types/api'
+import type { AsyncResourceState } from '@/types/asyncResource'
 
 export type WorkflowErrorCode =
 	| 'WORKFLOW_NOT_FOUND'
@@ -194,6 +195,8 @@ export type WorkflowListViewModel = {
 	serviceCounts: Record<WorkflowServiceId, number>
 	categoryCounts: Record<WorkflowCategoryId, number>
 	statusCounts: Record<WorkflowStatus, number>
+	resource: AsyncResourceState
+	isFiltered: boolean
 	toggleService: (serviceId: WorkflowServiceId) => void
 	toggleCategory: (categoryId: WorkflowCategoryId) => void
 	toggleStatus: (status: WorkflowStatus) => void
@@ -202,8 +205,6 @@ export type WorkflowListViewModel = {
 	onSearchChange: (value: string) => void
 	onSortChange: (value: WorkflowSortKey) => void
 	onViewChange: (value: WorkflowViewMode) => void
-	isLoading: boolean
-	isError: boolean
 	hasNextPage: boolean
 	fetchNextPage: () => void
 	handleCreateWorkflow: () => void
