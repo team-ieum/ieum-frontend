@@ -28,14 +28,14 @@ export const AiCredentialsSection = () => {
 					<AiCredentialsSkeleton />
 				) : providersResource.isLoadingError ? (
 					<AiCredentialsError message='AI 제공자 정보를 불러오지 못했습니다.' retry={providersResource.retry} />
-				) : credentialsResource.isLoading ? (
-					<AiCredentialsSkeleton count={providers.length} />
-				) : credentialsResource.isLoadingError ? (
-					<AiCredentialsError message='AI 자격 증명을 불러오지 못했습니다.' retry={credentialsResource.retry} />
 				) : providers.length === 0 ? (
 					<div className='flex min-h-[164px] items-center justify-center rounded-brand-md border border-neutral-200 bg-neutral-white px-6 text-center'>
 						<p className='m-0 typo-body3_regular text-neutral-500'>등록 가능한 AI 제공자가 없습니다.</p>
 					</div>
+				) : credentialsResource.isLoading ? (
+					<AiCredentialsSkeleton count={providers.length} />
+				) : credentialsResource.isLoadingError ? (
+					<AiCredentialsError message='AI 자격 증명을 불러오지 못했습니다.' retry={credentialsResource.retry} />
 				) : (
 					providers.map(provider => (
 						<ProviderCard

@@ -429,6 +429,25 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.queryByText('Google Gemini')).not.toBeInTheDocument()
 	})
 
+	it('/inter-setting providers empty는 credentials loading보다 우선한다', async () => {
+		server.use(createResourceEmptyHandler('providers'), createResourceSuccessHandler('credentials', 10_000))
+
+		renderAppRoute('/inter-setting')
+
+		expect(await screen.findByText('등록 가능한 AI 제공자가 없습니다.')).toBeInTheDocument()
+		expect(screen.queryByRole('status', { name: 'AI 자격 증명 불러오는 중' })).not.toBeInTheDocument()
+	})
+
+	it('/inter-setting providers empty는 credentials 최초 오류보다 우선한다', async () => {
+		server.use(createResourceEmptyHandler('providers'), ...createPartialFailureHandlers(['credentials']))
+
+		renderAppRoute('/inter-setting')
+
+		expect(await screen.findByText('등록 가능한 AI 제공자가 없습니다.')).toBeInTheDocument()
+		expect(screen.queryByText('AI 자격 증명을 불러오지 못했습니다.')).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
+	})
+
 	it('/inter-setting 전체 실패를 각 query의 독립 error로 재현한다', async () => {
 		server.use(...createAllFailureHandlers())
 		const { queryClient } = renderAppRoute('/inter-setting')
