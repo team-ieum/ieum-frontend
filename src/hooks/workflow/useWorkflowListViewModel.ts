@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router'
 import {
 	WORKFLOW_CATEGORY_META,
 	WORKFLOW_SERVICE_META,
@@ -14,6 +14,11 @@ import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
 import { mapWorkflowListItemToRowView } from '@/utils/workflow/mapWorkflowListItemToRowView'
+import {
+	isCanonicalWorkflowViewParams,
+	parseWorkflowViewMode,
+	serializeWorkflowViewMode,
+} from '@/utils/workflow/workflowListViewParams'
 import type {
 	WorkflowActiveFilter,
 	WorkflowCategoryId,
@@ -100,16 +105,26 @@ const sortWorkflows = (workflows: WorkflowListItem[], sort: WorkflowSortKey): Wo
 
 export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const navigate = useNavigate()
+	const [searchParams, setSearchParams] = useSearchParams()
 	const [search, setSearch] = useState('')
 	const [sort, setSort] = useState<WorkflowSortKey>('recent')
-	const [view, setView] = useState<WorkflowViewMode>('card')
 	const [filters, setFilters] = useState<WorkflowListFilters>(() => createEmptyFilters())
+	const view = parseWorkflowViewMode(searchParams)
+	const shouldNormalizeView = !isCanonicalWorkflowViewParams(searchParams)
 
 	const { data, isLoading, isRefetching, isLoadingError, isRefetchError, refetch, hasNextPage, fetchNextPage } =
 		useWorkflowListQuery()
 	const openModal = useModalStore(state => state.open)
 	const createMutation = useCreateWorkflowMutation()
 	const deleteMutation = useDeleteWorkflowMutation()
+
+	useEffect(() => {
+		if (!shouldNormalizeView) {
+			return
+		}
+
+		setSearchParams(serializeWorkflowViewMode(searchParams, view), { replace: true })
+	}, [searchParams, setSearchParams, shouldNormalizeView, view])
 
 	const allWorkflows = useMemo<WorkflowListItem[]>(
 		() => (data?.pages ?? []).flatMap(page => page.data.content.map(mapWorkflowDtoToListItem)),
@@ -193,7 +208,16 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 
 	const onSearchChange = useCallback((value: string) => setSearch(value), [])
 	const onSortChange = useCallback((value: WorkflowSortKey) => setSort(value), [])
-	const onViewChange = useCallback((value: WorkflowViewMode) => setView(value), [])
+	const onViewChange = useCallback(
+		(value: WorkflowViewMode) => {
+			if (value === view) {
+				return
+			}
+
+			setSearchParams(serializeWorkflowViewMode(searchParams, value))
+		},
+		[searchParams, setSearchParams, view]
+	)
 
 	const handleCreateWorkflow = useCallback(async () => {
 		try {
