@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactElement } from 'react'
+import type { ReactElement, RefObject } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import Spinner from '@/components/common/Spinner'
 import type { AsyncResourceState } from '@/types/asyncResource'
@@ -96,45 +96,19 @@ export const WorkflowListRefreshFeedback = ({
 
 type WorkflowListPaginationProps = {
 	hasNextPage: boolean
-	isRefetching: boolean
 	isFetchingNextPage: boolean
 	isFetchNextPageError: boolean
-	loadNextPage: () => void
+	sentinelRef: RefObject<HTMLDivElement | null>
 	retryNextPage: () => void
 }
 
 export const WorkflowListPagination = ({
 	hasNextPage,
-	isRefetching,
 	isFetchingNextPage,
 	isFetchNextPageError,
-	loadNextPage,
+	sentinelRef,
 	retryNextPage,
 }: WorkflowListPaginationProps): ReactElement | null => {
-	const sentinelRef = useRef<HTMLDivElement>(null)
-
-	useEffect(() => {
-		const sentinel = sentinelRef.current
-		if (!sentinel || !hasNextPage || isRefetching || isFetchingNextPage || isFetchNextPageError) {
-			return
-		}
-
-		const observer = new IntersectionObserver(
-			entries => {
-				if (!entries.some(entry => entry.isIntersecting)) {
-					return
-				}
-
-				observer.disconnect()
-				loadNextPage()
-			},
-			{ rootMargin: '0px 0px 320px 0px' }
-		)
-		observer.observe(sentinel)
-
-		return () => observer.disconnect()
-	}, [hasNextPage, isRefetching, isFetchingNextPage, isFetchNextPageError, loadNextPage])
-
 	if (isFetchingNextPage) {
 		return (
 			<div className='mt-4 flex justify-center py-2'>

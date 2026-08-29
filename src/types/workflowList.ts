@@ -219,5 +219,6 @@ export type WorkflowListViewModel = {
 export type WorkflowListPageViewModel = {
 	list: WorkflowListViewModel
 	headerRef: RefObject<HTMLElement | null>
+	paginationSentinelRef: RefObject<HTMLDivElement | null>
 	sectionMinHeight: string
 }

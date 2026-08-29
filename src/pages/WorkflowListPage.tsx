@@ -15,7 +15,7 @@ import { useWorkflowListPageViewModel } from '@/hooks/workflow/useWorkflowListPa
 import { cn } from '@/utils/cn'
 
 const WorkflowListPage = (): ReactElement => {
-	const { list: viewModel, headerRef, sectionMinHeight } = useWorkflowListPageViewModel()
+	const { list: viewModel, headerRef, paginationSentinelRef, sectionMinHeight } = useWorkflowListPageViewModel()
 
 	return (
 		<section className='flex flex-col gap-6' style={{ minHeight: sectionMinHeight }}>
@@ -116,10 +116,9 @@ const WorkflowListPage = (): ReactElement => {
 								) : null}
 								<WorkflowListPagination
 									hasNextPage={viewModel.hasNextPage}
-									isRefetching={viewModel.isRefetching}
 									isFetchingNextPage={viewModel.isFetchingNextPage}
 									isFetchNextPageError={viewModel.isFetchNextPageError}
-									loadNextPage={viewModel.loadNextPage}
+									sentinelRef={paginationSentinelRef}
 									retryNextPage={viewModel.retryNextPage}
 								/>
 							</>
