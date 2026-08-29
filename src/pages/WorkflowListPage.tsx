@@ -6,7 +6,11 @@ import WorkflowFilterSidebar from '@/components/workflow/list/WorkflowFilterSide
 import WorkflowListCard from '@/components/workflow/list/WorkflowListCard'
 import WorkflowListTable from '@/components/workflow/list/WorkflowListTable'
 import WorkflowListToolbar from '@/components/workflow/list/WorkflowListToolbar'
-import { WorkflowListError, WorkflowListSkeleton } from '@/components/workflow/list/WorkflowListAsyncState'
+import {
+	WorkflowListError,
+	WorkflowListPagination,
+	WorkflowListSkeleton,
+} from '@/components/workflow/list/WorkflowListAsyncState'
 import { useWorkflowListPageViewModel } from '@/hooks/workflow/useWorkflowListPageViewModel'
 import { cn } from '@/utils/cn'
 
@@ -74,35 +78,51 @@ const WorkflowListPage = (): ReactElement => {
 							(viewModel.resource.isLoading || viewModel.workflows.length > 0) &&
 								(viewModel.view === 'card' ? 'min-h-[948px] lg:min-h-[468px] 2xl:min-h-[308px]' : 'min-h-[410px]')
 						)}
-						aria-busy={viewModel.resource.isLoading || viewModel.resource.isRefetching}
+						aria-busy={
+							viewModel.resource.isLoading || viewModel.resource.isRefetching || viewModel.isFetchingNextPage
+						}
 					>
 						{viewModel.resource.isLoading ? (
 							<WorkflowListSkeleton view={viewModel.view} />
 						) : viewModel.resource.isLoadingError ? (
 							<WorkflowListError retry={viewModel.resource.retry} />
-						) : viewModel.workflows.length === 0 ? (
+						) : viewModel.workflows.length === 0 && !viewModel.hasNextPage ? (
 							<WorkflowEmptyState
 								onReset={viewModel.clearFilters}
 								onCreate={viewModel.handleCreateWorkflow}
 								isFiltered={viewModel.isFiltered}
 							/>
-						) : viewModel.view === 'card' ? (
-							<div className='grid gap-3 md:grid-cols-2 2xl:grid-cols-3'>
-								{viewModel.workflows.map(workflow => (
-									<WorkflowListCard
-										key={workflow.id}
-										workflow={workflow}
-										onOpen={viewModel.handleOpenWorkflow}
-										onDelete={viewModel.handleDeleteWorkflow}
-									/>
-								))}
-							</div>
 						) : (
-							<WorkflowListTable
-								workflows={viewModel.workflows}
-								onOpen={viewModel.handleOpenWorkflow}
-								onDelete={viewModel.handleDeleteWorkflow}
-							/>
+							<>
+								{viewModel.workflows.length > 0 ? (
+									viewModel.view === 'card' ? (
+										<div className='grid gap-3 md:grid-cols-2 2xl:grid-cols-3'>
+											{viewModel.workflows.map(workflow => (
+												<WorkflowListCard
+													key={workflow.id}
+													workflow={workflow}
+													onOpen={viewModel.handleOpenWorkflow}
+													onDelete={viewModel.handleDeleteWorkflow}
+												/>
+											))}
+										</div>
+									) : (
+										<WorkflowListTable
+											workflows={viewModel.workflows}
+											onOpen={viewModel.handleOpenWorkflow}
+											onDelete={viewModel.handleDeleteWorkflow}
+										/>
+									)
+								) : null}
+								<WorkflowListPagination
+									hasNextPage={viewModel.hasNextPage}
+									isRefetching={viewModel.isRefetching}
+									isFetchingNextPage={viewModel.isFetchingNextPage}
+									isFetchNextPageError={viewModel.isFetchNextPageError}
+									loadNextPage={viewModel.loadNextPage}
+									retryNextPage={viewModel.retryNextPage}
+								/>
+							</>
 						)}
 					</div>
 				</main>
