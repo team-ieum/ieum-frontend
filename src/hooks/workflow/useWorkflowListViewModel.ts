@@ -112,8 +112,18 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const view = parseWorkflowViewMode(searchParams)
 	const shouldNormalizeView = !isCanonicalWorkflowViewParams(searchParams)
 
-	const { data, isLoading, isRefetching, isLoadingError, isRefetchError, refetch, hasNextPage, fetchNextPage } =
-		useWorkflowListQuery()
+	const {
+		data,
+		isLoading,
+		isRefetching,
+		isLoadingError,
+		isRefetchError,
+		isFetchingNextPage,
+		isFetchNextPageError,
+		refetch,
+		hasNextPage,
+		fetchNextPage,
+	} = useWorkflowListQuery()
 	const openModal = useModalStore(state => state.open)
 	const createMutation = useCreateWorkflowMutation()
 	const deleteMutation = useDeleteWorkflowMutation()
@@ -219,6 +229,20 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		[searchParams, setSearchParams, view]
 	)
 
+	const loadNextPage = useCallback(() => {
+		if (!hasNextPage || isRefetching || isFetchingNextPage || isFetchNextPageError) {
+			return
+		}
+		void fetchNextPage({ cancelRefetch: false })
+	}, [fetchNextPage, hasNextPage, isRefetching, isFetchingNextPage, isFetchNextPageError])
+
+	const retryNextPage = useCallback(() => {
+		if (!hasNextPage || isRefetching || isFetchingNextPage) {
+			return
+		}
+		void fetchNextPage({ cancelRefetch: false })
+	}, [fetchNextPage, hasNextPage, isRefetching, isFetchingNextPage])
+
 	const handleCreateWorkflow = useCallback(async () => {
 		try {
 			const res = await createMutation.mutateAsync({
@@ -269,14 +293,18 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		statusCounts,
 		resource: {
 			isLoading,
-			isRefetching,
+			isRefetching: isRefetching && !isFetchingNextPage,
 			isLoadingError,
-			isRefetchError,
+			isRefetchError: isRefetchError && !isFetchNextPageError,
 			retry: () => void refetch(),
 		},
 		isFiltered,
+		isRefetching,
 		hasNextPage: hasNextPage ?? false,
-		fetchNextPage,
+		isFetchingNextPage,
+		isFetchNextPageError,
+		loadNextPage,
+		retryNextPage,
 		toggleService,
 		toggleCategory,
 		toggleStatus,
