@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:pagination-demo": "vite --mode pagination-demo --open /workflow",
     "dev:measurement": "vite --mode measurement",
     "build": "tsc -b --noEmit && vite build",
     "build:measurement": "tsc -b --noEmit && vite build --mode measurement --outDir dist-measurement",
