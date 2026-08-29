@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import {
 	WORKFLOW_CATEGORY_META,
@@ -105,17 +105,11 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 	const [view, setView] = useState<WorkflowViewMode>('card')
 	const [filters, setFilters] = useState<WorkflowListFilters>(() => createEmptyFilters())
 
-	const { data, isLoading, isError, error, hasNextPage, fetchNextPage } = useWorkflowListQuery()
+	const { data, isLoading, isRefetching, isLoadingError, isRefetchError, refetch, hasNextPage, fetchNextPage } =
+		useWorkflowListQuery()
 	const openModal = useModalStore(state => state.open)
 	const createMutation = useCreateWorkflowMutation()
 	const deleteMutation = useDeleteWorkflowMutation()
-
-	useEffect(() => {
-		if (isError && error) {
-			const message = isApiError(error) ? error.message : '워크플로우를 불러오지 못했어요. 잠시 후 다시 시도해주세요.'
-			openModal('오류', message)
-		}
-	}, [isError, error, openModal])
 
 	const allWorkflows = useMemo<WorkflowListItem[]>(
 		() => (data?.pages ?? []).flatMap(page => page.data.content.map(mapWorkflowDtoToListItem)),
@@ -171,6 +165,7 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		],
 		[filters]
 	)
+	const isFiltered = activeFilters.length > 0 || search.trim().length > 0
 
 	const toggleService = useCallback((serviceId: WorkflowServiceId) => {
 		setFilters(prev => ({ ...prev, services: toggleValue(prev.services, serviceId) }))
@@ -248,8 +243,14 @@ export const useWorkflowListViewModel = (): WorkflowListViewModel => {
 		serviceCounts,
 		categoryCounts,
 		statusCounts,
-		isLoading,
-		isError,
+		resource: {
+			isLoading,
+			isRefetching,
+			isLoadingError,
+			isRefetchError,
+			retry: () => void refetch(),
+		},
+		isFiltered,
 		hasNextPage: hasNextPage ?? false,
 		fetchNextPage,
 		toggleService,

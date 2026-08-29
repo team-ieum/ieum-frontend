@@ -11,12 +11,14 @@ const IntegrationSettingLayout = ({
 	view,
 	connectedCount,
 	availableCount,
+	isCountPending,
 }: PropsWithChildren<{
 	active: IntegrationTabId
 	onChange: (tab: IntegrationTabId) => void
 	view: IntegrationView
 	connectedCount: number
 	availableCount: number
+	isCountPending: boolean
 }>) => (
 	<div
 		className={cn(
@@ -31,6 +33,7 @@ const IntegrationSettingLayout = ({
 			view={view}
 			connectedCount={connectedCount}
 			availableCount={availableCount}
+			isCountPending={isCountPending}
 		/>
 		{children}
 	</div>

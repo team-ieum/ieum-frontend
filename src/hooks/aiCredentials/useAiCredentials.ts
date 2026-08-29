@@ -8,13 +8,16 @@ import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 import type { CredentialProvider } from '@/types/credential'
 import type { AiProvider, AuthMethod } from '@/types/aiCredentials'
+import type { AsyncResourceState } from '@/types/asyncResource'
 
 const isProviderConnected = (p: AiProvider) => Object.values(p.state).some(s => s?.status === 'connected')
 
 export function useAiCredentials() {
 	const openModal = useModalStore(state => state.open)
-	const { data: providersData } = useProvidersQuery()
-	const { data: credentialsData } = useCredentialsQuery()
+	const providersQuery = useProvidersQuery()
+	const credentialsQuery = useCredentialsQuery()
+	const providersData = providersQuery.data
+	const credentialsData = credentialsQuery.data
 	const registerMutation = useRegisterCredentialMutation()
 	const deleteMutation = useDeleteCredentialMutation()
 
@@ -54,6 +57,20 @@ export function useAiCredentials() {
 	}, [providersData, credentialsData])
 
 	const connectedCount = providers.filter(isProviderConnected).length
+	const providersResource: AsyncResourceState = {
+		isLoading: providersQuery.isLoading,
+		isRefetching: providersQuery.isRefetching,
+		isLoadingError: providersQuery.isLoadingError,
+		isRefetchError: providersQuery.isRefetchError,
+		retry: () => void providersQuery.refetch(),
+	}
+	const credentialsResource: AsyncResourceState = {
+		isLoading: credentialsQuery.isLoading,
+		isRefetching: credentialsQuery.isRefetching,
+		isLoadingError: credentialsQuery.isLoadingError,
+		isRefetchError: credentialsQuery.isRefetchError,
+		retry: () => void credentialsQuery.refetch(),
+	}
 
 	const registerApiKey = async (providerId: CredentialProvider, key: string) => {
 		const provider = providers.find(p => p.id === providerId)
@@ -95,5 +112,7 @@ export function useAiCredentials() {
 		registerApiKey,
 		deleteApiKey,
 		isPending: registerMutation.isPending || deleteMutation.isPending,
+		providersResource,
+		credentialsResource,
 	}
 }

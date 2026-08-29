@@ -1,7 +1,9 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { DashboardExpandableListState, RunRow } from '@/types/dashboard'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 import DashboardStatusBadge from './DashboardStatusBadge'
+import { DashboardRefreshFeedback, DashboardResourceStatus } from './DashboardAsyncState'
 
 const TABLE_HEADERS = ['실행 ID', '워크플로우', '상태', '소요 시간', '트리거', '시각'] as const
 
@@ -20,19 +22,25 @@ const TriggerChip = ({ kind }: DashboardTriggerChipProps) => (
 )
 
 const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
-	const { visibleItems, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = runs
+	const { visibleItems, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = runs
 
 	return (
-		<DashboardCard className='w-full'>
-			<div className='border-b border-neutral-200 px-5 py-4'>
+		<DashboardCard className='min-h-[319px] w-full' aria-busy={resource.isLoading || resource.isRefetching}>
+			<DashboardResourceStatus
+				{...resource}
+				loadingMessage='최근 실행 로그 불러오는 중'
+				errorMessage='최근 실행 로그를 불러오지 못했습니다. 다시 시도할 수 있습니다.'
+			/>
+			<div className='flex items-center justify-between gap-4 border-b border-neutral-200 px-5 py-4'>
 				<h3 className='typo-body2_semibold m-0 text-neutral-900'>최근 실행 로그</h3>
+				<DashboardRefreshFeedback {...resource} />
 			</div>
 
-			{isError && (
+			{resource.isRefetchError ? (
 				<p className='m-0 border-b border-neutral-200 px-5 py-3 typo-caption1_medium text-danger-700'>
-					실행 로그를 불러오지 못했습니다.
+					기존 실행 로그를 표시하고 있습니다.
 				</p>
-			)}
+			) : null}
 
 			<div className='overflow-x-auto'>
 				<table className='w-full min-w-[720px] border-collapse'>
@@ -49,13 +57,30 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 						</tr>
 					</thead>
 					<tbody>
-						{isLoading && visibleItems.length === 0 ? (
+						{resource.isLoading ? (
+							Array.from({ length: 5 }, (_, index) => (
+								<tr key={index} aria-hidden='true' className='border-b border-neutral-100 last:border-b-0'>
+									{TABLE_HEADERS.map(header => (
+										<td key={header} className='px-5 py-3.5'>
+											<SkeletonPulse className='h-4 rounded bg-neutral-200' />
+										</td>
+									))}
+								</tr>
+							))
+						) : resource.isLoadingError ? (
 							<tr>
 								<td
 									colSpan={TABLE_HEADERS.length}
 									className='px-5 py-8 text-center typo-body3_regular text-neutral-400'
 								>
-									불러오는 중…
+									<p className='m-0 text-danger-700'>실행 로그를 불러오지 못했습니다.</p>
+									<button
+										type='button'
+										onClick={resource.retry}
+										className='mt-3 rounded-brand-sm border border-danger-300 bg-neutral-white px-3 py-1.5 typo-caption1_semibold text-danger-700'
+									>
+										다시 시도
+									</button>
 								</td>
 							</tr>
 						) : visibleItems.length === 0 ? (
@@ -96,7 +121,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 				</table>
 			</div>
 
-			{hasMore && (
+			{hasMore && !resource.isLoading && !resource.isLoadingError ? (
 				<button
 					type='button'
 					onClick={handleFooterClick}
@@ -105,7 +130,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 					{footerLabel}
 					<DashboardIcon name={isExpanded ? 'expand_less' : 'expand_more'} size={16} className='text-neutral-600' />
 				</button>
-			)}
+			) : null}
 		</DashboardCard>
 	)
 }

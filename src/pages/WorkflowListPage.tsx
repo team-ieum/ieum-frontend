@@ -6,8 +6,9 @@ import WorkflowFilterSidebar from '@/components/workflow/list/WorkflowFilterSide
 import WorkflowListCard from '@/components/workflow/list/WorkflowListCard'
 import WorkflowListTable from '@/components/workflow/list/WorkflowListTable'
 import WorkflowListToolbar from '@/components/workflow/list/WorkflowListToolbar'
-import Spinner from '@/components/common/Spinner'
+import { WorkflowListError, WorkflowListSkeleton } from '@/components/workflow/list/WorkflowListAsyncState'
 import { useWorkflowListPageViewModel } from '@/hooks/workflow/useWorkflowListPageViewModel'
+import { cn } from '@/utils/cn'
 
 const WorkflowListPage = (): ReactElement => {
 	const { list: viewModel, headerRef, sectionMinHeight } = useWorkflowListPageViewModel()
@@ -57,6 +58,7 @@ const WorkflowListPage = (): ReactElement => {
 						view={viewModel.view}
 						resultCount={viewModel.workflows.length}
 						totalCount={viewModel.totalCount}
+						resource={viewModel.resource}
 						onSearchChange={viewModel.onSearchChange}
 						onSortChange={viewModel.onSortChange}
 						onViewChange={viewModel.onViewChange}
@@ -66,13 +68,24 @@ const WorkflowListPage = (): ReactElement => {
 						<WorkflowActiveFilters filters={viewModel.activeFilters} onRemove={viewModel.removeFilter} />
 					</div>
 
-					<div className='mt-4'>
-						{viewModel.isLoading ? (
-							<div className='flex items-center justify-center py-20'>
-								<Spinner size='lg' />
-							</div>
+					<div
+						className={cn(
+							'mt-4',
+							(viewModel.resource.isLoading || viewModel.workflows.length > 0) &&
+								(viewModel.view === 'card' ? 'min-h-[948px] lg:min-h-[468px] 2xl:min-h-[308px]' : 'min-h-[410px]')
+						)}
+						aria-busy={viewModel.resource.isLoading || viewModel.resource.isRefetching}
+					>
+						{viewModel.resource.isLoading ? (
+							<WorkflowListSkeleton view={viewModel.view} />
+						) : viewModel.resource.isLoadingError ? (
+							<WorkflowListError retry={viewModel.resource.retry} />
 						) : viewModel.workflows.length === 0 ? (
-							<WorkflowEmptyState onReset={viewModel.clearFilters} onCreate={viewModel.handleCreateWorkflow} />
+							<WorkflowEmptyState
+								onReset={viewModel.clearFilters}
+								onCreate={viewModel.handleCreateWorkflow}
+								isFiltered={viewModel.isFiltered}
+							/>
 						) : viewModel.view === 'card' ? (
 							<div className='grid gap-3 md:grid-cols-2 2xl:grid-cols-3'>
 								{viewModel.workflows.map(workflow => (

@@ -1,4 +1,5 @@
 import type { ReactNode, RefObject } from 'react'
+import type { AsyncResourceState } from '@/types/asyncResource'
 
 // --- Model (도메인) ---
 
@@ -65,8 +66,9 @@ export type UseIntegrationSettingResult = {
 	currentService: IntegrationService | undefined
 	connectedCount: number
 	availableCount: number
-	isConnectedLoading: boolean
-	isConnectedError: boolean
+	canResolveAvailable: boolean
+	webhookResource: AsyncResourceState
+	oauthResource: AsyncResourceState
 	isListView: boolean
 	aiCredentialsSectionRef: RefObject<HTMLElement | null>
 	goDetail: (id: string) => void

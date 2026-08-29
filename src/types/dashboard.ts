@@ -1,3 +1,5 @@
+import type { AsyncResourceState } from '@/types/asyncResource'
+
 // --- Model (도메인) ---
 
 export type RunStatus = 'success' | 'error' | 'running'
@@ -53,8 +55,7 @@ export type DashboardExpandableListState<TRow> = {
 	visibleItems: TRow[]
 	hasMore: boolean
 	isExpanded: boolean
-	isLoading: boolean
-	isError: boolean
+	resource: AsyncResourceState
 	footerLabel: string
 	handleFooterClick: () => void
 }
@@ -82,8 +83,7 @@ export type StatusPillSkins = Record<PillTone, StatusPillSkin>
 export type DashboardViewModel = {
 	hero: DashboardHeroMetrics
 	hourlyExecutions: HourlyExecution[]
-	isSummaryLoading: boolean
-	isSummaryError: boolean
+	summaryResource: AsyncResourceState
 	workflow: DashboardWorkflowSummary
 	runs: DashboardExpandableListState<RunRow>
 	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }

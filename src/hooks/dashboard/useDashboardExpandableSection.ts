@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import type { AsyncResourceState } from '@/types/asyncResource'
 
 type PaginatedApiPage<TItem> = {
 	data: {
@@ -10,10 +11,13 @@ type PaginatedApiPage<TItem> = {
 type DashboardInfiniteQuery<TItem> = {
 	data?: { pages: PaginatedApiPage<TItem>[] }
 	isLoading: boolean
-	isError: boolean
+	isRefetching: boolean
+	isLoadingError: boolean
+	isRefetchError: boolean
 	hasNextPage?: boolean
 	fetchNextPage: () => Promise<unknown>
 	isFetchingNextPage: boolean
+	refetch: () => Promise<unknown>
 }
 
 type UseDashboardExpandableSectionOptions<TItem, TRow> = {
@@ -28,8 +32,7 @@ export type DashboardExpandableSection<TRow> = {
 	allItems: TRow[]
 	hasMore: boolean
 	isExpanded: boolean
-	isLoading: boolean
-	isError: boolean
+	resource: AsyncResourceState
 	footerLabel: string
 	handleFooterClick: () => void
 }
@@ -41,7 +44,17 @@ export const useDashboardExpandableSection = <TItem, TRow>({
 	mapItem,
 }: UseDashboardExpandableSectionOptions<TItem, TRow>): DashboardExpandableSection<TRow> => {
 	const [isExpanded, setIsExpanded] = useState(false)
-	const { data, isLoading, isError, hasNextPage, fetchNextPage, isFetchingNextPage } = query
+	const {
+		data,
+		isLoading,
+		isRefetching,
+		isLoadingError,
+		isRefetchError,
+		hasNextPage,
+		fetchNextPage,
+		isFetchingNextPage,
+		refetch,
+	} = query
 
 	const allItems = useMemo<TRow[]>(() => data?.pages.flatMap(page => page.data.content.map(mapItem)) ?? [], [data, mapItem])
 
@@ -80,8 +93,13 @@ export const useDashboardExpandableSection = <TItem, TRow>({
 		allItems,
 		hasMore,
 		isExpanded,
-		isLoading,
-		isError,
+		resource: {
+			isLoading,
+			isRefetching,
+			isLoadingError,
+			isRefetchError,
+			retry: () => void refetch(),
+		},
 		footerLabel,
 		handleFooterClick,
 	}

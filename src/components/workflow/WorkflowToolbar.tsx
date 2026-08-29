@@ -68,6 +68,9 @@ type WorkflowToolbarProps = {
 	isExecuting?: boolean
 	technicalMode?: boolean
 	onToggleTechnicalMode?: () => void
+	isRefreshing?: boolean
+	isRefreshError?: boolean
+	onRetryRefresh?: () => void
 }
 
 const WorkflowToolbar = ({
@@ -82,6 +85,9 @@ const WorkflowToolbar = ({
 	isExecuting = false,
 	technicalMode = false,
 	onToggleTechnicalMode,
+	isRefreshing = false,
+	isRefreshError = false,
+	onRetryRefresh,
 }: WorkflowToolbarProps) => {
 	const { handleBack } = useWorkflowToolbar()
 	const statusMeta = WORKFLOW_STATUS_META[status]
@@ -135,6 +141,21 @@ const WorkflowToolbar = ({
 				<span className='inline-flex shrink-0 items-center gap-1 text-xs text-neutral-400'>
 					<HardDrive size={14} className='text-node-green' />
 					브라우저에 임시 보관됨
+				</span>
+			) : null}
+
+			{isRefreshError ? (
+				<div role='status' className='flex shrink-0 items-center gap-2 text-xs font-medium text-danger-700'>
+					<span>업데이트하지 못했습니다.</span>
+					{onRetryRefresh ? (
+						<button type='button' onClick={onRetryRefresh} className='underline underline-offset-2'>
+							다시 시도
+						</button>
+					) : null}
+				</div>
+			) : isRefreshing ? (
+				<span role='status' className='shrink-0 text-xs font-medium text-neutral-500'>
+					업데이트 중…
 				</span>
 			) : null}
 

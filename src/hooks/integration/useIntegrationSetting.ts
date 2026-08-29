@@ -29,34 +29,33 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 
 	const { connect, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
 
-	const { data: webhookCredentials = [], isLoading: isWebhookLoading, isError: isWebhookError } = useWebhookCredentialsQuery()
-
-	const {
-		data: oauthConnections = [],
-		isLoading: isOAuthConnectionsLoading,
-		isError: isOAuthConnectionsError,
-	} = useOAuthConnectionsQuery()
+	const webhookQuery = useWebhookCredentialsQuery()
+	const oauthQuery = useOAuthConnectionsQuery()
+	const canResolveAvailable = webhookQuery.data !== undefined && oauthQuery.data !== undefined
 
 	const aiCredentialsSectionRef = useRef<HTMLElement>(null)
 	const shouldScrollToAiCredentialsRef = useRef(false)
 	const isAutoScrollingRef = useRef(false)
 	const autoScrollIdleTimerRef = useRef<number | undefined>(undefined)
 
-	const webhookConnected = useMemo(() => webhookCredentials.map(mapWebhookCredentialToIntegrationService), [webhookCredentials])
+	const webhookConnected = useMemo(
+		() => (webhookQuery.data ?? []).map(mapWebhookCredentialToIntegrationService),
+		[webhookQuery.data]
+	)
 
-	const oauthConnected = useMemo(() => oauthConnections.map(mapOAuthConnectionToIntegrationService), [oauthConnections])
+	const oauthConnected = useMemo(() => (oauthQuery.data ?? []).map(mapOAuthConnectionToIntegrationService), [oauthQuery.data])
 
 	const connected = useMemo(() => [...webhookConnected, ...oauthConnected], [webhookConnected, oauthConnected])
 
 	const excludedCatalogBrands = useMemo(() => {
 		const brands = new Set(webhookConnected.map(service => service.brand))
-		getExcludedCatalogBrandsForOAuthConnections(oauthConnections).forEach(brand => brands.add(brand))
+		getExcludedCatalogBrandsForOAuthConnections(oauthQuery.data ?? []).forEach(brand => brands.add(brand))
 		return brands
-	}, [webhookConnected, oauthConnections])
+	}, [webhookConnected, oauthQuery.data])
 
 	const available = useMemo(
-		() => filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogBrands),
-		[excludedCatalogBrands]
+		() => (canResolveAvailable ? filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogBrands) : []),
+		[canResolveAvailable, excludedCatalogBrands]
 	)
 
 	const services = useMemo(() => [...connected, ...available], [connected, available])
@@ -129,9 +128,6 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		[connect]
 	)
 
-	const isConnectedLoading = isWebhookLoading || isOAuthConnectionsLoading
-	const isConnectedError = isWebhookError || isOAuthConnectionsError
-
 	return {
 		view,
 		activeTab,
@@ -140,8 +136,21 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		currentService,
 		connectedCount: connected.length,
 		availableCount: available.length,
-		isConnectedLoading,
-		isConnectedError,
+		canResolveAvailable,
+		webhookResource: {
+			isLoading: webhookQuery.isLoading,
+			isRefetching: webhookQuery.isRefetching,
+			isLoadingError: webhookQuery.isLoadingError,
+			isRefetchError: webhookQuery.isRefetchError,
+			retry: () => void webhookQuery.refetch(),
+		},
+		oauthResource: {
+			isLoading: oauthQuery.isLoading,
+			isRefetching: oauthQuery.isRefetching,
+			isLoadingError: oauthQuery.isLoadingError,
+			isRefetchError: oauthQuery.isRefetchError,
+			retry: () => void oauthQuery.refetch(),
+		},
 		isListView: view.kind === 'list',
 		aiCredentialsSectionRef,
 		goDetail,

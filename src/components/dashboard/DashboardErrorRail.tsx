@@ -1,36 +1,73 @@
+import SkeletonPulse from '@/components/common/SkeletonPulse'
 import type { DashboardExpandableListState, ErrorRow } from '@/types/dashboard'
 import { cn } from '@/utils/cn'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
+import { DashboardRefreshFeedback, DashboardResourceStatus } from './DashboardAsyncState'
 
 type DashboardErrorRailProps = {
 	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
 }
 
 const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
-	const { visibleItems, errorCount, hasMore, isExpanded, isLoading, isError, footerLabel, handleFooterClick } = errors
+	const { visibleItems, errorCount, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = errors
 
 	return (
-		<DashboardCard className='flex w-full flex-col'>
+		<DashboardCard className='flex min-h-[253px] w-full flex-col' aria-busy={resource.isLoading || resource.isRefetching}>
+			<DashboardResourceStatus
+				{...resource}
+				loadingMessage='오류 목록 불러오는 중'
+				errorMessage='오류 목록을 불러오지 못했습니다. 다시 시도할 수 있습니다.'
+			/>
 			<div className='flex items-center justify-between border-b border-neutral-200 px-5 py-4'>
 				<div className='flex items-center gap-2'>
 					<DashboardIcon name='error_outline' size={16} fill={1} className='text-danger-600' />
 					<h3 className='typo-body2_semibold m-0 text-neutral-900'>오류 요약</h3>
 				</div>
-				<span className='rounded-full border border-danger-300 bg-danger-100 px-2.5 py-0.5 typo-caption1_semibold text-danger-700'>
-					{errorCount}건
-				</span>
+				<div className='flex items-center gap-3'>
+					<DashboardRefreshFeedback {...resource} />
+					{resource.isLoading || resource.isLoadingError ? (
+						<SkeletonPulse as='span' className='h-6 w-12 rounded-full bg-neutral-200' />
+					) : (
+						<span className='rounded-full border border-danger-300 bg-danger-100 px-2.5 py-0.5 typo-caption1_semibold text-danger-700'>
+							{errorCount}건
+						</span>
+					)}
+				</div>
 			</div>
 
-			{isError && (
+			{resource.isRefetchError ? (
 				<p className='m-0 border-b border-neutral-200 px-5 py-3 typo-caption1_medium text-danger-700'>
-					오류 목록을 불러오지 못했습니다.
+					기존 오류 목록을 표시하고 있습니다.
 				</p>
-			)}
+			) : null}
 
 			<ul>
-				{isLoading && visibleItems.length === 0 ? (
-					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>불러오는 중…</li>
+				{resource.isLoading ? (
+					Array.from({ length: 3 }, (_, index) => (
+						<li
+							key={index}
+							aria-hidden='true'
+							className='flex gap-3 border-b border-neutral-100 px-5 py-3.5 last:border-b-0'
+						>
+							<SkeletonPulse className='size-7 rounded-lg bg-neutral-200' />
+							<div className='flex flex-1 flex-col gap-2'>
+								<SkeletonPulse className='h-3 w-24 rounded bg-neutral-200' />
+								<SkeletonPulse className='h-4 w-3/4 rounded bg-neutral-200' />
+							</div>
+						</li>
+					))
+				) : resource.isLoadingError ? (
+					<li className='px-5 py-8 text-center typo-body3_regular text-danger-700'>
+						<p className='m-0'>오류 목록을 불러오지 못했습니다.</p>
+						<button
+							type='button'
+							onClick={resource.retry}
+							className='mt-3 rounded-brand-sm border border-danger-300 bg-neutral-white px-3 py-1.5 typo-caption1_semibold text-danger-700'
+						>
+							다시 시도
+						</button>
+					</li>
 				) : visibleItems.length === 0 ? (
 					<li className='px-5 py-8 text-center typo-body3_regular text-neutral-400'>최근 오류가 없습니다.</li>
 				) : (
@@ -75,7 +112,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 				)}
 			</ul>
 
-			{hasMore && (
+			{hasMore && !resource.isLoading && !resource.isLoadingError ? (
 				<button
 					type='button'
 					onClick={handleFooterClick}
@@ -84,7 +121,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 					{footerLabel}
 					<DashboardIcon name={isExpanded ? 'expand_less' : 'expand_more'} size={16} className='text-neutral-600' />
 				</button>
-			)}
+			) : null}
 		</DashboardCard>
 	)
 }

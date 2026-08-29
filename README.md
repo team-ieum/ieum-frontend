@@ -51,4 +51,8 @@
 | `npm run test:watch` | Vitest watch 모드    |
 | `npm run test:ui`    | Vitest UI 모드       |
 
+## 📚 Development Guides
+
+- [Skeleton UI 개발 가이드](docs/skeleton-ui-guideline.md) — 비동기 loading 상태, 공통 shimmer, 접근성 및 테스트 기준
+
 ---
