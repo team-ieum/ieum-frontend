@@ -1,6 +1,7 @@
 let reducedMotion = false
 const animationFrameHandles = new Set<number>()
 const mediaQueryLists = new Map<string, MediaQueryListMock>()
+const intersectionObservers = new Set<IntersectionObserverMock>()
 
 const matchesQuery = (query: string) => {
 	if (query === '(prefers-reduced-motion)' || query === '(prefers-reduced-motion: reduce)') return reducedMotion
@@ -80,6 +81,55 @@ class ResizeObserverMock implements ResizeObserver {
 	unobserve() {}
 }
 
+class IntersectionObserverMock implements IntersectionObserver {
+	readonly root = null
+	readonly rootMargin: string
+	readonly scrollMargin = '0px'
+	readonly thresholds: readonly number[]
+	private readonly callback: IntersectionObserverCallback
+	private readonly elements = new Set<Element>()
+
+	constructor(callback: IntersectionObserverCallback, options: IntersectionObserverInit = {}) {
+		this.callback = callback
+		this.rootMargin = options.rootMargin ?? '0px'
+		this.thresholds = Array.isArray(options.threshold)
+			? options.threshold
+			: [typeof options.threshold === 'number' ? options.threshold : 0]
+		intersectionObservers.add(this)
+	}
+
+	disconnect() {
+		this.elements.clear()
+		intersectionObservers.delete(this)
+	}
+
+	observe(element: Element) {
+		this.elements.add(element)
+	}
+
+	takeRecords() {
+		return []
+	}
+
+	unobserve(element: Element) {
+		this.elements.delete(element)
+	}
+
+	trigger(isIntersecting: boolean) {
+		const entries = [...this.elements].map(
+			target =>
+				({
+					target,
+					isIntersecting,
+					intersectionRatio: isIntersecting ? 1 : 0,
+				}) as IntersectionObserverEntry
+		)
+		if (entries.length > 0) {
+			this.callback(entries, this)
+		}
+	}
+}
+
 export const installDomEnvironment = () => {
 	Object.defineProperty(window, 'matchMedia', {
 		configurable: true,
@@ -118,14 +168,28 @@ export const installDomEnvironment = () => {
 		writable: true,
 		value: ResizeObserverMock,
 	})
+	Object.defineProperty(globalThis, 'IntersectionObserver', {
+		configurable: true,
+		writable: true,
+		value: IntersectionObserverMock,
+	})
 }
 
 export const setReducedMotion = (value: boolean) => {
 	updateReducedMotion(value)
 }
 
+export const intersectObservedElements = (isIntersecting: boolean = true): void => {
+	for (const observer of [...intersectionObservers]) {
+		observer.trigger(isIntersecting)
+	}
+}
+
+export const getIntersectionObserverRootMargins = (): string[] => [...intersectionObservers].map(observer => observer.rootMargin)
+
 export const resetDomEnvironment = () => {
 	for (const handle of animationFrameHandles) window.clearTimeout(handle)
 	animationFrameHandles.clear()
+	for (const observer of [...intersectionObservers]) observer.disconnect()
 	updateReducedMotion(false)
 }

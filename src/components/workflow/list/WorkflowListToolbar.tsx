@@ -87,7 +87,7 @@ const WorkflowListToolbar = ({
 				<SkeletonPulse as='span' className='h-4 w-16 rounded bg-neutral-200' />
 			) : (
 				<span className='typo-caption1_regular text-neutral-500'>
-					{resultCount === totalCount ? `총 ${totalCount}개` : `${resultCount}개 / 총 ${totalCount}개`}
+					{resultCount === totalCount ? `불러온 ${totalCount}개` : `${resultCount}개 / 불러온 ${totalCount}개`}
 				</span>
 			)}
 

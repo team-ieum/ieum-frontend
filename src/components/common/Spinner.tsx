@@ -6,6 +6,7 @@ type SpinnerSize = 'sm' | 'md' | 'lg'
 type SpinnerProps = {
 	size?: SpinnerSize
 	className?: string
+	label?: string
 }
 
 const sizeClass: Record<SpinnerSize, string> = {
@@ -14,10 +15,10 @@ const sizeClass: Record<SpinnerSize, string> = {
 	lg: 'size-12 border-4',
 }
 
-const Spinner = ({ size = 'md', className }: SpinnerProps): ReactElement => (
+const Spinner = ({ size = 'md', className, label = '로딩 중' }: SpinnerProps): ReactElement => (
 	<span
 		role='status'
-		aria-label='로딩 중'
+		aria-label={label}
 		className={cn('block animate-spin rounded-full border-main-blue/20 border-t-main-blue', sizeClass[size], className)}
 	/>
 )

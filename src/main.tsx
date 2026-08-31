@@ -9,6 +9,13 @@ const isMeasurementMode = import.meta.env.VITE_MEASUREMENT_MODE === 'true'
 const isDevelopmentMeasurementProfiling = isMeasurementMode && import.meta.env.DEV
 
 async function enableDevelopmentMocking() {
+	if (!import.meta.env.DEV) {
+		return
+	}
+	if (import.meta.env.MODE === 'pagination-demo') {
+		const { startPaginationDemo } = await import('./mocks/paginationDemoBrowser')
+		return startPaginationDemo()
+	}
 	if (import.meta.env.MODE !== 'development') {
 		return
 	}

@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, RefObject } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import Spinner from '@/components/common/Spinner'
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { WorkflowViewMode } from '@/types/workflowList'
 
@@ -91,4 +92,41 @@ export const WorkflowListRefreshFeedback = ({
 	}
 
 	return null
+}
+
+type WorkflowListPaginationProps = {
+	hasNextPage: boolean
+	isFetchingNextPage: boolean
+	isFetchNextPageError: boolean
+	sentinelRef: RefObject<HTMLDivElement | null>
+	retryNextPage: () => void
+}
+
+export const WorkflowListPagination = ({
+	hasNextPage,
+	isFetchingNextPage,
+	isFetchNextPageError,
+	sentinelRef,
+	retryNextPage,
+}: WorkflowListPaginationProps): ReactElement | null => {
+	if (isFetchingNextPage) {
+		return (
+			<div className='mt-4 flex justify-center py-2'>
+				<Spinner size='md' label='다음 워크플로우 불러오는 중' />
+			</div>
+		)
+	}
+
+	if (isFetchNextPageError) {
+		return (
+			<div role='status' className='mt-4 flex items-center justify-center gap-2 typo-body2_regular text-danger-700'>
+				<span>다음 워크플로우를 불러오지 못했습니다.</span>
+				<button type='button' onClick={retryNextPage} className='font-semibold underline underline-offset-2'>
+					다시 시도
+				</button>
+			</div>
+		)
+	}
+
+	return hasNextPage ? <div ref={sentinelRef} aria-hidden='true' className='h-px' /> : null
 }

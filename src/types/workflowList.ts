@@ -197,6 +197,9 @@ export type WorkflowListViewModel = {
 	statusCounts: Record<WorkflowStatus, number>
 	resource: AsyncResourceState
 	isFiltered: boolean
+	isRefetching: boolean
+	isFetchingNextPage: boolean
+	isFetchNextPageError: boolean
 	toggleService: (serviceId: WorkflowServiceId) => void
 	toggleCategory: (categoryId: WorkflowCategoryId) => void
 	toggleStatus: (status: WorkflowStatus) => void
@@ -206,7 +209,8 @@ export type WorkflowListViewModel = {
 	onSortChange: (value: WorkflowSortKey) => void
 	onViewChange: (value: WorkflowViewMode) => void
 	hasNextPage: boolean
-	fetchNextPage: () => void
+	loadNextPage: () => void
+	retryNextPage: () => void
 	handleCreateWorkflow: () => void
 	handleOpenWorkflow: (workflowId: string, workflowName: string) => void
 	handleDeleteWorkflow: (workflowId: string) => void
@@ -215,5 +219,6 @@ export type WorkflowListViewModel = {
 export type WorkflowListPageViewModel = {
 	list: WorkflowListViewModel
 	headerRef: RefObject<HTMLElement | null>
+	paginationSentinelRef: RefObject<HTMLDivElement | null>
 	sectionMinHeight: string
 }

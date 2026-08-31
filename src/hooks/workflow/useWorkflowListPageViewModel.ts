@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSnapPastHeader } from '@/hooks/workflow/useSnapPastHeader'
+import { useWorkflowListPaginationSentinel } from '@/hooks/workflow/useWorkflowListPaginationSentinel'
 import { useWorkflowListViewModel } from '@/hooks/workflow/useWorkflowListViewModel'
 import type { WorkflowListPageViewModel } from '@/types/workflowList'
 
@@ -10,6 +11,13 @@ export const useWorkflowListPageViewModel = (): WorkflowListPageViewModel => {
 	const listViewModel = useWorkflowListViewModel()
 	const headerRef = useRef<HTMLElement>(null)
 	const [headerHeight, setHeaderHeight] = useState(0)
+	const paginationSentinelRef = useWorkflowListPaginationSentinel({
+		hasNextPage: listViewModel.hasNextPage,
+		isRefetching: listViewModel.isRefetching,
+		isFetchingNextPage: listViewModel.isFetchingNextPage,
+		isFetchNextPageError: listViewModel.isFetchNextPageError,
+		loadNextPage: listViewModel.loadNextPage,
+	})
 
 	useSnapPastHeader(headerRef, HEADER_TO_CONTENT_GAP_PX)
 
@@ -30,6 +38,7 @@ export const useWorkflowListPageViewModel = (): WorkflowListPageViewModel => {
 	return {
 		list: listViewModel,
 		headerRef,
+		paginationSentinelRef,
 		sectionMinHeight,
 	}
 }
