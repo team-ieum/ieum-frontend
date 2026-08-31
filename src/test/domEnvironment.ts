@@ -179,13 +179,13 @@ export const setReducedMotion = (value: boolean) => {
 	updateReducedMotion(value)
 }
 
-export const intersectObservedElements = (isIntersecting = true) => {
+export const intersectObservedElements = (isIntersecting: boolean = true): void => {
 	for (const observer of [...intersectionObservers]) {
 		observer.trigger(isIntersecting)
 	}
 }
 
-export const getIntersectionObserverRootMargins = () => [...intersectionObservers].map(observer => observer.rootMargin)
+export const getIntersectionObserverRootMargins = (): string[] => [...intersectionObservers].map(observer => observer.rootMargin)
 
 export const resetDomEnvironment = () => {
 	for (const handle of animationFrameHandles) window.clearTimeout(handle)

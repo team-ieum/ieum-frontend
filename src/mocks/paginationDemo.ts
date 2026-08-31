@@ -1,4 +1,4 @@
-import { delay, http, HttpResponse, type UnhandledRequestCallback } from 'msw'
+import { delay, http, HttpResponse, type HttpHandler, type UnhandledRequestCallback } from 'msw'
 import type { WorkflowDto, WorkflowListResponse } from '@/types/workflowList'
 
 export const PAGINATION_DEMO_WORKFLOW_COUNT = 60
@@ -86,7 +86,7 @@ export const createPaginationDemoResponse = (searchParams: URLSearchParams): Wor
 	}
 }
 
-export const createPaginationDemoWorkflowListHandler = (delayMs = PAGINATION_DEMO_REQUEST_DELAY_MS) =>
+export const createPaginationDemoWorkflowListHandler = (delayMs = PAGINATION_DEMO_REQUEST_DELAY_MS): HttpHandler =>
 	http.get('*/api/v1/workflows', async ({ request }) => {
 		await delay(delayMs)
 		return HttpResponse.json(createPaginationDemoResponse(new URL(request.url).searchParams))
