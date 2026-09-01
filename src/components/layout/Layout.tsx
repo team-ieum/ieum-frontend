@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router'
+import { useLocation } from 'react-router'
 import { cn } from '../../utils/cn'
 import { Header } from '../common/Header'
 import { SideBar } from '../common/SideBar'
 import { NAV_ITEMS } from '@/constants/layout'
+import { RouteTransition } from '@/components/routing/RouteTransition'
 
 export const Layout = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -35,13 +36,13 @@ export const Layout = () => {
 
 			<main
 				className={cn(
-					'min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6',
+					'relative min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6',
 					'pt-[calc(var(--layout-header-height)+1.5rem)]',
 					'transition-[padding-left] duration-200',
 					collapsed ? 'lg:pl-22' : 'lg:pl-[calc(var(--layout-sidebar-width)+1.5rem)]'
 				)}
 			>
-				<Outlet />
+				<RouteTransition />
 			</main>
 		</div>
 	)
