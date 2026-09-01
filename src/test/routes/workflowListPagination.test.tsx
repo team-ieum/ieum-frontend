@@ -9,6 +9,11 @@ import { getIntersectionObserverRootMargins, intersectObservedElements } from '@
 import { renderAppRoute } from '@/test/renderAppRoute'
 import type { WorkflowDto, WorkflowListResponse } from '@/types/workflowList'
 
+vi.mock('@/components/routing/RouteTransition', async () => {
+	const { Outlet } = await import('react-router')
+	return { RouteTransition: Outlet }
+})
+
 const createWorkflow = (id: string, name: string): WorkflowDto => ({
 	...workflowFixture,
 	id,

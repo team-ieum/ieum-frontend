@@ -12,6 +12,11 @@ import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { renderAppRoute } from '@/test/renderAppRoute'
 
+vi.mock('@/components/routing/RouteTransition', async () => {
+	const { Outlet } = await import('react-router')
+	return { RouteTransition: Outlet }
+})
+
 const countRequests = (requestObserver: ReturnType<typeof vi.fn>, resource: ApiMockResource) =>
 	requestObserver.mock.calls.filter(([requestedResource]) => requestedResource === resource).length
 
