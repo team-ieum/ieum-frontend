@@ -3,10 +3,10 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
 	createRouteTransitionVariants,
-	getRouteTransitionDirection,
 	ROUTE_TRANSITION,
 	ROUTE_TRANSITION_MODE,
 } from '@/components/routing/routeTransitionMotion'
+import { getRouteTransitionDirection } from '@/hooks/routing/useRouteTransitionViewModel'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
 import { server } from '@/mocks/server'
 import { setReducedMotion } from '@/test/domEnvironment'

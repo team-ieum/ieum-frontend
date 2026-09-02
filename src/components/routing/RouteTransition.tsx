@@ -1,28 +1,13 @@
-import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useLocation, useOutlet } from 'react-router'
-import {
-	createRouteTransitionVariants,
-	getRouteTransitionDirection,
-	ROUTE_TRANSITION,
-	ROUTE_TRANSITION_MODE,
-} from './routeTransitionMotion'
+import { createRouteTransitionVariants, ROUTE_TRANSITION, ROUTE_TRANSITION_MODE } from './routeTransitionMotion'
+import { useRouteTransitionViewModel } from '@/hooks/routing/useRouteTransitionViewModel'
 
 export const RouteTransition = () => {
 	const { pathname } = useLocation()
 	const outlet = useOutlet()
 	const reduceMotion = useReducedMotion()
-	const [transitionState, setTransitionState] = useState(() => ({
-		pathname,
-		direction: getRouteTransitionDirection(null, pathname),
-	}))
-	let transitionDirection = transitionState.direction
-
-	if (transitionState.pathname !== pathname) {
-		transitionDirection = getRouteTransitionDirection(transitionState.pathname, pathname)
-		setTransitionState({ pathname, direction: transitionDirection })
-	}
-
+	const { transitionDirection } = useRouteTransitionViewModel(pathname)
 	const routeVariants = createRouteTransitionVariants(reduceMotion)
 
 	return (
