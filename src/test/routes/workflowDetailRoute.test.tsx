@@ -33,6 +33,10 @@ vi.mock('@stomp/stompjs', () => ({
 		publish() {}
 	},
 }))
+vi.mock('@/components/routing/RouteTransition', async () => {
+	const { Outlet } = await import('react-router')
+	return { RouteTransition: Outlet }
+})
 
 const detailPath = `/workflow/${WORKFLOW_FIXTURE_ID}`
 const workflowNotFoundCodes = ['WORKFLOW_NOT_FOUND', 'WORKFLOW_DEFINITION_NOT_FOUND', 'NOT_FOUND'] as const
