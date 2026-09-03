@@ -332,8 +332,11 @@ export const useWorkflowChat = (
 		}
 	}
 
-	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleSend()
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+			e.preventDefault()
+			void handleSend()
+		}
 	}
 
 	return {
