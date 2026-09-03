@@ -11,6 +11,7 @@ type IntegrationListBodyProps = {
 	connected: IntegrationService[]
 	available: IntegrationService[]
 	onManage: (id: string) => void
+	onManageButtonRef: (id: string, element: HTMLButtonElement | null) => void
 	onConnect: (id: string) => void
 	canResolveAvailable: boolean
 	webhookResource: AsyncResourceState
@@ -21,6 +22,7 @@ const IntegrationListBody = ({
 	connected,
 	available,
 	onManage,
+	onManageButtonRef,
 	onConnect,
 	canResolveAvailable,
 	webhookResource,
@@ -43,7 +45,12 @@ const IntegrationListBody = ({
 		</div>
 		<div className={cn(INTEGRATION_SECTION_GRID, 'mb-9')}>
 			{connected.map(service => (
-				<IntegrationConnectedCard key={service.id} service={service} onManage={() => onManage(service.id)} />
+				<IntegrationConnectedCard
+					key={service.id}
+					service={service}
+					onManage={() => onManage(service.id)}
+					onManageButtonRef={onManageButtonRef}
+				/>
 			))}
 			{webhookResource.isLoading || oauthResource.isLoading ? (
 				<div className='col-span-full'>

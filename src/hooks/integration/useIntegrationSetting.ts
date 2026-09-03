@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useReducedMotion } from 'framer-motion'
+import { useSearchParams } from 'react-router'
 import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
 import { useOAuthConnectionsQuery } from '@/hooks/oauthConnections/queries/useOAuthConnectionsQuery'
 import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
 import type {
 	IntegrationBrand,
+	IntegrationDetailResolution,
 	IntegrationService,
 	IntegrationTabId,
 	IntegrationView,
@@ -15,6 +18,13 @@ import {
 } from '../../utils/integration/mapOAuthConnectionToIntegrationService'
 import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
 import { findServiceById } from '../../utils/integration/selectors'
+import { isOAuthReturnSearchParams } from '../../utils/integration/integrationOAuthReturn'
+import {
+	hasIntegrationServiceIdParam,
+	isCanonicalIntegrationViewParams,
+	parseIntegrationView,
+	serializeIntegrationView,
+} from '../../utils/integration/integrationViewParams'
 import { useIntegrationConnect } from './useIntegrationConnect'
 import { useIntegrationOAuthReturn } from './useIntegrationOAuthReturn'
 
@@ -24,7 +34,8 @@ const filterCatalogAvailable = (catalog: IntegrationService[], excludedBrands: S
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	useIntegrationOAuthReturn()
 
-	const [view, setView] = useState<IntegrationView>({ kind: 'list' })
+	const [searchParams, setSearchParams] = useSearchParams()
+	const reduceMotion = useReducedMotion()
 	const [activeTab, setActiveTab] = useState<IntegrationTabId>('services')
 
 	const { connect, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
@@ -58,28 +69,53 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		[canResolveAvailable, excludedCatalogBrands]
 	)
 
-	const services = useMemo(() => [...connected, ...available], [connected, available])
+	const parsedView = parseIntegrationView(searchParams)
+	const parsedService = parsedView.kind === 'detail' ? findServiceById(connected, parsedView.id) : undefined
+	const canNormalizeDetail =
+		webhookQuery.isSuccess && oauthQuery.isSuccess && !webhookQuery.isRefetching && !oauthQuery.isRefetching
+	const shouldNormalizeDetail =
+		canNormalizeDetail &&
+		!isOAuthReturnSearchParams(searchParams) &&
+		(!isCanonicalIntegrationViewParams(searchParams) || (parsedView.kind === 'detail' && !parsedService))
+	const view: IntegrationView = shouldNormalizeDetail ? { kind: 'list' } : parsedView
+	const currentService = view.kind === 'detail' ? parsedService : undefined
+	const hasDetailResolutionError =
+		webhookQuery.isLoadingError || oauthQuery.isLoadingError || webhookQuery.isRefetchError || oauthQuery.isRefetchError
+	const detailResolution: IntegrationDetailResolution =
+		view.kind === 'list' ? 'list' : currentService ? 'ready' : hasDetailResolutionError ? 'error' : 'loading'
+	const scrollBehavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth'
 
-	const currentService = view.kind === 'detail' ? findServiceById(services, view.id) : undefined
+	useEffect(() => {
+		if (!shouldNormalizeDetail) return
+		setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
+	}, [setSearchParams, shouldNormalizeDetail])
 
-	const goDetail = useCallback((id: string) => {
-		setView({ kind: 'detail', id })
-	}, [])
+	const goDetail = useCallback(
+		(id: string) => {
+			setSearchParams(current => serializeIntegrationView(current, { kind: 'detail', id }))
+		},
+		[setSearchParams]
+	)
 
 	const goList = useCallback(() => {
-		setView({ kind: 'list' })
-	}, [])
+		setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
+	}, [setSearchParams])
 
-	const handleTabChange = useCallback((tab: IntegrationTabId) => {
-		setView(prev => (prev.kind === 'detail' ? { kind: 'list' } : prev))
-		isAutoScrollingRef.current = true
-		if (tab === 'aiCredentials') {
-			shouldScrollToAiCredentialsRef.current = true
-		} else {
-			window.scrollTo({ top: 0, behavior: 'smooth' })
-		}
-		setActiveTab(tab)
-	}, [])
+	const handleTabChange = useCallback(
+		(tab: IntegrationTabId) => {
+			if (hasIntegrationServiceIdParam(searchParams)) {
+				setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
+			}
+			isAutoScrollingRef.current = true
+			if (tab === 'aiCredentials') {
+				shouldScrollToAiCredentialsRef.current = true
+			} else {
+				window.scrollTo({ top: 0, behavior: scrollBehavior })
+			}
+			setActiveTab(tab)
+		},
+		[scrollBehavior, searchParams, setSearchParams]
+	)
 
 	useEffect(() => {
 		if (!shouldScrollToAiCredentialsRef.current || activeTab !== 'aiCredentials' || view.kind !== 'list') {
@@ -87,10 +123,11 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		}
 
 		shouldScrollToAiCredentialsRef.current = false
-		requestAnimationFrame(() => {
-			aiCredentialsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+		const frame = window.requestAnimationFrame(() => {
+			aiCredentialsSectionRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
 		})
-	}, [activeTab, view.kind])
+		return () => window.cancelAnimationFrame(frame)
+	}, [activeTab, scrollBehavior, view.kind])
 
 	// 수동 스크롤 시 화면에 보이는 섹션에 맞춰 활성 탭 동기화 (스크롤 스파이)
 	useEffect(() => {
@@ -130,6 +167,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 
 	return {
 		view,
+		detailResolution,
 		activeTab,
 		connected,
 		available,
