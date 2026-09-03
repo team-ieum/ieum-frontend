@@ -503,6 +503,7 @@ describe('주요 route 테스트 harness', () => {
 
 	it('services와 aiCredentials scroll navigation의 빠른 변경은 마지막 탭을 유지한다', async () => {
 		const scrollTo = vi.spyOn(window, 'scrollTo')
+		const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView')
 		renderAppRoute('/inter-setting')
 		await screen.findByText('팀 Slack')
 
@@ -519,6 +520,7 @@ describe('주요 route 테스트 harness', () => {
 		})
 		expect(services).toHaveClass('bg-main-deep-blue')
 		expect(aiCredentials).not.toHaveClass('bg-main-deep-blue')
+		expect(scrollIntoView).not.toHaveBeenCalled()
 	})
 
 	it('두 QueryClient와 runtime handler reset을 직접 격리한다', async () => {

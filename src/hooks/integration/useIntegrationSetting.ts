@@ -123,9 +123,10 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		}
 
 		shouldScrollToAiCredentialsRef.current = false
-		requestAnimationFrame(() => {
+		const frame = window.requestAnimationFrame(() => {
 			aiCredentialsSectionRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
 		})
+		return () => window.cancelAnimationFrame(frame)
 	}, [activeTab, scrollBehavior, view.kind])
 
 	// 수동 스크롤 시 화면에 보이는 섹션에 맞춰 활성 탭 동기화 (스크롤 스파이)
