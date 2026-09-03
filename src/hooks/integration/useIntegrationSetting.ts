@@ -18,6 +18,7 @@ import {
 } from '../../utils/integration/mapOAuthConnectionToIntegrationService'
 import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
 import { findServiceById } from '../../utils/integration/selectors'
+import { isOAuthReturnSearchParams } from '../../utils/integration/integrationOAuthReturn'
 import {
 	hasIntegrationServiceIdParam,
 	isCanonicalIntegrationViewParams,
@@ -74,6 +75,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		webhookQuery.isSuccess && oauthQuery.isSuccess && !webhookQuery.isRefetching && !oauthQuery.isRefetching
 	const shouldNormalizeDetail =
 		canNormalizeDetail &&
+		!isOAuthReturnSearchParams(searchParams) &&
 		(!isCanonicalIntegrationViewParams(searchParams) || (parsedView.kind === 'detail' && !parsedService))
 	const view: IntegrationView = shouldNormalizeDetail ? { kind: 'list' } : parsedView
 	const currentService = view.kind === 'detail' ? parsedService : undefined

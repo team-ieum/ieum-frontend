@@ -175,6 +175,20 @@ describe('통합 설정 URL 보기 상태', () => {
 		expect(await screen.findByText('이 서비스를 사용하는 워크플로우가 없습니다.')).toBeInTheDocument()
 	})
 
+	it('OAuth 복귀 query와 빈 serviceId를 한 번만 처리한다', async () => {
+		const { router, queryClient } = renderAppRoute('/inter-setting')
+		await screen.findByText('팀 Slack')
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+		const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+
+		await act(async () => {
+			await router.navigate('/inter-setting?serviceId=&source=test&success=true&provider=github')
+		})
+
+		await waitFor(() => expect(getSearchParams(router.state.location.search).toString()).toBe('source=test'))
+		expect(invalidateQueries).toHaveBeenCalledTimes(1)
+	})
+
 	it('OAuth query는 invalidation 완료 전에 정리하고 이후 URL 변경을 되돌리지 않는다', async () => {
 		const queryClient = createTestQueryClient()
 		let resolveInvalidation: () => void = () => undefined
