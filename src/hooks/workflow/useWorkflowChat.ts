@@ -56,7 +56,6 @@ export const useWorkflowChat = (
 	const [selectedCredentialId, setSelectedCredentialIdState] = useState<string | null>(() =>
 		localStorage.getItem('ieum-chat-credential-id')
 	)
-	const bodyRef = useRef<HTMLDivElement>(null)
 	const clientRef = useRef<Client | null>(null)
 	const subscriptionRef = useRef<StompSubscription | null>(null)
 	const connectionReadyRef = useRef<Promise<void> | null>(null)
@@ -89,12 +88,6 @@ export const useWorkflowChat = (
 			localStorage.removeItem('ieum-chat-credential-id')
 		}
 	}
-
-	useEffect(() => {
-		if (bodyRef.current) {
-			bodyRef.current.scrollTop = bodyRef.current.scrollHeight
-		}
-	}, [messages, isTyping, currentStage])
 
 	const createConnectionReady = useCallback(() => {
 		const ready = new Promise<void>((resolve, reject) => {
@@ -348,7 +341,6 @@ export const useWorkflowChat = (
 		currentStage,
 		handleSend,
 		handleKeyDown,
-		bodyRef,
 		credentials,
 		selectedCredentialId,
 		setSelectedCredentialId,

@@ -1,3 +1,6 @@
+import type { KeyboardEvent, RefObject } from 'react'
+import type { CredentialItem } from '@/types/credential'
+
 export type ChatMessage = { type: 'user'; body: string } | { type: 'assistant'; body: string; actions?: WorkflowChatAction[] }
 
 export interface WorkflowChatAction {
@@ -59,4 +62,32 @@ export interface WorkflowChatHistoryPage {
 	size: number
 	hasNext: boolean
 	nextCursor: string | null
+}
+
+// --- ViewModel (훅) ---
+
+export type WorkflowChatScrollbarView = {
+	isVisible: boolean
+	topPercent: number
+	heightPercent: number
+}
+
+export type WorkflowChatViewModel = {
+	isOpen: boolean
+	openChat: () => void
+	closeChat: () => void
+	messages: ChatMessage[]
+	input: string
+	setInput: (value: string) => void
+	isTyping: boolean
+	currentStage: string | null
+	credentials: CredentialItem[]
+	selectedCredentialId: string | null
+	setSelectedCredentialId: (id: string | null) => void
+	handleSend: () => void
+	handleKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void
+	scrollbar: WorkflowChatScrollbarView
+	onChatBodyScroll: () => void
+	chatBodyRef: RefObject<HTMLDivElement | null>
+	messagesEndRef: RefObject<HTMLDivElement | null>
 }

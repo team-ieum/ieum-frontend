@@ -1,11 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowUp, X } from 'lucide-react'
-import { useState } from 'react'
 import type { ReactElement } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
-import { CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
-import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
+import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
+import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
 import type { CredentialProvider } from '@/types/credential'
+import { cn } from '@/utils/cn'
 
 const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
 	OPENAI: 'OpenAI',
@@ -59,20 +59,25 @@ type WorkflowChatProps = {
 }
 
 const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
-	const [isOpen, setIsOpen] = useState(false)
 	const {
+		isOpen,
+		openChat,
+		closeChat,
 		messages,
 		input,
 		setInput,
 		isTyping,
 		handleSend,
 		handleKeyDown,
-		bodyRef,
 		credentials,
 		selectedCredentialId,
 		setSelectedCredentialId,
 		currentStage,
-	} = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
+		scrollbar,
+		onChatBodyScroll,
+		chatBodyRef,
+		messagesEndRef,
+	} = useWorkflowChatViewModel({ workflowId, currentNodes, currentEdges, onCanvasUpdate })
 
 	return (
 		<>
@@ -85,7 +90,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-						onClick={() => setIsOpen(true)}
+						onClick={openChat}
 						aria-label='채팅 열기'
 						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
@@ -125,7 +130,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 								</div>
 							</div>
 							<button
-								onClick={() => setIsOpen(false)}
+								onClick={closeChat}
 								aria-label='채팅 닫기'
 								className='w-7 h-7 rounded-lg grid place-items-center hover:opacity-80 transition-opacity cursor-pointer'
 								style={{ background: 'rgba(255,255,255,.12)' }}
@@ -135,45 +140,72 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						</div>
 
 						{/* 채팅 바디 */}
-						<div ref={bodyRef} className='flex-1 overflow-y-auto p-4 flex flex-col gap-3'>
-							{messages.map((msg, i) =>
-								msg.type === 'assistant' ? (
-									<div key={i} className='flex gap-2 items-start'>
-										<span
-											className='w-7 h-7 rounded-lg shrink-0 grid place-items-center'
-											style={{ background: '#e0f6ff' }}
-										>
-											<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
-										</span>
-										<div className='flex flex-col gap-2 max-w-[280px]'>
-											<div
-												className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
-												style={{ background: '#F0F4FC' }}
+						<div className='relative min-h-0 flex-1'>
+							<div
+								ref={chatBodyRef}
+								onScroll={onChatBodyScroll}
+								className={cn(
+									'flex h-full flex-col gap-3 overflow-y-auto p-4',
+									'[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+								)}
+							>
+								{messages.map((msg, i) =>
+									msg.type === 'assistant' ? (
+										<div key={i} className='flex gap-2 items-start'>
+											<span
+												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center'
+												style={{ background: '#e0f6ff' }}
 											>
+												<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
+											</span>
+											<div className='flex flex-col gap-2 max-w-[280px]'>
+												<div
+													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+													style={{ background: '#F0F4FC' }}
+												>
+													{msg.body}
+												</div>
+												{msg.actions?.map((action, j) => (
+													<a
+														key={j}
+														href={action.oauthUrl}
+														target='_blank'
+														rel='noreferrer'
+														className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
+													>
+														{action.label}
+													</a>
+												))}
+											</div>
+										</div>
+									) : (
+										<div key={i} className='flex justify-end'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue'>
 												{msg.body}
 											</div>
-											{msg.actions?.map((action, j) => (
-												<a
-													key={j}
-													href={action.oauthUrl}
-													target='_blank'
-													rel='noreferrer'
-													className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
-												>
-													{action.label}
-												</a>
-											))}
 										</div>
-									</div>
-								) : (
-									<div key={i} className='flex justify-end'>
-										<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue'>
-											{msg.body}
-										</div>
-									</div>
-								)
+									)
+								)}
+								<AnimatePresence>{isTyping && <TypingIndicator stage={currentStage} />}</AnimatePresence>
+								<div ref={messagesEndRef} />
+							</div>
+
+							{/* 커스텀 스크롤바 — opacity로 페이드 */}
+							{scrollbar.heightPercent > 0 && (
+								<div className='pointer-events-none absolute inset-y-3 right-1.5 w-1.5' aria-hidden>
+									<div
+										className={cn(
+											'absolute w-full rounded-full bg-main-gray/40',
+											scrollbar.isVisible ? 'opacity-100' : 'opacity-0'
+										)}
+										style={{
+											top: `${scrollbar.topPercent}%`,
+											height: `${scrollbar.heightPercent}%`,
+											transition: `opacity ${CHAT_SCROLLBAR_FADE_MS}ms ease`,
+										}}
+									/>
+								</div>
 							)}
-							<AnimatePresence>{isTyping && <TypingIndicator stage={currentStage} />}</AnimatePresence>
 						</div>
 
 						{/* 입력창 */}
