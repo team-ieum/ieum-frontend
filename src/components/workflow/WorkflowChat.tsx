@@ -28,8 +28,8 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 			exit={{ opacity: 0, y: 6 }}
 			transition={{ duration: 0.2 }}
 		>
-			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center' style={{ background: '#e0f6ff' }}>
-				<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
+			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none' style={{ background: '#e0f6ff' }}>
+				<img src={symbolLogo} alt='이음' draggable={false} className='pointer-events-none w-4 h-4 object-contain' />
 			</span>
 			<div
 				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-[280px] flex-wrap'
@@ -96,7 +96,12 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
 					>
-						<img src={symbolLogo} alt='이음' className='w-7 h-7 object-contain' />
+						<img
+							src={symbolLogo}
+							alt='이음'
+							draggable={false}
+							className='pointer-events-none w-7 h-7 object-contain'
+						/>
 					</motion.button>
 				)}
 			</AnimatePresence>
@@ -122,7 +127,12 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 								className='w-8 h-8 rounded-[10px] grid place-items-center'
 								style={{ background: 'rgba(255,255,255,.12)' }}
 							>
-								<img src={symbolLogo} alt='이음' className='w-5 h-5 object-contain' />
+								<img
+									src={symbolLogo}
+									alt='이음'
+									draggable={false}
+									className='pointer-events-none w-5 h-5 object-contain'
+								/>
 							</div>
 							<div className='flex-1'>
 								<div className='text-sm font-semibold'>IEUM Assistant</div>
@@ -154,10 +164,15 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 									msg.type === 'assistant' ? (
 										<div key={i} className='flex gap-2 items-start'>
 											<span
-												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center'
+												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none'
 												style={{ background: '#e0f6ff' }}
 											>
-												<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
+												<img
+													src={symbolLogo}
+													alt='이음'
+													draggable={false}
+													className='pointer-events-none w-4 h-4 object-contain'
+												/>
 											</span>
 											<div className='flex flex-col gap-2 max-w-[280px]'>
 												<div
