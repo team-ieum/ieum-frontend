@@ -11,9 +11,18 @@ type IntegrationTabsProps = {
 	connectedCount: number
 	availableCount: number
 	isCountPending: boolean
+	onButtonRef: (tab: IntegrationTabId, element: HTMLButtonElement | null) => void
 }
 
-const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCount, isCountPending }: IntegrationTabsProps) => (
+const IntegrationTabs = ({
+	active,
+	onChange,
+	view,
+	connectedCount,
+	availableCount,
+	isCountPending,
+	onButtonRef,
+}: IntegrationTabsProps) => (
 	<div
 		className={cn(
 			INTEGRATION_PAGE_X,
@@ -24,6 +33,7 @@ const IntegrationTabs = ({ active, onChange, view, connectedCount, availableCoun
 		<div className='flex gap-1'>
 			{INTEGRATION_TABS.map(tab => (
 				<button
+					ref={element => onButtonRef(tab.id, element)}
 					key={tab.id}
 					type='button'
 					onClick={() => onChange(tab.id)}

@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { ArrowLeft, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import type { IntegrationService } from '../../types/integration'
@@ -8,6 +9,7 @@ type IntegrationConnectedDetailProps = {
 	onBack: () => void
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
+	headingRef?: Ref<HTMLHeadingElement>
 }
 
 const IntegrationConnectedDetail = ({
@@ -15,6 +17,7 @@ const IntegrationConnectedDetail = ({
 	onBack,
 	onDisconnect,
 	isDisconnecting = false,
+	headingRef,
 }: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
 	const isError = service.status === 'error'
@@ -36,7 +39,9 @@ const IntegrationConnectedDetail = ({
 						{brand.icon}
 					</span>
 					<div className='min-w-0 flex-1'>
-						<h2 className='typo-title2_bold m-0 text-neutral-900'>{service.name}</h2>
+						<h2 ref={headingRef} tabIndex={-1} className='typo-title2_bold m-0 text-neutral-900'>
+							{service.name}
+						</h2>
 						<p className='typo-body3_regular m-0 text-neutral-600'>{service.account}</p>
 					</div>
 					{isError && (
