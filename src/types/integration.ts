@@ -38,6 +38,8 @@ export type IntegrationService = {
 
 export type IntegrationView = { kind: 'list' } | { kind: 'detail'; id: string }
 
+export type IntegrationDetailResolution = 'list' | 'loading' | 'error' | 'ready'
+
 export type IntegrationTabId = 'services' | 'aiCredentials'
 
 export type IntegrationTabItem = {
@@ -60,6 +62,7 @@ export type IntegrationBrandConfig = {
 
 export type UseIntegrationSettingResult = {
 	view: IntegrationView
+	detailResolution: IntegrationDetailResolution
 	activeTab: IntegrationTabId
 	connected: IntegrationService[]
 	available: IntegrationService[]
