@@ -77,6 +77,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 		onChatBodyScroll,
 		chatBodyRef,
 		messagesEndRef,
+		inputRef,
 	} = useWorkflowChatViewModel({ workflowId, currentNodes, currentEdges, onCanvasUpdate })
 
 	return (
@@ -226,6 +227,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 							)}
 							<div className='flex items-end gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>
 								<textarea
+									ref={inputRef}
 									value={input}
 									onChange={e => setInput(e.target.value)}
 									onKeyDown={handleKeyDown}
@@ -233,7 +235,6 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 									placeholder='메시지를 입력하세요…'
 									rows={1}
 									className='flex-1 max-h-28 resize-none overflow-y-auto text-sm leading-5 outline-none bg-transparent py-0.5'
-									disabled={isTyping}
 								/>
 								<button
 									type='button'

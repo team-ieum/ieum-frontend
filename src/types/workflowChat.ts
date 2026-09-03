@@ -90,4 +90,5 @@ export type WorkflowChatViewModel = {
 	onChatBodyScroll: () => void
 	chatBodyRef: RefObject<HTMLDivElement | null>
 	messagesEndRef: RefObject<HTMLDivElement | null>
+	inputRef: RefObject<HTMLTextAreaElement | null>
 }

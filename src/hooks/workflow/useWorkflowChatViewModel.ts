@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { CHAT_SCROLLBAR_VISIBLE_MS } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
 import type { WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
@@ -26,12 +26,19 @@ export const useWorkflowChatViewModel = ({
 	const [scrollbar, setScrollbar] = useState<WorkflowChatScrollbarView>(EMPTY_SCROLLBAR)
 	const chatBodyRef = useRef<HTMLDivElement>(null)
 	const messagesEndRef = useRef<HTMLDivElement>(null)
+	const inputRef = useRef<HTMLTextAreaElement>(null)
 	const scrollbarHideTimerRef = useRef<number | undefined>(undefined)
 	const isProgrammaticScrollRef = useRef(false)
 
 	const chat = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
 
-	const syncScrollbarMetrics = useCallback(() => {
+	const focusInput = () => {
+		requestAnimationFrame(() => {
+			inputRef.current?.focus()
+		})
+	}
+
+	const syncScrollbarMetrics = () => {
 		const el = chatBodyRef.current
 		if (!el) return
 
@@ -46,24 +53,24 @@ export const useWorkflowChatViewModel = ({
 			topPercent: (scrollTop / scrollHeight) * 100,
 			heightPercent: (clientHeight / scrollHeight) * 100,
 		}))
-	}, [])
+	}
 
-	const revealScrollbar = useCallback(() => {
+	const revealScrollbar = () => {
 		syncScrollbarMetrics()
 		setScrollbar(prev => ({ ...prev, isVisible: true }))
 		window.clearTimeout(scrollbarHideTimerRef.current)
 		scrollbarHideTimerRef.current = window.setTimeout(() => {
 			setScrollbar(prev => ({ ...prev, isVisible: false }))
 		}, CHAT_SCROLLBAR_VISIBLE_MS)
-	}, [syncScrollbarMetrics])
+	}
 
-	const onChatBodyScroll = useCallback(() => {
+	const onChatBodyScroll = () => {
 		if (isProgrammaticScrollRef.current) {
 			syncScrollbarMetrics()
 			return
 		}
 		revealScrollbar()
-	}, [revealScrollbar, syncScrollbarMetrics])
+	}
 
 	useEffect(() => {
 		if (!isOpen) return
@@ -78,7 +85,12 @@ export const useWorkflowChatViewModel = ({
 		})
 
 		return () => cancelAnimationFrame(frameId)
-	}, [isOpen, chat.messages, chat.isTyping, chat.currentStage, syncScrollbarMetrics])
+	}, [isOpen, chat.messages, chat.isTyping, chat.currentStage])
+
+	useEffect(() => {
+		if (!isOpen) return
+		focusInput()
+	}, [isOpen])
 
 	useEffect(() => {
 		return () => {
@@ -86,8 +98,20 @@ export const useWorkflowChatViewModel = ({
 		}
 	}, [])
 
-	const openChat = useCallback(() => setIsOpen(true), [])
-	const closeChat = useCallback(() => setIsOpen(false), [])
+	const openChat = () => setIsOpen(true)
+	const closeChat = () => setIsOpen(false)
+
+	const handleSend = () => {
+		void chat.handleSend()
+		focusInput()
+	}
+
+	const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+		if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+			e.preventDefault()
+			handleSend()
+		}
+	}
 
 	return {
 		isOpen,
@@ -101,11 +125,12 @@ export const useWorkflowChatViewModel = ({
 		credentials: chat.credentials,
 		selectedCredentialId: chat.selectedCredentialId,
 		setSelectedCredentialId: chat.setSelectedCredentialId,
-		handleSend: chat.handleSend,
-		handleKeyDown: chat.handleKeyDown,
+		handleSend,
+		handleKeyDown,
 		scrollbar,
 		onChatBodyScroll,
 		chatBodyRef,
 		messagesEndRef,
+		inputRef,
 	}
 }
