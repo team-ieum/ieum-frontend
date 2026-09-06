@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import type { RefObject } from 'react'
+import type { WebhookConnectServiceId } from '@/constants/integration/webhookCredentialConnect'
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { IntegrationDetailResolution, IntegrationService, IntegrationTabId, IntegrationView } from '@/types/integration'
 import { useIntegrationConnect } from './useIntegrationConnect'
@@ -26,7 +27,7 @@ type UseIntegrationSettingResult = {
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void
 	onConnect: (id: string) => void
-	webhookConnectServiceId: 'slack' | 'discord' | null
+	webhookConnectServiceId: WebhookConnectServiceId | null
 	closeWebhookConnect: () => void
 }
 
