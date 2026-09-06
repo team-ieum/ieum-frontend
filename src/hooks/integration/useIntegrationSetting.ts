@@ -1,162 +1,51 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useReducedMotion } from 'framer-motion'
-import { useSearchParams } from 'react-router'
-import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
-import { useOAuthConnectionsQuery } from '@/hooks/oauthConnections/queries/useOAuthConnectionsQuery'
-import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
-import type {
-	IntegrationBrand,
-	IntegrationDetailResolution,
-	IntegrationService,
-	IntegrationTabId,
-	IntegrationView,
-	UseIntegrationSettingResult,
-} from '../../types/integration'
-import {
-	getExcludedCatalogBrandsForOAuthConnections,
-	mapOAuthConnectionToIntegrationService,
-} from '../../utils/integration/mapOAuthConnectionToIntegrationService'
-import { mapWebhookCredentialToIntegrationService } from '../../utils/integration/mapWebhookCredentialToIntegrationService'
-import { findServiceById } from '../../utils/integration/selectors'
-import { isOAuthReturnSearchParams } from '../../utils/integration/integrationOAuthReturn'
-import {
-	hasIntegrationServiceIdParam,
-	isCanonicalIntegrationViewParams,
-	parseIntegrationView,
-	serializeIntegrationView,
-} from '../../utils/integration/integrationViewParams'
+import { useCallback } from 'react'
+import type { RefObject } from 'react'
+import type { WebhookConnectServiceId } from '@/constants/integration/webhookCredentialConnect'
+import type { AsyncResourceState } from '@/types/asyncResource'
+import type { IntegrationDetailResolution, IntegrationService, IntegrationTabId, IntegrationView } from '@/types/integration'
 import { useIntegrationConnect } from './useIntegrationConnect'
 import { useIntegrationOAuthReturn } from './useIntegrationOAuthReturn'
+import { useIntegrationSectionNavigation } from './useIntegrationSectionNavigation'
+import { useIntegrationServiceNavigation } from './useIntegrationServiceNavigation'
+import { useIntegrationServicesViewModel } from './useIntegrationServicesViewModel'
 
-const filterCatalogAvailable = (catalog: IntegrationService[], excludedBrands: Set<IntegrationBrand>) =>
-	catalog.filter(service => !excludedBrands.has(service.brand))
+type UseIntegrationSettingResult = {
+	view: IntegrationView
+	detailResolution: IntegrationDetailResolution
+	activeTab: IntegrationTabId
+	connected: IntegrationService[]
+	available: IntegrationService[]
+	currentService: IntegrationService | undefined
+	connectedCount: number
+	availableCount: number
+	canResolveAvailable: boolean
+	webhookResource: AsyncResourceState
+	oauthResource: AsyncResourceState
+	isListView: boolean
+	aiCredentialsSectionRef: RefObject<HTMLElement | null>
+	goDetail: (id: string) => void
+	goList: () => void
+	handleTabChange: (tab: IntegrationTabId) => void
+	onConnect: (id: string) => void
+	webhookConnectServiceId: WebhookConnectServiceId | null
+	closeWebhookConnect: () => void
+}
 
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	useIntegrationOAuthReturn()
 
-	const [searchParams, setSearchParams] = useSearchParams()
-	const reduceMotion = useReducedMotion()
-	const [activeTab, setActiveTab] = useState<IntegrationTabId>('services')
-
 	const { connect, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
-
-	const webhookQuery = useWebhookCredentialsQuery()
-	const oauthQuery = useOAuthConnectionsQuery()
-	const canResolveAvailable = webhookQuery.data !== undefined && oauthQuery.data !== undefined
-
-	const aiCredentialsSectionRef = useRef<HTMLElement>(null)
-	const shouldScrollToAiCredentialsRef = useRef(false)
-	const isAutoScrollingRef = useRef(false)
-	const autoScrollIdleTimerRef = useRef<number | undefined>(undefined)
-
-	const webhookConnected = useMemo(
-		() => (webhookQuery.data ?? []).map(mapWebhookCredentialToIntegrationService),
-		[webhookQuery.data]
-	)
-
-	const oauthConnected = useMemo(() => (oauthQuery.data ?? []).map(mapOAuthConnectionToIntegrationService), [oauthQuery.data])
-
-	const connected = useMemo(() => [...webhookConnected, ...oauthConnected], [webhookConnected, oauthConnected])
-
-	const excludedCatalogBrands = useMemo(() => {
-		const brands = new Set(webhookConnected.map(service => service.brand))
-		getExcludedCatalogBrandsForOAuthConnections(oauthQuery.data ?? []).forEach(brand => brands.add(brand))
-		return brands
-	}, [webhookConnected, oauthQuery.data])
-
-	const available = useMemo(
-		() => (canResolveAvailable ? filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogBrands) : []),
-		[canResolveAvailable, excludedCatalogBrands]
-	)
-
-	const parsedView = parseIntegrationView(searchParams)
-	const parsedService = parsedView.kind === 'detail' ? findServiceById(connected, parsedView.id) : undefined
-	const canNormalizeDetail =
-		webhookQuery.isSuccess && oauthQuery.isSuccess && !webhookQuery.isRefetching && !oauthQuery.isRefetching
-	const shouldNormalizeDetail =
-		canNormalizeDetail &&
-		!isOAuthReturnSearchParams(searchParams) &&
-		(!isCanonicalIntegrationViewParams(searchParams) || (parsedView.kind === 'detail' && !parsedService))
-	const view: IntegrationView = shouldNormalizeDetail ? { kind: 'list' } : parsedView
-	const currentService = view.kind === 'detail' ? parsedService : undefined
-	const hasDetailResolutionError =
-		webhookQuery.isLoadingError || oauthQuery.isLoadingError || webhookQuery.isRefetchError || oauthQuery.isRefetchError
-	const detailResolution: IntegrationDetailResolution =
-		view.kind === 'list' ? 'list' : currentService ? 'ready' : hasDetailResolutionError ? 'error' : 'loading'
-	const scrollBehavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth'
-
-	useEffect(() => {
-		if (!shouldNormalizeDetail) return
-		setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
-	}, [setSearchParams, shouldNormalizeDetail])
-
-	const goDetail = useCallback(
-		(id: string) => {
-			setSearchParams(current => serializeIntegrationView(current, { kind: 'detail', id }))
-		},
-		[setSearchParams]
-	)
-
-	const goList = useCallback(() => {
-		setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
-	}, [setSearchParams])
-
-	const handleTabChange = useCallback(
-		(tab: IntegrationTabId) => {
-			if (hasIntegrationServiceIdParam(searchParams)) {
-				setSearchParams(current => serializeIntegrationView(current, { kind: 'list' }), { replace: true })
-			}
-			isAutoScrollingRef.current = true
-			if (tab === 'aiCredentials') {
-				shouldScrollToAiCredentialsRef.current = true
-			} else {
-				window.scrollTo({ top: 0, behavior: scrollBehavior })
-			}
-			setActiveTab(tab)
-		},
-		[scrollBehavior, searchParams, setSearchParams]
-	)
-
-	useEffect(() => {
-		if (!shouldScrollToAiCredentialsRef.current || activeTab !== 'aiCredentials' || view.kind !== 'list') {
-			return
-		}
-
-		shouldScrollToAiCredentialsRef.current = false
-		const frame = window.requestAnimationFrame(() => {
-			aiCredentialsSectionRef.current?.scrollIntoView({ behavior: scrollBehavior, block: 'start' })
-		})
-		return () => window.cancelAnimationFrame(frame)
-	}, [activeTab, scrollBehavior, view.kind])
-
-	// 수동 스크롤 시 화면에 보이는 섹션에 맞춰 활성 탭 동기화 (스크롤 스파이)
-	useEffect(() => {
-		if (view.kind !== 'list') return
-
-		const handleScroll = () => {
-			// 탭 클릭으로 인한 자동 스크롤 중에는 탭 상태를 건드리지 않고,
-			// 스크롤이 멈춘 뒤(200ms)부터 스파이를 다시 활성화한다.
-			if (isAutoScrollingRef.current) {
-				window.clearTimeout(autoScrollIdleTimerRef.current)
-				autoScrollIdleTimerRef.current = window.setTimeout(() => {
-					isAutoScrollingRef.current = false
-				}, 200)
-				return
-			}
-
-			const section = aiCredentialsSectionRef.current
-			if (!section) return
-
-			const isAiCredentialsInView = section.getBoundingClientRect().top <= window.innerHeight / 3
-			setActiveTab(isAiCredentialsInView ? 'aiCredentials' : 'services')
-		}
-
-		window.addEventListener('scroll', handleScroll, { passive: true })
-		return () => {
-			window.removeEventListener('scroll', handleScroll)
-			window.clearTimeout(autoScrollIdleTimerRef.current)
-		}
-	}, [view.kind])
+	const services = useIntegrationServicesViewModel()
+	const navigation = useIntegrationServiceNavigation({
+		connected: services.connected,
+		canNormalizeDetail: services.canNormalizeDetail,
+		hasDetailResolutionError: services.hasDetailResolutionError,
+	})
+	const sections = useIntegrationSectionNavigation({
+		isListView: navigation.isListView,
+		shouldReturnToList: navigation.hasServiceIdParam,
+		onReturnToList: navigation.goList,
+	})
 
 	const onConnect = useCallback(
 		(id: string) => {
@@ -166,34 +55,22 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	)
 
 	return {
-		view,
-		detailResolution,
-		activeTab,
-		connected,
-		available,
-		currentService,
-		connectedCount: connected.length,
-		availableCount: available.length,
-		canResolveAvailable,
-		webhookResource: {
-			isLoading: webhookQuery.isLoading,
-			isRefetching: webhookQuery.isRefetching,
-			isLoadingError: webhookQuery.isLoadingError,
-			isRefetchError: webhookQuery.isRefetchError,
-			retry: () => void webhookQuery.refetch(),
-		},
-		oauthResource: {
-			isLoading: oauthQuery.isLoading,
-			isRefetching: oauthQuery.isRefetching,
-			isLoadingError: oauthQuery.isLoadingError,
-			isRefetchError: oauthQuery.isRefetchError,
-			retry: () => void oauthQuery.refetch(),
-		},
-		isListView: view.kind === 'list',
-		aiCredentialsSectionRef,
-		goDetail,
-		goList,
-		handleTabChange,
+		view: navigation.view,
+		detailResolution: navigation.detailResolution,
+		activeTab: sections.activeSection,
+		connected: services.connected,
+		available: services.available,
+		currentService: navigation.currentService,
+		connectedCount: services.connectedCount,
+		availableCount: services.availableCount,
+		canResolveAvailable: services.canResolveAvailable,
+		webhookResource: services.webhookResource,
+		oauthResource: services.oauthResource,
+		isListView: navigation.isListView,
+		aiCredentialsSectionRef: sections.aiCredentialsSectionRef,
+		goDetail: navigation.goDetail,
+		goList: navigation.goList,
+		handleTabChange: sections.handleSectionChange,
 		onConnect,
 		webhookConnectServiceId,
 		closeWebhookConnect,
