@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
 	execute: vi.fn(),
 	toggle: vi.fn(),
 	openModal: vi.fn(),
+	workflowOneActive: true,
+	workflowTwoActive: false,
 }))
 
 vi.mock('@xyflow/react', async () => {
@@ -123,44 +125,62 @@ vi.mock('@xyflow/react', async () => {
 })
 
 vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
-	useWorkflowQuery: () => ({
+	useWorkflowQuery: (workflowId: string) => ({
 		data: {
-			data: {
-				id: 'workflow-1',
-				name: '고객 문의 분류',
-				active: true,
-				version: 1,
-				nodes: [
-					{
-						id: 'trigger',
-						type: 'TRIGGER',
-						label: '문의가 도착하면',
-						description: '새 문의가 들어오면 시작해요',
-						config: { triggerType: 'MANUAL', brand: 'webhook' },
-					},
-					{
-						id: 'ai',
-						type: 'AI',
-						label: '문의 분류하기',
-						config: {
-							llmProvider: 'GEMINI',
-							model: 'server-unknown-model',
-							credentialId: 'credential-secret',
-							prompt: 'private prompt',
+			data:
+				workflowId === 'workflow-2'
+					? {
+							id: 'workflow-2',
+							name: '두 번째 워크플로우',
+							active: mocks.workflowTwoActive,
+							version: 1,
+							nodes: [{ id: 'second', type: 'AI', label: '두 번째 노드', config: {} }],
+							edges: [],
+						}
+					: {
+							id: 'workflow-1',
+							name: '고객 문의 분류',
+							active: mocks.workflowOneActive,
+							version: 1,
+							nodes: [
+								{
+									id: 'trigger',
+									type: 'TRIGGER',
+									label: '문의가 도착하면',
+									description: '새 문의가 들어오면 시작해요',
+									config: { triggerType: 'MANUAL', brand: 'webhook' },
+								},
+								{
+									id: 'ai',
+									type: 'AI',
+									label: '문의 분류하기',
+									config: {
+										llmProvider: 'GEMINI',
+										model: 'server-unknown-model',
+										credentialId: 'credential-secret',
+										prompt: 'private prompt',
+									},
+								},
+								{
+									id: 'action',
+									type: 'HTTP',
+									label: '담당자에게 알리기',
+									config: { method: 'POST', url: 'https://example.com/notify' },
+								},
+								{
+									id: 'invalid-position',
+									type: 'AI',
+									label: '잘못된 좌표',
+									position: { x: Number.NaN, y: 0 },
+									config: {},
+								},
+							],
+							edges: [
+								{ source: 'trigger', target: 'ai', conditionType: null },
+								{ source: 'ai', target: 'missing-node', conditionType: null },
+								{ source: 'ai', target: 'invalid-position', conditionType: null },
+							],
 						},
-					},
-					{
-						id: 'action',
-						type: 'HTTP',
-						label: '담당자에게 알리기',
-						config: { method: 'POST', url: 'https://example.com/notify' },
-					},
-				],
-				edges: [
-					{ source: 'trigger', target: 'ai', conditionType: null },
-					{ source: 'ai', target: 'missing-node', conditionType: null },
-				],
-			},
 		},
 	}),
 }))
@@ -214,16 +234,38 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 const renderPage = () =>
 	render(
 		<MemoryRouter initialEntries={['/workflow/workflow-1']}>
+			<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
 			<Routes>
 				<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
 			</Routes>
 		</MemoryRouter>
 	)
 
+const toggleActive = () => {
+	const toggle = screen.getByRole('switch', { name: /워크플로우 (활성화|비활성화)/ })
+	fireEvent.pointerDown(toggle, { clientX: 0 })
+	fireEvent.pointerUp(toggle, { clientX: 0 })
+}
+
+const createDeferredToggle = () => {
+	let resolve!: () => void
+	let reject!: (reason: Error) => void
+	const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+		resolve = resolvePromise
+		reject = rejectPromise
+	})
+	return { promise, resolve, reject }
+}
+
 describe('WorkFlowPage', () => {
 	beforeEach(() => {
 		localStorage.clear()
 		useExecutionStore.getState().reset()
+		mocks.toggle.mockReset()
+		mocks.toggle.mockResolvedValue(undefined)
+		mocks.openModal.mockReset()
+		mocks.workflowOneActive = true
+		mocks.workflowTwoActive = false
 	})
 
 	it('조회한 노드와 연결선을 편집 가능한 캔버스로 표시한다', () => {
@@ -231,6 +273,7 @@ describe('WorkFlowPage', () => {
 
 		expect(screen.getByText('새 문의가 들어오면 시작해요')).toBeInTheDocument()
 		expect(screen.getByText('server-unknown-model')).toBeInTheDocument()
+		expect(screen.queryByTestId('status-invalid-position')).not.toBeInTheDocument()
 		expect(screen.getByTestId('workflow-canvas')).toHaveAttribute('data-nodes-draggable', 'true')
 		expect(screen.getByTestId('workflow-canvas')).toHaveAttribute('data-nodes-connectable', 'true')
 		expect(screen.getByTestId('workflow-canvas')).toHaveAttribute('data-edges-reconnectable', 'true')
@@ -389,5 +432,57 @@ describe('WorkFlowPage', () => {
 
 		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
 		expect(screen.getByText('새 문의가 들어오면 시작해요')).toBeInTheDocument()
+	})
+
+	it('활성 상태 변경을 즉시 표시하고 성공 시 서버 상태로 동기화한다', async () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+
+		toggleActive()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		mocks.workflowOneActive = false
+		await act(async () => pending.resolve())
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
+	it('활성 상태 변경 실패 시 서버 상태로 복구하고 오류를 알린다', async () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+
+		toggleActive()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		await act(async () => pending.reject(new Error('상태 변경 실패')))
+		await waitFor(() =>
+			expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		)
+		expect(mocks.openModal).toHaveBeenCalledWith('오류', '상태 변경에 실패했어요. 다시 시도해주세요.')
+	})
+
+	it('이전 workflow의 늦은 토글 실패가 새 workflow 상태와 모달을 바꾸지 않는다', async () => {
+		const first = createDeferredToggle()
+		const second = createDeferredToggle()
+		mocks.toggle.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+		renderPage()
+
+		toggleActive()
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByRole('textbox', { name: '워크플로우 제목' })).toHaveValue('두 번째 워크플로우')
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		toggleActive()
+		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+
+		await act(async () => first.reject(new Error('이전 workflow 실패')))
+		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(mocks.openModal).not.toHaveBeenCalled()
+
+		mocks.workflowTwoActive = true
+		await act(async () => second.resolve())
+		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
 	})
 })
