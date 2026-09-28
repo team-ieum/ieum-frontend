@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
@@ -21,8 +21,7 @@ import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
 import {
 	createModelNameMap,
-	isWorkflowEdgeDto,
-	isWorkflowNodeDto,
+	normalizeWorkflowCanvasDocument,
 	toWorkflowCanvasEdges,
 	toWorkflowCanvasNodes,
 	toWorkflowNodeStatus,
@@ -128,12 +127,8 @@ const WorkFlowPage = () => {
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
-		const nodes = workflow.nodes.filter(isWorkflowNodeDto)
-		const nodeIds = new Set(nodes.map(node => node.id))
-		const edges = workflow.edges
-			.filter(isWorkflowEdgeDto)
-			.filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
-		return { title: workflow.name, nodes, edges }
+		const canvasDocument = normalizeWorkflowCanvasDocument(workflow.nodes, workflow.edges)
+		return { title: workflow.name, ...canvasDocument }
 	}, [workflow])
 
 	const {
@@ -171,18 +166,32 @@ const WorkFlowPage = () => {
 		}
 	}
 
-	const [localActive, setLocalActive] = useState<boolean | undefined>(undefined)
-	const active = localActive ?? workflow?.active
+	const [localActive, setLocalActive] = useState<{ workflowId: string; requestId: number; value: boolean } | null>(null)
+	const active = localActive && localActive.workflowId === workflowId ? localActive.value : workflow?.active
+	const currentWorkflowId = useRef(workflowId)
+	currentWorkflowId.current = workflowId
+	const toggleRequestId = useRef(0)
+
+	useEffect(() => {
+		currentWorkflowId.current = workflowId
+		return () => {
+			if (currentWorkflowId.current === workflowId) currentWorkflowId.current = undefined
+		}
+	}, [workflowId])
 
 	const handleToggleActive = async () => {
+		if (!workflowId) return
+		const requestId = ++toggleRequestId.current
 		const next = !(active ?? false)
-		setLocalActive(next)
+		setLocalActive({ workflowId, requestId, value: next })
 		try {
 			await toggleMutation.mutateAsync(next)
-			setLocalActive(undefined)
 		} catch (error) {
-			setLocalActive(undefined)
-			openModal('오류', isApiError(error) ? error.message : '상태 변경에 실패했어요. 다시 시도해주세요.')
+			if (currentWorkflowId.current === workflowId && toggleRequestId.current === requestId) {
+				openModal('오류', isApiError(error) ? error.message : '상태 변경에 실패했어요. 다시 시도해주세요.')
+			}
+		} finally {
+			setLocalActive(current => (current?.workflowId === workflowId && current.requestId === requestId ? null : current))
 		}
 	}
 
