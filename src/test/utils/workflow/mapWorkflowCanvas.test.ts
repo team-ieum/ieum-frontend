@@ -5,6 +5,7 @@ import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import {
 	createModelNameMap,
 	isWorkflowNodeDto,
+	normalizeWorkflowCanvasDocument,
 	toWorkflowCanvasEdges,
 	toWorkflowCanvasNodes,
 	toWorkflowNodeStatus,
@@ -84,6 +85,35 @@ describe('mapWorkflowCanvas', () => {
 		expect(isWorkflowNodeDto({ ...node, position: { x: 'bad', y: 0 } })).toBe(false)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 0, y: Number.POSITIVE_INFINITY } })).toBe(false)
 		expect(isWorkflowNodeDto({ id: 'ai', type: 'AI', label: 'AI 작업' })).toBe(false)
+	})
+
+	it('공통 canvas 입력에서 잘못된 좌표와 orphan 연결선을 제거한다', () => {
+		const validNode = { id: 'valid', type: 'TRIGGER', label: '유효 노드', position: { x: 0, y: 80 }, config: {} }
+		const fallbackNode = { id: 'fallback', type: 'AI', label: '좌표 없는 노드', config: {} }
+		const rawNodes: unknown[] = [
+			validNode,
+			fallbackNode,
+			{ ...validNode, id: 'string-position', position: { x: '40', y: 0 } },
+			{ ...validNode, id: 'nan-position', position: { x: Number.NaN, y: 0 } },
+			{ ...validNode, id: 'infinite-position', position: { x: 0, y: Number.POSITIVE_INFINITY } },
+			{ ...validNode, id: 'missing-config', config: undefined },
+		]
+		const validEdge = { source: 'valid', target: 'fallback' }
+		const rawEdges: unknown[] = [
+			validEdge,
+			{ source: 'valid', target: 'missing' },
+			{ source: 'string-position', target: 'fallback' },
+			{ source: 'valid', target: 'nan-position' },
+			{ source: 'valid', target: 'infinite-position' },
+			{ source: 'valid', target: 42 },
+		]
+
+		expect(normalizeWorkflowCanvasDocument(rawNodes, rawEdges)).toEqual({
+			nodes: [validNode, fallbackNode],
+			edges: [validEdge],
+		})
+		expect(rawNodes).toHaveLength(6)
+		expect(rawEdges).toHaveLength(6)
 	})
 
 	it('API 노드를 컬러 블록 표시 데이터로 변환한다', () => {

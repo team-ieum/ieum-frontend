@@ -68,6 +68,77 @@ describe('useWorkflowEditorViewModel', () => {
 		})
 	})
 
+	it('같은 버전의 서버 재조회가 편집되지 않은 제목과 캔버스를 갱신한다', () => {
+		let currentServerDocument = { ...serverDocument, title: '' }
+		const { result, rerender } = renderHook(() =>
+			useWorkflowEditorViewModel({
+				workflowId: 'workflow-1',
+				workflowVersion: 3,
+				serverDocument: currentServerDocument,
+			})
+		)
+		const initialCanvasKey = result.current.canvasKey
+		currentServerDocument = {
+			...serverDocument,
+			title: '늦게 도착한 제목',
+			nodes: serverDocument.nodes.map(node => (node.id === 'ai' ? { ...node, position: { x: 450, y: 50 } } : node)),
+			edges: [],
+		}
+
+		rerender()
+
+		expect(result.current.document).toEqual(currentServerDocument)
+		expect(result.current.hasUnsavedChanges).toBe(false)
+		expect(result.current.canvasKey).not.toBe(initialCanvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)).toBeNull()
+	})
+
+	it('서버 재조회 중에도 로컬 편집 초안을 보존한다', () => {
+		let currentServerDocument = serverDocument
+		const { result, rerender } = renderHook(() =>
+			useWorkflowEditorViewModel({
+				workflowId: 'workflow-1',
+				workflowVersion: 3,
+				serverDocument: currentServerDocument,
+			})
+		)
+		act(() => result.current.handleTitleChange('로컬 제목'))
+		const editedDocument = result.current.document
+		const editedCanvasKey = result.current.canvasKey
+		currentServerDocument = { ...serverDocument, title: '서버 제목', edges: [] }
+
+		rerender()
+
+		expect(result.current.document).toEqual(editedDocument)
+		expect(result.current.hasUnsavedChanges).toBe(true)
+		expect(result.current.isDraftPersisted).toBe(true)
+		expect(result.current.canvasKey).toBe(editedCanvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)?.title).toBe('로컬 제목')
+	})
+
+	it('workflow A에서 B로 이동하고 B 문서가 늦게 도착해도 A 초안을 표시하지 않는다', () => {
+		let workflowId = 'workflow-1'
+		let currentServerDocument: WorkflowDraftData | null = serverDocument
+		const { result, rerender } = renderHook(() =>
+			useWorkflowEditorViewModel({ workflowId, workflowVersion: 3, serverDocument: currentServerDocument })
+		)
+		act(() => result.current.handleTitleChange('A의 로컬 초안'))
+		workflowId = 'workflow-2'
+		currentServerDocument = null
+
+		rerender()
+
+		expect(result.current.document).toBeNull()
+		expect(result.current.canvasKey).toBeNull()
+
+		currentServerDocument = { ...serverDocument, title: 'B의 서버 제목' }
+		rerender()
+
+		expect(result.current.document?.title).toBe('B의 서버 제목')
+		expect(result.current.hasUnsavedChanges).toBe(false)
+		expect(readWorkflowDraft('workflow-1', 3)?.title).toBe('A의 로컬 초안')
+	})
+
 	it('AI 캔버스 갱신 시 기존 위치를 유지하고 고아 연결선을 제외한다', () => {
 		const { result } = renderEditor()
 		const initialCanvasKey = result.current.canvasKey
@@ -77,15 +148,18 @@ describe('useWorkflowEditorViewModel', () => {
 				[
 					{ id: 'ai', type: 'AI', label: '수정된 문의 분류', config: {} },
 					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
+					{ id: 'trigger', type: 'TRIGGER', label: '잘못된 위치', position: { x: '10', y: 20 }, config: {} },
 				],
 				[
 					{ source: 'ai', target: 'action', conditionType: null },
+					{ source: 'action', target: 'trigger', conditionType: null },
 					{ source: 'action', target: 'missing', conditionType: null },
 				]
 			)
 		)
 
 		expect(result.current.document?.nodes.find(node => node.id === 'ai')?.position).toEqual({ x: 320, y: 20 })
+		expect(result.current.document?.nodes.map(node => node.id)).toEqual(['ai', 'action'])
 		expect(result.current.document?.edges).toEqual([{ source: 'ai', target: 'action', conditionType: null }])
 		expect(result.current.canvasKey).not.toBe(initialCanvasKey)
 	})

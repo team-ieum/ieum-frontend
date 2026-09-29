@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { WorkflowEdgeType } from '@/types/workflow'
-import { isWorkflowEdgeDto, isWorkflowNodeDto, toWorkflowEdgeDtos } from '@/utils/workflow/mapWorkflowCanvas'
+import { normalizeWorkflowCanvasDocument, toWorkflowEdgeDtos } from '@/utils/workflow/mapWorkflowCanvas'
 import {
 	inspectWorkflowDraft,
 	isSameWorkflowDraft,
@@ -12,6 +12,7 @@ import {
 type WorkflowEditorSession = {
 	key: string
 	document: WorkflowDraftData
+	serverDocument: WorkflowDraftData
 	isDraftPersisted: boolean
 	canvasRevision: number
 	staleDraftWorkflowId: string | null
@@ -38,9 +39,22 @@ export const useWorkflowEditorViewModel = ({
 		setEditorSession({
 			key: editorKey,
 			document: hasDraftChanges && draftDocument ? draftDocument : serverDocument,
+			serverDocument,
 			isDraftPersisted: hasDraftChanges,
 			canvasRevision: 0,
 			staleDraftWorkflowId: shouldRemove || (draftDocument && !hasDraftChanges) ? workflowId : null,
+		})
+	} else if (
+		serverDocument &&
+		editorSession?.key === editorKey &&
+		!isSameWorkflowDraft(editorSession.serverDocument, serverDocument)
+	) {
+		const hasLocalChanges = !isSameWorkflowDraft(editorSession.document, editorSession.serverDocument)
+		setEditorSession({
+			...editorSession,
+			document: hasLocalChanges ? editorSession.document : serverDocument,
+			serverDocument,
+			canvasRevision: hasLocalChanges ? editorSession.canvasRevision : editorSession.canvasRevision + 1,
 		})
 	}
 
@@ -114,13 +128,12 @@ export const useWorkflowEditorViewModel = ({
 		(rawNodes: unknown[], rawEdges: unknown[]) => {
 			if (!document) return
 			const previousPositions = new Map(document.nodes.map(node => [node.id, node.position]))
-			const nodes = rawNodes.filter(isWorkflowNodeDto).map(node => {
+			const normalized = normalizeWorkflowCanvasDocument(rawNodes, rawEdges)
+			const nodes = normalized.nodes.map(node => {
 				const position = previousPositions.get(node.id)
 				return position ? { ...node, position } : node
 			})
-			const nodeIds = new Set(nodes.map(node => node.id))
-			const edges = rawEdges.filter(isWorkflowEdgeDto).filter(edge => nodeIds.has(edge.source) && nodeIds.has(edge.target))
-			commitDocument({ ...document, nodes, edges }, true)
+			commitDocument({ ...document, nodes, edges: normalized.edges }, true)
 		},
 		[commitDocument, document]
 	)
