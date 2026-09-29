@@ -5,6 +5,8 @@ import { queryKeys } from '@/constants/queryKeys'
 export const useToggleWorkflowMutation = (workflowId: string) => {
 	const queryClient = useQueryClient()
 	return useMutation({
+		mutationKey: [...queryKeys.workflows.detail(workflowId), 'toggle'],
+		scope: { id: `workflow-toggle-${workflowId}` },
 		mutationFn: (active: boolean) => (active ? activateWorkflow(workflowId) : deactivateWorkflow(workflowId)),
 		onSuccess: res => {
 			queryClient.setQueryData(queryKeys.workflows.detail(workflowId), res)
