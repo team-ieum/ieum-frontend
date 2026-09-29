@@ -234,6 +234,7 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 const renderPage = (options?: { reactStrictMode?: boolean }) =>
 	render(
 		<MemoryRouter initialEntries={['/workflow/workflow-1']}>
+			<Link to='/workflow/workflow-1'>첫 번째 워크플로우로 이동</Link>
 			<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
 			<Routes>
 				<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
@@ -512,5 +513,58 @@ describe('WorkFlowPage', () => {
 		mocks.workflowTwoActive = true
 		await act(async () => second.resolve())
 		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+	})
+
+	it('A에서 대기 중인 토글의 임시 상태를 B를 거쳐 A에 재진입할 때 표시하지 않는다', () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+
+		toggleActive()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+
+		expect(screen.getByRole('textbox', { name: '워크플로우 제목' })).toHaveValue('고객 문의 분류')
+		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+	})
+
+	it('A에 재진입한 뒤 이전 A 토글의 늦은 실패가 오류 모달을 열지 않는다', async () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+
+		toggleActive()
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+
+		await act(async () => pending.reject(new Error('이전 A 방문의 실패')))
+
+		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
+	it('A에 재진입해 새로 토글하면 이전 A 실패가 새 임시 상태를 지우지 않는다', async () => {
+		const first = createDeferredToggle()
+		const second = createDeferredToggle()
+		mocks.toggle.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+		renderPage()
+
+		toggleActive()
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+		toggleActive()
+
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		await act(async () => first.reject(new Error('이전 A 방문의 실패')))
+
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(mocks.openModal).not.toHaveBeenCalled()
+
+		mocks.workflowOneActive = false
+		await act(async () => second.resolve())
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
 	})
 })

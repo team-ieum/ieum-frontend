@@ -167,11 +167,13 @@ const WorkFlowPage = () => {
 	}
 
 	const [localActive, setLocalActive] = useState<{ workflowId: string; requestId: number; value: boolean } | null>(null)
+	if (localActive && localActive.workflowId !== workflowId) setLocalActive(null)
 	const active = localActive && localActive.workflowId === workflowId ? localActive.value : workflow?.active
 	const currentWorkflowId = useRef(workflowId)
 	const toggleRequestId = useRef(0)
 
 	useLayoutEffect(() => {
+		toggleRequestId.current += 1
 		currentWorkflowId.current = workflowId
 		return () => {
 			if (currentWorkflowId.current === workflowId) currentWorkflowId.current = undefined
