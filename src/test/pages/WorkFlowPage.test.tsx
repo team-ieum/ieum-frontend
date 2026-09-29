@@ -231,14 +231,15 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 	),
 }))
 
-const renderPage = () =>
+const renderPage = (options?: { reactStrictMode?: boolean }) =>
 	render(
 		<MemoryRouter initialEntries={['/workflow/workflow-1']}>
 			<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
 			<Routes>
 				<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
 			</Routes>
-		</MemoryRouter>
+		</MemoryRouter>,
+		options
 	)
 
 const toggleActive = () => {
@@ -452,6 +453,33 @@ describe('WorkFlowPage', () => {
 		const pending = createDeferredToggle()
 		mocks.toggle.mockReturnValue(pending.promise)
 		renderPage()
+
+		toggleActive()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+
+		await act(async () => pending.reject(new Error('상태 변경 실패')))
+		await waitFor(() =>
+			expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		)
+		expect(mocks.openModal).toHaveBeenCalledWith('오류', '상태 변경에 실패했어요. 다시 시도해주세요.')
+	})
+
+	it('토글 요청 중 페이지를 언마운트하면 늦은 실패가 오류 모달을 열지 않는다', async () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		const { unmount } = renderPage()
+
+		toggleActive()
+		unmount()
+
+		await act(async () => pending.reject(new Error('언마운트 후 실패')))
+		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
+	it('StrictMode의 effect 재실행 후에도 현재 workflow 토글 실패를 복구하고 알린다', async () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage({ reactStrictMode: true })
 
 		toggleActive()
 		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')

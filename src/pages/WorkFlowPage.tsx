@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
@@ -169,10 +169,9 @@ const WorkFlowPage = () => {
 	const [localActive, setLocalActive] = useState<{ workflowId: string; requestId: number; value: boolean } | null>(null)
 	const active = localActive && localActive.workflowId === workflowId ? localActive.value : workflow?.active
 	const currentWorkflowId = useRef(workflowId)
-	currentWorkflowId.current = workflowId
 	const toggleRequestId = useRef(0)
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		currentWorkflowId.current = workflowId
 		return () => {
 			if (currentWorkflowId.current === workflowId) currentWorkflowId.current = undefined
