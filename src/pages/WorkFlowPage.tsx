@@ -162,9 +162,7 @@ const WorkFlowPage = () => {
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
-	const { execute, phase, isExecuting, canExecute, nodeStatus, errorMessage, requestId } = useWorkflowExecution(
-		workflowId ?? ''
-	)
+	const { execute, phase, isExecuting, canExecute, nodeStatus, requestId } = useWorkflowExecution(workflowId ?? '')
 	const currentWorkflowId = useRef(workflowId)
 	const executionVisitId = useRef(0)
 
@@ -260,30 +258,6 @@ const WorkFlowPage = () => {
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
 			/>
-			{phase !== 'idle' ? (
-				<div
-					role='status'
-					aria-live='polite'
-					className={cn(
-						'shrink-0 border-b px-6 py-2 text-sm',
-						phase === 'failed' || phase === 'requestFailed'
-							? 'border-red-200 bg-red-50 text-red-800'
-							: phase === 'interrupted' || phase === 'waitingApproval'
-								? 'border-amber-200 bg-amber-50 text-amber-900'
-								: phase === 'success'
-									? 'border-green-200 bg-green-50 text-green-800'
-									: 'border-neutral-200 bg-neutral-50 text-neutral-700'
-					)}
-				>
-					{phase === 'requesting' && '실행을 요청하고 있어요.'}
-					{phase === 'running' && '워크플로우를 실행하고 있어요.'}
-					{phase === 'success' && '워크플로우 실행이 완료됐어요.'}
-					{phase === 'failed' && (errorMessage || '워크플로우 실행에 실패했어요.')}
-					{phase === 'requestFailed' && (errorMessage || '실행 요청에 실패했어요. 다시 시도해주세요.')}
-					{phase === 'waitingApproval' && '승인을 기다리고 있어요. 이 탭에서는 새 실행을 시작할 수 없어요.'}
-					{phase === 'interrupted' && '실행 상태 추적이 중단됐어요. 이전 실행은 서버에서 계속될 수 있어요.'}
-				</div>
-			) : null}
 			<div className='relative flex-1'>
 				{canvas && canvasKey ? (
 					<WorkflowCanvas

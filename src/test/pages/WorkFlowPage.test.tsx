@@ -344,6 +344,31 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
 	})
 
+	it.each([
+		{ phase: 'idle', buttonName: 'Deploy', disabled: false },
+		{ phase: 'requesting', buttonName: '실행 요청 중…', disabled: true },
+		{ phase: 'running', buttonName: '실행 중…', disabled: true },
+		{ phase: 'success', buttonName: 'Deploy', disabled: false },
+		{ phase: 'failed', buttonName: 'Deploy', disabled: false },
+		{ phase: 'requestFailed', buttonName: 'Deploy', disabled: false },
+		{ phase: 'waitingApproval', buttonName: '승인 대기 중에는 실행할 수 없습니다', disabled: true },
+		{ phase: 'interrupted', buttonName: 'Deploy', disabled: false },
+	] as const)('$phase 상태에서 상단 실행 안내 없이 툴바 실행 상태를 유지한다', ({ phase, buttonName, disabled }) => {
+		if (phase !== 'idle') {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			if (phase !== 'requesting') store.attach('workflow-1', 1, 'execution-1')
+			if (phase !== 'requesting' && phase !== 'running') store.finish('workflow-1', 1, phase, '실행 오류 세부 정보')
+		}
+		renderPage()
+
+		expect(screen.queryByRole('status', { name: '' })).not.toBeInTheDocument()
+		expect(screen.queryByText('실행 오류 세부 정보')).not.toBeInTheDocument()
+		const executeButton = screen.getByRole('button', { name: buttonName })
+		if (disabled) expect(executeButton).toBeDisabled()
+		else expect(executeButton).toBeEnabled()
+	})
+
 	it('워크플로우별 실행 상태를 화면 이동 후에도 각각 표시한다', () => {
 		renderPage()
 		act(() => {
@@ -359,10 +384,10 @@ describe('WorkFlowPage', () => {
 		})
 
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
-		expect(screen.getByText('워크플로우 실행에 실패했어요.')).toBeInTheDocument()
+		expect(screen.queryByText('워크플로우 실행에 실패했어요.')).not.toBeInTheDocument()
 		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
 		expect(screen.getByTestId('status-second')).toHaveTextContent('success')
-		expect(screen.getByText('워크플로우 실행이 완료됐어요.')).toBeInTheDocument()
+		expect(screen.queryByText('워크플로우 실행이 완료됐어요.')).not.toBeInTheDocument()
 		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
 	})
@@ -378,7 +403,7 @@ describe('WorkFlowPage', () => {
 		})
 
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('interrupted')
-		expect(screen.getByText(/실행 상태 추적이 중단됐어요/)).toBeInTheDocument()
+		expect(screen.queryByText(/실행 상태 추적이 중단됐어요/)).not.toBeInTheDocument()
 		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
 		expect(mocks.execute).not.toHaveBeenCalled()
 		expect(mocks.openConfirm).toHaveBeenCalledWith(expect.objectContaining({ confirmText: '새로 실행' }))
@@ -437,7 +462,7 @@ describe('WorkFlowPage', () => {
 
 		expect(screen.getByRole('button', { name: '승인 대기 중에는 실행할 수 없습니다' })).toBeDisabled()
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('waitingApproval')
-		expect(screen.getByText(/승인을 기다리고 있어요/)).toBeInTheDocument()
+		expect(screen.queryByText(/승인을 기다리고 있어요/)).not.toBeInTheDocument()
 	})
 
 	it('제목 변경을 로컬 초안에 기록하고 원본으로 되돌리면 초안을 제거한다', () => {

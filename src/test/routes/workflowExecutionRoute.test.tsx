@@ -121,7 +121,7 @@ describe('실제 workflow route의 백그라운드 실행 추적', () => {
 		await act(async () => router.navigate(firstPath))
 		await screen.findByDisplayValue(workflowFixture.name)
 		expect(screen.getByRole('button', { name: '실행 중…' })).toBeDisabled()
-		expect(screen.getByText('워크플로우를 실행하고 있어요.')).toBeInTheDocument()
+		expect(screen.queryByText('워크플로우를 실행하고 있어요.')).not.toBeInTheDocument()
 		expect(useExecutionStore.getState().executions[WORKFLOW_FIXTURE_ID]?.nodeStatus['trigger-1']).toBe('running')
 		expect(subscriptions).toHaveLength(2)
 		expect(requestedWorkflows).toEqual([WORKFLOW_FIXTURE_ID, secondWorkflowId])
@@ -140,7 +140,7 @@ describe('실제 workflow route의 백그라운드 실행 추적', () => {
 
 		await act(async () => router.navigate(firstPath))
 		await screen.findByDisplayValue(workflowFixture.name)
-		expect(screen.getByText('워크플로우 실행이 완료됐어요.')).toBeInTheDocument()
+		expect(screen.queryByText('워크플로우 실행이 완료됐어요.')).not.toBeInTheDocument()
 		expect(useExecutionStore.getState().executions[WORKFLOW_FIXTURE_ID]?.nodeStatus['trigger-1']).toBe('success')
 		expect(screen.getByRole('button', { name: 'Deploy' })).toBeEnabled()
 		expect(subscriptions).toHaveLength(1)
@@ -152,7 +152,7 @@ describe('실제 workflow route의 백그라운드 실행 추적', () => {
 		await screen.findByDisplayValue(workflowFixture.name)
 		await startExecution()
 		act(() => subscriptions[0].onError?.(new Error('connection lost')))
-		expect(screen.getByText('실행 상태 추적이 중단됐어요. 이전 실행은 서버에서 계속될 수 있어요.')).toBeInTheDocument()
+		expect(screen.queryByText('실행 상태 추적이 중단됐어요. 이전 실행은 서버에서 계속될 수 있어요.')).not.toBeInTheDocument()
 
 		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
 		expect(screen.getByRole('heading', { name: '다시 실행할까요?' })).toBeInTheDocument()
