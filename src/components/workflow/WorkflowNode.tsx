@@ -10,6 +10,9 @@ const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 	running: 'bg-[#e1f3f7] text-[#087a95]',
 	success: 'bg-[#e5f3ec] text-[#287357]',
 	error: 'bg-[#fff0ec] text-[#a84c36]',
+	waitingApproval: 'bg-[#fff1d6] text-[#9a6700]',
+	skipped: 'bg-[#eef1f3] text-[#5a6975]',
+	interrupted: 'bg-[#fff1d6] text-[#9a6700]',
 }
 
 const HANDLE_CLASS = cn(
@@ -30,7 +33,8 @@ const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
 	if (status === 'running')
 		return <LoaderCircle className='animate-spin motion-reduce:animate-none' size={14} aria-hidden='true' />
 	if (status === 'success') return <Check size={14} aria-hidden='true' />
-	if (status === 'error') return <CircleAlert size={14} aria-hidden='true' />
+	if (status === 'error' || status === 'interrupted' || status === 'waitingApproval')
+		return <CircleAlert size={14} aria-hidden='true' />
 	return <CircleDashed size={14} aria-hidden='true' />
 }
 
