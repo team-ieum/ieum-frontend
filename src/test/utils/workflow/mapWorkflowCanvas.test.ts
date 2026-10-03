@@ -207,5 +207,7 @@ describe('mapWorkflowCanvas', () => {
 		expect(toWorkflowNodeStatus('running')).toBe('running')
 		expect(toWorkflowNodeStatus('success')).toBe('success')
 		expect(toWorkflowNodeStatus('failed')).toBe('error')
+		expect(toWorkflowNodeStatus('waitingApproval')).toBe('waitingApproval')
+		expect(toWorkflowNodeStatus('skipped')).toBe('skipped')
 	})
 })
