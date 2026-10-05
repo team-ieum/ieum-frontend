@@ -36,6 +36,6 @@ export type LoginResponse = ApiResponse<ResponseLoginDto>
 
 export type RefreshResponse = LoginResponse
 
-export type AuthMode = 'login' | 'signup'
+export type AuthMode = 'login' | 'signup' | 'forgotPassword'
 
 export type SwapDirection = 1 | -1
