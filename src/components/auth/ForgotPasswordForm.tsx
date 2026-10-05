@@ -1,30 +1,50 @@
+import { useId } from 'react'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import { useValidatedForgotPasswordForm } from '@/hooks/auth/useValidatedForgotPasswordForm'
 import { useAuthMode } from '@/stores/useAuthMode'
 
 const ForgotPasswordForm = () => {
+	const titleId = useId()
+	const descriptionId = `${titleId}-description`
 	const { values, errors, showUnavailableNotice, handleChange, handleSubmit } = useValidatedForgotPasswordForm()
 	const toLogin = useAuthMode(state => state.toLogin)
 
 	return (
-		<form className='flex w-full flex-col justify-center' onSubmit={handleSubmit} noValidate>
+		<form
+			className='flex w-full flex-col justify-center'
+			onSubmit={handleSubmit}
+			aria-labelledby={titleId}
+			aria-describedby={descriptionId}
+			noValidate
+		>
 			<div className='space-y-3 text-center'>
-				<h1 className='typo-title2_bold text-main-deep-blue'>비밀번호 찾기</h1>
-				<p className='typo-body2_regular text-neutral-500'>가입할 때 사용한 이름과 이메일을 입력해주세요.</p>
+				<h1 id={titleId} className='typo-title2_bold text-main-deep-blue'>
+					비밀번호 찾기
+				</h1>
+				<p id={descriptionId} className='typo-body2_regular text-balance text-neutral-500'>
+					가입할 때 사용한 이름과 이메일을 입력해주세요.
+				</p>
 			</div>
 
-			<div className='mt-16 space-y-4'>
-				<TextInput text='name' value={values.name} onChange={value => handleChange('name', value)} error={errors.name} />
+			<div className='mt-8 space-y-4 sm:mt-12 lg:mt-16'>
+				<TextInput
+					text='name'
+					value={values.name}
+					onChange={value => handleChange('name', value)}
+					error={errors.name}
+					autoComplete='name'
+				/>
 				<TextInput
 					text='email'
 					value={values.email}
 					onChange={value => handleChange('email', value)}
 					error={errors.email}
+					autoComplete='email'
 				/>
 			</div>
 
-			<div className='mt-13'>
+			<div className='mt-8 sm:mt-10 lg:mt-13'>
 				<AuthSubmitButton label='재설정 이메일 받기' />
 			</div>
 
@@ -41,7 +61,7 @@ const ForgotPasswordForm = () => {
 				<button
 					type='button'
 					onClick={toLogin}
-					className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
+					className='typo-caption1_medium inline-flex min-h-10 items-center justify-center rounded-brand-md px-3 text-main-deep-blue hover:typo-caption1_bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 				>
 					로그인으로 돌아가기
 				</button>

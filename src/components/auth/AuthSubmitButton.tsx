@@ -8,7 +8,7 @@ const AuthSubmitButton = ({ label, disabled = false }: AuthSubmitButtonProps) =>
 		<button
 			type='submit'
 			disabled={disabled}
-			className='typo-body2_bold w-full rounded-2xl bg-main-blue py-3.5 text-neutral-50 shadow-[0_4px_14px_4px_color-mix(in_srgb,var(--color-main-blue)_25%,transparent)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60'
+			className='typo-body2_bold w-full rounded-2xl bg-main-blue py-3.5 text-neutral-50 shadow-[0_4px_14px_4px_color-mix(in_srgb,var(--color-main-blue)_25%,transparent)] transition hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-main-deep-blue disabled:cursor-not-allowed disabled:opacity-60'
 		>
 			{label}
 		</button>
