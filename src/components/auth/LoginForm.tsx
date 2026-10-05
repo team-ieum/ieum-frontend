@@ -50,7 +50,7 @@ const LoginForm = () => {
 					<button
 						type='button'
 						onClick={toForgotPassword}
-						className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
+						className='typo-caption1_medium rounded-brand-md text-main-deep-blue hover:typo-caption1_bold transition-all focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-main-blue'
 					>
 						비밀번호 찾기
 					</button>

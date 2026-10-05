@@ -1,4 +1,5 @@
 import { AtSignIcon, LockKeyhole, UserIcon } from 'lucide-react'
+import { useId } from 'react'
 import type { InputText } from '../../types/textInput'
 import { cn } from '../../utils/cn'
 
@@ -7,6 +8,7 @@ type TextInputProps = {
 	value: string
 	onChange: (value: string) => void
 	error?: string
+	autoComplete?: string
 }
 
 const inputMeta: Record<InputText, { label: string; type: string; placeholder: string; icon: React.ReactNode }> = {
@@ -16,13 +18,17 @@ const inputMeta: Record<InputText, { label: string; type: string; placeholder: s
 	name: { label: '이름', type: 'text', placeholder: '홍길동', icon: <UserIcon /> },
 }
 
-const TextInput = ({ text, value, onChange, error }: TextInputProps) => {
+const TextInput = ({ text, value, onChange, error, autoComplete }: TextInputProps) => {
+	const inputId = useId()
+	const errorId = `${inputId}-error`
 	const { icon, type, label, placeholder } = inputMeta[text]
 	const hasError = Boolean(error)
 
 	return (
 		<div className='flex flex-col'>
-			<label className='pl-3 typo-body1_medium text-main-deep-blue mb-2'>{label}</label>
+			<label htmlFor={inputId} className='pl-3 typo-body1_medium text-main-deep-blue mb-2'>
+				{label}
+			</label>
 			<div
 				className={cn(
 					'flex min-h-12.5 flex-row items-center gap-2 rounded-brand-md bg-main-light-blue px-3',
@@ -37,14 +43,22 @@ const TextInput = ({ text, value, onChange, error }: TextInputProps) => {
 					{icon}
 				</span>
 				<input
+					id={inputId}
 					type={type}
+					autoComplete={autoComplete}
+					aria-invalid={hasError}
+					aria-describedby={hasError ? errorId : undefined}
 					placeholder={placeholder}
 					value={value}
 					onChange={event => onChange(event.target.value)}
 					className='h-full min-w-0 flex-1 border-0 bg-transparent py-3 pr-1 typo-body2_regular text-main-deep-blue outline-none placeholder:text-neutral-400'
 				/>
 			</div>
-			{hasError && <p className='pl-3 mt-1 typo-caption1_regular text-danger-700'>{error}</p>}
+			{hasError && (
+				<p id={errorId} role='alert' className='pl-3 mt-1 typo-caption1_regular text-danger-700'>
+					{error}
+				</p>
+			)}
 		</div>
 	)
 }
