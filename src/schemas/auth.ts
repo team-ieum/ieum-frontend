@@ -5,6 +5,11 @@ export const loginSchema = z.object({
 	password: z.string().min(8, '비밀번호는 8자 이상으로 입력해주세요!'),
 })
 
+export const forgotPasswordSchema = z.object({
+	name: z.string().trim().min(1, '이름을 입력해주세요!'),
+	email: z.string().trim().pipe(z.email('이메일 주소를 다시 확인해주세요!')),
+})
+
 export const signupSchema = loginSchema
 	.extend({
 		name: z.string().trim().min(1, '이름을 입력해주세요!'),
@@ -17,3 +22,4 @@ export const signupSchema = loginSchema
 
 export type LoginValues = z.infer<typeof loginSchema>
 export type SignupValues = z.infer<typeof signupSchema>
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>
