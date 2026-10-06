@@ -12,6 +12,7 @@ const IntegrationSettingLayout = ({
 	connectedCount,
 	availableCount,
 	isCountPending,
+	onSectionButtonRef,
 }: PropsWithChildren<{
 	active: IntegrationTabId
 	onChange: (tab: IntegrationTabId) => void
@@ -19,6 +20,7 @@ const IntegrationSettingLayout = ({
 	connectedCount: number
 	availableCount: number
 	isCountPending: boolean
+	onSectionButtonRef: (tab: IntegrationTabId, element: HTMLButtonElement | null) => void
 }>) => (
 	<div
 		className={cn(
@@ -34,6 +36,7 @@ const IntegrationSettingLayout = ({
 			connectedCount={connectedCount}
 			availableCount={availableCount}
 			isCountPending={isCountPending}
+			onButtonRef={onSectionButtonRef}
 		/>
 		{children}
 	</div>

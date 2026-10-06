@@ -23,6 +23,12 @@ const OAUTH_SUCCESS_MESSAGES: Record<IntegrationOAuthProvider, string> = {
 export const isOAuthReturnSearchParams = (searchParams: URLSearchParams): boolean =>
 	OAUTH_RETURN_QUERY_KEYS.some(key => searchParams.has(key))
 
+export const removeOAuthReturnSearchParams = (searchParams: URLSearchParams): URLSearchParams => {
+	const nextSearchParams = new URLSearchParams(searchParams)
+	OAUTH_RETURN_QUERY_KEYS.forEach(key => nextSearchParams.delete(key))
+	return nextSearchParams
+}
+
 export const detectOAuthProvider = (pathname: string, searchParams: URLSearchParams): IntegrationOAuthProvider | null => {
 	const providerParam = (
 		searchParams.get('provider') ??

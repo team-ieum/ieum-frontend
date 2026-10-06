@@ -107,6 +107,16 @@ export const isWorkflowEdgeDto = (value: unknown): value is WorkflowEdgeDto => {
 	return typeof edge.source === 'string' && typeof edge.target === 'string'
 }
 
+export const normalizeWorkflowCanvasDocument = (rawNodes: unknown[], rawEdges: unknown[]) => {
+	const nodes = rawNodes.filter(isWorkflowNodeDto)
+	const nodeIds = new Set(nodes.map(node => node.id))
+	const edges = rawEdges.filter(
+		(edge): edge is WorkflowEdgeDto => isWorkflowEdgeDto(edge) && nodeIds.has(edge.source) && nodeIds.has(edge.target)
+	)
+
+	return { nodes, edges }
+}
+
 export const toWorkflowNodeStatus = (status?: NodeExecutionStatus): WorkflowNodeStatus => {
 	if (status === 'failed') return 'error'
 	return status ?? 'idle'

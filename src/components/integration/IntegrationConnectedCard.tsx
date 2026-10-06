@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { getBrandConfig } from '../../constants/integration/brandConfig'
 import { INTEGRATION_STATUS_LABEL } from '../../constants/integration/statusLabels'
@@ -8,12 +9,17 @@ import { cn } from '../../utils/cn'
 type IntegrationConnectedCardProps = {
 	service: IntegrationService
 	onManage: () => void
+	onManageButtonRef: (id: string, element: HTMLButtonElement | null) => void
 }
 
-const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCardProps) => {
+const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: IntegrationConnectedCardProps) => {
 	const brand = getBrandConfig(service.brand)
 	const displayStatus = toConnectedDisplayStatus(service.status)
 	const status = INTEGRATION_STATUS_LABEL[displayStatus]
+	const manageButtonRef = useCallback(
+		(element: HTMLButtonElement | null) => onManageButtonRef(service.id, element),
+		[onManageButtonRef, service.id]
+	)
 
 	return (
 		<article
@@ -48,6 +54,7 @@ const IntegrationConnectedCard = ({ service, onManage }: IntegrationConnectedCar
 
 			<div className='mt-auto px-4 pb-4 pt-1'>
 				<button
+					ref={manageButtonRef}
 					type='button'
 					onClick={onManage}
 					className='inline-flex h-9 w-full items-center justify-center gap-1 rounded-brand-sm border border-neutral-200 bg-neutral-white typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue'
