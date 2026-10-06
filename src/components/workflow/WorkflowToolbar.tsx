@@ -66,6 +66,9 @@ type WorkflowToolbarProps = {
 	onToggleActive?: () => void
 	onExecute?: () => void
 	isExecuting?: boolean
+	isRequesting?: boolean
+	isWaitingApproval?: boolean
+	canExecute?: boolean
 	technicalMode?: boolean
 	onToggleTechnicalMode?: () => void
 	isRefreshing?: boolean
@@ -83,6 +86,9 @@ const WorkflowToolbar = ({
 	onToggleActive,
 	onExecute,
 	isExecuting = false,
+	isRequesting = false,
+	isWaitingApproval = false,
+	canExecute = !isExecuting && !isWaitingApproval,
 	technicalMode = false,
 	onToggleTechnicalMode,
 	isRefreshing = false,
@@ -213,11 +219,12 @@ const WorkflowToolbar = ({
 			<button
 				type='button'
 				onClick={onExecute}
-				disabled={isExecuting}
+				disabled={!canExecute}
+				aria-label={isWaitingApproval ? '승인 대기 중에는 실행할 수 없습니다' : undefined}
 				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'
 			>
 				{isExecuting ? <Loader2 size={15} className='animate-spin' /> : <Rocket size={15} />}
-				{isExecuting ? '실행 중…' : 'Deploy'}
+				{isWaitingApproval ? '승인 대기' : isRequesting ? '실행 요청 중…' : isExecuting ? '실행 중…' : 'Deploy'}
 			</button>
 		</div>
 	)

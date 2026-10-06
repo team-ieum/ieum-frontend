@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
 	execute: vi.fn(),
 	toggle: vi.fn(),
 	openModal: vi.fn(),
+	openConfirm: vi.fn(),
 	workflowOneActive: true,
 	workflowTwoActive: false,
 }))
@@ -194,11 +195,25 @@ vi.mock('@/hooks/workflow/mutations/useToggleWorkflowMutation', () => ({
 }))
 
 vi.mock('@/hooks/workflow/useWorkflowExecution', () => ({
-	useWorkflowExecution: () => ({ execute: mocks.execute, isExecuting: false }),
+	useWorkflowExecution: (workflowId: string) => {
+		const execution = useExecutionStore(state => state.executions[workflowId])
+		const phase = execution?.phase ?? 'idle'
+		return {
+			execute: mocks.execute,
+			phase,
+			isExecuting: phase === 'requesting' || phase === 'running',
+			canExecute: phase !== 'requesting' && phase !== 'running' && phase !== 'waitingApproval',
+			nodeStatus: execution?.nodeStatus ?? {},
+			errorMessage: execution?.errorMessage ?? null,
+			executionId: execution?.executionId ?? null,
+			requestId: execution?.requestId ?? null,
+		}
+	},
 }))
 
 vi.mock('@/stores/useModalStore', () => ({
-	useModalStore: (selector: (state: { open: typeof mocks.openModal }) => unknown) => selector({ open: mocks.openModal }),
+	useModalStore: (selector: (state: { open: typeof mocks.openModal; openConfirm: typeof mocks.openConfirm }) => unknown) =>
+		selector({ open: mocks.openModal, openConfirm: mocks.openConfirm }),
 }))
 
 vi.mock('@/components/workflow/WorkflowChat', () => ({
@@ -262,10 +277,13 @@ const createDeferredToggle = () => {
 describe('WorkFlowPage', () => {
 	beforeEach(() => {
 		localStorage.clear()
-		useExecutionStore.getState().reset()
+		useExecutionStore.getState().resetAll()
+		mocks.execute.mockReset()
+		mocks.execute.mockResolvedValue('execution-1')
 		mocks.toggle.mockReset()
 		mocks.toggle.mockResolvedValue(undefined)
 		mocks.openModal.mockReset()
+		mocks.openConfirm.mockReset()
 		mocks.workflowOneActive = true
 		mocks.workflowTwoActive = false
 	})
@@ -317,9 +335,134 @@ describe('WorkFlowPage', () => {
 	it('SSE 실행 실패 상태를 컬러 블록 오류 상태로 반영한다', () => {
 		renderPage()
 
-		act(() => useExecutionStore.getState().setNodeStatus('ai', 'failed'))
+		act(() => {
+			useExecutionStore.getState().begin('workflow-1', 1)
+			useExecutionStore.getState().attach('workflow-1', 1, 'execution-1')
+			useExecutionStore.getState().setNodeStatus('workflow-1', 1, 'ai', 'failed')
+		})
 
 		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
+	})
+
+	it.each([
+		{ phase: 'idle', buttonName: 'Deploy', disabled: false },
+		{ phase: 'requesting', buttonName: '실행 요청 중…', disabled: true },
+		{ phase: 'running', buttonName: '실행 중…', disabled: true },
+		{ phase: 'success', buttonName: 'Deploy', disabled: false },
+		{ phase: 'failed', buttonName: 'Deploy', disabled: false },
+		{ phase: 'requestFailed', buttonName: 'Deploy', disabled: false },
+		{ phase: 'waitingApproval', buttonName: '승인 대기 중에는 실행할 수 없습니다', disabled: true },
+		{ phase: 'interrupted', buttonName: 'Deploy', disabled: false },
+	] as const)('$phase 상태에서 상단 실행 안내 없이 툴바 실행 상태를 유지한다', ({ phase, buttonName, disabled }) => {
+		if (phase !== 'idle') {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			if (phase !== 'requesting') store.attach('workflow-1', 1, 'execution-1')
+			if (phase !== 'requesting' && phase !== 'running') store.finish('workflow-1', 1, phase, '실행 오류 세부 정보')
+		}
+		renderPage()
+
+		expect(screen.queryByRole('status', { name: '' })).not.toBeInTheDocument()
+		expect(screen.queryByText('실행 오류 세부 정보')).not.toBeInTheDocument()
+		const executeButton = screen.getByRole('button', { name: buttonName })
+		if (disabled) expect(executeButton).toBeDisabled()
+		else expect(executeButton).toBeEnabled()
+	})
+
+	it('워크플로우별 실행 상태를 화면 이동 후에도 각각 표시한다', () => {
+		renderPage()
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			store.attach('workflow-1', 1, 'execution-1')
+			store.setNodeStatus('workflow-1', 1, 'ai', 'failed')
+			store.finish('workflow-1', 1, 'failed')
+			store.begin('workflow-2', 2)
+			store.attach('workflow-2', 2, 'execution-2')
+			store.setNodeStatus('workflow-2', 2, 'second', 'success')
+			store.finish('workflow-2', 2, 'success')
+		})
+
+		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
+		expect(screen.queryByText('워크플로우 실행에 실패했어요.')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('status-second')).toHaveTextContent('success')
+		expect(screen.queryByText('워크플로우 실행이 완료됐어요.')).not.toBeInTheDocument()
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('status-ai')).toHaveTextContent('error')
+	})
+
+	it('추적 중단 시 확인 후에만 다시 실행하고 진행 표시를 멈춘다', () => {
+		renderPage()
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			store.attach('workflow-1', 1, 'execution-1')
+			store.setNodeStatus('workflow-1', 1, 'ai', 'running')
+			store.finish('workflow-1', 1, 'interrupted')
+		})
+
+		expect(screen.getByTestId('status-ai')).toHaveTextContent('interrupted')
+		expect(screen.queryByText(/실행 상태 추적이 중단됐어요/)).not.toBeInTheDocument()
+		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
+		expect(mocks.execute).not.toHaveBeenCalled()
+		expect(mocks.openConfirm).toHaveBeenCalledWith(expect.objectContaining({ confirmText: '새로 실행' }))
+		mocks.openConfirm.mock.calls[0][0].onConfirm()
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+	})
+
+	it('A에서 연 재실행 확인은 B를 거쳐 A로 돌아온 뒤 실행하지 않는다', () => {
+		renderPage()
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			store.attach('workflow-1', 1, 'execution-1')
+			store.finish('workflow-1', 1, 'interrupted')
+		})
+		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
+		const previousConfirm = mocks.openConfirm.mock.calls[0][0].onConfirm
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+		previousConfirm()
+		expect(mocks.execute).not.toHaveBeenCalled()
+		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
+		mocks.openConfirm.mock.calls[1][0].onConfirm()
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+	})
+
+	it('새 실행이 추적 중단된 뒤 이전 실행의 확인 콜백을 무시한다', () => {
+		renderPage()
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			store.attach('workflow-1', 1, 'execution-1')
+			store.finish('workflow-1', 1, 'interrupted')
+		})
+		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
+		const previousConfirm = mocks.openConfirm.mock.calls[0][0].onConfirm
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 2)
+			store.attach('workflow-1', 2, 'execution-2')
+			store.finish('workflow-1', 2, 'interrupted')
+		})
+		previousConfirm()
+		expect(mocks.execute).not.toHaveBeenCalled()
+	})
+
+	it('승인 대기 중 새 실행을 막고 이유를 표시한다', () => {
+		renderPage()
+		act(() => {
+			const store = useExecutionStore.getState()
+			store.begin('workflow-1', 1)
+			store.attach('workflow-1', 1, 'execution-1')
+			store.setNodeStatus('workflow-1', 1, 'ai', 'waitingApproval')
+			store.finish('workflow-1', 1, 'waitingApproval')
+		})
+
+		expect(screen.getByRole('button', { name: '승인 대기 중에는 실행할 수 없습니다' })).toBeDisabled()
+		expect(screen.getByTestId('status-ai')).toHaveTextContent('waitingApproval')
+		expect(screen.queryByText(/승인을 기다리고 있어요/)).not.toBeInTheDocument()
 	})
 
 	it('제목 변경을 로컬 초안에 기록하고 원본으로 되돌리면 초안을 제거한다', () => {

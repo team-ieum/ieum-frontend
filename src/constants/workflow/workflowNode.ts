@@ -52,6 +52,9 @@ export const WORKFLOW_NODE_STATUS: Record<WorkflowNodeStatus, { label: string; d
 	running: { label: '실행 중', description: '지금 작업하고 있어요' },
 	success: { label: '완료', description: '작업을 마쳤어요' },
 	error: { label: '확인 필요', description: '설정을 다시 확인해주세요' },
+	waitingApproval: { label: '승인 대기', description: '승인이 필요해요' },
+	skipped: { label: '건너뜀', description: '이번 실행에서 건너뛰었어요' },
+	interrupted: { label: '추적 중단', description: '실행 상태를 더 이상 확인할 수 없어요' },
 }
 
 export const getWorkflowNodeMeta = (nodeType: string): WorkflowNodeMeta =>
