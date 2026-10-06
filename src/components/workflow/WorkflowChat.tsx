@@ -249,7 +249,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 									aria-label='메시지 입력'
 									placeholder='메시지를 입력하세요…'
 									rows={1}
-									className='flex-1 max-h-28 resize-none overflow-y-auto text-sm leading-5 outline-none bg-transparent py-0.5'
+									className='flex-1 max-h-28 resize-none overflow-y-auto text-sm leading-5 outline-none bg-transparent py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
 								/>
 								<button
 									type='button'

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { CHAT_SCROLLBAR_VISIBLE_MS } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
 import type { WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
@@ -91,6 +91,15 @@ export const useWorkflowChatViewModel = ({
 		if (!isOpen) return
 		focusInput()
 	}, [isOpen])
+
+	useLayoutEffect(() => {
+		const textarea = inputRef.current
+		if (!textarea) return
+
+		// 높이를 먼저 초기화해야 줄이 줄어들 때도 scrollHeight가 다시 작아진다
+		textarea.style.height = 'auto'
+		textarea.style.height = `${textarea.scrollHeight}px`
+	}, [isOpen, chat.input])
 
 	useEffect(() => {
 		return () => {
