@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { WorkflowDto, WorkflowNodeDto } from '@/types/workflowList'
-import { extractServicesFromNodes, mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListItem'
+import type { WorkflowDto } from '@/types/workflowList'
+import { mapWorkflowDtoToListItem, normalizeServiceIds } from '@/utils/workflow/mapWorkflowDtoToListItem'
 
 const dto: WorkflowDto = {
 	id: 'workflow-1',
@@ -11,6 +11,7 @@ const dto: WorkflowDto = {
 	triggerType: ' SCHEDULE ',
 	cronExpression: '0 0 9 * * *',
 	version: 1,
+	services: ['SLACK', 'NOTION'],
 	nodes: [
 		{ id: 'slack', type: 'HTTP', label: 'Slack 알림', config: { brand: 'Slack' } },
 		{ id: 'notion', type: 'NOTION', label: 'Notion 기록', config: {} },
@@ -20,18 +21,14 @@ const dto: WorkflowDto = {
 	updatedAt: '2026-09-06T00:00:00Z',
 }
 
-describe('extractServicesFromNodes', () => {
-	it('brand와 type을 정규화하고 알려진 서비스를 등장 순서대로 중복 제거한다', () => {
-		const nodes: WorkflowNodeDto[] = [
-			{ id: '1', type: ' NOTION ', label: '', config: { brand: ' sLaCk ' } },
-			{ id: '2', type: 'slack', label: '', config: { brand: 'Notion' } },
-			{ id: '3', type: ' GITHUB ', label: '', config: { brand: 'unknown-service' } },
-			{ id: '4', type: 'HTTP', label: '', config: { brand: 123 } },
-			{ id: '5', type: 'unknown', label: '', config: { brand: ' ' } },
-		]
-
-		expect(extractServicesFromNodes(nodes)).toEqual(['slack', 'notion', 'github'])
-		expect(extractServicesFromNodes([])).toEqual([])
+describe('normalizeServiceIds', () => {
+	it('API 서비스 값을 소문자 서비스 ID로 바꾸고 알 수 없는 값과 중복을 제거한다', () => {
+		expect(normalizeServiceIds(['SLACK', ' Notion ', 'slack', 'UNKNOWN', '', 'GITHUB'])).toEqual([
+			'slack',
+			'notion',
+			'github',
+		])
+		expect(normalizeServiceIds([])).toEqual([])
 	})
 })
 
@@ -57,6 +54,11 @@ describe('mapWorkflowDtoToListItem', () => {
 		expect(dto).toEqual(original)
 	})
 
+	it('노드 구성과 관계없이 API services로 서비스 목록을 만든다', () => {
+		expect(mapWorkflowDtoToListItem({ ...dto, services: ['DISCORD'] }).services).toEqual(['discord'])
+		expect(mapWorkflowDtoToListItem({ ...dto, services: [] }).services).toEqual([])
+	})
+
 	it.each([
 		[' WEBHOOK ', 'webhook'],
 		['EVENT', 'event'],
@@ -68,7 +70,14 @@ describe('mapWorkflowDtoToListItem', () => {
 	})
 
 	it('비활성 DTO는 paused로 표시하고 비어 있는 설명·노드의 기본값을 유지한다', () => {
-		const emptyDto = { ...dto, active: false, description: null, nodes: null, cronExpression: null } as unknown as WorkflowDto
+		const emptyDto = {
+			...dto,
+			active: false,
+			description: null,
+			services: [],
+			nodes: null,
+			cronExpression: null,
+		} as unknown as WorkflowDto
 
 		expect(mapWorkflowDtoToListItem(emptyDto)).toMatchObject({
 			desc: '',
