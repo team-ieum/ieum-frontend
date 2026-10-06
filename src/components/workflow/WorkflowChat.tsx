@@ -124,14 +124,14 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						{/* 헤더 */}
 						<div className='flex items-center gap-3 px-4 py-3.5 bg-main-deep-blue text-white shrink-0'>
 							<div
-								className='w-8 h-8 rounded-[10px] grid place-items-center'
+								className='w-8 h-8 rounded-[10px] grid place-items-center select-none'
 								style={{ background: 'rgba(255,255,255,.12)' }}
 							>
 								<img
 									src={symbolLogo}
 									alt='이음'
 									draggable={false}
-									className='pointer-events-none w-5 h-5 object-contain'
+									className='pointer-events-none select-none w-5 h-5 object-contain'
 								/>
 							</div>
 							<div className='flex-1'>
