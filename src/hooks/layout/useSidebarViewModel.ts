@@ -56,14 +56,6 @@ export const useSidebarViewModel = ({ onClose }: UseSidebarViewModelOptions = {}
 			})
 	}, [data, pathname])
 
-	const onNavItemClick = useCallback(
-		(path: string) => {
-			navigate(path)
-			onClose?.()
-		},
-		[navigate, onClose]
-	)
-
 	const onCreateCanvasClick = useCallback(() => {
 		navigate('/workflow/new')
 		onClose?.()
@@ -81,7 +73,6 @@ export const useSidebarViewModel = ({ onClose }: UseSidebarViewModelOptions = {}
 		navItems,
 		recentWorkflows,
 		isRecentWorkflowsLoading: isLoading,
-		onNavItemClick,
 		onCreateCanvasClick,
 		onRecentWorkflowClick,
 	}

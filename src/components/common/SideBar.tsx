@@ -1,12 +1,20 @@
 import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
+import type { Ref } from 'react'
+import { Link } from 'react-router'
 import { cn } from '@/utils/cn'
-import { NAV_ITEMS } from '@/constants/layout'
+import { NAV_ITEMS, SIDEBAR_ELEMENT_ID } from '@/constants/layout'
 import { useSidebarRouteDataPrefetch } from '@/hooks/layout/useSidebarRouteDataPrefetch'
 import { useSidebarViewModel } from '@/hooks/layout/useSidebarViewModel'
 
 type SideBarProps = {
 	isOpen?: boolean
+	/** 좁은 viewport에서 화면 밖에 있을 때 true. 이때 사이드바 전체를 `inert`로 렌더한다. */
+	isOffCanvasHidden?: boolean
+	closeButtonRef?: Ref<HTMLButtonElement>
+	/** 항목 선택으로 이동하며 닫는다. focus는 이동한 화면에 맡긴다. */
 	onClose?: () => void
+	/** 닫기 버튼으로 닫고 메뉴 버튼으로 focus를 되돌린다. */
+	onDismiss?: () => void
 	collapsed?: boolean
 	onToggleCollapse?: () => void
 	onLogout?: () => void
@@ -17,13 +25,24 @@ const NAV_ICON_BY_ID = Object.fromEntries(NAV_ITEMS.map(item => [item.id, item.i
 	(typeof NAV_ITEMS)[number]['icon']
 >
 
-export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCollapse, onLogout }: SideBarProps) => {
-	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onNavItemClick, onCreateCanvasClick, onRecentWorkflowClick } =
+export const SideBar = ({
+	isOpen = false,
+	isOffCanvasHidden = false,
+	closeButtonRef,
+	onClose,
+	onDismiss,
+	collapsed = false,
+	onToggleCollapse,
+	onLogout,
+}: SideBarProps) => {
+	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onCreateCanvasClick, onRecentWorkflowClick } =
 		useSidebarViewModel({ onClose })
 	const prefetchRouteData = useSidebarRouteDataPrefetch()
 
 	return (
 		<aside
+			id={SIDEBAR_ELEMENT_ID}
+			inert={isOffCanvasHidden}
 			className={cn(
 				'fixed top-(--layout-header-height) left-0 z-30',
 				'flex h-[calc(100vh-var(--layout-header-height))] flex-col',
@@ -38,8 +57,9 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 			<div className='flex items-center justify-between px-4 pt-4 pb-2 lg:hidden'>
 				<span className='text-sm font-semibold text-main-deep-blue'>메뉴</span>
 				<button
+					ref={closeButtonRef}
 					type='button'
-					onClick={onClose}
+					onClick={onDismiss}
 					className='flex h-8 w-8 items-center justify-center rounded-brand-sm border border-[#cde9f4] bg-white text-main-deep-blue transition-colors hover:bg-white/80'
 					aria-label='사이드바 닫기'
 				>
@@ -52,6 +72,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 				<button
 					type='button'
 					onClick={onCreateCanvasClick}
+					aria-label={collapsed ? '새 캔버스' : undefined}
 					className={cn(
 						'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
 						collapsed ? 'justify-center' : 'justify-between px-3.5'
@@ -70,17 +91,19 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 			</div>
 
 			{/* 네비게이션 */}
-			<nav className='flex flex-col gap-0.5 px-3'>
+			<nav aria-label='주요 메뉴' className='flex flex-col gap-0.5 px-3'>
 				{navItems.map(item => {
 					const Icon = NAV_ICON_BY_ID[item.id]
 
 					return (
-						<button
+						<Link
 							key={item.id}
-							type='button'
+							to={item.path}
+							aria-current={item.isActive ? 'page' : undefined}
+							aria-label={collapsed ? item.label : undefined}
 							onPointerEnter={() => prefetchRouteData(item.id)}
 							onFocus={() => prefetchRouteData(item.id)}
-							onClick={() => onNavItemClick(item.path)}
+							onClick={onClose}
 							className={cn(
 								'flex h-10 w-full items-center gap-2.5 rounded-xl text-sm transition-colors',
 								collapsed ? 'justify-center' : 'px-3.5',
@@ -98,7 +121,7 @@ export const SideBar = ({ isOpen = false, onClose, collapsed = false, onToggleCo
 									)}
 								</>
 							)}
-						</button>
+						</Link>
 					)
 				})}
 			</nav>

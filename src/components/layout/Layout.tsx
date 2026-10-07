@@ -5,14 +5,13 @@ import { Header } from '../common/Header'
 import { SideBar } from '../common/SideBar'
 import { NAV_ITEMS } from '@/constants/layout'
 import { RouteTransition } from '@/components/routing/RouteTransition'
+import { useMobileSidebar } from '@/hooks/layout/useMobileSidebar'
 
 export const Layout = () => {
-	const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+	const sidebar = useMobileSidebar()
 	const [collapsed, setCollapsed] = useState(false)
 	const { pathname } = useLocation()
 
-	const closeSidebar = () => setIsSidebarOpen(false)
-	const toggleSidebar = () => setIsSidebarOpen(prev => !prev)
 	const toggleCollapse = () => setCollapsed(prev => !prev)
 
 	const crumb = NAV_ITEMS.find(item => {
@@ -21,15 +20,28 @@ export const Layout = () => {
 
 	return (
 		<div className='min-h-screen bg-neutral-50 text-neutral-800'>
-			<Header onMenuClick={toggleSidebar} crumb={crumb} />
+			<Header
+				onMenuClick={sidebar.toggle}
+				menuButtonRef={sidebar.menuButtonRef}
+				isSidebarOpen={sidebar.isOpen}
+				crumb={crumb}
+			/>
 
-			<SideBar isOpen={isSidebarOpen} onClose={closeSidebar} collapsed={collapsed} onToggleCollapse={toggleCollapse} />
+			<SideBar
+				isOpen={sidebar.isOpen}
+				isOffCanvasHidden={sidebar.isOffCanvasHidden}
+				closeButtonRef={sidebar.closeButtonRef}
+				onClose={sidebar.close}
+				onDismiss={sidebar.dismiss}
+				collapsed={collapsed}
+				onToggleCollapse={toggleCollapse}
+			/>
 
-			{isSidebarOpen && (
+			{sidebar.isOpen && (
 				<button
 					type='button'
 					className='fixed inset-0 top-(--layout-header-height) z-20 bg-black/30 lg:hidden'
-					onClick={closeSidebar}
+					onClick={sidebar.dismiss}
 					aria-label='사이드바 배경 닫기'
 				/>
 			)}

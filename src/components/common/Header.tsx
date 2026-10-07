@@ -1,6 +1,8 @@
+import type { Ref } from 'react'
 import { useNavigate } from 'react-router'
 import logoSymbol from '../../assets/symbol.png'
 import { Bell, ChevronRight, Menu, Search } from 'lucide-react'
+import { SIDEBAR_ELEMENT_ID } from '@/constants/layout'
 
 type HeaderUser = {
 	name: string
@@ -9,6 +11,8 @@ type HeaderUser = {
 
 type HeaderProps = {
 	onMenuClick: () => void
+	menuButtonRef?: Ref<HTMLButtonElement>
+	isSidebarOpen?: boolean
 	crumb?: string
 	user?: HeaderUser
 	notificationCount?: number
@@ -17,6 +21,8 @@ type HeaderProps = {
 
 export const Header = ({
 	onMenuClick,
+	menuButtonRef,
+	isSidebarOpen = false,
 	crumb = '대시보드',
 	user = { name: '관리자', initial: '관' },
 	notificationCount = 0,
@@ -30,8 +36,11 @@ export const Header = ({
 		<header className='fixed top-0 left-0 z-40 flex h-(--layout-header-height) w-full items-center gap-3.5 border-b border-[#cde9f4] bg-linear-to-b from-[#EAF7FE] to-main-light-blue px-4 lg:px-5'>
 			{/* 모바일 햄버거 */}
 			<button
+				ref={menuButtonRef}
 				type='button'
 				onClick={onMenuClick}
+				aria-expanded={isSidebarOpen}
+				aria-controls={SIDEBAR_ELEMENT_ID}
 				className='flex h-9 w-9 items-center justify-center rounded-brand-sm border border-[#cde9f4] bg-white/60 text-main-deep-blue transition-colors hover:bg-white lg:hidden'
 				aria-label='사이드바 열기'
 			>
