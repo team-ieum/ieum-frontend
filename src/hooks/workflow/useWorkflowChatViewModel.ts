@@ -123,11 +123,13 @@ export const useWorkflowChatViewModel = ({
 		return () => document.removeEventListener('mousedown', handleDocumentMouseDown)
 	}, [isModelMenuOpen])
 
-	const credentialOptions: WorkflowChatCredentialOption[] = chat.credentials.map(credential => ({
-		id: credential.id,
-		label: PROVIDER_DISPLAY_NAME[credential.provider],
-		brandColor: PROVIDER_VISUAL[credential.provider].brand,
-	}))
+	const credentialOptions: WorkflowChatCredentialOption[] = chat.credentials
+		.filter(credential => Object.hasOwn(PROVIDER_VISUAL, credential.provider))
+		.map(credential => ({
+			id: credential.id,
+			label: PROVIDER_DISPLAY_NAME[credential.provider],
+			brandColor: PROVIDER_VISUAL[credential.provider].brand,
+		}))
 	const selectedCredentialOption = credentialOptions.find(option => option.id === chat.selectedCredentialId) ?? null
 
 	const openChat = () => setIsOpen(true)
