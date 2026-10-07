@@ -1,17 +1,36 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowUp, X } from 'lucide-react'
-import { useState } from 'react'
-import type { ReactElement } from 'react'
+import { ArrowUp, Check, ChevronDown, Sparkles, X } from 'lucide-react'
+import type { ReactElement, ReactNode } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
-import { CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
-import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
-import type { CredentialProvider } from '@/types/credential'
+import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
+import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
+import { cn } from '@/utils/cn'
 
-const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
-	OPENAI: 'OpenAI',
-	CLAUDE: 'Claude',
-	GEMINI: 'Gemini',
+const MODEL_MENU_ID = 'workflow-chat-model-menu'
+
+type ModelMenuItemProps = {
+	label: string
+	isSelected: boolean
+	leading: ReactNode
+	onSelect: () => void
 }
+
+const ModelMenuItem = ({ label, isSelected, leading, onSelect }: ModelMenuItemProps): ReactElement => (
+	<button
+		type='button'
+		role='menuitemradio'
+		aria-checked={isSelected}
+		onClick={onSelect}
+		className={cn(
+			'flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left typo-body3_regular transition-colors',
+			isSelected ? 'bg-main-light-blue text-main-deep-blue' : 'text-neutral-700 hover:bg-neutral-50'
+		)}
+	>
+		<span className='grid h-3 w-3 shrink-0 place-items-center'>{leading}</span>
+		<span className='flex-1'>{label}</span>
+		{isSelected && <Check size={14} className='shrink-0' />}
+	</button>
+)
 
 type TypingIndicatorProps = {
 	stage?: string | null
@@ -28,8 +47,8 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 			exit={{ opacity: 0, y: 6 }}
 			transition={{ duration: 0.2 }}
 		>
-			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center' style={{ background: '#e0f6ff' }}>
-				<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
+			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none' style={{ background: '#e0f6ff' }}>
+				<img src={symbolLogo} alt='이음' draggable={false} className='pointer-events-none w-4 h-4 object-contain' />
 			</span>
 			<div
 				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-[280px] flex-wrap'
@@ -59,20 +78,31 @@ type WorkflowChatProps = {
 }
 
 const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
-	const [isOpen, setIsOpen] = useState(false)
 	const {
+		isOpen,
+		openChat,
+		closeChat,
 		messages,
 		input,
 		setInput,
 		isTyping,
 		handleSend,
 		handleKeyDown,
-		bodyRef,
-		credentials,
+		credentialOptions,
+		selectedCredentialOption,
 		selectedCredentialId,
-		setSelectedCredentialId,
+		isModelMenuOpen,
+		toggleModelMenu,
+		selectCredential,
+		onModelMenuKeyDown,
+		modelMenuRef,
 		currentStage,
-	} = useWorkflowChat(workflowId, currentNodes, currentEdges, onCanvasUpdate)
+		scrollbar,
+		onChatBodyScroll,
+		chatBodyRef,
+		messagesEndRef,
+		inputRef,
+	} = useWorkflowChatViewModel({ workflowId, currentNodes, currentEdges, onCanvasUpdate })
 
 	return (
 		<>
@@ -85,12 +115,17 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						animate={{ scale: 1, opacity: 1 }}
 						exit={{ scale: 0, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-						onClick={() => setIsOpen(true)}
+						onClick={openChat}
 						aria-label='채팅 열기'
 						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
 					>
-						<img src={symbolLogo} alt='이음' className='w-7 h-7 object-contain' />
+						<img
+							src={symbolLogo}
+							alt='이음'
+							draggable={false}
+							className='pointer-events-none w-7 h-7 object-contain'
+						/>
 					</motion.button>
 				)}
 			</AnimatePresence>
@@ -113,10 +148,15 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						{/* 헤더 */}
 						<div className='flex items-center gap-3 px-4 py-3.5 bg-main-deep-blue text-white shrink-0'>
 							<div
-								className='w-8 h-8 rounded-[10px] grid place-items-center'
+								className='w-8 h-8 rounded-[10px] grid place-items-center select-none'
 								style={{ background: 'rgba(255,255,255,.12)' }}
 							>
-								<img src={symbolLogo} alt='이음' className='w-5 h-5 object-contain' />
+								<img
+									src={symbolLogo}
+									alt='이음'
+									draggable={false}
+									className='pointer-events-none select-none w-5 h-5 object-contain'
+								/>
 							</div>
 							<div className='flex-1'>
 								<div className='text-sm font-semibold'>IEUM Assistant</div>
@@ -125,7 +165,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 								</div>
 							</div>
 							<button
-								onClick={() => setIsOpen(false)}
+								onClick={closeChat}
 								aria-label='채팅 닫기'
 								className='w-7 h-7 rounded-lg grid place-items-center hover:opacity-80 transition-opacity cursor-pointer'
 								style={{ background: 'rgba(255,255,255,.12)' }}
@@ -135,72 +175,166 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						</div>
 
 						{/* 채팅 바디 */}
-						<div ref={bodyRef} className='flex-1 overflow-y-auto p-4 flex flex-col gap-3'>
-							{messages.map((msg, i) =>
-								msg.type === 'assistant' ? (
-									<div key={i} className='flex gap-2 items-start'>
-										<span
-											className='w-7 h-7 rounded-lg shrink-0 grid place-items-center'
-											style={{ background: '#e0f6ff' }}
-										>
-											<img src={symbolLogo} alt='이음' className='w-4 h-4 object-contain' />
-										</span>
-										<div className='flex flex-col gap-2 max-w-[280px]'>
-											<div
-												className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
-												style={{ background: '#F0F4FC' }}
+						<div className='relative min-h-0 flex-1'>
+							<div
+								ref={chatBodyRef}
+								onScroll={onChatBodyScroll}
+								className={cn(
+									'flex h-full flex-col gap-3 overflow-y-auto p-4',
+									'[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
+								)}
+							>
+								{messages.map((msg, i) =>
+									msg.type === 'assistant' ? (
+										<div key={i} className='flex gap-2 items-start'>
+											<span
+												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none'
+												style={{ background: '#e0f6ff' }}
 											>
+												<img
+													src={symbolLogo}
+													alt='이음'
+													draggable={false}
+													className='pointer-events-none w-4 h-4 object-contain'
+												/>
+											</span>
+											<div className='flex flex-col gap-2 max-w-[280px]'>
+												<div
+													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+													style={{ background: '#F0F4FC' }}
+												>
+													{msg.body}
+												</div>
+												{msg.actions?.map((action, j) => (
+													<a
+														key={j}
+														href={action.oauthUrl}
+														target='_blank'
+														rel='noreferrer'
+														className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
+													>
+														{action.label}
+													</a>
+												))}
+											</div>
+										</div>
+									) : (
+										<div key={i} className='flex justify-end'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue'>
 												{msg.body}
 											</div>
-											{msg.actions?.map((action, j) => (
-												<a
-													key={j}
-													href={action.oauthUrl}
-													target='_blank'
-													rel='noreferrer'
-													className='inline-flex items-center justify-center gap-1.5 rounded-xl border border-main-blue px-3 py-2 text-xs font-semibold text-main-blue hover:bg-main-blue/5 transition-colors'
-												>
-													{action.label}
-												</a>
-											))}
 										</div>
-									</div>
-								) : (
-									<div key={i} className='flex justify-end'>
-										<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue'>
-											{msg.body}
-										</div>
-									</div>
-								)
+									)
+								)}
+								<AnimatePresence>{isTyping && <TypingIndicator stage={currentStage} />}</AnimatePresence>
+								<div ref={messagesEndRef} />
+							</div>
+
+							{/* 커스텀 스크롤바 — opacity로 페이드 */}
+							{scrollbar.heightPercent > 0 && (
+								<div className='pointer-events-none absolute inset-y-3 right-1.5 w-1.5' aria-hidden>
+									<div
+										className={cn(
+											'absolute w-full rounded-full bg-main-gray/40',
+											scrollbar.isVisible ? 'opacity-100' : 'opacity-0'
+										)}
+										style={{
+											top: `${scrollbar.topPercent}%`,
+											height: `${scrollbar.heightPercent}%`,
+											transition: `opacity ${CHAT_SCROLLBAR_FADE_MS}ms ease`,
+										}}
+									/>
+								</div>
 							)}
-							<AnimatePresence>{isTyping && <TypingIndicator stage={currentStage} />}</AnimatePresence>
 						</div>
 
 						{/* 입력창 */}
 						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0 flex flex-col gap-2'>
-							{credentials.length > 0 && (
-								<select
-									value={selectedCredentialId ?? ''}
-									onChange={e => setSelectedCredentialId(e.target.value || null)}
-									className='w-22 self-start rounded-[10px] border border-neutral-200 bg-white px-3 py-1.5 typo-caption1_medium text-neutral-700 outline-none focus:border-main-blue'
-								>
-									<option value=''>크레덴셜 선택 (선택 안 함)</option>
-									{credentials.map(c => (
-										<option key={c.id} value={c.id}>
-											{PROVIDER_DISPLAY_NAME[c.provider]}
-										</option>
-									))}
-								</select>
+							{credentialOptions.length > 0 && (
+								<div ref={modelMenuRef} className='relative self-start' onKeyDown={onModelMenuKeyDown}>
+									<button
+										type='button'
+										onClick={toggleModelMenu}
+										aria-haspopup='menu'
+										aria-expanded={isModelMenuOpen}
+										aria-controls={MODEL_MENU_ID}
+										aria-label='AI 모델 선택'
+										className={cn(
+											'inline-flex h-7 items-center gap-1.5 rounded-full border bg-white pr-2 pl-2.5 typo-caption1_medium transition-colors',
+											isModelMenuOpen
+												? 'border-main-blue text-main-deep-blue'
+												: 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
+										)}
+									>
+										{selectedCredentialOption ? (
+											<span
+												className='h-2 w-2 shrink-0 rounded-full'
+												style={{ background: selectedCredentialOption.brandColor }}
+											/>
+										) : (
+											<Sparkles size={12} className='shrink-0 text-neutral-400' />
+										)}
+										<span className={cn(!selectedCredentialOption && 'text-neutral-500')}>
+											{selectedCredentialOption?.label ?? 'AI 모델 선택'}
+										</span>
+										<ChevronDown
+											size={14}
+											className={cn(
+												'text-neutral-400 transition-transform duration-200',
+												isModelMenuOpen && 'rotate-180'
+											)}
+										/>
+									</button>
+
+									<AnimatePresence>
+										{isModelMenuOpen && (
+											<motion.div
+												id={MODEL_MENU_ID}
+												role='menu'
+												initial={{ opacity: 0, y: 4 }}
+												animate={{ opacity: 1, y: 0 }}
+												exit={{ opacity: 0, y: 4 }}
+												transition={{ duration: 0.15 }}
+												className='absolute bottom-[calc(100%+6px)] left-0 z-20 w-44 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
+											>
+												<p className='px-2.5 pt-1 pb-1.5 typo-caption1_semibold text-neutral-400'>
+													AI 모델
+												</p>
+												<ModelMenuItem
+													label='선택 안 함'
+													isSelected={selectedCredentialId === null}
+													onSelect={() => selectCredential(null)}
+													leading={<Sparkles size={12} className='text-neutral-400' />}
+												/>
+												{credentialOptions.map(option => (
+													<ModelMenuItem
+														key={option.id}
+														label={option.label}
+														isSelected={option.id === selectedCredentialId}
+														onSelect={() => selectCredential(option.id)}
+														leading={
+															<span
+																className='h-2 w-2 rounded-full'
+																style={{ background: option.brandColor }}
+															/>
+														}
+													/>
+												))}
+											</motion.div>
+										)}
+									</AnimatePresence>
+								</div>
 							)}
-							<div className='flex items-center gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>
-								<input
+							<div className='flex items-end gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>
+								<textarea
+									ref={inputRef}
 									value={input}
 									onChange={e => setInput(e.target.value)}
 									onKeyDown={handleKeyDown}
 									aria-label='메시지 입력'
 									placeholder='메시지를 입력하세요…'
-									className='flex-1 text-sm outline-none bg-transparent'
-									disabled={isTyping}
+									rows={1}
+									className='flex-1 max-h-28 resize-none overflow-y-auto text-sm leading-5 outline-none bg-transparent py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden'
 								/>
 								<button
 									type='button'
