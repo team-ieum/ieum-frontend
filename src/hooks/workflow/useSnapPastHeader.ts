@@ -1,11 +1,16 @@
+import { useReducedMotion } from 'framer-motion'
 import { useEffect, type RefObject } from 'react'
 
 /**
  * 헤더 구간에서 스크롤이 멈추면, 헤더를 완전히 숨기거나(또는 다시 보이게)
- * 가까운 쪽으로 부드럽게 스냅한다.
+ * 가까운 쪽으로 부드럽게 스냅한다. reduced-motion 환경에서는 즉시 이동한다.
  */
 export const useSnapPastHeader = (headerRef: RefObject<HTMLElement | null>, gapPx = 24) => {
+	const reduceMotion = useReducedMotion()
+
 	useEffect(() => {
+		const scrollBehavior: ScrollBehavior = reduceMotion ? 'auto' : 'smooth'
+
 		let settleTimer: number | undefined
 		let releaseTimer: number | undefined
 		let isSnapping = false
@@ -30,7 +35,7 @@ export const useSnapPastHeader = (headerRef: RefObject<HTMLElement | null>, gapP
 			if (Math.abs(y - target) < 2) return
 
 			isSnapping = true
-			window.scrollTo({ top: target, behavior: 'smooth' })
+			window.scrollTo({ top: target, behavior: scrollBehavior })
 
 			window.clearTimeout(releaseTimer)
 			releaseTimer = window.setTimeout(() => {
@@ -50,5 +55,5 @@ export const useSnapPastHeader = (headerRef: RefObject<HTMLElement | null>, gapP
 			window.clearTimeout(settleTimer)
 			window.clearTimeout(releaseTimer)
 		}
-	}, [headerRef, gapPx])
+	}, [headerRef, gapPx, reduceMotion])
 }

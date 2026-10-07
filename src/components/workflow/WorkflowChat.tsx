@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowUp, X } from 'lucide-react'
 import { useState } from 'react'
 import type { ReactElement } from 'react'
@@ -19,6 +19,7 @@ type TypingIndicatorProps = {
 
 const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 	const stageLabel = stage ? (CHAT_STAGE_LABEL[stage] ?? CHAT_STAGE_FALLBACK_LABEL) : null
+	const reduceMotion = useReducedMotion()
 
 	return (
 		<motion.div
@@ -40,8 +41,15 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 						<motion.span
 							key={i}
 							className='block w-1.5 h-1.5 rounded-full bg-main-blue'
-							animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
-							transition={{ duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }}
+							data-typing-dot
+							// reduced-motion에서는 무한 반복 대신 정적인 점으로 응답 대기를 표시한다.
+							initial={reduceMotion ? { opacity: 0.6 } : { opacity: 0.3, y: 0 }}
+							animate={reduceMotion ? { opacity: 0.6 } : { opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+							transition={
+								reduceMotion
+									? { duration: 0 }
+									: { duration: 1, repeat: Infinity, delay: i * 0.18, ease: 'easeInOut' }
+							}
 						/>
 					))}
 				</div>
