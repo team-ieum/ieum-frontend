@@ -64,6 +64,9 @@ type WorkflowToolbarProps = {
 	status?: WorkflowStatus
 	active?: boolean
 	onToggleActive?: () => void
+	onSave?: () => void
+	isSaving?: boolean
+	canSave?: boolean
 	onExecute?: () => void
 	isExecuting?: boolean
 	technicalMode?: boolean
@@ -81,6 +84,9 @@ const WorkflowToolbar = ({
 	status = 'paused',
 	active,
 	onToggleActive,
+	onSave,
+	isSaving = false,
+	canSave = false,
 	onExecute,
 	isExecuting = false,
 	technicalMode = false,
@@ -205,16 +211,18 @@ const WorkflowToolbar = ({
 			</button>
 			<button
 				type='button'
-				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer'
+				onClick={onSave}
+				disabled={!canSave}
+				className='inline-flex shrink-0 items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold whitespace-nowrap text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white'
 			>
-				<Save size={15} />
-				저장
+				{isSaving ? <Loader2 size={15} className='animate-spin' /> : <Save size={15} />}
+				{isSaving ? '저장 중…' : '저장'}
 			</button>
 			<button
 				type='button'
 				onClick={onExecute}
 				disabled={isExecuting}
-				className='inline-flex items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'
+				className='inline-flex shrink-0 items-center gap-2 h-9 px-4 rounded-[10px] bg-main-deep-blue text-white text-sm font-semibold whitespace-nowrap hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed'
 			>
 				{isExecuting ? <Loader2 size={15} className='animate-spin' /> : <Rocket size={15} />}
 				{isExecuting ? '실행 중…' : 'Deploy'}

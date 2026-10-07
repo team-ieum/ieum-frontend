@@ -13,6 +13,7 @@ import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
+import { useWorkflowSave } from '@/hooks/workflow/useWorkflowSave'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
 import type { ApiErrorCode } from '@/types/api'
@@ -157,6 +158,12 @@ const WorkFlowPage = () => {
 	const openModal = useModalStore(state => state.open)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
 	const { execute, isExecuting } = useWorkflowExecution(workflowId ?? '')
+	const { handleSave, isSaving, canSave } = useWorkflowSave({
+		workflowId: workflowId ?? '',
+		description: workflow?.description,
+		document,
+		hasUnsavedChanges,
+	})
 
 	const handleExecute = async () => {
 		try {
@@ -221,6 +228,9 @@ const WorkFlowPage = () => {
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
 				onToggleActive={handleToggleActive}
+				onSave={() => void handleSave()}
+				isSaving={isSaving}
+				canSave={canSave}
 				onExecute={handleExecute}
 				isExecuting={isExecuting}
 				technicalMode={technicalMode}
