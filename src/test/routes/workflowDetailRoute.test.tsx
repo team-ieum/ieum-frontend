@@ -143,6 +143,7 @@ describe('/workflow/:workflowId route harness', () => {
 		renderAppRoute(detailPath)
 
 		expect(await screen.findByRole('heading', { name: '워크플로우를 찾을 수 없어요' })).toBeInTheDocument()
+		expect(screen.getByRole('alert')).toHaveTextContent('워크플로우를 찾을 수 없어요')
 		expect(screen.getByRole('button', { name: '워크플로우 목록으로' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()

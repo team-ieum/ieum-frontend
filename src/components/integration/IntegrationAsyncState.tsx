@@ -41,7 +41,10 @@ export const IntegrationSourceError = ({ webhookResource, oauthResource }: Integ
 	].filter((failure): failure is IntegrationFailure => failure !== null)
 
 	return (
-		<div className='col-span-full flex min-h-[148px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'>
+		<div
+			role='alert'
+			className='col-span-full flex min-h-[148px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+		>
 			<p className='m-0 typo-body2_semibold text-danger-700'>연결 상태를 확인하지 못했습니다.</p>
 			<p className='mt-1 mb-0 typo-body3_regular text-neutral-500'>
 				확인되지 않은 서비스는 사용 가능 목록에서 제외했습니다.

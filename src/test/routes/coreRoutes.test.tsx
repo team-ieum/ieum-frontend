@@ -256,6 +256,7 @@ describe('주요 route 테스트 harness', () => {
 		const { queryClient } = renderAppRoute('/workflow')
 
 		expect(await screen.findByText('워크플로우를 불러오지 못했습니다.')).toBeInTheDocument()
+		expect(screen.getByRole('alert')).toHaveTextContent('워크플로우를 불러오지 못했습니다.')
 		expect(screen.queryByRole('heading', { level: 2, name: '워크플로우가 아직 없어요' })).not.toBeInTheDocument()
 		expect(queryClient.getQueryState(queryKeys.workflows.list({ size: 20 }))?.status).toBe('error')
 	})
@@ -400,6 +401,7 @@ describe('주요 route 테스트 harness', () => {
 		server.use(...createPartialFailureHandlers(['oauthConnections']))
 		renderAppRoute('/inter-setting')
 		await screen.findByText('연결 상태를 확인하지 못했습니다.')
+		expect(screen.getByRole('alert')).toHaveTextContent('연결 상태를 확인하지 못했습니다.')
 
 		server.use(...createObservedSuccessHandlers(observeRequest))
 		fireEvent.click(screen.getByRole('button', { name: 'OAuth 연결 다시 시도' }))
@@ -415,6 +417,7 @@ describe('주요 route 테스트 harness', () => {
 		server.use(...createPartialFailureHandlers(['credentials']))
 		renderAppRoute('/inter-setting')
 		await screen.findByText('AI 자격 증명을 불러오지 못했습니다.')
+		expect(screen.getByRole('alert')).toHaveTextContent('AI 자격 증명을 불러오지 못했습니다.')
 
 		server.use(...createObservedSuccessHandlers(observeRequest))
 		fireEvent.click(screen.getByRole('button', { name: '다시 시도' }))
