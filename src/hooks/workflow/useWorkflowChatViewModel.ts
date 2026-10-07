@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { PROVIDER_DISPLAY_NAME, PROVIDER_VISUAL } from '@/constants/aiCredentials'
 import { CHAT_SCROLLBAR_VISIBLE_MS } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
-import type { WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
+import type { WorkflowChatCredentialOption, WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
 
 type UseWorkflowChatViewModelArgs = {
 	workflowId: string
@@ -23,10 +24,12 @@ export const useWorkflowChatViewModel = ({
 	onCanvasUpdate,
 }: UseWorkflowChatViewModelArgs): WorkflowChatViewModel => {
 	const [isOpen, setIsOpen] = useState(false)
+	const [isModelMenuOpen, setIsModelMenuOpen] = useState(false)
 	const [scrollbar, setScrollbar] = useState<WorkflowChatScrollbarView>(EMPTY_SCROLLBAR)
 	const chatBodyRef = useRef<HTMLDivElement>(null)
 	const messagesEndRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLTextAreaElement>(null)
+	const modelMenuRef = useRef<HTMLDivElement>(null)
 	const scrollbarHideTimerRef = useRef<number | undefined>(undefined)
 	const isProgrammaticScrollRef = useRef(false)
 
@@ -107,8 +110,43 @@ export const useWorkflowChatViewModel = ({
 		}
 	}, [])
 
+	useEffect(() => {
+		if (!isModelMenuOpen) return
+
+		const handleDocumentMouseDown = (event: MouseEvent) => {
+			if (!modelMenuRef.current?.contains(event.target as Node)) {
+				setIsModelMenuOpen(false)
+			}
+		}
+
+		document.addEventListener('mousedown', handleDocumentMouseDown)
+		return () => document.removeEventListener('mousedown', handleDocumentMouseDown)
+	}, [isModelMenuOpen])
+
+	const credentialOptions: WorkflowChatCredentialOption[] = chat.credentials.map(credential => ({
+		id: credential.id,
+		label: PROVIDER_DISPLAY_NAME[credential.provider],
+		brandColor: PROVIDER_VISUAL[credential.provider].brand,
+	}))
+	const selectedCredentialOption = credentialOptions.find(option => option.id === chat.selectedCredentialId) ?? null
+
 	const openChat = () => setIsOpen(true)
-	const closeChat = () => setIsOpen(false)
+	const closeChat = () => {
+		setIsOpen(false)
+		setIsModelMenuOpen(false)
+	}
+
+	const toggleModelMenu = () => setIsModelMenuOpen(prev => !prev)
+
+	const selectCredential = (id: string | null) => {
+		chat.setSelectedCredentialId(id)
+		setIsModelMenuOpen(false)
+		focusInput()
+	}
+
+	const onModelMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.key === 'Escape') setIsModelMenuOpen(false)
+	}
 
 	const handleSend = () => {
 		void chat.handleSend()
@@ -131,9 +169,14 @@ export const useWorkflowChatViewModel = ({
 		setInput: chat.setInput,
 		isTyping: chat.isTyping,
 		currentStage: chat.currentStage,
-		credentials: chat.credentials,
+		credentialOptions,
+		selectedCredentialOption,
 		selectedCredentialId: chat.selectedCredentialId,
-		setSelectedCredentialId: chat.setSelectedCredentialId,
+		isModelMenuOpen,
+		toggleModelMenu,
+		selectCredential,
+		onModelMenuKeyDown,
+		modelMenuRef,
 		handleSend,
 		handleKeyDown,
 		scrollbar,
