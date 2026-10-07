@@ -4,7 +4,7 @@ import type { WorkflowDto, WorkflowEdgeDto, WorkflowNodeDto } from './workflowLi
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
 
 export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
-export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error'
+export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error' | 'waitingApproval' | 'skipped' | 'interrupted'
 export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'workflow'
 
 export type WorkflowTechnicalDetail = {

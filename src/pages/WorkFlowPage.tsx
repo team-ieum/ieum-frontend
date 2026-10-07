@@ -18,6 +18,7 @@ import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
 import type { ApiErrorCode } from '@/types/api'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
+import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
 import {
@@ -52,12 +53,13 @@ const WORKFLOW_CANVAS_CLASS = cn(
 type WorkflowCanvasProps = {
 	nodes: WorkflowNodeType[]
 	edges: WorkflowEdgeType[]
+	nodeStatus: Record<string, NodeExecutionStatus>
+	isTracking: boolean
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
 }
 
-const WorkflowCanvas = ({ nodes, edges, onNodePositionCommit, onEdgesCommit }: WorkflowCanvasProps) => {
-	const nodeStatus = useExecutionStore(state => state.nodeStatus)
+const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCommit, onEdgesCommit }: WorkflowCanvasProps) => {
 	const editor = useWorkflowCanvasEditor({ initialNodes: nodes, initialEdges: edges, onNodePositionCommit, onEdgesCommit })
 	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
@@ -68,19 +70,22 @@ const WorkflowCanvas = ({ nodes, edges, onNodePositionCommit, onEdgesCommit }: W
 					...node,
 					data: {
 						...(presentation?.data ?? node.data),
-						status: toWorkflowNodeStatus(nodeStatus[node.id]),
+						status:
+							nodeStatus[node.id] === 'running' && !isTracking
+								? 'interrupted'
+								: toWorkflowNodeStatus(nodeStatus[node.id]),
 					},
 				}
 			}),
-		[editor.nodes, nodePresentation, nodeStatus]
+		[editor.nodes, nodePresentation, nodeStatus, isTracking]
 	)
 	const displayEdges = useMemo(
 		() =>
 			editor.edges.map(edge => ({
 				...edge,
-				data: { ...edge.data, flowing: nodeStatus[edge.target] === 'running' },
+				data: { ...edge.data, flowing: isTracking && nodeStatus[edge.target] === 'running' },
 			})),
-		[editor.edges, nodeStatus]
+		[editor.edges, nodeStatus, isTracking]
 	)
 
 	return (
@@ -156,30 +161,51 @@ const WorkFlowPage = () => {
 	}, [document, modelNames, technicalMode])
 
 	const openModal = useModalStore(state => state.open)
+	const openConfirm = useModalStore(state => state.openConfirm)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
-	const { execute, isExecuting } = useWorkflowExecution(workflowId ?? '')
+	const { execute, phase, isExecuting, canExecute, nodeStatus, requestId } = useWorkflowExecution(workflowId ?? '')
 	const { handleSave, isSaving, canSave } = useWorkflowSave({
 		workflowId: workflowId ?? '',
 		description: workflow?.description,
 		document,
 		hasUnsavedChanges,
 	})
+	const currentWorkflowId = useRef(workflowId)
+	const executionVisitId = useRef(0)
 
-	const handleExecute = async () => {
-		try {
-			await execute()
-		} catch (error) {
-			openModal('실행 오류', isApiError(error) ? error.message : '워크플로우 실행에 실패했어요. 다시 시도해주세요.')
+	const handleExecute = () => {
+		if (!canExecute) return
+		if (phase === 'interrupted') {
+			const selectedWorkflowId = workflowId
+			const selectedVisitId = executionVisitId.current
+			openConfirm({
+				title: '다시 실행할까요?',
+				message: '이전 실행이 서버에서 계속되고 있을 수 있어요. 새로 실행하면 작업이 중복될 수 있습니다.',
+				confirmText: '새로 실행',
+				onConfirm: () => {
+					const current = useExecutionStore.getState().executions[selectedWorkflowId ?? '']
+					if (
+						currentWorkflowId.current !== selectedWorkflowId ||
+						executionVisitId.current !== selectedVisitId ||
+						current?.requestId !== requestId ||
+						current.phase !== 'interrupted'
+					)
+						return
+					void execute().catch(() => undefined)
+				},
+			})
+			return
 		}
+		void execute().catch(() => undefined)
 	}
 
 	const [localActive, setLocalActive] = useState<{ workflowId: string; requestId: number; value: boolean } | null>(null)
 	if (localActive && localActive.workflowId !== workflowId) setLocalActive(null)
 	const active = localActive && localActive.workflowId === workflowId ? localActive.value : workflow?.active
-	const currentWorkflowId = useRef(workflowId)
 	const toggleRequestId = useRef(0)
 
 	useLayoutEffect(() => {
+		executionVisitId.current += 1
 		toggleRequestId.current += 1
 		currentWorkflowId.current = workflowId
 		return () => {
@@ -233,6 +259,9 @@ const WorkFlowPage = () => {
 				canSave={canSave}
 				onExecute={handleExecute}
 				isExecuting={isExecuting}
+				isRequesting={phase === 'requesting'}
+				isWaitingApproval={phase === 'waitingApproval'}
+				canExecute={canExecute}
 				technicalMode={technicalMode}
 				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
 				isRefreshing={workflowQuery.isRefetching}
@@ -245,6 +274,8 @@ const WorkFlowPage = () => {
 						key={canvasKey}
 						nodes={canvas.nodes}
 						edges={canvas.edges}
+						nodeStatus={nodeStatus}
+						isTracking={phase === 'running'}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
 					/>
