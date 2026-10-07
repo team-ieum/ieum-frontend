@@ -1,4 +1,5 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/constants/queryKeys'
 import {
@@ -521,6 +522,33 @@ describe('주요 route 테스트 harness', () => {
 		expect(services).toHaveClass('bg-main-deep-blue')
 		expect(aiCredentials).not.toHaveClass('bg-main-deep-blue')
 		expect(scrollIntoView).not.toHaveBeenCalled()
+	})
+
+	it('section navigation은 tab role 없이 nav landmark와 aria-current로 활성 섹션을 전달한다', async () => {
+		const user = userEvent.setup()
+		renderAppRoute('/inter-setting')
+		await screen.findByText('팀 Slack')
+
+		const sectionNavigation = screen.getByRole('navigation', { name: '통합 설정 섹션' })
+		const services = within(sectionNavigation).getByRole('button', { name: '서비스 관리' })
+		const aiCredentials = within(sectionNavigation).getByRole('button', { name: 'AI 자격증명' })
+
+		expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
+		expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+		expect(services).toHaveAttribute('aria-current', 'true')
+		expect(aiCredentials).not.toHaveAttribute('aria-current')
+
+		aiCredentials.focus()
+		await user.keyboard('{Enter}')
+
+		expect(aiCredentials).toHaveAttribute('aria-current', 'true')
+		expect(services).not.toHaveAttribute('aria-current')
+
+		services.focus()
+		await user.keyboard(' ')
+
+		expect(services).toHaveAttribute('aria-current', 'true')
+		expect(aiCredentials).not.toHaveAttribute('aria-current')
 	})
 
 	it('두 QueryClient와 runtime handler reset을 직접 격리한다', async () => {
