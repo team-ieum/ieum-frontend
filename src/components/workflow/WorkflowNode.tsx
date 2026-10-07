@@ -102,18 +102,18 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 				{data.technicalMode && data.technicalDetails.length > 0 ? (
 					<dl
 						className={cn(
-							'm-0 grid gap-[0.35rem] rounded-[0.65rem] border p-[0.55rem_0.6rem] font-mono',
+							'm-0 grid gap-[0.4rem] rounded-[0.65rem] border p-[0.6rem_0.65rem]',
 							'border-[color-mix(in_srgb,var(--node-color)_24%,white)]',
 							'[background:color-mix(in_srgb,var(--node-tint)_55%,white)]'
 						)}
 					>
 						{data.technicalDetails.map(detail => (
 							<div key={detail.label} className='grid grid-cols-[4.1rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
-								<dt className='text-[0.58rem] font-bold tracking-[0.03em] text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
+								<dt className='text-[0.64rem] leading-[1.5] font-bold text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
 									{detail.label}
 								</dt>
 								<dd
-									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.62rem] font-semibold text-[#353442]'
+									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-[1.5] font-semibold text-[#353442]'
 									title={detail.value}
 								>
 									{detail.value}
