@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkFlowPage from '@/pages/WorkFlowPage'
@@ -258,10 +259,13 @@ const renderPage = (options?: { reactStrictMode?: boolean }) =>
 		options
 	)
 
+const getActiveSwitch = () => screen.getByRole('switch', { name: '워크플로우 활성 상태' })
+
 const toggleActive = () => {
-	const toggle = screen.getByRole('switch', { name: /워크플로우 (활성화|비활성화)/ })
+	const toggle = getActiveSwitch()
 	fireEvent.pointerDown(toggle, { clientX: 0 })
 	fireEvent.pointerUp(toggle, { clientX: 0 })
+	fireEvent.click(toggle)
 }
 
 const createDeferredToggle = () => {
@@ -585,12 +589,48 @@ describe('WorkFlowPage', () => {
 		renderPage()
 
 		toggleActive()
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		mocks.workflowOneActive = false
 		await act(async () => pending.resolve())
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
+	it.each([
+		['Enter', '{Enter}'],
+		['Space', ' '],
+	])('keyboard %s로 활성 상태 스위치를 전환한다', async (_key, keys) => {
+		const user = userEvent.setup()
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+
+		getActiveSwitch().focus()
+		await user.keyboard(keys)
+
+		expect(mocks.toggle).toHaveBeenCalledTimes(1)
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
+	})
+
+	it('드래그 직후 발생하는 click으로 활성 상태를 다시 전환하지 않는다', () => {
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+		const toggle = getActiveSwitch()
+
+		fireEvent.pointerDown(toggle, { clientX: 20 })
+		fireEvent.pointerUp(toggle, { clientX: 0 })
+		fireEvent.click(toggle)
+
+		expect(mocks.toggle).toHaveBeenCalledTimes(1)
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
+
+		fireEvent.pointerDown(toggle, { clientX: 20 })
+		fireEvent.pointerUp(toggle, { clientX: 0 })
+		fireEvent.click(toggle)
+
+		expect(mocks.toggle).toHaveBeenCalledTimes(1)
 	})
 
 	it('활성 상태 변경 실패 시 서버 상태로 복구하고 오류를 알린다', async () => {
@@ -599,12 +639,10 @@ describe('WorkFlowPage', () => {
 		renderPage()
 
 		toggleActive()
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		await act(async () => pending.reject(new Error('상태 변경 실패')))
-		await waitFor(() =>
-			expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
-		)
+		await waitFor(() => expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true'))
 		expect(mocks.openModal).toHaveBeenCalledWith('오류', '상태 변경에 실패했어요. 다시 시도해주세요.')
 	})
 
@@ -626,12 +664,10 @@ describe('WorkFlowPage', () => {
 		renderPage({ reactStrictMode: true })
 
 		toggleActive()
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		await act(async () => pending.reject(new Error('상태 변경 실패')))
-		await waitFor(() =>
-			expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
-		)
+		await waitFor(() => expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true'))
 		expect(mocks.openModal).toHaveBeenCalledWith('오류', '상태 변경에 실패했어요. 다시 시도해주세요.')
 	})
 
@@ -644,18 +680,18 @@ describe('WorkFlowPage', () => {
 		toggleActive()
 		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
 		expect(screen.getByRole('textbox', { name: '워크플로우 제목' })).toHaveValue('두 번째 워크플로우')
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		toggleActive()
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 
 		await act(async () => first.reject(new Error('이전 workflow 실패')))
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 		expect(mocks.openModal).not.toHaveBeenCalled()
 
 		mocks.workflowTwoActive = true
 		await act(async () => second.resolve())
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 	})
 
 	it('A에서 대기 중인 토글의 임시 상태를 B를 거쳐 A에 재진입할 때 표시하지 않는다', () => {
@@ -664,13 +700,13 @@ describe('WorkFlowPage', () => {
 		renderPage()
 
 		toggleActive()
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
 		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
 
 		expect(screen.getByRole('textbox', { name: '워크플로우 제목' })).toHaveValue('고객 문의 분류')
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 	})
 
 	it('A에 재진입한 뒤 이전 A 토글의 늦은 실패가 오류 모달을 열지 않는다', async () => {
@@ -684,7 +720,7 @@ describe('WorkFlowPage', () => {
 
 		await act(async () => pending.reject(new Error('이전 A 방문의 실패')))
 
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toHaveAttribute('aria-checked', 'true')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 		expect(mocks.openModal).not.toHaveBeenCalled()
 	})
 
@@ -699,15 +735,15 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
 		toggleActive()
 
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		await act(async () => first.reject(new Error('이전 A 방문의 실패')))
 
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 		expect(mocks.openModal).not.toHaveBeenCalled()
 
 		mocks.workflowOneActive = false
 		await act(async () => second.resolve())
-		expect(screen.getByRole('switch', { name: '워크플로우 활성화' })).toHaveAttribute('aria-checked', 'false')
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 	})
 })
