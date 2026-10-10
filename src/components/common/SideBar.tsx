@@ -14,8 +14,8 @@ type SideBarProps = {
 	/** 좁은 viewport에서 열려 있을 때 true. 이때 focus를 사이드바 안에 가둔다. */
 	isModalOpen?: boolean
 	closeButtonRef?: Ref<HTMLButtonElement>
-	/** 항목 선택으로 이동하며 닫는다. focus는 이동한 화면에 맡긴다. */
-	onClose?: () => void
+	/** 항목을 선택해 `pathname`으로 이동하며 닫는다. */
+	onSelect?: (pathname: string) => void
 	/** 닫기 버튼으로 닫고 메뉴 버튼으로 focus를 되돌린다. */
 	onDismiss?: () => void
 	collapsed?: boolean
@@ -33,14 +33,14 @@ export const SideBar = ({
 	isOffCanvasHidden = false,
 	isModalOpen = false,
 	closeButtonRef,
-	onClose,
+	onSelect,
 	onDismiss,
 	collapsed = false,
 	onToggleCollapse,
 	onLogout,
 }: SideBarProps) => {
 	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onCreateCanvasClick, onRecentWorkflowClick } =
-		useSidebarViewModel({ onClose })
+		useSidebarViewModel({ onSelect })
 	const prefetchRouteData = useSidebarRouteDataPrefetch()
 
 	return (
@@ -117,7 +117,7 @@ export const SideBar = ({
 								aria-label={collapsed ? item.label : undefined}
 								onPointerEnter={() => prefetchRouteData(item.id)}
 								onFocus={() => prefetchRouteData(item.id)}
-								onClick={onClose}
+								onClick={() => onSelect?.(item.path)}
 								className={cn(
 									'flex h-10 w-full items-center gap-2.5 rounded-xl text-sm transition-colors',
 									collapsed ? 'justify-center' : 'px-3.5',

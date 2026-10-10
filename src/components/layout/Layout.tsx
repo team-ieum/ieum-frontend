@@ -8,7 +8,17 @@ import { RouteTransition } from '@/components/routing/RouteTransition'
 import { useMobileSidebar } from '@/hooks/layout/useMobileSidebar'
 
 export const Layout = () => {
-	const sidebar = useMobileSidebar()
+	const {
+		isOpen: isSidebarOpen,
+		isModalOpen: isSidebarModalOpen,
+		isOffCanvasHidden,
+		menuButtonRef,
+		closeButtonRef,
+		mainRef,
+		toggle: toggleSidebar,
+		dismiss: dismissSidebar,
+		closeAfterSelect,
+	} = useMobileSidebar()
 	const [collapsed, setCollapsed] = useState(false)
 	const { pathname } = useLocation()
 
@@ -21,37 +31,39 @@ export const Layout = () => {
 	return (
 		<div className='min-h-screen bg-neutral-50 text-neutral-800'>
 			<Header
-				onMenuClick={sidebar.toggle}
-				menuButtonRef={sidebar.menuButtonRef}
-				isSidebarOpen={sidebar.isOpen}
-				inert={sidebar.isModalOpen}
+				onMenuClick={toggleSidebar}
+				menuButtonRef={menuButtonRef}
+				isSidebarOpen={isSidebarOpen}
+				inert={isSidebarModalOpen}
 				crumb={crumb}
 			/>
 
 			<SideBar
-				isOpen={sidebar.isOpen}
-				isOffCanvasHidden={sidebar.isOffCanvasHidden}
-				isModalOpen={sidebar.isModalOpen}
-				closeButtonRef={sidebar.closeButtonRef}
-				onClose={sidebar.close}
-				onDismiss={sidebar.dismiss}
+				isOpen={isSidebarOpen}
+				isOffCanvasHidden={isOffCanvasHidden}
+				isModalOpen={isSidebarModalOpen}
+				closeButtonRef={closeButtonRef}
+				onSelect={closeAfterSelect}
+				onDismiss={dismissSidebar}
 				collapsed={collapsed}
 				onToggleCollapse={toggleCollapse}
 			/>
 
-			{sidebar.isOpen && (
+			{isSidebarOpen && (
 				<button
 					type='button'
 					className='fixed inset-0 top-(--layout-header-height) z-20 bg-black/30 lg:hidden'
-					onClick={sidebar.dismiss}
+					onClick={dismissSidebar}
 					aria-label='사이드바 배경 닫기'
 				/>
 			)}
 
 			<main
-				inert={sidebar.isModalOpen}
+				ref={mainRef}
+				tabIndex={-1}
+				inert={isSidebarModalOpen}
 				className={cn(
-					'relative min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6',
+					'relative min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6 outline-none',
 					'pt-[calc(var(--layout-header-height)+1.5rem)]',
 					'transition-[padding-left] duration-200',
 					collapsed ? 'lg:pl-22' : 'lg:pl-[calc(var(--layout-sidebar-width)+1.5rem)]'

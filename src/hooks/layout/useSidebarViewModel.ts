@@ -10,12 +10,13 @@ import { mapWorkflowDtoToListItem } from '@/utils/workflow/mapWorkflowDtoToListI
 const RECENT_LIMIT = 5
 
 type UseSidebarViewModelOptions = {
-	onClose?: () => void
+	/** 항목을 선택해 `pathname`으로 이동할 때 호출한다. */
+	onSelect?: (pathname: string) => void
 }
 
 const isPathActive = (pathname: string, path: string): boolean => pathname === path || pathname.startsWith(`${path}/`)
 
-export const useSidebarViewModel = ({ onClose }: UseSidebarViewModelOptions = {}): SidebarViewModel => {
+export const useSidebarViewModel = ({ onSelect }: UseSidebarViewModelOptions = {}): SidebarViewModel => {
 	const navigate = useNavigate()
 	const { pathname } = useLocation()
 	const { data, isLoading } = useWorkflowListQuery()
@@ -58,15 +59,16 @@ export const useSidebarViewModel = ({ onClose }: UseSidebarViewModelOptions = {}
 
 	const onCreateCanvasClick = useCallback(() => {
 		navigate('/workflow/new')
-		onClose?.()
-	}, [navigate, onClose])
+		onSelect?.('/workflow/new')
+	}, [navigate, onSelect])
 
 	const onRecentWorkflowClick = useCallback(
 		(workflow: SidebarRecentWorkflowItem) => {
-			navigate(`/workflow/${workflow.id}`, { state: { name: workflow.name } })
-			onClose?.()
+			const path = `/workflow/${workflow.id}`
+			navigate(path, { state: { name: workflow.name } })
+			onSelect?.(path)
 		},
-		[navigate, onClose]
+		[navigate, onSelect]
 	)
 
 	return {

@@ -176,4 +176,32 @@ describe('모바일 off-canvas 사이드바', () => {
 		expect(router.state.location.pathname).toBe('/main')
 		expect(getSidebar()).toHaveAttribute('inert')
 	})
+
+	// 실제 브라우저는 inert가 된 사이드바 안의 focus를 body로 떨어뜨리지만 jsdom은 이를 구현하지 않아 이동 위치를 직접 확인한다.
+	it('다른 경로의 메뉴를 keyboard로 선택하면 새 화면의 main으로 focus를 옮긴다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		const user = userEvent.setup()
+		const { router } = renderAppRoute('/user')
+
+		await user.click(screen.getByRole('button', { name: '사이드바 열기' }))
+		within(getMainNavigation()).getByRole('link', { name: '대시보드' }).focus()
+		await user.keyboard('{Enter}')
+
+		expect(router.state.location.pathname).toBe('/main')
+		expect(screen.getByRole('main')).toHaveFocus()
+	})
+
+	it('현재 경로의 메뉴를 선택하면 메뉴 버튼으로 focus를 되돌린다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		const user = userEvent.setup()
+		const { router } = renderAppRoute('/user')
+		const menuButton = screen.getByRole('button', { name: '사이드바 열기' })
+
+		await user.click(menuButton)
+		await user.click(within(getMainNavigation()).getByRole('link', { name: '계정 설정' }))
+
+		expect(router.state.location.pathname).toBe('/user')
+		expect(getSidebar()).toHaveAttribute('inert')
+		expect(menuButton).toHaveFocus()
+	})
 })
