@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { setViewportWidth } from '@/test/domEnvironment'
@@ -77,6 +77,65 @@ describe('모바일 off-canvas 사이드바', () => {
 		expect(getSidebar()).not.toHaveAttribute('inert')
 		expect(menuButton).toHaveAttribute('aria-expanded', 'true')
 		expect(within(getSidebar()).getByRole('button', { name: '사이드바 닫기' })).toHaveFocus()
+	})
+
+	it('열려 있는 동안 header와 main을 inert로 만들고 Tab을 사이드바 안에서 순환시킨다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		const user = userEvent.setup()
+		renderAppRoute('/user')
+
+		await user.click(screen.getByRole('button', { name: '사이드바 열기' }))
+
+		expect(screen.getByRole('banner')).toHaveAttribute('inert')
+		expect(screen.getByRole('main')).toHaveAttribute('inert')
+		for (let step = 0; step < 20; step += 1) {
+			await user.tab()
+			expect(getSidebar()).toContainElement(document.activeElement as HTMLElement)
+		}
+		for (let step = 0; step < 20; step += 1) {
+			await user.tab({ shift: true })
+			expect(getSidebar()).toContainElement(document.activeElement as HTMLElement)
+		}
+	})
+
+	it('닫혀 있는 동안에는 header와 main을 inert로 만들지 않는다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		renderAppRoute('/user')
+
+		expect(screen.getByRole('banner')).not.toHaveAttribute('inert')
+		expect(screen.getByRole('main')).not.toHaveAttribute('inert')
+	})
+
+	it('배경을 눌러 닫으면 메뉴 버튼으로 focus를 되돌린다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		const user = userEvent.setup()
+		renderAppRoute('/user')
+		const menuButton = screen.getByRole('button', { name: '사이드바 열기' })
+
+		await user.click(menuButton)
+		await user.click(screen.getByRole('button', { name: '사이드바 배경 닫기' }))
+
+		expect(getSidebar()).toHaveAttribute('inert')
+		expect(screen.getByRole('main')).not.toHaveAttribute('inert')
+		expect(menuButton).toHaveFocus()
+	})
+
+	it('desktop 너비로 바뀌면 열림 상태를 해제해 다시 좁아져도 사이드바를 열지 않는다', async () => {
+		setViewportWidth(MOBILE_WIDTH)
+		const user = userEvent.setup()
+		renderAppRoute('/user')
+		const menuButton = screen.getByRole('button', { name: '사이드바 열기' })
+		await user.click(menuButton)
+
+		act(() => setViewportWidth(1280))
+
+		expect(menuButton).toHaveAttribute('aria-expanded', 'false')
+
+		menuButton.focus()
+		act(() => setViewportWidth(MOBILE_WIDTH))
+
+		expect(getSidebar()).toHaveAttribute('inert')
+		expect(menuButton).toHaveFocus()
 	})
 
 	it('Escape로 닫고 메뉴 버튼으로 focus를 되돌린다', async () => {

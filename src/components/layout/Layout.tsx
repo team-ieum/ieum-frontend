@@ -24,12 +24,14 @@ export const Layout = () => {
 				onMenuClick={sidebar.toggle}
 				menuButtonRef={sidebar.menuButtonRef}
 				isSidebarOpen={sidebar.isOpen}
+				inert={sidebar.isModalOpen}
 				crumb={crumb}
 			/>
 
 			<SideBar
 				isOpen={sidebar.isOpen}
 				isOffCanvasHidden={sidebar.isOffCanvasHidden}
+				isModalOpen={sidebar.isModalOpen}
 				closeButtonRef={sidebar.closeButtonRef}
 				onClose={sidebar.close}
 				onDismiss={sidebar.dismiss}
@@ -47,6 +49,7 @@ export const Layout = () => {
 			)}
 
 			<main
+				inert={sidebar.isModalOpen}
 				className={cn(
 					'relative min-h-[calc(100vh-var(--layout-header-height))] w-full px-6 pb-6',
 					'pt-[calc(var(--layout-header-height)+1.5rem)]',

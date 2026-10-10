@@ -13,6 +13,8 @@ type HeaderProps = {
 	onMenuClick: () => void
 	menuButtonRef?: Ref<HTMLButtonElement>
 	isSidebarOpen?: boolean
+	/** 모바일 사이드바가 열린 동안 배경 조작을 막는다. */
+	inert?: boolean
 	crumb?: string
 	user?: HeaderUser
 	notificationCount?: number
@@ -23,6 +25,7 @@ export const Header = ({
 	onMenuClick,
 	menuButtonRef,
 	isSidebarOpen = false,
+	inert = false,
 	crumb = '대시보드',
 	user = { name: '관리자', initial: '관' },
 	notificationCount = 0,
@@ -33,7 +36,10 @@ export const Header = ({
 	const hasNotifications = notificationCount > 0
 
 	return (
-		<header className='fixed top-0 left-0 z-40 flex h-(--layout-header-height) w-full items-center gap-3.5 border-b border-[#cde9f4] bg-linear-to-b from-[#EAF7FE] to-main-light-blue px-4 lg:px-5'>
+		<header
+			inert={inert}
+			className='fixed top-0 left-0 z-40 flex h-(--layout-header-height) w-full items-center gap-3.5 border-b border-[#cde9f4] bg-linear-to-b from-[#EAF7FE] to-main-light-blue px-4 lg:px-5'
+		>
 			{/* 모바일 햄버거 */}
 			<button
 				ref={menuButtonRef}
