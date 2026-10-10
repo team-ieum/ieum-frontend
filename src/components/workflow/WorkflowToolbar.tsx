@@ -14,8 +14,9 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 	const suppressNextClick = useRef(false)
 
 	const handlePointerDown = (e: React.PointerEvent) => {
-		startX.current = e.clientX
 		suppressNextClick.current = false
+		// 보조 버튼은 click을 만들지 않으므로 드래그 전환과 click 억제 대상에서 제외한다.
+		startX.current = e.button === 0 ? e.clientX : null
 	}
 
 	const handlePointerUp = (e: React.PointerEvent) => {
@@ -32,11 +33,11 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 	}
 
 	// pointer 클릭, keyboard Enter/Space, 보조기기 활성화가 모두 click으로 들어온다.
-	const handleClick = () => {
-		if (suppressNextClick.current) {
-			suppressNextClick.current = false
-			return
-		}
+	// keyboard·보조기기 click은 detail이 0이므로 이전 드래그의 억제 상태와 관계없이 전환한다.
+	const handleClick = (e: React.MouseEvent) => {
+		const isDragClick = e.detail !== 0 && suppressNextClick.current
+		suppressNextClick.current = false
+		if (isDragClick) return
 		onToggle()
 	}
 

@@ -265,7 +265,7 @@ const toggleActive = () => {
 	const toggle = getActiveSwitch()
 	fireEvent.pointerDown(toggle, { clientX: 0 })
 	fireEvent.pointerUp(toggle, { clientX: 0 })
-	fireEvent.click(toggle)
+	fireEvent.click(toggle, { detail: 1 })
 }
 
 const createDeferredToggle = () => {
@@ -621,16 +621,55 @@ describe('WorkFlowPage', () => {
 
 		fireEvent.pointerDown(toggle, { clientX: 20 })
 		fireEvent.pointerUp(toggle, { clientX: 0 })
-		fireEvent.click(toggle)
+		fireEvent.click(toggle, { detail: 1 })
 
 		expect(mocks.toggle).toHaveBeenCalledTimes(1)
 		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
 		fireEvent.pointerDown(toggle, { clientX: 20 })
 		fireEvent.pointerUp(toggle, { clientX: 0 })
-		fireEvent.click(toggle)
+		fireEvent.click(toggle, { detail: 1 })
 
 		expect(mocks.toggle).toHaveBeenCalledTimes(1)
+	})
+
+	it('보조 버튼 드래그는 활성 상태를 전환하지 않고 이후 keyboard 전환을 막지 않는다', async () => {
+		const user = userEvent.setup()
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+		const toggle = getActiveSwitch()
+
+		fireEvent.pointerDown(toggle, { clientX: 20, button: 2 })
+		fireEvent.pointerUp(toggle, { clientX: 0, button: 2 })
+
+		expect(mocks.toggle).not.toHaveBeenCalled()
+
+		toggle.focus()
+		await user.keyboard('{Enter}')
+
+		expect(mocks.toggle).toHaveBeenCalledTimes(1)
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
+	})
+
+	// 터치 드래그처럼 드래그 뒤 click이 오지 않으면 억제 상태가 남는다. 이후 keyboard click(detail 0)은 그대로 전환해야 한다.
+	it('click 없이 끝난 드래그 뒤에도 keyboard 전환을 무시하지 않는다', async () => {
+		const user = userEvent.setup()
+		const pending = createDeferredToggle()
+		mocks.toggle.mockReturnValue(pending.promise)
+		renderPage()
+		const toggle = getActiveSwitch()
+
+		fireEvent.pointerDown(toggle, { clientX: 20 })
+		fireEvent.pointerUp(toggle, { clientX: 0 })
+		expect(mocks.toggle).toHaveBeenCalledTimes(1)
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
+
+		toggle.focus()
+		await user.keyboard(' ')
+
+		expect(mocks.toggle).toHaveBeenCalledTimes(2)
+		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
 	})
 
 	it('활성 상태 변경 실패 시 서버 상태로 복구하고 오류를 알린다', async () => {
