@@ -43,6 +43,7 @@ export type WorkflowDto = {
 	triggerType: string
 	cronExpression: string | null
 	version: number
+	services: string[]
 	nodes: WorkflowNodeDto[]
 	edges: WorkflowEdgeDto[]
 	createdAt: string

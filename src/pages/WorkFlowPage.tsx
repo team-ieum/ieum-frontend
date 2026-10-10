@@ -13,6 +13,7 @@ import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
+import { useWorkflowSave } from '@/hooks/workflow/useWorkflowSave'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
 import type { ApiErrorCode } from '@/types/api'
@@ -163,6 +164,12 @@ const WorkFlowPage = () => {
 	const openConfirm = useModalStore(state => state.openConfirm)
 	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
 	const { execute, phase, isExecuting, canExecute, nodeStatus, requestId } = useWorkflowExecution(workflowId ?? '')
+	const { handleSave, isSaving, canSave } = useWorkflowSave({
+		workflowId: workflowId ?? '',
+		description: workflow?.description,
+		document,
+		hasUnsavedChanges,
+	})
 	const currentWorkflowId = useRef(workflowId)
 	const executionVisitId = useRef(0)
 
@@ -247,6 +254,9 @@ const WorkFlowPage = () => {
 				status={active === undefined ? undefined : active ? 'active' : 'paused'}
 				active={active}
 				onToggleActive={handleToggleActive}
+				onSave={() => void handleSave()}
+				isSaving={isSaving}
+				canSave={canSave}
 				onExecute={handleExecute}
 				isExecuting={isExecuting}
 				isRequesting={phase === 'requesting'}
