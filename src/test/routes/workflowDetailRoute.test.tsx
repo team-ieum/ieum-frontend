@@ -52,7 +52,7 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(screen.queryByDisplayValue('워크플로우 제목')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()
 		expect(await screen.findByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toBeInTheDocument()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성 상태' })).toHaveAttribute('aria-checked', 'true')
 	})
 
 	it('offline cold 진입은 pending shell을 유지하고 온라인 복귀 후 editor를 표시한다', async () => {
@@ -104,7 +104,7 @@ describe('/workflow/:workflowId route harness', () => {
 		renderAppRoute(detailPath)
 
 		expect(await screen.findByDisplayValue('빈 워크플로우')).toBeInTheDocument()
-		expect(screen.getByRole('switch', { name: '워크플로우 비활성화' })).toBeInTheDocument()
+		expect(screen.getByRole('switch', { name: '워크플로우 활성 상태' })).toHaveAttribute('aria-checked', 'true')
 	})
 
 	it('전체 실패에서 detail query error와 retry shell을 표시한다', async () => {
@@ -118,7 +118,7 @@ describe('/workflow/:workflowId route harness', () => {
 		expect(screen.getByRole('heading', { name: '워크플로우를 불러오지 못했어요' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
 		expect(screen.queryByDisplayValue('워크플로우 제목')).not.toBeInTheDocument()
-		expect(screen.queryByRole('switch', { name: '워크플로우 비활성화' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('switch', { name: '워크플로우 활성 상태' })).not.toBeInTheDocument()
 	})
 
 	it('일반 오류 retry는 detail resource를 다시 요청해 editor를 복구한다', async () => {
@@ -143,6 +143,7 @@ describe('/workflow/:workflowId route harness', () => {
 		renderAppRoute(detailPath)
 
 		expect(await screen.findByRole('heading', { name: '워크플로우를 찾을 수 없어요' })).toBeInTheDocument()
+		expect(screen.getByRole('alert')).toHaveTextContent('워크플로우를 찾을 수 없어요')
 		expect(screen.getByRole('button', { name: '워크플로우 목록으로' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()

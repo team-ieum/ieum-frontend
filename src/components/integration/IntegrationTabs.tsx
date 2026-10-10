@@ -30,13 +30,15 @@ const IntegrationTabs = ({
 			'flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 bg-neutral-white pt-5 pb-4'
 		)}
 	>
-		<div className='flex gap-1'>
+		{/* UX-06 계약: 두 섹션을 함께 유지하는 section navigation이므로 tab role을 사용하지 않는다. */}
+		<nav aria-label='통합 설정 섹션' className='flex gap-1'>
 			{INTEGRATION_TABS.map(tab => (
 				<button
 					ref={element => onButtonRef(tab.id, element)}
 					key={tab.id}
 					type='button'
 					onClick={() => onChange(tab.id)}
+					aria-current={active === tab.id ? 'true' : undefined}
 					className={cn(
 						'rounded-full px-4 py-2 typo-body3_semibold transition-colors',
 						active === tab.id
@@ -47,7 +49,7 @@ const IntegrationTabs = ({
 					{tab.label}
 				</button>
 			))}
-		</div>
+		</nav>
 		{view.kind === 'list' && isCountPending ? (
 			<SkeletonPulse as='span' className='h-4 w-40 rounded bg-neutral-200' />
 		) : (

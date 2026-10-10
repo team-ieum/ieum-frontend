@@ -21,7 +21,6 @@ export type SidebarViewModel = {
 	navItems: SidebarNavItemView[]
 	recentWorkflows: SidebarRecentWorkflowItem[]
 	isRecentWorkflowsLoading: boolean
-	onNavItemClick: (path: string) => void
 	onCreateCanvasClick: () => void
 	onRecentWorkflowClick: (workflow: SidebarRecentWorkflowItem) => void
 }

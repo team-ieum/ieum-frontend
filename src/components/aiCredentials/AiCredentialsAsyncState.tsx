@@ -24,7 +24,10 @@ export const AiCredentialsSkeleton = ({ count = 1 }: { count?: number }): ReactE
 )
 
 export const AiCredentialsError = ({ message, retry }: Pick<AsyncResourceState, 'retry'> & { message: string }): ReactElement => (
-	<div className='flex min-h-[164px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'>
+	<div
+		role='alert'
+		className='flex min-h-[164px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+	>
 		<p className='m-0 typo-body2_semibold text-danger-700'>{message}</p>
 		<button
 			type='button'

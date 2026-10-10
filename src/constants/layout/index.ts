@@ -29,3 +29,8 @@ export const COLLAB_AVATARS: CollabAvatar[] = [
 	{ className: 'bg-sub-blue', label: '준' },
 	{ className: 'bg-node-orange', label: 'M' },
 ]
+
+/** 사이드바가 고정 표시되는 viewport 조건. `src/styles/tokens.css`의 `--breakpoint-lg`(Tailwind `lg:`)와 같은 값을 유지해야 한다. */
+export const SIDEBAR_DOCKED_MEDIA_QUERY = '(min-width: 46.5rem)'
+
+export const SIDEBAR_ELEMENT_ID = 'app-sidebar'

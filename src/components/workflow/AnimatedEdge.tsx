@@ -1,5 +1,5 @@
 import { EdgeToolbar, getBezierPath, type EdgeProps, useReactFlow } from '@xyflow/react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import { WORKFLOW_EDGE_ACTIVE_COLOR, WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
 
@@ -29,6 +29,7 @@ const AnimatedEdge = ({
 	})
 
 	const flowing = Boolean(data?.flowing)
+	const reduceMotion = useReducedMotion()
 
 	return (
 		<>
@@ -54,9 +55,10 @@ const AnimatedEdge = ({
 							strokeDasharray: '6 8',
 							strokeLinecap: 'round',
 						}}
-						initial={{ strokeDashoffset: 28 }}
+						// reduced-motion에서는 무한 대시 흐름을 멈추고 실행 중 표시만 정적으로 남긴다.
+						initial={{ strokeDashoffset: reduceMotion ? 0 : 28 }}
 						animate={{ strokeDashoffset: 0 }}
-						transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }}
+						transition={reduceMotion ? { duration: 0 } : { duration: 0.7, repeat: Infinity, ease: 'linear' }}
 					/>
 				)}
 			</motion.g>
