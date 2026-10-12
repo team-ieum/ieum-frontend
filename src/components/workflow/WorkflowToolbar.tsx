@@ -231,10 +231,16 @@ const WorkflowToolbar = ({
 				type='button'
 				onClick={onSave}
 				disabled={!canSave}
+				aria-busy={isSaving}
+				aria-label={isSaving ? '저장 중' : undefined}
 				className='inline-flex shrink-0 items-center gap-2 h-9 px-4 rounded-[10px] border border-neutral-200 bg-white text-sm font-semibold whitespace-nowrap text-neutral-700 hover:bg-neutral-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-white'
 			>
-				{isSaving ? <Loader2 size={15} className='animate-spin' /> : <Save size={15} />}
-				{isSaving ? '저장 중…' : '저장'}
+				{isSaving ? (
+					<Loader2 size={15} className='animate-spin motion-reduce:animate-none' aria-hidden='true' />
+				) : (
+					<Save size={15} aria-hidden='true' />
+				)}
+				저장
 			</button>
 			<button
 				type='button'
