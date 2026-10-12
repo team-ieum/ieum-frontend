@@ -30,6 +30,13 @@ describe('normalizeServiceIds', () => {
 		])
 		expect(normalizeServiceIds([])).toEqual([])
 	})
+
+	it('배열이 아닌 값은 빈 목록으로, 문자열이 아닌 항목은 건너뛴다', () => {
+		expect(normalizeServiceIds(undefined)).toEqual([])
+		expect(normalizeServiceIds(null)).toEqual([])
+		expect(normalizeServiceIds('SLACK')).toEqual([])
+		expect(normalizeServiceIds(['SLACK', null, 1, { id: 'notion' }, 'NOTION'])).toEqual(['slack', 'notion'])
+	})
 })
 
 describe('mapWorkflowDtoToListItem', () => {
@@ -57,6 +64,11 @@ describe('mapWorkflowDtoToListItem', () => {
 	it('노드 구성과 관계없이 API services로 서비스 목록을 만든다', () => {
 		expect(mapWorkflowDtoToListItem({ ...dto, services: ['DISCORD'] }).services).toEqual(['discord'])
 		expect(mapWorkflowDtoToListItem({ ...dto, services: [] }).services).toEqual([])
+	})
+
+	it('services가 누락되거나 null인 항목도 서비스 없음으로 매핑한다', () => {
+		expect(mapWorkflowDtoToListItem({ ...dto, services: undefined } as unknown as WorkflowDto).services).toEqual([])
+		expect(mapWorkflowDtoToListItem({ ...dto, services: null } as unknown as WorkflowDto).services).toEqual([])
 	})
 
 	it.each([

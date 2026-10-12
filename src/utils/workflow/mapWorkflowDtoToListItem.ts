@@ -8,10 +8,12 @@ const pickServiceId = (value: string): WorkflowServiceId | null => {
 	return knownServiceIds.has(normalized as WorkflowServiceId) ? (normalized as WorkflowServiceId) : null
 }
 
-export const normalizeServiceIds = (values: string[]): WorkflowServiceId[] => {
+export const normalizeServiceIds = (values: unknown): WorkflowServiceId[] => {
+	if (!Array.isArray(values)) return []
 	const services = new Set<WorkflowServiceId>()
 
 	for (const value of values) {
+		if (typeof value !== 'string') continue
 		const serviceId = pickServiceId(value)
 		if (serviceId) services.add(serviceId)
 	}
