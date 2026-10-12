@@ -13,8 +13,11 @@ installDomEnvironment()
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 
-afterEach(() => {
+afterEach(async () => {
 	cleanup()
+	// 테스트 파일의 API mock이 등록된 뒤 실행 관리자를 불러온다.
+	const { disposeExecutionTracking } = await import('@/services/workflowExecutionManager')
+	disposeExecutionTracking()
 	cleanupHarnessResources()
 	server.resetHandlers()
 	localStorage.clear()

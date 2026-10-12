@@ -54,7 +54,10 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 }
 
 export const WorkflowListError = ({ retry }: Pick<AsyncResourceState, 'retry'>): ReactElement => (
-	<div className='flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-danger-200 bg-danger-50 px-6 text-center'>
+	<div
+		role='alert'
+		className='flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-danger-200 bg-danger-50 px-6 text-center'
+	>
 		<p className='m-0 typo-body2_semibold text-danger-700'>워크플로우를 불러오지 못했습니다.</p>
 		<p className='mt-2 mb-0 typo-body3_regular text-neutral-500'>잠시 후 다시 시도해주세요.</p>
 		<button

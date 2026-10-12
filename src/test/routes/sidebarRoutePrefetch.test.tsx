@@ -31,10 +31,10 @@ describe('SideBar route data prefetch', () => {
 
 		await waitFor(() => expect(countRequests(observeRequest, 'workflowList')).toBe(1))
 
-		const dashboard = screen.getByRole('button', { name: '대시보드' })
-		const workflow = screen.getByRole('button', { name: '워크플로우' })
-		const integrations = screen.getByRole('button', { name: '통합 설정' })
-		const account = screen.getByRole('button', { name: '계정 설정' })
+		const dashboard = screen.getByRole('link', { name: '대시보드' })
+		const workflow = screen.getByRole('link', { name: '워크플로우' })
+		const integrations = screen.getByRole('link', { name: '통합 설정' })
+		const account = screen.getByRole('link', { name: '계정 설정' })
 
 		fireEvent.pointerEnter(dashboard)
 		fireEvent.focus(integrations)
@@ -83,8 +83,8 @@ describe('SideBar route data prefetch', () => {
 		renderAppRoute('/user', { queryClient })
 
 		expect(queryClient.getDefaultOptions().queries?.retry).toBe(3)
-		fireEvent.pointerEnter(screen.getByRole('button', { name: '대시보드' }))
-		fireEvent.focus(screen.getByRole('button', { name: '통합 설정' }))
+		fireEvent.pointerEnter(screen.getByRole('link', { name: '대시보드' }))
+		fireEvent.focus(screen.getByRole('link', { name: '통합 설정' }))
 
 		await waitFor(() => {
 			expect(queryClient.getQueryState(queryKeys.workflows.dashboardSummary())?.status).toBe('error')
@@ -103,7 +103,7 @@ describe('SideBar route data prefetch', () => {
 		const observeRequest = vi.fn()
 		server.use(...createObservedSuccessHandlers(observeRequest))
 		const { router } = renderAppRoute('/user', { queryClient })
-		const dashboard = screen.getByRole('button', { name: '대시보드' })
+		const dashboard = screen.getByRole('link', { name: '대시보드' })
 
 		fireEvent.pointerEnter(dashboard)
 		await waitFor(() => {
@@ -129,7 +129,7 @@ describe('SideBar route data prefetch', () => {
 		const observeRequest = vi.fn()
 		server.use(...createObservedSuccessHandlers(observeRequest, 80))
 		const { router } = renderAppRoute('/user', { queryClient })
-		const dashboard = screen.getByRole('button', { name: '대시보드' })
+		const dashboard = screen.getByRole('link', { name: '대시보드' })
 
 		fireEvent.pointerEnter(dashboard)
 		await waitFor(() => expect(countRequests(observeRequest, 'dashboardSummary')).toBe(1))
@@ -148,7 +148,7 @@ describe('SideBar route data prefetch', () => {
 		const queryClient = createTestQueryClient()
 		server.use(...createPartialFailureHandlers(['dashboardSummary', 'dashboardExecutions', 'dashboardErrors']))
 		const { router } = renderAppRoute('/user', { queryClient })
-		const dashboard = screen.getByRole('button', { name: '대시보드' })
+		const dashboard = screen.getByRole('link', { name: '대시보드' })
 
 		fireEvent.pointerEnter(dashboard)
 		await waitFor(() => {
