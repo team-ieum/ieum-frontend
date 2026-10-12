@@ -1,13 +1,12 @@
 import { Suspense } from 'react'
-import { usePrefetchQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 import { LazyWorkflowEditorPage } from '@/app/lazyModules'
 import { WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
-import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
+import { useWorkflowDetailPrefetch } from '@/hooks/workflow/queries/useWorkflowDetailPrefetch'
 
 // 상세 query는 lazy page 안에서 시작되므로, chunk를 기다리는 동안 상세 데이터도 함께 받도록 route에서 먼저 요청한다.
 const WorkflowDetailPrefetch = ({ workflowId }: { workflowId: string }) => {
-	usePrefetchQuery(workflowDetailQueryOptions(workflowId))
+	useWorkflowDetailPrefetch(workflowId)
 	return null
 }
 
