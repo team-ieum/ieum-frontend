@@ -3,6 +3,8 @@ import { FileQuestion } from 'lucide-react'
 import { describe, expect, it, vi } from 'vitest'
 import ErrorPageView from '@/components/common/ErrorPageView'
 
+const getContent = () => screen.getByRole('heading', { level: 1 }).parentElement!
+
 describe('ErrorPageView', () => {
 	it('제목과 설명을 section의 이름과 설명으로 연결해 표시한다', () => {
 		render(<ErrorPageView title='페이지를 찾을 수 없어요' description='주소를 다시 확인해주세요.' />)
@@ -37,28 +39,33 @@ describe('ErrorPageView', () => {
 	})
 
 	it('아이콘이 없으면 이음 심볼을 장식 이미지로, 있으면 아이콘을 표시하고 코드 배지를 붙인다', () => {
-		const { container, rerender } = render(<ErrorPageView title='문제가 발생했어요' />)
+		const { rerender } = render(<ErrorPageView title='문제가 발생했어요' />)
 
-		const symbol = container.querySelector('img')
+		const symbol = getContent().querySelector('img')
 		expect(symbol).toHaveAttribute('alt', '')
 		expect(symbol).toHaveAttribute('draggable', 'false')
 
 		rerender(<ErrorPageView title='페이지를 찾을 수 없어요' icon={FileQuestion} code='404' />)
 
-		expect(container.querySelector('img')).toBeNull()
-		expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+		expect(getContent().querySelector('img')).toBeNull()
+		expect(getContent().querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
 		expect(screen.getByText('404')).toBeInTheDocument()
 	})
 
 	it('일러스트가 있으면 아이콘 대신 드래그되지 않는 장식 이미지로 표시한다', () => {
-		const { container } = render(
-			<ErrorPageView title='페이지를 찾을 수 없어요' icon={FileQuestion} illustrationSrc='/404symbol.png' />
-		)
+		render(<ErrorPageView title='페이지를 찾을 수 없어요' icon={FileQuestion} illustrationSrc='/404symbol.png' />)
 
-		const illustration = container.querySelector('img')
+		const illustration = getContent().querySelector('img')
 		expect(illustration).toHaveAttribute('src', '/404symbol.png')
 		expect(illustration).toHaveAttribute('alt', '')
 		expect(illustration).toHaveAttribute('draggable', 'false')
-		expect(container.querySelector('svg')).toBeNull()
+		expect(getContent().querySelector('svg')).toBeNull()
+	})
+
+	it('배경 무늬를 화면 낭독기에서 숨긴 장식으로 표시한다', () => {
+		render(<ErrorPageView title='문제가 발생했어요' />)
+
+		const pattern = screen.getByRole('region').querySelector('.account-pattern-drift')
+		expect(pattern).toHaveAttribute('aria-hidden', 'true')
 	})
 })

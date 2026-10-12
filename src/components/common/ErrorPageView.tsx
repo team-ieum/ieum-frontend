@@ -1,11 +1,12 @@
 import { useId, type ReactElement } from 'react'
 import symbolLogo from '@/assets/symbolNoLine.png'
+import PatternBackground from '@/components/common/PatternBackground'
 import type { ErrorPageLayout, ErrorPageViewProps } from '@/types/errorPage'
 import { cn } from '@/utils/cn'
 
 const LAYOUT_CLASS: Record<ErrorPageLayout, string> = {
-	fullscreen: 'min-h-screen',
-	content: 'min-h-[calc(100vh-var(--layout-header-height)-3rem)]',
+	fullscreen: 'w-full min-h-screen',
+	content: '-mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))]',
 }
 
 const ErrorPageView = ({
@@ -25,9 +26,13 @@ const ErrorPageView = ({
 		<section
 			aria-labelledby={titleId}
 			aria-describedby={description ? descriptionId : undefined}
-			className={cn('flex w-full items-center justify-center bg-[#f7f6fc] px-6 py-12', LAYOUT_CLASS[layout])}
+			className={cn(
+				'relative flex items-center justify-center overflow-hidden bg-[#f4fbfe] px-6 py-12',
+				LAYOUT_CLASS[layout]
+			)}
 		>
-			<div className='flex w-full max-w-md flex-col items-center text-center'>
+			<PatternBackground />
+			<div className='relative z-10 flex w-full max-w-md flex-col items-center text-center'>
 				<div
 					className={cn(
 						'relative mb-6 grid place-items-center select-none',
@@ -54,7 +59,12 @@ const ErrorPageView = ({
 						/>
 					)}
 					{code ? (
-						<span className='absolute -right-2 -bottom-1 rounded-full border border-neutral-200 bg-neutral-white px-2.5 py-0.5 typo-caption1_bold text-main-deep-blue shadow-sm'>
+						<span
+							className={cn(
+								'absolute rounded-full border border-neutral-200 bg-neutral-white px-2.5 py-0.5 typo-caption1_bold text-main-deep-blue shadow-sm',
+								illustrationSrc ? 'right-3 bottom-3' : '-right-2 -bottom-1'
+							)}
+						>
 							{code}
 						</span>
 					) : null}

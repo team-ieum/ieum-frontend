@@ -1,42 +1,11 @@
-import {
-	Bell,
-	Braces,
-	Cable,
-	Camera,
-	ChevronDown,
-	Clock3,
-	GitBranch,
-	MessageCircle,
-	Send,
-	Settings,
-	Sparkles,
-	Trash2,
-	UserRound,
-} from 'lucide-react'
-import symbolNoLine from '@/assets/symbolNoLine.png'
-import '@/styles/UserPage.css'
+import { Bell, Camera, ChevronDown, Trash2, UserRound } from 'lucide-react'
+import PatternBackground from '@/components/common/PatternBackground'
 
 const UserPage = () => {
+	throw new Error('test')
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
-			<div className='account-pattern-drift pointer-events-none absolute inset-0 text-sub-blue' aria-hidden='true'>
-				<GitBranch className='absolute left-[5%] top-[12%] h-8 w-8 rotate-12 opacity-[0.16]' strokeWidth={1.35} />
-				<Send className='absolute left-[18%] top-[42%] h-9 w-9 -rotate-12 opacity-[0.14]' strokeWidth={1.3} />
-				<Braces className='absolute left-[9%] top-[72%] h-8 w-8 opacity-[0.13]' strokeWidth={1.3} />
-				<Sparkles className='absolute left-[37%] top-[9%] h-6 w-6 opacity-[0.14]' strokeWidth={1.35} />
-				<Settings className='absolute right-[31%] top-[14%] h-8 w-8 rotate-12 opacity-[0.13]' strokeWidth={1.3} />
-				<Cable className='absolute right-[16%] top-[46%] h-9 w-9 opacity-[0.15]' strokeWidth={1.3} />
-				<Clock3 className='absolute right-[7%] top-[16%] h-8 w-8 -rotate-6 opacity-[0.15]' strokeWidth={1.3} />
-				<MessageCircle className='absolute right-[5%] top-[76%] h-9 w-9 rotate-6 opacity-[0.13]' strokeWidth={1.3} />
-				<div className='absolute left-[4%] top-[29%] h-20 w-36 rounded-[50%] border-t border-dashed border-sub-blue/20' />
-				<div className='absolute bottom-[12%] left-[21%] h-16 w-32 -rotate-6 rounded-[50%] border-t border-dashed border-sub-blue/20' />
-				<div className='absolute right-[7%] top-[33%] h-20 w-40 -rotate-6 rounded-[50%] border-t border-dashed border-sub-blue/20' />
-				<img
-					src={symbolNoLine}
-					alt=''
-					className='absolute bottom-[10%] right-[27%] h-10 w-10 rotate-[-10deg] object-contain opacity-[0.09]'
-				/>
-			</div>
+			<PatternBackground />
 
 			<div className='relative z-10 mx-auto flex min-h-[calc(100vh-var(--layout-header-height)-2.5rem)] w-full items-start justify-center pt-6 sm:pt-8 lg:min-h-[calc(100vh-var(--layout-header-height)-2rem)] lg:pt-4'>
 				<div className='w-full max-w-xl'>
