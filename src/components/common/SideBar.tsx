@@ -3,8 +3,9 @@ import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkl
 import type { Ref } from 'react'
 import { Link } from 'react-router'
 import { cn } from '@/utils/cn'
-import { NAV_ITEMS, SIDEBAR_ELEMENT_ID } from '@/constants/layout'
-import { useSidebarRouteDataPrefetch } from '@/hooks/layout/useSidebarRouteDataPrefetch'
+import { preloadSidebarRouteChunk, preloadWorkflowEditorPage } from '@/app/lazyModules'
+import { NAV_ITEMS, SIDEBAR_ELEMENT_ID, type SidebarNavId } from '@/constants/layout'
+import { useSidebarRouteDataPrefetch, useSidebarWorkflowDetailPrefetch } from '@/hooks/layout/useSidebarRouteDataPrefetch'
 import { useSidebarViewModel } from '@/hooks/layout/useSidebarViewModel'
 
 type SideBarProps = {
@@ -42,6 +43,15 @@ export const SideBar = ({
 	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onCreateCanvasClick, onRecentWorkflowClick } =
 		useSidebarViewModel({ onSelect })
 	const prefetchRouteData = useSidebarRouteDataPrefetch()
+	const prefetchRoute = (navId: SidebarNavId) => {
+		prefetchRouteData(navId)
+		preloadSidebarRouteChunk(navId)
+	}
+	const prefetchWorkflowDetail = useSidebarWorkflowDetailPrefetch()
+	const prefetchRecentWorkflow = (workflowId: string) => {
+		prefetchWorkflowDetail(workflowId)
+		preloadWorkflowEditorPage()
+	}
 
 	return (
 		<FocusTrap
@@ -86,6 +96,8 @@ export const SideBar = ({
 					<button
 						type='button'
 						onClick={onCreateCanvasClick}
+						onPointerEnter={preloadWorkflowEditorPage}
+						onFocus={preloadWorkflowEditorPage}
 						aria-label={collapsed ? '새 캔버스' : undefined}
 						className={cn(
 							'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
@@ -115,8 +127,8 @@ export const SideBar = ({
 								to={item.path}
 								aria-current={item.isActive ? 'page' : undefined}
 								aria-label={collapsed ? item.label : undefined}
-								onPointerEnter={() => prefetchRouteData(item.id)}
-								onFocus={() => prefetchRouteData(item.id)}
+								onPointerEnter={() => prefetchRoute(item.id)}
+								onFocus={() => prefetchRoute(item.id)}
 								onClick={() => onSelect?.(item.path)}
 								className={cn(
 									'flex h-10 w-full items-center gap-2.5 rounded-xl text-sm transition-colors',
@@ -158,6 +170,8 @@ export const SideBar = ({
 										key={workflow.id}
 										type='button'
 										onClick={() => onRecentWorkflowClick(workflow)}
+										onPointerEnter={() => prefetchRecentWorkflow(workflow.id)}
+										onFocus={() => prefetchRecentWorkflow(workflow.id)}
 										className={cn(
 											'flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-left transition-colors hover:bg-white/50',
 											workflow.isHighlighted

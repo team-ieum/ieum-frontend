@@ -8,6 +8,7 @@ import {
 	workflowDashboardSummaryQueryOptions,
 } from '@/hooks/dashboard/queries/workflowDashboardQueryOptions'
 import { oauthConnectionsQueryOptions } from '@/hooks/oauthConnections/queries/oauthConnectionsQueryOptions'
+import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
 import { workflowListQueryOptions } from '@/hooks/workflow/queries/workflowListQueryOptions'
 import { webhookCredentialsQueryOptions } from '@/hooks/webhookCredentials/queries/webhookCredentialsQueryOptions'
 
@@ -37,4 +38,16 @@ export const useSidebarRouteDataPrefetch = () => {
 	const queryClient = useQueryClient()
 
 	return useCallback((navId: SidebarNavId) => ROUTE_DATA_PREFETCHERS[navId](queryClient), [queryClient])
+}
+
+/** 사이드바 최근 작업의 이동 의도(hover·focus)에서 해당 워크플로우 상세 데이터를 미리 요청한다. */
+export const useSidebarWorkflowDetailPrefetch = () => {
+	const queryClient = useQueryClient()
+
+	return useCallback(
+		(workflowId: string) => {
+			void queryClient.prefetchQuery({ ...workflowDetailQueryOptions(workflowId), ...PREFETCH_QUERY_POLICY })
+		},
+		[queryClient]
+	)
 }
