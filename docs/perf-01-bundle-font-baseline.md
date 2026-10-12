@@ -117,7 +117,7 @@
 
 ### 미리 받은 chunk의 첫 렌더
 
-`React.lazy`는 이미 resolve된 Promise를 받아도 첫 렌더에서 한 번 suspend하고, React 19는 표시한 fallback을 최소 300ms 유지한다. 그래서 chunk를 미리 받아 두어도 첫 진입에서 skeleton이 약 300ms 더 보였다. `src/utils/createPreloadableLazy.ts`는 받은 module을 기억해 두고, 이후 lazy가 then을 동기로 호출하는 thenable을 받게 해 이 지연을 없앤다. 진행 중인 import는 preload와 lazy 렌더가 공유한다.
+`React.lazy`는 이미 resolve된 Promise를 받아도 첫 렌더에서 한 번 suspend하고, React 19는 표시한 fallback을 최소 300ms 유지한다. 그래서 chunk를 미리 받아 두어도 첫 진입에서 skeleton이 약 300ms 더 보였다. `src/app/createPreloadableLazy.ts`는 받은 module을 기억해 두고, 이후 lazy가 then을 동기로 호출하는 thenable을 받게 해 이 지연을 없앤다. 진행 중인 import는 preload와 lazy 렌더가 공유한다.
 
 | 측정 (3회)                     | 변경 전 (분리 없음) |       변경 후 |
 | ------------------------------ | ------------------: | ------------: |

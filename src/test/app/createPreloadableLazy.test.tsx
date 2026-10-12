@@ -1,7 +1,7 @@
 import { Suspense, type ComponentType } from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { createPreloadableLazy } from '@/utils/createPreloadableLazy'
+import { createPreloadableLazy } from '@/app/createPreloadableLazy'
 
 const ChunkContent = () => <p>분리 chunk 내용</p>
 

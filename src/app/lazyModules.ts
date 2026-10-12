@@ -1,5 +1,5 @@
 import type { SidebarNavId } from '@/constants/layout'
-import { createPreloadableLazy } from '@/utils/createPreloadableLazy'
+import { createPreloadableLazy } from '@/app/createPreloadableLazy'
 
 // 분리 대상은 PERF-01 bundle 측정 근거로 정했다(docs/perf-01-bundle-font-baseline.md).
 const workflowEditorPage = createPreloadableLazy(() => import('@/pages/WorkFlowPage'))
