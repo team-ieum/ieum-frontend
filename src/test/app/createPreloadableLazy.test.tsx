@@ -1,7 +1,8 @@
 import { Suspense, type ComponentType } from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { describe, expect, it, vi } from 'vitest'
-import { createPreloadableLazy } from '@/app/createPreloadableLazy'
+import { ChunkLoadError, createPreloadableLazy } from '@/app/createPreloadableLazy'
 
 const ChunkContent = () => <p>분리 chunk 내용</p>
 
@@ -57,5 +58,27 @@ describe('createPreloadableLazy', () => {
 
 		expect(screen.getByText('분리 chunk 내용')).toBeInTheDocument()
 		expect(importer).toHaveBeenCalledTimes(2)
+	})
+
+	it('렌더 중 import가 실패하면 원래 오류를 cause로 담은 ChunkLoadError를 던진다', async () => {
+		const importError = new Error('chunk 요청 실패')
+		const { Component } = createPreloadableLazy<typeof ChunkContent>(() => Promise.reject(importError))
+		const onError = vi.fn()
+		// React가 boundary로 잡은 오류를 console에 다시 출력하므로 테스트 출력에서만 숨긴다.
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+		render(
+			<ErrorBoundary fallback={<p>오류 표시</p>} onError={onError}>
+				<Suspense fallback={<p>chunk 불러오는 중</p>}>
+					<Component />
+				</Suspense>
+			</ErrorBoundary>
+		)
+
+		await waitFor(() => expect(screen.getByText('오류 표시')).toBeInTheDocument())
+		const [error] = onError.mock.calls[0]
+		expect(error).toBeInstanceOf(ChunkLoadError)
+		expect((error as ChunkLoadError).cause).toBe(importError)
+		consoleError.mockRestore()
 	})
 })

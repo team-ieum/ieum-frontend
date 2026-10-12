@@ -1,9 +1,11 @@
 import { Suspense, useEffect } from 'react'
 import { LazyDashboardHeroSection, preloadDashboardHeroSection } from '@/app/lazyModules'
+import { ChunkLoadErrorBoundary } from '@/components/common/ChunkLoadErrorBoundary'
 import DashboardErrorRail from '@/components/dashboard/DashboardErrorRail'
 import DashboardRunTable from '@/components/dashboard/DashboardRunTable'
 import DashboardWorkflowSection from '@/components/dashboard/DashboardWorkflowSection'
 import {
+	DashboardHeroChunkError,
 	DashboardHeroChunkFallback,
 	DashboardResourceStatus,
 	DashboardSummaryError,
@@ -36,13 +38,15 @@ const MainPage = () => {
 						<DashboardSummaryError retry={viewModel.summaryResource.retry} />
 					) : (
 						<div className='flex flex-col gap-8'>
-							<Suspense fallback={<DashboardHeroChunkFallback />}>
-								<LazyDashboardHeroSection
-									hero={viewModel.hero}
-									hourlyExecutions={viewModel.hourlyExecutions}
-									resource={viewModel.summaryResource}
-								/>
-							</Suspense>
+							<ChunkLoadErrorBoundary renderFallback={reload => <DashboardHeroChunkError onReload={reload} />}>
+								<Suspense fallback={<DashboardHeroChunkFallback />}>
+									<LazyDashboardHeroSection
+										hero={viewModel.hero}
+										hourlyExecutions={viewModel.hourlyExecutions}
+										resource={viewModel.summaryResource}
+									/>
+								</Suspense>
+							</ChunkLoadErrorBoundary>
 							<DashboardWorkflowSection workflow={viewModel.workflow} />
 						</div>
 					)}

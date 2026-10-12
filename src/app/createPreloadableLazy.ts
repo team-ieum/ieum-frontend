@@ -3,11 +3,19 @@ import { lazy } from 'react'
 type LazyComponentType = Awaited<ReturnType<Parameters<typeof lazy>[0]>>['default']
 type ComponentModule<T> = { default: T }
 
+/** 분리 chunk의 dynamic import 실패. 원래 오류는 `cause`에 담는다. */
+export class ChunkLoadError extends Error {
+	constructor(cause: unknown) {
+		super('분리 chunk를 불러오지 못했습니다.', { cause })
+		this.name = 'ChunkLoadError'
+	}
+}
+
 /**
  * 미리 받을 수 있는 `React.lazy` 컴포넌트를 만든다.
  *
  * `preload`가 끝난 뒤 처음 렌더하면 suspend 없이 바로 표시한다. `preload`와 lazy 렌더가 같은 진행 중 import를 공유하고,
- * import가 실패하면 다음 호출에서 importer를 다시 실행한다. `preload`는 실패해도 reject하지 않는다.
+ * import가 실패하면 `ChunkLoadError`로 알리고 다음 호출에서 importer를 다시 실행한다. `preload`는 실패해도 reject하지 않는다.
  * lazy 렌더 중의 import 실패는 React.lazy가 결과를 유지해 다시 import하지 않으므로, 재시도는 렌더 전 `preload`에만 적용된다.
  */
 export const createPreloadableLazy = <T extends LazyComponentType>(importer: () => Promise<ComponentModule<T>>) => {
@@ -22,7 +30,7 @@ export const createPreloadableLazy = <T extends LazyComponentType>(importer: () 
 			},
 			error => {
 				pending = undefined
-				throw error
+				throw new ChunkLoadError(error)
 			}
 		)
 		return pending
