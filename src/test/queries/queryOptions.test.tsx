@@ -20,9 +20,11 @@ import { useOAuthConnectionsQuery } from '@/hooks/oauthConnections/queries/useOA
 import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
 import { webhookCredentialsQueryOptions } from '@/hooks/webhookCredentials/queries/webhookCredentialsQueryOptions'
 import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
+import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
+import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
 import { workflowListQueryOptions } from '@/hooks/workflow/queries/workflowListQueryOptions'
 import { createObservedSuccessHandlers, type ApiMockResource } from '@/mocks/apiScenarios'
-import { workflowFixture, workflowListResponse } from '@/mocks/fixtures/workflows'
+import { WORKFLOW_FIXTURE_ID, workflowFixture, workflowListResponse } from '@/mocks/fixtures/workflows'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 
@@ -45,6 +47,7 @@ describe('query option factory', () => {
 			queryClient.prefetchInfiniteQuery(workflowDashboardExecutionsQueryOptions()),
 			queryClient.prefetchInfiniteQuery(workflowDashboardErrorsQueryOptions()),
 			queryClient.prefetchInfiniteQuery(workflowListQueryOptions()),
+			queryClient.prefetchQuery(workflowDetailQueryOptions(WORKFLOW_FIXTURE_ID)),
 			queryClient.prefetchQuery(oauthConnectionsQueryOptions()),
 			queryClient.prefetchQuery(webhookCredentialsQueryOptions()),
 			queryClient.prefetchQuery(providersQueryOptions()),
@@ -57,6 +60,7 @@ describe('query option factory', () => {
 				dashboardExecutions: useWorkflowDashboardExecutionsQuery(),
 				dashboardErrors: useWorkflowDashboardErrorsQuery(),
 				workflowList: useWorkflowListQuery(),
+				workflowDetail: useWorkflowQuery(WORKFLOW_FIXTURE_ID),
 				oauthConnections: useOAuthConnectionsQuery(),
 				webhookCredentials: useWebhookCredentialsQuery(),
 				providers: useProvidersQuery(),
@@ -76,6 +80,7 @@ describe('query option factory', () => {
 			'dashboardExecutions',
 			'dashboardErrors',
 			'workflowList',
+			'workflowDetail',
 			'oauthConnections',
 			'webhookCredentials',
 			'providers',

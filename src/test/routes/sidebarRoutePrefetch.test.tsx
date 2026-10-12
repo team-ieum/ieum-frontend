@@ -8,6 +8,7 @@ import {
 	createPartialFailureHandlers,
 	type ApiMockResource,
 } from '@/mocks/apiScenarios'
+import { WORKFLOW_FIXTURE_ID } from '@/mocks/fixtures/workflows'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { renderAppRoute } from '@/test/renderAppRoute'
@@ -65,6 +66,23 @@ describe('SideBar route data prefetch', () => {
 
 		expect(prefetchQuery).toHaveBeenCalledTimes(queryPrefetchCount)
 		expect(prefetchInfiniteQuery).toHaveBeenCalledTimes(infinitePrefetchCount)
+	})
+
+	it('최근 작업 hover와 focus는 상세 데이터를 미리 요청하고 fresh 상태에서는 다시 요청하지 않는다', async () => {
+		const queryClient = createTestQueryClient()
+		const observeRequest = vi.fn()
+		server.use(...createObservedSuccessHandlers(observeRequest))
+		renderAppRoute('/user', { queryClient })
+		const recentWorkflow = await screen.findByRole('button', { name: /고객 문의 자동 분류/ })
+
+		fireEvent.pointerEnter(recentWorkflow)
+		fireEvent.focus(recentWorkflow)
+		await waitFor(() =>
+			expect(queryClient.getQueryState(queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID))?.status).toBe('success')
+		)
+		fireEvent.pointerEnter(recentWorkflow)
+
+		expect(countRequests(observeRequest, 'workflowDetail')).toBe(1)
 	})
 
 	it('운영 retry 설정에서도 실패한 prefetch endpoint를 한 번만 요청한다', async () => {
