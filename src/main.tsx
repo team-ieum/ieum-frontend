@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+// unicode-range로 나뉜 WOFF2 조각 중 화면에 쓰인 글자의 조각만 내려받는다.
+import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css'
 import './index.css'
 import { ErrorBoundary } from 'react-error-boundary'
 import { ErrorFallback } from './components/ErrorFallback.tsx'
