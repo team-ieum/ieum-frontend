@@ -1,8 +1,10 @@
+import { Suspense, useEffect } from 'react'
+import { LazyDashboardHeroSection, preloadDashboardHeroSection } from '@/app/lazyModules'
 import DashboardErrorRail from '@/components/dashboard/DashboardErrorRail'
-import DashboardHeroSection from '@/components/dashboard/DashboardHeroSection'
 import DashboardRunTable from '@/components/dashboard/DashboardRunTable'
 import DashboardWorkflowSection from '@/components/dashboard/DashboardWorkflowSection'
 import {
+	DashboardHeroChunkFallback,
 	DashboardResourceStatus,
 	DashboardSummaryError,
 	DashboardSummarySkeleton,
@@ -11,6 +13,9 @@ import { useDashboardViewModel } from '@/hooks/dashboard/useDashboardViewModel'
 
 const MainPage = () => {
 	const viewModel = useDashboardViewModel()
+
+	// hero 차트는 요약 데이터가 도착한 뒤에 렌더되므로, 그때 chunk 요청을 시작하지 않도록 mount 시점에 미리 받는다.
+	useEffect(preloadDashboardHeroSection, [])
 
 	return (
 		<section className='flex flex-col gap-6'>
@@ -31,11 +36,13 @@ const MainPage = () => {
 						<DashboardSummaryError retry={viewModel.summaryResource.retry} />
 					) : (
 						<div className='flex flex-col gap-8'>
-							<DashboardHeroSection
-								hero={viewModel.hero}
-								hourlyExecutions={viewModel.hourlyExecutions}
-								resource={viewModel.summaryResource}
-							/>
+							<Suspense fallback={<DashboardHeroChunkFallback />}>
+								<LazyDashboardHeroSection
+									hero={viewModel.hero}
+									hourlyExecutions={viewModel.hourlyExecutions}
+									resource={viewModel.summaryResource}
+								/>
+							</Suspense>
 							<DashboardWorkflowSection workflow={viewModel.workflow} />
 						</div>
 					)}

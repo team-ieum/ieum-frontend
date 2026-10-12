@@ -37,6 +37,13 @@ const DashboardWorkflowSkeleton = (): ReactElement => (
 	</section>
 )
 
+/** 요약 데이터는 도착했지만 hero 차트 chunk를 아직 받는 중일 때 hero 자리를 같은 크기로 유지한다. */
+export const DashboardHeroChunkFallback = (): ReactElement => (
+	<div role='status' aria-label='대시보드 차트 불러오는 중' aria-busy='true'>
+		<DashboardHeroSkeleton />
+	</div>
+)
+
 export const DashboardSummarySkeleton = (): ReactElement => (
 	<div className='flex flex-col gap-8'>
 		<DashboardHeroSkeleton />

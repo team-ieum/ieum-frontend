@@ -4,8 +4,8 @@ import SkeletonPulse from '@/components/common/SkeletonPulse'
 const pageClass = '-mt-6 -mx-6 -mb-6 lg:-ml-6 flex flex-col'
 const pageStyle = { height: 'calc(100vh - var(--layout-header-height))' }
 
-export const WorkflowDetailSkeleton = (): ReactElement => (
-	<div className={pageClass} style={pageStyle} role='status' aria-label='워크플로우 상세 불러오는 중' aria-busy='true'>
+export const WorkflowDetailSkeleton = ({ label = '워크플로우 상세 불러오는 중' }: { label?: string }): ReactElement => (
+	<div className={pageClass} style={pageStyle} role='status' aria-label={label} aria-busy='true'>
 		<div
 			aria-hidden='true'
 			className='flex h-16 shrink-0 items-center gap-3.5 border-b border-neutral-200 bg-neutral-white px-6'
