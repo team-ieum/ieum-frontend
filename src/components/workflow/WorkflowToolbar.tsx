@@ -11,9 +11,12 @@ type ActiveToggleProps = {
 
 const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 	const startX = useRef<number | null>(null)
+	const suppressNextClick = useRef(false)
 
 	const handlePointerDown = (e: React.PointerEvent) => {
-		startX.current = e.clientX
+		suppressNextClick.current = false
+		// 보조 버튼은 click을 만들지 않으므로 드래그 전환과 click 억제 대상에서 제외한다.
+		startX.current = e.button === 0 ? e.clientX : null
 	}
 
 	const handlePointerUp = (e: React.PointerEvent) => {
@@ -21,13 +24,21 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 		const delta = e.clientX - startX.current
 		startX.current = null
 
-		// 드래그: 8px 이상 이동 시 방향으로 결정, 미만이면 클릭으로 처리
+		// 8px 이상 드래그는 방향으로 결정하고, 이어서 발생하는 click이 다시 토글하지 않게 막는다.
 		if (Math.abs(delta) >= 8) {
+			suppressNextClick.current = true
 			const shouldActivate = delta > 0
 			if (shouldActivate !== active) onToggle()
-		} else {
-			onToggle()
 		}
+	}
+
+	// pointer 클릭, keyboard Enter/Space, 보조기기 활성화가 모두 click으로 들어온다.
+	// keyboard·보조기기 click은 detail이 0이므로 이전 드래그의 억제 상태와 관계없이 전환한다.
+	const handleClick = (e: React.MouseEvent) => {
+		const isDragClick = e.detail !== 0 && suppressNextClick.current
+		suppressNextClick.current = false
+		if (isDragClick) return
+		onToggle()
 	}
 
 	return (
@@ -36,9 +47,10 @@ const ActiveToggle = ({ active, onToggle }: ActiveToggleProps) => {
 				type='button'
 				role='switch'
 				aria-checked={active}
-				aria-label={active ? '워크플로우 비활성화' : '워크플로우 활성화'}
+				aria-label='워크플로우 활성 상태'
 				onPointerDown={handlePointerDown}
 				onPointerUp={handlePointerUp}
+				onClick={handleClick}
 				className={`relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer select-none touch-none ${
 					active ? 'bg-node-green' : 'bg-neutral-300'
 				}`}

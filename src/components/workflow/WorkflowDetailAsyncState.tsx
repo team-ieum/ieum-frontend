@@ -31,7 +31,10 @@ export const WorkflowDetailError = ({ isNotFound, onRetry, onBackToList }: Workf
 	<div className={pageClass} style={pageStyle}>
 		<div className='h-16 shrink-0 border-b border-neutral-200 bg-neutral-white' />
 		<div className='flex flex-1 items-center justify-center bg-[#f7f6fc] px-6'>
-			<div className='w-full max-w-md rounded-xl border border-neutral-200 bg-neutral-white px-8 py-10 text-center shadow-sm'>
+			<div
+				role='alert'
+				className='w-full max-w-md rounded-xl border border-neutral-200 bg-neutral-white px-8 py-10 text-center shadow-sm'
+			>
 				<h1 className='m-0 typo-title2_bold text-main-deep-blue'>
 					{isNotFound ? '워크플로우를 찾을 수 없어요' : '워크플로우를 불러오지 못했어요'}
 				</h1>

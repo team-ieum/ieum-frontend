@@ -1,11 +1,24 @@
+const DEFAULT_VIEWPORT_WIDTH = 1280
+const ROOT_FONT_SIZE = 16
+
 let reducedMotion = false
+let viewportWidth = DEFAULT_VIEWPORT_WIDTH
 const animationFrameHandles = new Set<number>()
 const mediaQueryLists = new Map<string, MediaQueryListMock>()
 const intersectionObservers = new Set<IntersectionObserverMock>()
 
+const toPixels = (value: string, unit: string) => Number(value) * (unit === 'rem' || unit === 'em' ? ROOT_FONT_SIZE : 1)
+
 const matchesQuery = (query: string) => {
 	if (query === '(prefers-reduced-motion)' || query === '(prefers-reduced-motion: reduce)') return reducedMotion
 	if (query === '(prefers-reduced-motion: no-preference)') return !reducedMotion
+
+	const widthQuery = /^\((min|max)-width:\s*([\d.]+)(px|rem|em)\)$/.exec(query)
+	if (widthQuery) {
+		const [, bound, value, unit] = widthQuery
+		const pixels = toPixels(value, unit)
+		return bound === 'min' ? viewportWidth >= pixels : viewportWidth <= pixels
+	}
 	return false
 }
 
@@ -66,9 +79,9 @@ const getMediaQueryList = (query: string) => {
 	return created
 }
 
-const updateReducedMotion = (value: boolean) => {
+const updateMediaState = (update: () => void) => {
 	const previousMatches = new Map([...mediaQueryLists].map(([query, mediaQueryList]) => [query, mediaQueryList.matches]))
-	reducedMotion = value
+	update()
 
 	for (const [query, mediaQueryList] of mediaQueryLists) {
 		if (previousMatches.get(query) !== mediaQueryList.matches) mediaQueryList.dispatchChange()
@@ -173,10 +186,28 @@ export const installDomEnvironment = () => {
 		writable: true,
 		value: IntersectionObserverMock,
 	})
+	// jsdom은 layout이 없어 빈 목록을 반환하므로 focus-trap(tabbable)이 모든 요소를 숨김으로 판정한다.
+	Object.defineProperty(Element.prototype, 'getClientRects', {
+		configurable: true,
+		writable: true,
+		value(this: Element) {
+			const rects = this.closest('[hidden]') ? [] : [new DOMRect(0, 0, 1, 1)]
+			return Object.assign(rects, { item: (index: number) => rects[index] ?? null }) as unknown as DOMRectList
+		},
+	})
 }
 
 export const setReducedMotion = (value: boolean) => {
-	updateReducedMotion(value)
+	updateMediaState(() => {
+		reducedMotion = value
+	})
+}
+
+/** `(min-width)`/`(max-width)` media query 판정에 쓰는 viewport 너비를 바꾼다. 기본값은 desktop 너비다. */
+export const setViewportWidth = (width: number) => {
+	updateMediaState(() => {
+		viewportWidth = width
+	})
 }
 
 export const intersectObservedElements = (isIntersecting: boolean = true): void => {
@@ -191,5 +222,8 @@ export const resetDomEnvironment = () => {
 	for (const handle of animationFrameHandles) window.clearTimeout(handle)
 	animationFrameHandles.clear()
 	for (const observer of [...intersectionObservers]) observer.disconnect()
-	updateReducedMotion(false)
+	updateMediaState(() => {
+		reducedMotion = false
+		viewportWidth = DEFAULT_VIEWPORT_WIDTH
+	})
 }

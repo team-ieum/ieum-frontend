@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { useEffect } from 'react'
+import { MotionConfig } from 'framer-motion'
 import Modal from '@/components/common/Modal'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -15,8 +16,11 @@ function App() {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-			<Modal />
+			{/* OS reduced-motion 설정에서 transform·layout 애니메이션을 제거하고 opacity 전환만 남긴다. */}
+			<MotionConfig reducedMotion='user'>
+				<RouterProvider router={router} />
+				<Modal />
+			</MotionConfig>
 			{import.meta.env.DEV && import.meta.env.VITE_MEASUREMENT_MODE !== 'true' && (
 				<ReactQueryDevtools initialIsOpen={false} />
 			)}
