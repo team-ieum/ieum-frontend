@@ -7,6 +7,7 @@ import {
 } from '@/hooks/dashboard/queries/workflowDashboardQueryOptions'
 import { oauthConnectionsQueryOptions } from '@/hooks/oauthConnections/queries/oauthConnectionsQueryOptions'
 import { webhookCredentialsQueryOptions } from '@/hooks/webhookCredentials/queries/webhookCredentialsQueryOptions'
+import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
 import { workflowListQueryOptions } from '@/hooks/workflow/queries/workflowListQueryOptions'
 import { createObservedSuccessHandlers } from '@/mocks/apiScenarios'
 import { server } from '@/mocks/server'
@@ -22,6 +23,7 @@ describe('query cache policy', () => {
 		['dashboard executions', workflowDashboardExecutionsQueryOptions().staleTime, 10_000],
 		['dashboard errors', workflowDashboardErrorsQueryOptions().staleTime, 10_000],
 		['workflow list', workflowListQueryOptions().staleTime, 30_000],
+		['workflow detail', workflowDetailQueryOptions('workflow-id').staleTime, 10_000],
 		['OAuth connections', oauthConnectionsQueryOptions().staleTime, 10_000],
 		['webhook credentials', webhookCredentialsQueryOptions().staleTime, 10_000],
 		['providers', providersQueryOptions().staleTime, 5 * 60_000],

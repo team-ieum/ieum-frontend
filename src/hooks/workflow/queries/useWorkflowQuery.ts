@@ -1,10 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
-import { getWorkflow } from '@/api/workflow'
-import { queryKeys } from '@/constants/queryKeys'
+import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
 
 export const useWorkflowQuery = (id: string | undefined) =>
 	useQuery({
-		queryKey: queryKeys.workflows.detail(id ?? ''),
-		queryFn: () => getWorkflow(id!),
+		...workflowDetailQueryOptions(id ?? ''),
 		enabled: !!id,
 	})
