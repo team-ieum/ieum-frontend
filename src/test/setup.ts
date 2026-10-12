@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { beforeAll, afterEach, afterAll } from 'vitest'
 import { server } from '@/mocks/server'
 import { useAuthMode } from '@/stores/useAuthMode'
@@ -10,6 +10,10 @@ import { cleanupHarnessResources } from '@/test/harnessCleanup'
 import { installDomEnvironment, resetDomEnvironment } from '@/test/domEnvironment'
 
 installDomEnvironment()
+
+// 전체 테스트를 병렬로 실행할 때 부하가 높으면 route 첫 렌더가 기본 대기 시간(1,000ms)을 넘어 간헐 실패한다.
+// 결과가 나타나면 바로 끝나므로 정상 실행 시간은 늘지 않는다.
+configure({ asyncUtilTimeout: 3000 })
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 
