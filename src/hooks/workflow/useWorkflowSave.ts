@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import { useUpdateWorkflowMutation } from '@/hooks/workflow/mutations/useUpdateWorkflowMutation'
 import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
@@ -15,6 +16,16 @@ export const useWorkflowSave = ({ workflowId, description, document, hasUnsavedC
 	const updateMutation = useUpdateWorkflowMutation(workflowId)
 	const isSaving = updateMutation.isPending
 	const canSave = Boolean(workflowId && document && hasUnsavedChanges && !isSaving)
+	const currentWorkflowId = useRef<string | undefined>(workflowId)
+	const saveRequestId = useRef(0)
+
+	useLayoutEffect(() => {
+		saveRequestId.current += 1
+		currentWorkflowId.current = workflowId
+		return () => {
+			if (currentWorkflowId.current === workflowId) currentWorkflowId.current = undefined
+		}
+	}, [workflowId])
 
 	const handleSave = async () => {
 		if (!canSave || !document) return
@@ -24,10 +35,13 @@ export const useWorkflowSave = ({ workflowId, description, document, hasUnsavedC
 			return
 		}
 
+		const requestWorkflowId = workflowId
+		const requestId = ++saveRequestId.current
 		try {
 			await updateMutation.mutateAsync({ name, description, nodes: document.nodes, edges: document.edges })
-			removeWorkflowDraft(workflowId)
+			removeWorkflowDraft(requestWorkflowId)
 		} catch (error) {
+			if (currentWorkflowId.current !== requestWorkflowId || saveRequestId.current !== requestId) return
 			openModal('저장 오류', isApiError(error) ? error.message : '워크플로우 저장에 실패했어요. 다시 시도해주세요.')
 		}
 	}

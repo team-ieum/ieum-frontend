@@ -117,6 +117,49 @@ describe('useWorkflowSave', () => {
 		expect(mocks.openModal).toHaveBeenCalledExactlyOnceWith('저장 오류', '워크플로우 저장에 실패했어요. 다시 시도해주세요.')
 	})
 
+	it('저장 요청 중 다른 워크플로우로 이동하면 늦은 실패를 현재 화면에 표시하지 않는다', async () => {
+		let rejectSave!: (reason: unknown) => void
+		mocks.mutateAsync.mockReturnValueOnce(new Promise((_, reject) => (rejectSave = reject)))
+		const { result, rerender } = renderHook(
+			({ workflowId }) => useWorkflowSave({ workflowId, document, hasUnsavedChanges: true }),
+			{ initialProps: { workflowId: 'workflow-1' } }
+		)
+
+		let saving!: Promise<void>
+		act(() => {
+			saving = result.current.handleSave()
+		})
+		rerender({ workflowId: 'workflow-2' })
+		await act(async () => {
+			rejectSave(new ApiError('INVALID_WORKFLOW', '이전 워크플로우 저장 실패'))
+			await saving
+		})
+
+		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
+	it('다른 워크플로우를 거쳐 원래 워크플로우로 돌아와도 이전 저장 실패를 표시하지 않는다', async () => {
+		let rejectSave!: (reason: unknown) => void
+		mocks.mutateAsync.mockReturnValueOnce(new Promise((_, reject) => (rejectSave = reject)))
+		const { result, rerender } = renderHook(
+			({ workflowId }) => useWorkflowSave({ workflowId, document, hasUnsavedChanges: true }),
+			{ initialProps: { workflowId: 'workflow-1' } }
+		)
+
+		let saving!: Promise<void>
+		act(() => {
+			saving = result.current.handleSave()
+		})
+		rerender({ workflowId: 'workflow-2' })
+		rerender({ workflowId: 'workflow-1' })
+		await act(async () => {
+			rejectSave(new Error('network'))
+			await saving
+		})
+
+		expect(mocks.openModal).not.toHaveBeenCalled()
+	})
+
 	it('저장 중에는 isSaving이 true이고 다시 저장할 수 없다', async () => {
 		mocks.isPending = true
 		const { result } = renderSave()
