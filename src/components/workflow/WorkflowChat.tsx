@@ -228,7 +228,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 										</div>
 									) : (
 										<div key={i} className='flex justify-end'>
-											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue whitespace-pre-wrap'>
 												{msg.body}
 											</div>
 										</div>
