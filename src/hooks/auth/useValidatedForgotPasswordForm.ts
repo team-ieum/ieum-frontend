@@ -5,7 +5,6 @@ import type { useEmailVerification } from '@/hooks/auth/useEmailVerification'
 import { useResetPasswordMutation } from '@/hooks/auth/mutations/useResetPasswordMutation'
 import { isApiError } from '@/utils/ApiError'
 import { useAuthMode } from '@/stores/useAuthMode'
-import { useAuthStore } from '@/stores/useAuthStore'
 import { useModalStore } from '@/stores/useModalStore'
 
 type Verification = Pick<ReturnType<typeof useEmailVerification>, 'verifiedEmail' | 'restart' | 'isVerified'>
@@ -67,7 +66,6 @@ export const useValidatedForgotPasswordForm = (verification: Verification) => {
 			await mutation.mutateAsync({ email, newPassword: parsed.data.newPassword })
 			if (!mounted.current || currentEmail.current !== email || useAuthMode.getState().mode !== 'forgotPassword') return
 			resetForm()
-			useAuthStore.getState().clearAuth()
 			useAuthMode.getState().toLogin()
 			useModalStore.getState().open('비밀번호 변경 완료', '비밀번호가 변경되었습니다. 새 비밀번호로 로그인해주세요.')
 		} catch (error) {

@@ -446,3 +446,41 @@ describe('인증 정책과 오류 처리', () => {
 		expect(screen.queryByLabelText('비밀번호', { exact: true })).not.toBeInTheDocument()
 	})
 })
+
+describe('늦게 완료된 비밀번호 재설정', () => {
+	it.each(['expired', 'left'])('%s 상태에서도 성공한 재설정은 기존 로그인 정보를 지우고 현재 화면을 유지한다', async state => {
+		let finish!: () => void
+		const responseReady = new Promise<void>(resolve => {
+			finish = resolve
+		})
+		const requested = vi.fn()
+		installCodeSuccess()
+		server.use(
+			http.post('*/api/v1/auth/password/reset', async () => {
+				requested()
+				await responseReady
+				return success()
+			})
+		)
+		openReset()
+		await enterEmail()
+		await verifyReset()
+		fillResetDetails()
+		useAuthStore.getState().setAuth('existing-access', 'existing-refresh')
+		fireEvent.click(screen.getByRole('button', { name: '비밀번호 재설정' }))
+		await waitFor(() => expect(requested).toHaveBeenCalledTimes(1))
+		if (state === 'expired') {
+			advanceClock(600_001)
+			expect(screen.getByLabelText('이메일', { exact: true })).toBeInTheDocument()
+		} else {
+			fireEvent.click(screen.getByRole('button', { name: '로그인으로 돌아가기' }))
+			expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument()
+		}
+		finish()
+		await waitFor(() => expect(useAuthStore.getState().accessToken).toBeNull())
+		expect(useAuthStore.getState().refreshToken).toBeNull()
+		expect(screen.queryByRole('heading', { name: '비밀번호 변경 완료' })).not.toBeInTheDocument()
+		if (state === 'expired') expect(screen.getByRole('heading', { name: '비밀번호 찾기' })).toBeInTheDocument()
+		else expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument()
+	})
+})
