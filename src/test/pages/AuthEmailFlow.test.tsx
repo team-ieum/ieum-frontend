@@ -145,6 +145,33 @@ const advanceClock = (milliseconds: number) => {
 }
 
 describe('인증 정책과 오류 처리', () => {
+	it.each(['signup', 'reset'])('%s 이메일 단계에서도 같은 이메일의 재발송 대기 중에는 제출을 막는다', async mode => {
+		const sends = vi.fn()
+		installCodeSuccess()
+		server.use(
+			http.post('*/api/v1/auth/email/send-code', () => {
+				sends()
+				return success()
+			})
+		)
+		if (mode === 'signup') openSignup()
+		else openReset()
+		await enterEmail()
+		fireEvent.click(screen.getByRole('button', { name: '이메일 변경' }))
+		const button = screen.getByRole('button', { name: '인증코드 받기' })
+		expect(button).toBeDisabled()
+		fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: 'other@example.com' } })
+		expect(button).toBeEnabled()
+		fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: ' USER@Example.COM ' } })
+		expect(button).toBeDisabled()
+		expect(sends).toHaveBeenCalledTimes(1)
+		advanceClock(30_001)
+		expect(button).toBeEnabled()
+		fireEvent.click(button)
+		await screen.findByLabelText('인증코드')
+		expect(sends).toHaveBeenCalledTimes(2)
+	})
+
 	it.each([
 		['EMAIL_ALREADY_EXISTS', 400, '이미 가입된 이메일입니다. 로그인해주세요.'],
 		['VERIFICATION_RESEND_TOO_SOON', 429, '잠시 후 다시 요청해주세요.'],

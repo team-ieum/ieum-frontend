@@ -95,6 +95,7 @@ const ForgotPasswordForm = () => {
 					disabled={
 						verification.isPending ||
 						reset.isPending ||
+						(verification.step === 'email' && verification.resendSeconds > 0) ||
 						(verification.step === 'code' && verification.codeUnavailable) ||
 						(verification.step === 'details' && !verification.isVerified())
 					}
