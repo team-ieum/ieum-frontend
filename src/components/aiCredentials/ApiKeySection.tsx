@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Check, Eye, EyeOff, Key, RefreshCw, Trash2 } from 'lucide-react'
 import type { AiProvider, ApiKeyState } from '@/types/aiCredentials'
 import { cn } from '@/utils/cn'
@@ -6,40 +6,48 @@ import { SectionLabel } from './SectionLabel'
 
 type ApiKeyEmptyProps = {
 	provider: AiProvider
+	hintId: string
 	onRegister: (key: string) => void
 	isPending?: boolean
 }
 
-const ApiKeyEmpty = ({ provider, onRegister, isPending }: ApiKeyEmptyProps) => {
+const ApiKeyEmpty = ({ provider, hintId, onRegister, isPending }: ApiKeyEmptyProps) => {
 	const [value, setValue] = useState('')
 	const [show, setShow] = useState(false)
 
 	return (
 		<div className='flex gap-2'>
-			<label className='flex h-10 flex-1 cursor-text items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 focus-within:border-main-blue focus-within:bg-white focus-within:ring-1 focus-within:ring-main-blue/20'>
-				<Key size={14} className='shrink-0 text-neutral-400' />
-				<input
-					type={show ? 'text' : 'password'}
-					value={value}
-					onChange={e => setValue(e.target.value)}
-					placeholder={`${provider.name} API Key를 입력하세요 (sk-… 형식)`}
-					className='flex-1 bg-transparent font-mono text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400'
-				/>
+			<div className='flex h-10 flex-1 items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 focus-within:border-main-blue focus-within:bg-white focus-within:ring-1 focus-within:ring-main-blue/20'>
+				{/* 표시 토글은 label 밖에 두어야 label 클릭과 버튼 활성화가 섞이지 않는다. */}
+				<label className='flex h-full min-w-0 flex-1 cursor-text items-center gap-2'>
+					<Key size={14} className='shrink-0 text-neutral-400' />
+					<input
+						type={show ? 'text' : 'password'}
+						value={value}
+						onChange={e => setValue(e.target.value)}
+						placeholder={`${provider.name} API Key를 입력하세요 (sk-… 형식)`}
+						aria-label={`${provider.name} API Key`}
+						aria-describedby={hintId}
+						className='min-w-0 flex-1 bg-transparent font-mono text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400'
+					/>
+				</label>
 				<button
 					type='button'
 					onClick={() => setShow(s => !s)}
-					aria-label={show ? '키 가리기' : '키 보이기'}
+					aria-label='API Key 표시'
+					aria-pressed={show}
 					className='rounded p-1 text-neutral-400 hover:text-neutral-600'
 				>
 					{show ? <EyeOff size={16} /> : <Eye size={16} />}
 				</button>
-			</label>
+			</div>
 			<button
 				type='button'
 				onClick={() => {
 					if (value && !isPending) onRegister(value)
 				}}
 				disabled={!value || isPending}
+				aria-busy={isPending}
 				className={cn(
 					'typo-button1_semibold h-10 rounded-lg px-4 transition-colors',
 					value && !isPending
@@ -95,6 +103,7 @@ export const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: Api
 	const [replacing, setReplacing] = useState(false)
 	const apikey = provider.state.apikey
 	const isConnected = apikey?.status === 'connected' && !replacing
+	const hintId = useId()
 
 	const handleReplace = () => setReplacing(true)
 	const handleRegister = (key: string) => {
@@ -104,13 +113,13 @@ export const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: Api
 
 	return (
 		<div>
-			<SectionLabel icon={<Key size={14} />} hint='키는 암호화되어 저장되며, 일부만 표시됩니다.'>
+			<SectionLabel icon={<Key size={14} />} hint='키는 암호화되어 저장되며, 일부만 표시됩니다.' hintId={hintId}>
 				API Key
 			</SectionLabel>
 			{isConnected && apikey ? (
 				<ApiKeyConnected state={apikey} onDelete={onDelete} onReplace={handleReplace} />
 			) : (
-				<ApiKeyEmpty provider={provider} onRegister={handleRegister} isPending={isPending} />
+				<ApiKeyEmpty provider={provider} hintId={hintId} onRegister={handleRegister} isPending={isPending} />
 			)}
 		</div>
 	)

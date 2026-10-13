@@ -38,7 +38,10 @@ const IntegrationServiceWorkflowList = ({ service }: IntegrationServiceWorkflowL
 	}
 
 	return (
-		<div className='overflow-hidden rounded-brand-md border border-neutral-200 bg-neutral-white shadow-sm'>
+		<div
+			aria-busy={isLoading}
+			className='overflow-hidden rounded-brand-md border border-neutral-200 bg-neutral-white shadow-sm'
+		>
 			<div className='flex items-center justify-between border-b border-neutral-100 px-6 py-4'>
 				<div>
 					<h3 className='typo-body2_semibold m-0 text-neutral-900'>연동 워크플로우</h3>
@@ -58,7 +61,7 @@ const IntegrationServiceWorkflowList = ({ service }: IntegrationServiceWorkflowL
 					<Spinner size='md' />
 				</div>
 			) : isError ? (
-				<p className='m-0 px-6 py-10 text-center typo-body3_regular text-danger-700'>
+				<p role='alert' className='m-0 px-6 py-10 text-center typo-body3_regular text-danger-700'>
 					워크플로우 목록을 불러오지 못했습니다.
 				</p>
 			) : workflows.length === 0 ? (

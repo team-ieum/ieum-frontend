@@ -9,6 +9,12 @@ export const PROVIDER_VISUAL: Record<CredentialProvider, ProviderVisual> = {
 	GEMINI: { brand: '#4285F4', tint: '#E8F0FE' },
 }
 
+export const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
+	OPENAI: 'OpenAI',
+	CLAUDE: 'Claude',
+	GEMINI: 'Gemini',
+}
+
 export const INTEGRATION_TABS: IntegrationTabItem[] = [
 	{ id: 'connected', label: '연결된 서비스', icon: 'cable' },
 	{ id: 'ai-creds', label: 'AI 자격 증명', icon: 'vpn_key' },

@@ -128,13 +128,13 @@ describe('보호 route 페이지 전환', () => {
 		const scrollTo = vi.spyOn(window, 'scrollTo')
 		renderAppRoute('/main')
 		expectSingleRoute('/main')
-		const workflowButton = screen.getByRole('button', { name: '워크플로우' })
-		workflowButton.focus()
+		const workflowLink = screen.getByRole('link', { name: '워크플로우' })
+		workflowLink.focus()
 
-		fireEvent.click(workflowButton)
+		fireEvent.click(workflowLink)
 
 		expectSingleRoute('/workflow')
-		expect(workflowButton).toHaveFocus()
+		expect(workflowLink).toHaveFocus()
 		expect(scrollTo).not.toHaveBeenCalled()
 	})
 
