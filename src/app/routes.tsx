@@ -8,61 +8,72 @@ import IntegrationOAuthCallbackPage from '@/pages/IntegrationOAuthCallbackPage'
 import InterSettingPage from '@/pages/InterSettingPage'
 import LandingPage from '@/pages/LandingPage'
 import MainPage from '@/pages/MainPage'
+import NotFoundPage from '@/pages/NotFoundPage'
+import RouteErrorPage from '@/pages/RouteErrorPage'
 import UserPage from '@/pages/UserPage'
 import WorkflowListPage from '@/pages/WorkflowListPage'
 
 export const appRoutes: RouteObject[] = [
 	{
-		path: '/',
-		element: <LandingPage />,
-	},
-	{
-		path: '/auth',
-		element: <AuthPage />,
-	},
-	{
-		path: '/api/*',
-		element: <ApiPathRedirectPage />,
-	},
-	{
-		path: '/oauth/*',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
-		path: '/oauth2/*',
-		element: <IntegrationOAuthCallbackPage />,
-	},
-	{
-		element: <ProtectedRoute />,
+		errorElement: <RouteErrorPage />,
 		children: [
 			{
-				element: <Layout />,
+				path: '/',
+				element: <LandingPage />,
+			},
+			{
+				path: '/auth',
+				element: <AuthPage />,
+			},
+			{
+				path: '/api/*',
+				element: <ApiPathRedirectPage />,
+			},
+			{
+				path: '/oauth/*',
+				element: <IntegrationOAuthCallbackPage />,
+			},
+			{
+				path: '/oauth2/*',
+				element: <IntegrationOAuthCallbackPage />,
+			},
+			{
+				element: <ProtectedRoute />,
 				children: [
 					{
-						path: 'main',
-						element: <MainPage />,
-					},
-					{
-						path: 'workflow',
-						element: <WorkflowListPage />,
-					},
-					{
-						path: 'workflow/new',
-						element: <WorkflowEditorRoute />,
-					},
-					{
-						path: 'workflow/:workflowId',
-						element: <WorkflowEditorRoute />,
-					},
-					{
-						path: 'inter-setting',
-						element: <InterSettingPage />,
-					},
-					{
-						path: 'user',
-						element: <UserPage />,
+						element: <Layout />,
+						children: [
+							{
+								path: 'main',
+								element: <MainPage />,
+							},
+							{
+								path: 'workflow',
+								element: <WorkflowListPage />,
+							},
+							{
+								path: 'workflow/new',
+								element: <WorkflowEditorRoute />,
+							},
+							{
+								path: 'workflow/:workflowId',
+								element: <WorkflowEditorRoute />,
+							},
+							{
+								path: 'inter-setting',
+								element: <InterSettingPage />,
+							},
+							{
+								path: 'user',
+								element: <UserPage />,
+							},
+						],
 					},
 				],
+			},
+			{
+				path: '*',
+				element: <NotFoundPage />,
 			},
 		],
 	},

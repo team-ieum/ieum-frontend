@@ -45,12 +45,12 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 					</span>
 					<div className='flex shrink-0 items-center gap-1.5'>
 						<TriggerPill trigger={workflow.trigger} />
-						{workflow.trigger === 'schedule' && workflow.cronExpression ? (
+						{workflow.scheduleLabel ? (
 							<span
-								className='max-w-24 truncate typo-caption1_regular text-neutral-400'
-								title={workflow.cronExpression}
+								className='max-w-36 truncate typo-caption1_regular text-neutral-400'
+								title={workflow.scheduleLabel}
 							>
-								{workflow.cronExpression}
+								{workflow.scheduleLabel}
 							</span>
 						) : null}
 					</div>

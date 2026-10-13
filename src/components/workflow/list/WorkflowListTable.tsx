@@ -52,12 +52,12 @@ const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTablePro
 							<td className='px-3 py-3'>
 								<div className='flex flex-col gap-0.5'>
 									<TriggerPill trigger={workflow.trigger} />
-									{workflow.trigger === 'schedule' && workflow.cronExpression ? (
+									{workflow.scheduleLabel ? (
 										<span
 											className='truncate typo-caption1_regular text-neutral-400'
-											title={workflow.cronExpression}
+											title={workflow.scheduleLabel}
 										>
-											{workflow.cronExpression}
+											{workflow.scheduleLabel}
 										</span>
 									) : null}
 								</div>

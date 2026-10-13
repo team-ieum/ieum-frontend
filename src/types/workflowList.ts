@@ -142,7 +142,8 @@ export type WorkflowListRowView = {
 	status: WorkflowStatus
 	statusBarClass: string
 	trigger: WorkflowTriggerType
-	cronExpression?: string | null
+	/** 스케줄 트리거일 때 cron을 읽을 수 있게 바꾼 문구 */
+	scheduleLabel: string | null
 }
 
 export type WorkflowActiveFilter = {
