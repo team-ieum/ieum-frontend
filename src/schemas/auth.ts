@@ -4,6 +4,8 @@ export const emailSchema = z.string().trim().toLowerCase().pipe(z.email('이메�
 
 export const PASSWORD_RULE_MESSAGE = '비밀번호는 8~100자이며 영문 대문자·소문자·숫자·특수문자를 각각 포함해야 합니다.'
 
+export const verificationCodeSchema = z.string().regex(/^[0-9]{6}$/, '인증코드는 6자리 숫자로 입력해주세요.')
+
 export const passwordSchema = z
 	.string()
 	.min(8, PASSWORD_RULE_MESSAGE)
