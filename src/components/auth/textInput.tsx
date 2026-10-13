@@ -10,6 +10,8 @@ type TextInputProps = {
 	error?: string
 	autoComplete?: string
 	label?: string
+	hint?: string
+	disabled?: boolean
 }
 
 const inputMeta: Record<InputText, { label: string; type: string; placeholder: string; icon: React.ReactNode }> = {
@@ -19,7 +21,7 @@ const inputMeta: Record<InputText, { label: string; type: string; placeholder: s
 	name: { label: '이름', type: 'text', placeholder: '홍길동', icon: <UserIcon /> },
 }
 
-const TextInput = ({ text, value, onChange, error, autoComplete, label: customLabel }: TextInputProps) => {
+const TextInput = ({ text, value, onChange, error, autoComplete, label: customLabel, hint, disabled }: TextInputProps) => {
 	const inputId = useId()
 	const errorId = `${inputId}-error`
 	const { icon, type, label, placeholder } = inputMeta[text]
@@ -48,13 +50,21 @@ const TextInput = ({ text, value, onChange, error, autoComplete, label: customLa
 					type={type}
 					autoComplete={autoComplete}
 					aria-invalid={hasError}
-					aria-describedby={hasError ? errorId : undefined}
+					aria-describedby={
+						[hint ? `${inputId}-hint` : '', hasError ? errorId : ''].filter(Boolean).join(' ') || undefined
+					}
+					disabled={disabled}
 					placeholder={placeholder}
 					value={value}
 					onChange={event => onChange(event.target.value)}
 					className='h-full min-w-0 flex-1 border-0 bg-transparent py-3 pr-1 typo-body2_regular text-main-deep-blue outline-none placeholder:text-neutral-400'
 				/>
 			</div>
+			{hint && (
+				<p id={`${inputId}-hint`} className='pl-3 mt-2 typo-caption1_regular text-neutral-500'>
+					{hint}
+				</p>
+			)}
 			{hasError && (
 				<p id={errorId} role='alert' className='pl-3 mt-1 typo-caption1_regular text-danger-700'>
 					{error}

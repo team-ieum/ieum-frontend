@@ -1,3 +1,4 @@
+import AuthFlowHeader from './AuthFlowHeader'
 import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
@@ -24,14 +25,7 @@ const ForgotPasswordForm = () => {
 						: reset.handleSubmit
 			}
 		>
-			<h1 className='typo-title2_bold text-center text-main-deep-blue'>비밀번호 찾기</h1>
-			<p className='mt-3 text-center typo-body2_regular text-neutral-500'>
-				{verification.step === 'email'
-					? '비밀번호를 재설정할 이메일을 입력해주세요.'
-					: verification.step === 'code'
-						? '이메일로 받은 인증코드를 입력해주세요.'
-						: '새 비밀번호를 설정해주세요.'}
-			</p>
+			<AuthFlowHeader title='비밀번호 찾기' step={verification.step} finalLabel='새 비밀번호' />
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
@@ -62,6 +56,7 @@ const ForgotPasswordForm = () => {
 					<>
 						<TextInput
 							text='password'
+							hint={PASSWORD_RULE_MESSAGE}
 							label='새 비밀번호'
 							value={reset.values.newPassword}
 							onChange={value => reset.handleChange('newPassword', value)}
@@ -75,7 +70,6 @@ const ForgotPasswordForm = () => {
 							error={reset.errors.passwordConfirm}
 							autoComplete='new-password'
 						/>
-						<p className='typo-caption1_regular text-neutral-500'>{PASSWORD_RULE_MESSAGE}</p>
 					</>
 				)}
 			</div>
@@ -97,7 +91,11 @@ const ForgotPasswordForm = () => {
 				</p>
 			)}
 			<div className='pt-6 text-center'>
-				<button type='button' onClick={toLogin} className='typo-caption1_medium text-main-deep-blue'>
+				<button
+					type='button'
+					onClick={toLogin}
+					className='min-h-10 rounded-brand-md px-3 typo-caption1_medium text-main-deep-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
+				>
 					로그인으로 돌아가기
 				</button>
 			</div>

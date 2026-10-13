@@ -1,3 +1,5 @@
+import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
+import AuthFlowHeader from './AuthFlowHeader'
 import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
@@ -23,14 +25,7 @@ const SignupForm = () => {
 						: handleSubmit
 			}
 		>
-			<h1 className='typo-title2_bold text-center text-main-deep-blue'>회원가입</h1>
-			<p className='mt-3 text-center typo-body2_regular text-neutral-500'>
-				{verification.step === 'email'
-					? '가입할 이메일을 입력해주세요.'
-					: verification.step === 'code'
-						? '이메일로 받은 인증코드를 입력해주세요.'
-						: '이름과 비밀번호를 입력해주세요.'}
-			</p>
+			<AuthFlowHeader title='회원가입' step={verification.step} finalLabel='가입 정보' />
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
@@ -68,6 +63,7 @@ const SignupForm = () => {
 						/>
 						<TextInput
 							text='password'
+							hint={PASSWORD_RULE_MESSAGE}
 							value={values.password}
 							onChange={value => handleChange('password', value)}
 							error={errors.password}
@@ -102,7 +98,11 @@ const SignupForm = () => {
 			)}
 			<div className='flex items-center justify-center gap-4 pt-6'>
 				<span className='typo-caption1_medium text-neutral-500'>이미 계정이 있으신가요?</span>
-				<button type='button' onClick={toLogin} className='typo-caption1_medium text-main-deep-blue'>
+				<button
+					type='button'
+					onClick={toLogin}
+					className='min-h-10 rounded-brand-md px-3 typo-caption1_medium text-main-deep-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
+				>
 					로그인하기
 				</button>
 			</div>

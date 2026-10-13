@@ -22,7 +22,7 @@ const authForms = {
 const AuthPage = () => {
 	const { mode, swapDirection, isPanelSwapped } = useAuthScreenMode()
 	const ActiveForm = authForms[mode]
-	const isForgotPassword = mode === 'forgotPassword'
+	const isVerification = mode !== 'login'
 
 	return (
 		<section className='flex min-h-screen items-center justify-center bg-neutral-white px-4 py-8'>
@@ -32,7 +32,7 @@ const AuthPage = () => {
 					transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
 					className={cn(
 						'w-full max-w-5xl overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-[#f0f9ff] shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]',
-						isForgotPassword ? 'min-h-0 lg:min-h-[700px]' : 'min-h-[700px]'
+						isVerification ? 'min-h-0 lg:min-h-[700px]' : 'min-h-[700px]'
 					)}
 				>
 					<motion.div
@@ -46,7 +46,7 @@ const AuthPage = () => {
 						layout='position'
 						className={cn(
 							'flex w-full items-center justify-center lg:basis-1/2 lg:px-12',
-							isForgotPassword ? 'px-6 py-8 sm:px-8 sm:py-12' : 'px-8 py-12',
+							isVerification ? 'px-6 py-8 sm:px-8 sm:py-12' : 'px-8 py-12',
 							isPanelSwapped ? 'lg:order-1' : 'lg:order-2'
 						)}
 					>
