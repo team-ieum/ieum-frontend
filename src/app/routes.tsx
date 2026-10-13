@@ -15,7 +15,7 @@ import WorkflowListPage from '@/pages/WorkflowListPage'
 
 export const appRoutes: RouteObject[] = [
 	{
-		errorElement: <RouteErrorPage layout='fullscreen' />,
+		errorElement: <RouteErrorPage />,
 		children: [
 			{
 				path: '/',
@@ -44,33 +44,28 @@ export const appRoutes: RouteObject[] = [
 						element: <Layout />,
 						children: [
 							{
-								errorElement: <RouteErrorPage />,
-								children: [
-									{
-										path: 'main',
-										element: <MainPage />,
-									},
-									{
-										path: 'workflow',
-										element: <WorkflowListPage />,
-									},
-									{
-										path: 'workflow/new',
-										element: <WorkFlowPage />,
-									},
-									{
-										path: 'workflow/:workflowId',
-										element: <WorkFlowPage />,
-									},
-									{
-										path: 'inter-setting',
-										element: <InterSettingPage />,
-									},
-									{
-										path: 'user',
-										element: <UserPage />,
-									},
-								],
+								path: 'main',
+								element: <MainPage />,
+							},
+							{
+								path: 'workflow',
+								element: <WorkflowListPage />,
+							},
+							{
+								path: 'workflow/new',
+								element: <WorkFlowPage />,
+							},
+							{
+								path: 'workflow/:workflowId',
+								element: <WorkFlowPage />,
+							},
+							{
+								path: 'inter-setting',
+								element: <InterSettingPage />,
+							},
+							{
+								path: 'user',
+								element: <UserPage />,
 							},
 						],
 					},

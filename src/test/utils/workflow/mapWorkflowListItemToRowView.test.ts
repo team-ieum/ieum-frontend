@@ -43,9 +43,19 @@ describe('mapWorkflowListItemToRowView', () => {
 			status: 'active',
 			statusBarClass: WORKFLOW_STATUS_META.active.barClass,
 			trigger: 'schedule',
-			cronExpression: '0 0 9 * * *',
+			scheduleLabel: '매일 9시',
 		})
 		expect(workflow).toEqual(original)
+	})
+
+	it('스케줄이 아니거나 cron이 비어 있으면 스케줄 문구를 만들지 않는다', () => {
+		expect(mapWorkflowListItemToRowView({ ...workflow, trigger: 'manual' }).scheduleLabel).toBeNull()
+		expect(mapWorkflowListItemToRowView({ ...workflow, cronExpression: ' ' }).scheduleLabel).toBeNull()
+		expect(mapWorkflowListItemToRowView({ ...workflow, cronExpression: null }).scheduleLabel).toBeNull()
+	})
+
+	it('해석할 수 없는 cron은 원문을 그대로 표시한다', () => {
+		expect(mapWorkflowListItemToRowView({ ...workflow, cronExpression: '0 0 9 ? * 2#1' }).scheduleLabel).toBe('0 0 9 ? * 2#1')
 	})
 
 	it('서비스·노드 개수가 없으면 빈 표시와 0을 사용하고 lastRun으로 시간을 표시한다', () => {

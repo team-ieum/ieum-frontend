@@ -55,13 +55,13 @@ describe('에러 페이지 route', () => {
 		expect(router.state.location.pathname).toBe('/unknown-path')
 	})
 
-	it('레이아웃 하위 화면의 렌더링 오류는 헤더와 사이드바를 유지한 채 본문에 에러 페이지를 표시한다', async () => {
+	it('레이아웃 하위 화면의 렌더링 오류는 헤더와 사이드바 없이 화면 전체를 에러 페이지로 덮는다', async () => {
 		renderAppRoute('/user')
 
 		expect(await screen.findByRole('heading', { level: 1, name: '문제가 발생했어요' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '홈으로' })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: '사이드바 열기' })).toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: '사이드바 열기' })).not.toBeInTheDocument()
 		expect(screen.queryByText('UserPage render failed')).not.toBeInTheDocument()
 	})
 })
