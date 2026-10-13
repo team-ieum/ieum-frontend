@@ -54,14 +54,14 @@ describe('워크플로우 목록 페이지네이션', () => {
 		renderAppRoute('/workflow')
 
 		expect(await screen.findByRole('button', { name: '첫 번째 워크플로우 열기' })).toBeInTheDocument()
-		expect(screen.getByText('불러온 1개')).toBeInTheDocument()
+		expect(screen.getByText('워크플로우 1개')).toBeInTheDocument()
 		expect(getIntersectionObserverRootMargins()).toContain('0px 0px 320px 0px')
 
 		act(() => intersectObservedElements())
 
 		expect(await screen.findByRole('button', { name: '두 번째 워크플로우 열기' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '첫 번째 워크플로우 열기' })).toBeInTheDocument()
-		expect(screen.getByText('불러온 2개')).toBeInTheDocument()
+		expect(screen.getByText('워크플로우 2개')).toBeInTheDocument()
 		expect(observeRequest).toHaveBeenCalledTimes(2)
 
 		act(() => intersectObservedElements())
@@ -235,7 +235,7 @@ describe('워크플로우 목록 페이지네이션', () => {
 		act(() => intersectObservedElements())
 
 		expect(await screen.findByRole('button', { name: '찾는 워크플로우 열기' })).toBeInTheDocument()
-		expect(screen.getByText('1개 / 불러온 2개')).toBeInTheDocument()
+		expect(screen.getByText('2개 중 1개')).toBeInTheDocument()
 	})
 
 	it('마지막 페이지까지 필터 결과가 없으면 확정 empty를 표시한다', async () => {
@@ -258,6 +258,6 @@ describe('워크플로우 목록 페이지네이션', () => {
 		act(() => intersectObservedElements())
 
 		expect(await screen.findByRole('heading', { level: 2, name: '조건에 맞는 워크플로우가 없어요' })).toBeInTheDocument()
-		expect(screen.getByText('0개 / 불러온 2개')).toBeInTheDocument()
+		expect(screen.getByText('2개 중 0개')).toBeInTheDocument()
 	})
 })
