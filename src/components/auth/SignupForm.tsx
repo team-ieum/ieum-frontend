@@ -1,3 +1,4 @@
+import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import VerificationCodeInput from './VerificationCodeInput'
@@ -7,7 +8,7 @@ import { useAuthMode } from '@/stores/useAuthMode'
 
 const SignupForm = () => {
 	const verification = useEmailVerification('SIGNUP')
-	const { values, errors, handleChange, handleSubmit } = useValidatedSignupForm()
+	const { values, errors, handleChange, handleSubmit, resetForm } = useValidatedSignupForm()
 	const toLogin = useAuthMode(state => state.toLogin)
 	return (
 		<form
@@ -30,6 +31,15 @@ const SignupForm = () => {
 						? '이메일로 받은 인증코드를 입력해주세요.'
 						: '이름과 비밀번호를 입력해주세요.'}
 			</p>
+			{verification.step !== 'email' && (
+				<VerificationNavigation
+					email={verification.email}
+					onChangeEmail={() => {
+						verification.restart()
+						resetForm()
+					}}
+				/>
+			)}
 			<div className='space-y-4 mt-8 sm:mt-12'>
 				{verification.step === 'email' && (
 					<TextInput

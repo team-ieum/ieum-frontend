@@ -68,5 +68,9 @@ export const useValidatedSignupForm = () => {
 		}
 	}
 
-	return { values, errors, isPending, handleChange, handleSubmit }
+	const resetForm = () => {
+		setValues(INITIAL_VALUES)
+		setErrors({})
+	}
+	return { resetForm, values, errors, isPending, handleChange, handleSubmit }
 }

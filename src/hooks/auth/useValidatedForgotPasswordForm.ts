@@ -21,5 +21,10 @@ export const useValidatedForgotPasswordForm = () => {
 		setErrors({})
 		setNotice('비밀번호 재설정 기능을 연결 중입니다.')
 	}
-	return { values, errors, notice, handleChange, handleSubmit }
+	const resetForm = () => {
+		setValues({ newPassword: '', passwordConfirm: '' })
+		setErrors({})
+		setNotice('')
+	}
+	return { resetForm, values, errors, notice, handleChange, handleSubmit }
 }

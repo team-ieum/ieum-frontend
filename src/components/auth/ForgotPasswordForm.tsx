@@ -1,3 +1,4 @@
+import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import VerificationCodeInput from './VerificationCodeInput'
@@ -31,6 +32,15 @@ const ForgotPasswordForm = () => {
 						? '이메일로 받은 인증코드를 입력해주세요.'
 						: '새 비밀번호를 설정해주세요.'}
 			</p>
+			{verification.step !== 'email' && (
+				<VerificationNavigation
+					email={verification.email}
+					onChangeEmail={() => {
+						verification.restart()
+						reset.resetForm()
+					}}
+				/>
+			)}
 			<div className='mt-8 space-y-4 sm:mt-12'>
 				{verification.step === 'email' && (
 					<TextInput

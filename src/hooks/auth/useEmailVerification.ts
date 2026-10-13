@@ -10,7 +10,7 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	const [code, setCode] = useState('')
 	const [error, setError] = useState('')
 	const [notice, setNotice] = useState('')
-	const [verifiedEmail] = useState<string | null>(null)
+	const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
 	const changeEmail = (value: string) => {
 		setEmail(value)
 		setError('')
@@ -42,5 +42,12 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		}
 		setNotice('인증코드 검증 기능을 연결 중입니다.')
 	}
-	return { purpose, step, email, code, error, notice, verifiedEmail, changeEmail, changeCode, submitEmail, submitCode }
+	const restart = () => {
+		setStep('email')
+		setCode('')
+		setVerifiedEmail(null)
+		setError('')
+		setNotice('')
+	}
+	return { restart, purpose, step, email, code, error, notice, verifiedEmail, changeEmail, changeCode, submitEmail, submitCode }
 }
