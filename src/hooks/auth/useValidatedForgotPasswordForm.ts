@@ -7,13 +7,20 @@ import { useAuthMode } from '@/stores/useAuthMode'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useModalStore } from '@/stores/useModalStore'
 
-type Verification = Pick<ReturnType<typeof useEmailVerification>, 'verifiedEmail' | 'restart'>
+type Verification = Pick<ReturnType<typeof useEmailVerification>, 'verifiedEmail' | 'restart' | 'isVerified'>
 const INITIAL_VALUES: ResetPasswordValues = { newPassword: '', passwordConfirm: '' }
 export const useValidatedForgotPasswordForm = (verification: Verification) => {
 	const [values, setValues] = useState(INITIAL_VALUES)
 	const [errors, setErrors] = useState<Partial<Record<keyof ResetPasswordValues, string>>>({})
 	const [formError, setFormError] = useState('')
 	const mutation = useResetPasswordMutation()
+	const [sessionEmail, setSessionEmail] = useState(verification.verifiedEmail)
+	if (sessionEmail !== verification.verifiedEmail) {
+		setSessionEmail(verification.verifiedEmail)
+		setValues(INITIAL_VALUES)
+		setErrors({})
+		setFormError('')
+	}
 	const busy = useRef(false)
 	const mounted = useRef(true)
 	const currentEmail = useRef(verification.verifiedEmail)
@@ -41,7 +48,7 @@ export const useValidatedForgotPasswordForm = (verification: Verification) => {
 		event.preventDefault()
 		if (busy.current) return
 		const email = verification.verifiedEmail
-		if (!email) {
+		if (!email || !verification.isVerified()) {
 			resetForm()
 			verification.restart('이메일 인증을 다시 진행해주세요.')
 			return

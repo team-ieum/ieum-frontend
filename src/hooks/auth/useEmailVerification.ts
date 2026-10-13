@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { emailSchema, verificationCodeSchema } from '@/schemas/auth'
 import type { VerificationPurpose } from '@/types/auth'
 import { useSendEmailCodeMutation } from '@/hooks/auth/mutations/useSendEmailCodeMutation'
@@ -14,8 +14,11 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	const [code, setCode] = useState('')
 	const [error, setError] = useState('')
 	const [notice, setNotice] = useState('')
+	const [codeExpiresAt, setCodeExpiresAt] = useState(0)
+	const [verifiedUntil, setVerifiedUntil] = useState(0)
+	const [codeUnavailable, setCodeUnavailable] = useState(false)
 	const [cooldown, setCooldown] = useState({ email: '', until: 0 })
-	const now = useAuthClock(cooldown.until > 0)
+	const now = useAuthClock(cooldown.until > 0 || codeExpiresAt > 0 || verifiedUntil > 0)
 	const resendSeconds =
 		cooldown.email === email.trim().toLowerCase() ? Math.max(0, Math.ceil((cooldown.until - now) / 1000)) : 0
 	const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
@@ -43,15 +46,40 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		setCode(value)
 		setError('')
 	}
-	const restart = (message = '') => {
+	const restart = useCallback((message = '') => {
 		requestId.current += 1
 		busy.current = false
+		setCodeExpiresAt(0)
+		setVerifiedUntil(0)
+		setCodeUnavailable(false)
 		setStep('email')
 		setCode('')
 		setVerifiedEmail(null)
 		setError(message)
 		setNotice('')
-	}
+	}, [])
+	const isVerified = () => Boolean(verifiedEmail && verifiedEmail === email && step === 'details' && Date.now() < verifiedUntil)
+	useEffect(() => {
+		const deadline = step === 'code' ? codeExpiresAt : step === 'details' ? verifiedUntil : 0
+		if (!deadline) return
+		const check = () => {
+			if (Date.now() < deadline) return
+			if (step === 'details') restart('이메일 인증 유효시간이 만료되었습니다. 이메일 인증을 다시 진행해주세요.')
+			else {
+				setCodeUnavailable(true)
+				setCode('')
+				setError('인증코드가 만료되었습니다. 다시 받아주세요.')
+				setNotice('')
+				setCodeExpiresAt(0)
+			}
+		}
+		const timer = window.setTimeout(check, Math.max(0, deadline - Date.now()))
+		document.addEventListener('visibilitychange', check)
+		return () => {
+			window.clearTimeout(timer)
+			document.removeEventListener('visibilitychange', check)
+		}
+	}, [step, codeExpiresAt, verifiedUntil, restart])
 	const sendCode = async () => {
 		if (busy.current) return
 		const parsed = emailSchema.safeParse(email)
@@ -72,6 +100,9 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 			await sendMutation.mutateAsync({ email: parsed.data, purpose })
 			if (!mounted.current || id !== requestId.current) return
 			setCooldown({ email: parsed.data, until: Date.now() + 30_000 })
+			setCodeExpiresAt(Date.now() + 5 * 60_000)
+			setVerifiedUntil(0)
+			setCodeUnavailable(false)
 			setCode('')
 			setVerifiedEmail(null)
 			setStep('code')
@@ -93,6 +124,12 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	const submitCode = async (event: FormEvent) => {
 		event.preventDefault()
 		if (busy.current || step !== 'code') return
+		if (codeUnavailable || Date.now() >= codeExpiresAt) {
+			setCodeUnavailable(true)
+			setCode('')
+			setError('인증코드가 만료되었습니다. 다시 받아주세요.')
+			return
+		}
 		const parsed = verificationCodeSchema.safeParse(code)
 		if (!parsed.success) {
 			setError(parsed.error.issues[0].message)
@@ -105,6 +142,10 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		try {
 			await verifyMutation.mutateAsync({ email, code: parsed.data, purpose })
 			if (!mounted.current || id !== requestId.current) return
+			setVerifiedUntil(Date.now() + 10 * 60_000)
+			setCodeExpiresAt(0)
+			setCodeUnavailable(false)
+			setError('')
 			setVerifiedEmail(email)
 			setCode('')
 			setStep('details')
@@ -116,6 +157,10 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		}
 	}
 	return {
+		isVerified,
+		codeUnavailable,
+		codeSeconds: Math.max(0, Math.ceil((codeExpiresAt - now) / 1000)),
+		verifiedSeconds: Math.max(0, Math.ceil((verifiedUntil - now) / 1000)),
 		resendCode: sendCode,
 		resendSeconds,
 		restart,

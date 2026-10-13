@@ -1,3 +1,4 @@
+import VerificationTimer from './VerificationTimer'
 import VerificationResend from './VerificationResend'
 import AuthFlowHeader from './AuthFlowHeader'
 import VerificationNavigation from './VerificationNavigation'
@@ -80,6 +81,8 @@ const ForgotPasswordForm = () => {
 					</>
 				)}
 			</div>
+			{verification.step === 'code' && <VerificationTimer seconds={verification.codeSeconds} />}
+			{verification.step === 'details' && <VerificationTimer seconds={verification.verifiedSeconds} verified />}
 			<div className='mt-8'>
 				<AuthSubmitButton
 					label={
@@ -92,7 +95,8 @@ const ForgotPasswordForm = () => {
 					disabled={
 						verification.isPending ||
 						reset.isPending ||
-						(verification.step === 'details' && !verification.verifiedEmail)
+						(verification.step === 'code' && verification.codeUnavailable) ||
+						(verification.step === 'details' && !verification.isVerified())
 					}
 				/>
 			</div>

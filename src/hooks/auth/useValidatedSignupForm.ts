@@ -7,7 +7,7 @@ import type { useEmailVerification } from '@/hooks/auth/useEmailVerification'
 
 type SignupFormValues = { name: string; password: string; passwordConfirm: string }
 const INITIAL_VALUES: SignupFormValues = { name: '', password: '', passwordConfirm: '' }
-type Verification = Pick<ReturnType<typeof useEmailVerification>, 'verifiedEmail' | 'restart'>
+type Verification = Pick<ReturnType<typeof useEmailVerification>, 'verifiedEmail' | 'restart' | 'isVerified'>
 
 export const useValidatedSignupForm = (verification: Verification) => {
 	const toLogin = useAuthMode(state => state.toLogin)
@@ -15,6 +15,13 @@ export const useValidatedSignupForm = (verification: Verification) => {
 	const [values, setValues] = useState(INITIAL_VALUES)
 	const [errors, setErrors] = useState<Partial<Record<keyof SignupFormValues, string>>>({})
 	const [formError, setFormError] = useState('')
+	const [sessionEmail, setSessionEmail] = useState(verification.verifiedEmail)
+	if (sessionEmail !== verification.verifiedEmail) {
+		setSessionEmail(verification.verifiedEmail)
+		setValues(INITIAL_VALUES)
+		setErrors({})
+		setFormError('')
+	}
 	const busy = useRef(false)
 	const mounted = useRef(true)
 	const currentEmail = useRef(verification.verifiedEmail)
@@ -42,7 +49,7 @@ export const useValidatedSignupForm = (verification: Verification) => {
 		event.preventDefault()
 		if (busy.current) return
 		const email = verification.verifiedEmail
-		if (!email) {
+		if (!email || !verification.isVerified()) {
 			resetForm()
 			verification.restart('이메일 인증을 다시 진행해주세요.')
 			return
