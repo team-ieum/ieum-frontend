@@ -1,4 +1,5 @@
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
+import VerificationResend from './VerificationResend'
 import AuthFlowHeader from './AuthFlowHeader'
 import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
@@ -96,10 +97,20 @@ const SignupForm = () => {
 								: '회원가입'
 					}
 					disabled={
-						verification.isPending || isPending || (verification.step === 'details' && !verification.verifiedEmail)
+						verification.isPending ||
+						isPending ||
+						(verification.step === 'email' && verification.resendSeconds > 0) ||
+						(verification.step === 'details' && !verification.verifiedEmail)
 					}
 				/>
 			</div>
+			{verification.step === 'code' && (
+				<VerificationResend
+					seconds={verification.resendSeconds}
+					isPending={verification.isPending}
+					onResend={() => void verification.resendCode()}
+				/>
+			)}
 			{formError && verification.step === 'details' && (
 				<p role='alert' className='mt-4 typo-caption1_regular text-danger-700'>
 					{formError}

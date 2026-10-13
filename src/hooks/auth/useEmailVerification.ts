@@ -3,6 +3,7 @@ import { emailSchema, verificationCodeSchema } from '@/schemas/auth'
 import type { VerificationPurpose } from '@/types/auth'
 import { useSendEmailCodeMutation } from '@/hooks/auth/mutations/useSendEmailCodeMutation'
 import { useVerifyEmailCodeMutation } from '@/hooks/auth/mutations/useVerifyEmailCodeMutation'
+import { useAuthClock } from '@/hooks/auth/useAuthClock'
 import { isApiError } from '@/utils/ApiError'
 
 export type VerificationStep = 'email' | 'code' | 'details'
@@ -13,6 +14,10 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	const [code, setCode] = useState('')
 	const [error, setError] = useState('')
 	const [notice, setNotice] = useState('')
+	const [cooldown, setCooldown] = useState({ email: '', until: 0 })
+	const now = useAuthClock(cooldown.until > 0)
+	const resendSeconds =
+		cooldown.email === email.trim().toLowerCase() ? Math.max(0, Math.ceil((cooldown.until - now) / 1000)) : 0
 	const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
 	const sendMutation = useSendEmailCodeMutation()
 	const verifyMutation = useVerifyEmailCodeMutation()
@@ -54,6 +59,10 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 			setError(parsed.error.issues[0].message)
 			return
 		}
+		if (cooldown.email === parsed.data && Date.now() < cooldown.until) {
+			setError('잠시 후 다시 요청해주세요.')
+			return
+		}
 		const id = ++requestId.current
 		busy.current = true
 		setEmail(parsed.data)
@@ -62,13 +71,17 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		try {
 			await sendMutation.mutateAsync({ email: parsed.data, purpose })
 			if (!mounted.current || id !== requestId.current) return
+			setCooldown({ email: parsed.data, until: Date.now() + 30_000 })
 			setCode('')
 			setVerifiedEmail(null)
 			setStep('code')
 			setNotice('입력하신 이메일로 인증코드를 보냈습니다. 메일이 오지 않으면 이메일 주소를 확인해주세요.')
 		} catch (error) {
-			if (mounted.current && id === requestId.current)
+			if (mounted.current && id === requestId.current) {
+				if (isApiError(error) && error.code === 'VERIFICATION_RESEND_TOO_SOON')
+					setCooldown({ email: parsed.data, until: Date.now() + 30_000 })
 				setError(isApiError(error) ? error.message : '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.')
+			}
 		} finally {
 			if (id === requestId.current) busy.current = false
 		}
@@ -103,6 +116,8 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 		}
 	}
 	return {
+		resendCode: sendCode,
+		resendSeconds,
 		restart,
 		purpose,
 		step,

@@ -1,3 +1,4 @@
+import VerificationResend from './VerificationResend'
 import AuthFlowHeader from './AuthFlowHeader'
 import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
@@ -95,6 +96,13 @@ const ForgotPasswordForm = () => {
 					}
 				/>
 			</div>
+			{verification.step === 'code' && (
+				<VerificationResend
+					seconds={verification.resendSeconds}
+					isPending={verification.isPending}
+					onResend={() => void verification.resendCode()}
+				/>
+			)}
 			{reset.formError && verification.step === 'details' && (
 				<p role='alert' className='mt-4 typo-caption1_regular text-danger-700'>
 					{reset.formError}
