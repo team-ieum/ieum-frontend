@@ -1,5 +1,5 @@
-import { TriangleAlert } from 'lucide-react'
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router'
+import errorSymbol from '@/assets/errorsymbol.png'
 import { ERROR_PAGE_ACTION_LABEL, ROUTE_ERROR_PAGE_TEXT } from '@/constants/errorPage'
 import { useNotFoundPageViewModel } from '@/hooks/routing/useNotFoundPageViewModel'
 import { useAuthStore } from '@/stores/useAuthStore'
@@ -15,7 +15,7 @@ export const useRouteErrorViewModel = (): ErrorPageViewModel => {
 
 	return {
 		...ROUTE_ERROR_PAGE_TEXT,
-		icon: TriangleAlert,
+		illustrationSrc: errorSymbol,
 		primaryAction: { label: ERROR_PAGE_ACTION_LABEL.retry, onClick: () => window.location.reload() },
 		secondaryAction: {
 			label: ERROR_PAGE_ACTION_LABEL.home,
