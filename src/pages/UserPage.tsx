@@ -2,7 +2,6 @@ import { Bell, Camera, ChevronDown, Trash2, UserRound } from 'lucide-react'
 import PatternBackground from '@/components/common/PatternBackground'
 
 const UserPage = () => {
-	throw new Error('test')
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
 			<PatternBackground />
