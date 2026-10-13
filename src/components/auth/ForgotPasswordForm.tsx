@@ -1,66 +1,69 @@
-import { useId } from 'react'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
-import { useValidatedForgotPasswordForm } from '@/hooks/auth/useValidatedForgotPasswordForm'
+import VerificationCodeInput from './VerificationCodeInput'
+import { useEmailVerification } from '@/hooks/auth/useEmailVerification'
 import { useAuthMode } from '@/stores/useAuthMode'
 
 const ForgotPasswordForm = () => {
-	const titleId = useId()
-	const descriptionId = `${titleId}-description`
-	const { values, errors, showUnavailableNotice, handleChange, handleSubmit } = useValidatedForgotPasswordForm()
+	const verification = useEmailVerification('PASSWORD_RESET')
 	const toLogin = useAuthMode(state => state.toLogin)
-
 	return (
 		<form
 			className='flex w-full flex-col justify-center'
-			onSubmit={handleSubmit}
-			aria-labelledby={titleId}
-			aria-describedby={descriptionId}
+			aria-label='비밀번호 찾기'
 			noValidate
+			onSubmit={verification.step === 'email' ? verification.submitEmail : verification.submitCode}
 		>
-			<div className='space-y-3 text-center'>
-				<h1 id={titleId} className='typo-title2_bold text-main-deep-blue'>
-					비밀번호 찾기
-				</h1>
-				<p id={descriptionId} className='typo-body2_regular text-balance text-neutral-500'>
-					비밀번호를 재설정할 이메일을 입력해주세요.
-				</p>
+			<h1 className='typo-title2_bold text-center text-main-deep-blue'>비밀번호 찾기</h1>
+			<p className='mt-3 text-center typo-body2_regular text-neutral-500'>
+				{verification.step === 'email'
+					? '비밀번호를 재설정할 이메일을 입력해주세요.'
+					: verification.step === 'code'
+						? '이메일로 받은 인증코드를 입력해주세요.'
+						: '새 비밀번호를 설정해주세요.'}
+			</p>
+			<div className='mt-8 space-y-4 sm:mt-12'>
+				{verification.step === 'email' && (
+					<TextInput
+						text='email'
+						value={verification.email}
+						onChange={verification.changeEmail}
+						error={verification.error}
+						autoComplete='email'
+					/>
+				)}
+				{verification.step === 'code' && (
+					<VerificationCodeInput
+						value={verification.code}
+						onChange={verification.changeCode}
+						error={verification.error}
+					/>
+				)}
+				{verification.step === 'details' && <p className='typo-body2_regular text-main-deep-blue'>새 비밀번호 입력</p>}
 			</div>
-
-			<div className='mt-8 space-y-4 sm:mt-12 lg:mt-16'>
-				<TextInput
-					text='email'
-					value={values.email}
-					onChange={value => handleChange('email', value)}
-					error={errors.email}
-					autoComplete='email'
+			<div className='mt-8'>
+				<AuthSubmitButton
+					label={
+						verification.step === 'email'
+							? '인증코드 받기'
+							: verification.step === 'code'
+								? '인증코드 확인'
+								: '비밀번호 재설정'
+					}
+					disabled={verification.step === 'details'}
 				/>
 			</div>
-
-			<div className='mt-8 sm:mt-10 lg:mt-13'>
-				<AuthSubmitButton label='재설정 이메일 받기' />
-			</div>
-
-			{showUnavailableNotice && (
-				<p
-					role='status'
-					className='mt-4 rounded-brand-md bg-main-light-blue px-4 py-3 typo-caption1_regular text-main-deep-blue'
-				>
-					비밀번호 재설정 이메일 발송 기능을 준비 중입니다. 아직 이메일이 발송되지 않습니다.
+			{verification.notice && (
+				<p role='status' className='mt-4 typo-caption1_regular text-main-deep-blue'>
+					{verification.notice}
 				</p>
 			)}
-
 			<div className='pt-6 text-center'>
-				<button
-					type='button'
-					onClick={toLogin}
-					className='typo-caption1_medium inline-flex min-h-10 items-center justify-center rounded-brand-md px-3 text-main-deep-blue hover:typo-caption1_bold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
-				>
+				<button type='button' onClick={toLogin} className='typo-caption1_medium text-main-deep-blue'>
 					로그인으로 돌아가기
 				</button>
 			</div>
 		</form>
 	)
 }
-
 export default ForgotPasswordForm
