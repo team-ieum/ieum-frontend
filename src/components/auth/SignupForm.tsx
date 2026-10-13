@@ -52,7 +52,7 @@ const SignupForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
-						disabled={verification.isPending || isPending}
+						disabled={verification.isPending || isPending || verification.codeUnavailable}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}

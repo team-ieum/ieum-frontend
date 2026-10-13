@@ -52,7 +52,7 @@ const ForgotPasswordForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
-						disabled={verification.isPending || reset.isPending}
+						disabled={verification.isPending || reset.isPending || verification.codeUnavailable}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}

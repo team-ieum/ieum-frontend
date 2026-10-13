@@ -1,3 +1,4 @@
+import { getAuthFlowError } from '@/utils/auth/authFlowError'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { resetPasswordSchema, type ResetPasswordValues } from '@/schemas/auth'
 import type { useEmailVerification } from '@/hooks/auth/useEmailVerification'
@@ -73,9 +74,9 @@ export const useValidatedForgotPasswordForm = (verification: Verification) => {
 			if (!mounted.current || currentEmail.current !== email || useAuthMode.getState().mode !== 'forgotPassword') return
 			if (isApiError(error) && error.code === 'EMAIL_NOT_VERIFIED') {
 				resetForm()
-				verification.restart('이메일 인증을 다시 진행해주세요.')
+				verification.restart(getAuthFlowError(error, 'reset', 'PASSWORD_RESET'))
 			} else {
-				setFormError(isApiError(error) ? error.message : '비밀번호 재설정에 실패했습니다. 다시 시도해주세요.')
+				setFormError(getAuthFlowError(error, 'reset', 'PASSWORD_RESET'))
 			}
 		} finally {
 			busy.current = false

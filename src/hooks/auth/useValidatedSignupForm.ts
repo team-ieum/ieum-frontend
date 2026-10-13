@@ -1,3 +1,4 @@
+import { getAuthFlowError } from '@/utils/auth/authFlowError'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { signupSchema } from '@/schemas/auth'
 import { isApiError } from '@/utils/ApiError'
@@ -74,12 +75,12 @@ export const useValidatedSignupForm = (verification: Verification) => {
 			if (!mounted.current || currentEmail.current !== email || useAuthMode.getState().mode !== 'signup') return
 			if (isApiError(error) && error.code === 'EMAIL_NOT_VERIFIED') {
 				resetForm()
-				verification.restart('이메일 인증을 다시 진행해주세요.')
+				verification.restart(getAuthFlowError(error, 'signup', 'SIGNUP'))
 			} else if (isApiError(error) && error.code === 'EMAIL_ALREADY_EXISTS') {
 				resetForm()
-				verification.restart('이미 가입된 이메일입니다. 로그인해주세요.')
+				verification.restart(getAuthFlowError(error, 'signup', 'SIGNUP'))
 			} else {
-				setFormError(isApiError(error) ? error.message : '회원가입에 실패했습니다. 다시 시도해주세요.')
+				setFormError(getAuthFlowError(error, 'signup', 'SIGNUP'))
 			}
 		} finally {
 			busy.current = false

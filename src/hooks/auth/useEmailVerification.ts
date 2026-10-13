@@ -1,3 +1,4 @@
+import { getAuthFlowError } from '@/utils/auth/authFlowError'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { emailSchema, verificationCodeSchema } from '@/schemas/auth'
 import type { VerificationPurpose } from '@/types/auth'
@@ -20,7 +21,7 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	const [cooldown, setCooldown] = useState({ email: '', until: 0 })
 	const now = useAuthClock(cooldown.until > 0 || codeExpiresAt > 0 || verifiedUntil > 0)
 	const resendSeconds =
-		cooldown.email === email.trim().toLowerCase() ? Math.max(0, Math.ceil((cooldown.until - now) / 1000)) : 0
+		cooldown.email === email.trim().toLowerCase() ? Math.min(30, Math.max(0, Math.ceil((cooldown.until - now) / 1000))) : 0
 	const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null)
 	const sendMutation = useSendEmailCodeMutation()
 	const verifyMutation = useVerifyEmailCodeMutation()
@@ -111,7 +112,7 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 			if (mounted.current && id === requestId.current) {
 				if (isApiError(error) && error.code === 'VERIFICATION_RESEND_TOO_SOON')
 					setCooldown({ email: parsed.data, until: Date.now() + 30_000 })
-				setError(isApiError(error) ? error.message : '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.')
+				setError(getAuthFlowError(error, 'send', purpose))
 			}
 		} finally {
 			if (id === requestId.current) busy.current = false
@@ -150,8 +151,17 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 			setCode('')
 			setStep('details')
 		} catch (error) {
-			if (mounted.current && id === requestId.current)
-				setError(isApiError(error) ? error.message : '인증코드를 확인하지 못했습니다. 다시 시도해주세요.')
+			if (mounted.current && id === requestId.current) {
+				if (
+					isApiError(error) &&
+					(error.code === 'VERIFICATION_ATTEMPTS_EXCEEDED' || error.code === 'VERIFICATION_CODE_EXPIRED')
+				) {
+					setCodeUnavailable(true)
+					setCode('')
+					setCodeExpiresAt(0)
+				}
+				setError(getAuthFlowError(error, 'verify', purpose))
+			}
 		} finally {
 			if (id === requestId.current) busy.current = false
 		}
@@ -159,8 +169,8 @@ export const useEmailVerification = (purpose: VerificationPurpose) => {
 	return {
 		isVerified,
 		codeUnavailable,
-		codeSeconds: Math.max(0, Math.ceil((codeExpiresAt - now) / 1000)),
-		verifiedSeconds: Math.max(0, Math.ceil((verifiedUntil - now) / 1000)),
+		codeSeconds: Math.min(300, Math.max(0, Math.ceil((codeExpiresAt - now) / 1000))),
+		verifiedSeconds: Math.min(600, Math.max(0, Math.ceil((verifiedUntil - now) / 1000))),
 		resendCode: sendCode,
 		resendSeconds,
 		restart,
