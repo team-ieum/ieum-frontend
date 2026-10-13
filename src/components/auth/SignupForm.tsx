@@ -10,13 +10,13 @@ import { useAuthMode } from '@/stores/useAuthMode'
 
 const SignupForm = () => {
 	const verification = useEmailVerification('SIGNUP')
-	const { values, errors, handleChange, handleSubmit, resetForm } = useValidatedSignupForm()
+	const { values, errors, handleChange, handleSubmit, resetForm, formError, isPending } = useValidatedSignupForm(verification)
 	const toLogin = useAuthMode(state => state.toLogin)
 	return (
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='회원가입'
-			aria-busy={verification.isPending}
+			aria-busy={verification.isPending || isPending}
 			noValidate
 			onSubmit={
 				verification.step === 'email'
@@ -30,7 +30,7 @@ const SignupForm = () => {
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
-					disabled={verification.isPending}
+					disabled={verification.isPending || isPending}
 					onChangeEmail={() => {
 						verification.restart()
 						resetForm()
@@ -41,7 +41,7 @@ const SignupForm = () => {
 				{verification.step === 'email' && (
 					<TextInput
 						text='email'
-						disabled={verification.isPending}
+						disabled={verification.isPending || isPending}
 						value={verification.email}
 						onChange={verification.changeEmail}
 						error={verification.error}
@@ -50,7 +50,7 @@ const SignupForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
-						disabled={verification.isPending}
+						disabled={verification.isPending || isPending}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}
@@ -60,6 +60,7 @@ const SignupForm = () => {
 					<>
 						<TextInput
 							text='name'
+							disabled={isPending}
 							value={values.name}
 							onChange={value => handleChange('name', value)}
 							error={errors.name}
@@ -67,6 +68,7 @@ const SignupForm = () => {
 						/>
 						<TextInput
 							text='password'
+							disabled={isPending}
 							hint={PASSWORD_RULE_MESSAGE}
 							value={values.password}
 							onChange={value => handleChange('password', value)}
@@ -75,6 +77,7 @@ const SignupForm = () => {
 						/>
 						<TextInput
 							text='passwordConfirm'
+							disabled={isPending}
 							value={values.passwordConfirm}
 							onChange={value => handleChange('passwordConfirm', value)}
 							error={errors.passwordConfirm}
@@ -92,9 +95,16 @@ const SignupForm = () => {
 								? '인증코드 확인'
 								: '회원가입'
 					}
-					disabled={verification.isPending || (verification.step === 'details' && !verification.verifiedEmail)}
+					disabled={
+						verification.isPending || isPending || (verification.step === 'details' && !verification.verifiedEmail)
+					}
 				/>
 			</div>
+			{formError && verification.step === 'details' && (
+				<p role='alert' className='mt-4 typo-caption1_regular text-danger-700'>
+					{formError}
+				</p>
+			)}
 			{verification.notice && (
 				<p role='status' className='mt-4 typo-caption1_regular text-main-deep-blue'>
 					{verification.notice}

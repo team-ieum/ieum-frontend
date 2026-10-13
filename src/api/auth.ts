@@ -10,10 +10,8 @@ export const login = async (email: string, password: string): Promise<LoginRespo
 	return response.data
 }
 
-export const register = async (data: RequestRegisterDto): Promise<RegisterResponse> => {
-	const response = await api.post('/api/v1/auth/register', data)
-	return response.data
-}
+export const register = (data: RequestRegisterDto): Promise<RegisterResponse> =>
+	postPublicAuth<RegisterResponse>('/api/v1/auth/register', { ...data, email: data.email.trim().toLowerCase() })
 
 // 인증 요청은 기존 세션의 인증 헤더나 토큰 갱신 처리를 사용하지 않는다.
 const publicAuthApi = axios.create({ baseURL: import.meta.env.VITE_API_URL })
