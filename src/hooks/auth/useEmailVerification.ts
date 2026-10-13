@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { emailSchema, verificationCodeSchema } from '@/schemas/auth'
 
-export type VerificationPurpose = 'SIGNUP' | 'PASSWORD_RESET'
+import type { VerificationPurpose } from '@/types/auth'
 export type VerificationStep = 'email' | 'code' | 'details'
 
 export const useEmailVerification = (purpose: VerificationPurpose) => {
