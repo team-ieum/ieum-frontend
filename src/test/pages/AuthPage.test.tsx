@@ -126,10 +126,8 @@ describe('비밀번호 찾기 화면', () => {
 		fireEvent.click(screen.getByRole('button', { name: '회원가입하기' }))
 
 		expect(screen.getByRole('heading', { name: '회원가입' })).toBeInTheDocument()
-		expect(screen.getByLabelText('이름', { exact: true })).toBeInTheDocument()
-		const password = screen.getByLabelText('비밀번호', { exact: true })
-		const confirmation = screen.getByLabelText('비밀번호 확인', { exact: true })
-		expect(password.id).not.toBe(confirmation.id)
+		expect(screen.getByLabelText('이메일', { exact: true })).toBeInTheDocument()
+		expect(screen.queryByLabelText('비밀번호', { exact: true })).not.toBeInTheDocument()
 		expect(useAuthMode.getState().swapDirection).toBe(1)
 
 		fireEvent.click(screen.getByRole('button', { name: '로그인하기' }))

@@ -1,5 +1,5 @@
 type AuthSubmitButtonProps = {
-	label: '로그인' | '회원가입' | '재설정 이메일 받기'
+	label: string
 	disabled?: boolean
 }
 
