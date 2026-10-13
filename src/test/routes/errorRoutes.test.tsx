@@ -60,6 +60,7 @@ describe('에러 페이지 route', () => {
 
 		const heading = await screen.findByRole('heading', { level: 1, name: '문제가 발생했어요' })
 		expect(heading.parentElement?.querySelector('img')?.getAttribute('src')).toContain('errorsymbol')
+		expect(screen.getByText('500')).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '홈으로' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '사이드바 열기' })).not.toBeInTheDocument()

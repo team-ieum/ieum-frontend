@@ -11,10 +11,12 @@ export const useRouteErrorViewModel = (): ErrorPageViewModel => {
 	const isLoggedIn = useAuthStore(state => Boolean(state.accessToken))
 	const notFound = useNotFoundPageViewModel()
 
-	if (isRouteErrorResponse(error) && error.status === 404) return notFound
+	const isResponse = isRouteErrorResponse(error)
+	if (isResponse && error.status === 404) return notFound
 
 	return {
 		...ROUTE_ERROR_PAGE_TEXT,
+		code: isResponse ? String(error.status) : ROUTE_ERROR_PAGE_TEXT.code,
 		illustrationSrc: errorSymbol,
 		primaryAction: { label: ERROR_PAGE_ACTION_LABEL.retry, onClick: () => window.location.reload() },
 		secondaryAction: {

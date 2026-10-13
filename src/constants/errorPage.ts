@@ -5,6 +5,7 @@ export const NOT_FOUND_PAGE_TEXT = {
 } as const
 
 export const ROUTE_ERROR_PAGE_TEXT = {
+	code: '500',
 	title: '문제가 발생했어요',
 	description: '일시적인 오류로 화면을 표시하지 못했어요.\n잠시 후 다시 시도해주세요.',
 } as const
