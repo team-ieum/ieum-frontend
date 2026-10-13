@@ -1,6 +1,7 @@
 import type { RouteObject } from 'react-router'
 import { Layout } from '@/components/layout/Layout'
 import ProtectedRoute from '@/components/routing/ProtectedRoute'
+import { WorkflowEditorRoute } from '@/components/routing/WorkflowEditorRoute'
 import ApiPathRedirectPage from '@/pages/ApiPathRedirectPage'
 import AuthPage from '@/pages/AuthPage'
 import IntegrationOAuthCallbackPage from '@/pages/IntegrationOAuthCallbackPage'
@@ -10,7 +11,6 @@ import MainPage from '@/pages/MainPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import RouteErrorPage from '@/pages/RouteErrorPage'
 import UserPage from '@/pages/UserPage'
-import WorkFlowPage from '@/pages/WorkFlowPage'
 import WorkflowListPage from '@/pages/WorkflowListPage'
 
 export const appRoutes: RouteObject[] = [
@@ -53,11 +53,11 @@ export const appRoutes: RouteObject[] = [
 							},
 							{
 								path: 'workflow/new',
-								element: <WorkFlowPage />,
+								element: <WorkflowEditorRoute />,
 							},
 							{
 								path: 'workflow/:workflowId',
-								element: <WorkFlowPage />,
+								element: <WorkflowEditorRoute />,
 							},
 							{
 								path: 'inter-setting',

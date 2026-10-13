@@ -8,6 +8,7 @@ Query hook과 후속 prefetch가 같은 query key, query function, select, page 
 
 - Dashboard summary, executions, errors
 - Workflow list 첫 페이지와 다음 cursor 페이지
+- Workflow detail (PERF-01에서 추가)
 - OAuth connections
 - Webhook credentials
 - AI providers와 credentials
@@ -22,6 +23,7 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 | Dashboard executions |        10초 | 실행 직후 변경 가능성이 높은 운영 데이터다.                           |
 | Dashboard errors     |        10초 | 실행 오류 직후 변경 가능성이 높은 운영 데이터다.                      |
 | Workflow list        |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다. |
+| Workflow detail      |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.       |
 | OAuth connections    |        10초 | 외부 연결 상태의 최신성을 우선한다.                                   |
 | Webhook credentials  |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                       |
 | AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |

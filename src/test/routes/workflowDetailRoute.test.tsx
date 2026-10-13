@@ -79,23 +79,41 @@ describe('/workflow/:workflowId route harness', () => {
 		}
 	})
 
-	it('warm 재방문은 cache를 즉시 표시하고 stale detail만 refetch한다', async () => {
+	it('fresh 재방문은 cache를 즉시 표시하고 detail을 다시 요청하지 않는다', async () => {
 		const queryClient = createTestQueryClient()
 		const { router } = renderAppRoute(detailPath, { queryClient })
 		await screen.findByDisplayValue('고객 문의 자동 분류')
-		await waitFor(() => {
-			expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0)
-			expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(0)
-		})
+		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 		await act(async () => router.navigate('/user'))
-		server.use(...createDelayedSuccessHandlers(40))
 		await act(async () => router.navigate(detailPath))
 
 		expect(screen.getByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
-		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(1)
-		expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
-		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(0)
-		await waitFor(() => expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0))
+		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0)
+	})
+
+	it('stale 재방문은 cache를 즉시 표시하고 detail을 background refetch한다', async () => {
+		const queryClient = createTestQueryClient()
+		const startedAt = new Date('2026-10-12T00:00:00.000Z').getTime()
+		vi.setSystemTime(startedAt)
+
+		try {
+			const { router } = renderAppRoute(detailPath, { queryClient })
+			await screen.findByDisplayValue('고객 문의 자동 분류')
+			await waitFor(() => expect(queryClient.isFetching()).toBe(0))
+			await act(async () => router.navigate('/user'))
+			server.use(...createDelayedSuccessHandlers(40))
+			vi.setSystemTime(startedAt + 10_001)
+			await act(async () => router.navigate(detailPath))
+
+			expect(screen.getByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
+			expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(1)
+			expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
+			await waitFor(() =>
+				expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0)
+			)
+		} finally {
+			vi.useRealTimers()
+		}
 	})
 
 	it('empty detail은 null 계약을 만들지 않고 빈 editor document로 재현한다', async () => {
@@ -117,7 +135,6 @@ describe('/workflow/:workflowId route harness', () => {
 		)
 		expect(screen.getByRole('heading', { name: '워크플로우를 불러오지 못했어요' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '다시 시도' })).toBeInTheDocument()
-		expect(screen.getByRole('button', { name: '워크플로우 목록으로' })).toBeInTheDocument()
 		expect(screen.queryByDisplayValue('워크플로우 제목')).not.toBeInTheDocument()
 		expect(screen.queryByRole('switch', { name: '워크플로우 활성 상태' })).not.toBeInTheDocument()
 	})
@@ -144,7 +161,7 @@ describe('/workflow/:workflowId route harness', () => {
 		renderAppRoute(detailPath)
 
 		expect(await screen.findByRole('heading', { name: '워크플로우를 찾을 수 없어요' })).toBeInTheDocument()
-		expect(screen.getByRole('region', { name: '워크플로우를 찾을 수 없어요' })).toHaveTextContent('404')
+		expect(screen.getByRole('alert')).toHaveTextContent('워크플로우를 찾을 수 없어요')
 		expect(screen.getByRole('button', { name: '워크플로우 목록으로' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '채팅 열기' })).not.toBeInTheDocument()

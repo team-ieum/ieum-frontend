@@ -9,6 +9,7 @@ import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 const mocks = vi.hoisted(() => ({
 	execute: vi.fn(),
 	toggle: vi.fn(),
+	update: vi.fn(),
 	openModal: vi.fn(),
 	openConfirm: vi.fn(),
 	workflowOneActive: true,
@@ -193,6 +194,10 @@ vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
 
 vi.mock('@/hooks/workflow/mutations/useToggleWorkflowMutation', () => ({
 	useToggleWorkflowMutation: () => ({ mutateAsync: mocks.toggle }),
+}))
+
+vi.mock('@/hooks/workflow/mutations/useUpdateWorkflowMutation', () => ({
+	useUpdateWorkflowMutation: () => ({ mutateAsync: mocks.update, isPending: false }),
 }))
 
 vi.mock('@/hooks/workflow/useWorkflowExecution', () => ({

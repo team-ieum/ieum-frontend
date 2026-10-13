@@ -1,6 +1,6 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
-import type { WorkflowDto } from './workflowList'
+import type { WorkflowDto, WorkflowEdgeDto, WorkflowNodeDto } from './workflowList'
 import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
 
 export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
@@ -58,6 +58,15 @@ export type CreateWorkflowRequest = {
 }
 
 export type CreateWorkflowResponse = ApiResponse<WorkflowDto>
+
+export type UpdateWorkflowRequest = {
+	name: string
+	description?: string
+	nodes: WorkflowNodeDto[]
+	edges: WorkflowEdgeDto[]
+}
+
+export type UpdateWorkflowResponse = ApiResponse<WorkflowDto>
 
 export interface WorkflowExecutionDto {
 	id: string

@@ -37,6 +37,30 @@ const DashboardWorkflowSkeleton = (): ReactElement => (
 	</section>
 )
 
+/** 요약 데이터는 도착했지만 hero 차트 chunk를 아직 받는 중일 때 hero 자리를 같은 크기로 유지한다. */
+export const DashboardHeroChunkFallback = (): ReactElement => (
+	<div role='status' aria-label='대시보드 차트 불러오는 중' aria-busy='true'>
+		<DashboardHeroSkeleton />
+	</div>
+)
+
+/** hero 차트 chunk를 불러오지 못했을 때 hero 자리를 같은 크기로 유지하고 새로고침을 안내한다. */
+export const DashboardHeroChunkError = ({ onReload }: { onReload: () => void }): ReactElement => (
+	<div
+		role='alert'
+		className='flex min-h-[264px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+	>
+		<p className='m-0 typo-body2_semibold text-danger-700'>차트를 불러오지 못했습니다.</p>
+		<button
+			type='button'
+			onClick={onReload}
+			className='mt-4 rounded-brand-sm border border-danger-300 bg-neutral-white px-4 py-2 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100'
+		>
+			새로고침
+		</button>
+	</div>
+)
+
 export const DashboardSummarySkeleton = (): ReactElement => (
 	<div className='flex flex-col gap-8'>
 		<DashboardHeroSkeleton />
