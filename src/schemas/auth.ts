@@ -38,3 +38,14 @@ export const signupSchema = loginSchema
 export type LoginValues = z.infer<typeof loginSchema>
 export type SignupValues = z.infer<typeof signupSchema>
 export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>
+
+export const resetPasswordSchema = z
+	.object({
+		newPassword: passwordSchema,
+		passwordConfirm: z.string().min(1, '비밀번호 확인 입력은 필수예요!'),
+	})
+	.refine(data => data.newPassword === data.passwordConfirm, {
+		path: ['passwordConfirm'],
+		message: '비밀번호가 일치하지 않아요!',
+	})
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>

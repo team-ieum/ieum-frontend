@@ -2,17 +2,26 @@ import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import VerificationCodeInput from './VerificationCodeInput'
 import { useEmailVerification } from '@/hooks/auth/useEmailVerification'
+import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
+import { useValidatedForgotPasswordForm } from '@/hooks/auth/useValidatedForgotPasswordForm'
 import { useAuthMode } from '@/stores/useAuthMode'
 
 const ForgotPasswordForm = () => {
 	const verification = useEmailVerification('PASSWORD_RESET')
+	const reset = useValidatedForgotPasswordForm()
 	const toLogin = useAuthMode(state => state.toLogin)
 	return (
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='비밀번호 찾기'
 			noValidate
-			onSubmit={verification.step === 'email' ? verification.submitEmail : verification.submitCode}
+			onSubmit={
+				verification.step === 'email'
+					? verification.submitEmail
+					: verification.step === 'code'
+						? verification.submitCode
+						: reset.handleSubmit
+			}
 		>
 			<h1 className='typo-title2_bold text-center text-main-deep-blue'>비밀번호 찾기</h1>
 			<p className='mt-3 text-center typo-body2_regular text-neutral-500'>
@@ -39,7 +48,26 @@ const ForgotPasswordForm = () => {
 						error={verification.error}
 					/>
 				)}
-				{verification.step === 'details' && <p className='typo-body2_regular text-main-deep-blue'>새 비밀번호 입력</p>}
+				{verification.step === 'details' && (
+					<>
+						<TextInput
+							text='password'
+							label='새 비밀번호'
+							value={reset.values.newPassword}
+							onChange={value => reset.handleChange('newPassword', value)}
+							error={reset.errors.newPassword}
+							autoComplete='new-password'
+						/>
+						<TextInput
+							text='passwordConfirm'
+							value={reset.values.passwordConfirm}
+							onChange={value => reset.handleChange('passwordConfirm', value)}
+							error={reset.errors.passwordConfirm}
+							autoComplete='new-password'
+						/>
+						<p className='typo-caption1_regular text-neutral-500'>{PASSWORD_RULE_MESSAGE}</p>
+					</>
+				)}
 			</div>
 			<div className='mt-8'>
 				<AuthSubmitButton

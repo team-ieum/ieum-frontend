@@ -9,6 +9,7 @@ type TextInputProps = {
 	onChange: (value: string) => void
 	error?: string
 	autoComplete?: string
+	label?: string
 }
 
 const inputMeta: Record<InputText, { label: string; type: string; placeholder: string; icon: React.ReactNode }> = {
@@ -18,7 +19,7 @@ const inputMeta: Record<InputText, { label: string; type: string; placeholder: s
 	name: { label: '이름', type: 'text', placeholder: '홍길동', icon: <UserIcon /> },
 }
 
-const TextInput = ({ text, value, onChange, error, autoComplete }: TextInputProps) => {
+const TextInput = ({ text, value, onChange, error, autoComplete, label: customLabel }: TextInputProps) => {
 	const inputId = useId()
 	const errorId = `${inputId}-error`
 	const { icon, type, label, placeholder } = inputMeta[text]
@@ -27,7 +28,7 @@ const TextInput = ({ text, value, onChange, error, autoComplete }: TextInputProp
 	return (
 		<div className='flex flex-col'>
 			<label htmlFor={inputId} className='pl-3 typo-body1_medium text-main-deep-blue mb-2'>
-				{label}
+				{customLabel ?? label}
 			</label>
 			<div
 				className={cn(
