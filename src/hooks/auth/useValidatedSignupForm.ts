@@ -62,9 +62,9 @@ export const useValidatedSignupForm = (verification: Verification) => {
 		setFormError('')
 		try {
 			await mutateAsync({ name: parsed.data.name, email, password: parsed.data.password })
-			if (mounted.current && currentEmail.current === email) toLogin()
+			if (mounted.current && currentEmail.current === email && useAuthMode.getState().mode === 'signup') toLogin()
 		} catch (error) {
-			if (!mounted.current || currentEmail.current !== email) return
+			if (!mounted.current || currentEmail.current !== email || useAuthMode.getState().mode !== 'signup') return
 			if (isApiError(error) && error.code === 'EMAIL_NOT_VERIFIED') {
 				resetForm()
 				verification.restart('이메일 인증을 다시 진행해주세요.')

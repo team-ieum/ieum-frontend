@@ -52,8 +52,8 @@ describe('회원가입 이메일 인증', () => {
 		await enterEmail()
 		await verify()
 		fillSignupDetails()
-		fireEvent.click(screen.getByRole('button', { name: '회원가입', exact: true }))
-		await screen.findByRole('button', { name: '로그인', exact: true })
+		fireEvent.click(screen.getByRole('button', { name: '회원가입' }))
+		await screen.findByRole('button', { name: '로그인' })
 		expect(requests.mock.calls).toEqual([
 			['send', { email: 'user@example.com', purpose: 'SIGNUP' }, null],
 			['verify', { email: 'user@example.com', purpose: 'SIGNUP', code: '048291' }, null],
@@ -72,12 +72,48 @@ describe('회원가입 이메일 인증', () => {
 		await enterEmail()
 		await verify()
 		fillSignupDetails()
-		fireEvent.click(screen.getByRole('button', { name: '회원가입', exact: true }))
+		fireEvent.click(screen.getByRole('button', { name: '회원가입' }))
 		await waitFor(() =>
 			expect(screen.getByLabelText('이메일', { exact: true })).toHaveAccessibleDescription(
 				'이메일 인증을 다시 진행해주세요.'
 			)
 		)
 		expect(screen.queryByLabelText('비밀번호', { exact: true })).not.toBeInTheDocument()
+	})
+})
+
+describe('비밀번호 재설정', () => {
+	it('가입 여부를 단정하지 않고 인증 후 재설정 요청과 로그인 복귀를 처리한다', async () => {
+		const requests = vi.fn()
+		server.use(
+			http.post('*/api/v1/auth/email/send-code', async ({ request }) => {
+				requests('send', await request.json())
+				return success()
+			}),
+			http.post('*/api/v1/auth/email/verify-code', async ({ request }) => {
+				requests('verify', await request.json())
+				return success()
+			}),
+			http.post('*/api/v1/auth/password/reset', async ({ request }) => {
+				requests('reset', await request.json(), request.headers.get('Authorization'))
+				return success()
+			})
+		)
+		renderAppRoute('/auth', { auth: null })
+		fireEvent.click(screen.getByRole('button', { name: '비밀번호 찾기' }))
+		await enterEmail()
+		expect(screen.getByRole('status')).toHaveTextContent('메일이 오지 않으면 이메일 주소를 확인해주세요.')
+		fireEvent.change(screen.getByLabelText('인증코드'), { target: { value: '048291' } })
+		fireEvent.click(screen.getByRole('button', { name: '인증코드 확인' }))
+		await screen.findByLabelText('새 비밀번호')
+		fireEvent.change(screen.getByLabelText('새 비밀번호'), { target: { value: 'NewPassw0rd!' } })
+		fireEvent.change(screen.getByLabelText('비밀번호 확인'), { target: { value: 'NewPassw0rd!' } })
+		fireEvent.click(screen.getByRole('button', { name: '비밀번호 재설정' }))
+		await screen.findByRole('button', { name: '로그인' })
+		expect(requests.mock.calls).toEqual([
+			['send', { email: 'user@example.com', purpose: 'PASSWORD_RESET' }],
+			['verify', { email: 'user@example.com', code: '048291', purpose: 'PASSWORD_RESET' }],
+			['reset', { email: 'user@example.com', newPassword: 'NewPassw0rd!' }, null],
+		])
 	})
 })

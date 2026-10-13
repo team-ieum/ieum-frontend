@@ -10,13 +10,13 @@ import { useAuthMode } from '@/stores/useAuthMode'
 
 const ForgotPasswordForm = () => {
 	const verification = useEmailVerification('PASSWORD_RESET')
-	const reset = useValidatedForgotPasswordForm()
+	const reset = useValidatedForgotPasswordForm(verification)
 	const toLogin = useAuthMode(state => state.toLogin)
 	return (
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='비밀번호 찾기'
-			aria-busy={verification.isPending}
+			aria-busy={verification.isPending || reset.isPending}
 			noValidate
 			onSubmit={
 				verification.step === 'email'
@@ -30,7 +30,7 @@ const ForgotPasswordForm = () => {
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
-					disabled={verification.isPending}
+					disabled={verification.isPending || reset.isPending}
 					onChangeEmail={() => {
 						verification.restart()
 						reset.resetForm()
@@ -41,7 +41,7 @@ const ForgotPasswordForm = () => {
 				{verification.step === 'email' && (
 					<TextInput
 						text='email'
-						disabled={verification.isPending}
+						disabled={verification.isPending || reset.isPending}
 						value={verification.email}
 						onChange={verification.changeEmail}
 						error={verification.error}
@@ -50,7 +50,7 @@ const ForgotPasswordForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
-						disabled={verification.isPending}
+						disabled={verification.isPending || reset.isPending}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}
@@ -60,6 +60,7 @@ const ForgotPasswordForm = () => {
 					<>
 						<TextInput
 							text='password'
+							disabled={reset.isPending}
 							hint={PASSWORD_RULE_MESSAGE}
 							label='새 비밀번호'
 							value={reset.values.newPassword}
@@ -69,6 +70,7 @@ const ForgotPasswordForm = () => {
 						/>
 						<TextInput
 							text='passwordConfirm'
+							disabled={reset.isPending}
 							value={reset.values.passwordConfirm}
 							onChange={value => reset.handleChange('passwordConfirm', value)}
 							error={reset.errors.passwordConfirm}
@@ -86,9 +88,18 @@ const ForgotPasswordForm = () => {
 								? '인증코드 확인'
 								: '비밀번호 재설정'
 					}
-					disabled={verification.isPending || verification.step === 'details'}
+					disabled={
+						verification.isPending ||
+						reset.isPending ||
+						(verification.step === 'details' && !verification.verifiedEmail)
+					}
 				/>
 			</div>
+			{reset.formError && verification.step === 'details' && (
+				<p role='alert' className='mt-4 typo-caption1_regular text-danger-700'>
+					{reset.formError}
+				</p>
+			)}
 			{verification.notice && (
 				<p role='status' className='mt-4 typo-caption1_regular text-main-deep-blue'>
 					{verification.notice}
