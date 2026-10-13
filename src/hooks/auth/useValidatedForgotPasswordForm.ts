@@ -4,7 +4,7 @@ import { forgotPasswordSchema, type ForgotPasswordValues } from '@/schemas/auth'
 type ForgotPasswordErrors = Partial<Record<keyof ForgotPasswordValues, string>>
 
 export const useValidatedForgotPasswordForm = () => {
-	const [values, setValues] = useState<ForgotPasswordValues>({ name: '', email: '' })
+	const [values, setValues] = useState<ForgotPasswordValues>({ email: '' })
 	const [errors, setErrors] = useState<ForgotPasswordErrors>({})
 	const [showUnavailableNotice, setShowUnavailableNotice] = useState(false)
 
@@ -21,7 +21,7 @@ export const useValidatedForgotPasswordForm = () => {
 
 		if (!result.success) {
 			const fieldErrors = result.error.flatten().fieldErrors
-			setErrors({ name: fieldErrors.name?.[0], email: fieldErrors.email?.[0] })
+			setErrors({ email: fieldErrors.email?.[0] })
 			return
 		}
 

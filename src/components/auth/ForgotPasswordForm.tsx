@@ -23,18 +23,11 @@ const ForgotPasswordForm = () => {
 					비밀번호 찾기
 				</h1>
 				<p id={descriptionId} className='typo-body2_regular text-balance text-neutral-500'>
-					가입할 때 사용한 이름과 이메일을 입력해주세요.
+					비밀번호를 재설정할 이메일을 입력해주세요.
 				</p>
 			</div>
 
 			<div className='mt-8 space-y-4 sm:mt-12 lg:mt-16'>
-				<TextInput
-					text='name'
-					value={values.name}
-					onChange={value => handleChange('name', value)}
-					error={errors.name}
-					autoComplete='name'
-				/>
 				<TextInput
 					text='email'
 					value={values.email}

@@ -6,7 +6,6 @@ export const loginSchema = z.object({
 })
 
 export const forgotPasswordSchema = z.object({
-	name: z.string().trim().min(1, '이름을 입력해주세요!'),
 	email: z.string().trim().pipe(z.email('이메일 주소를 다시 확인해주세요!')),
 })
 

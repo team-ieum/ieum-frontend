@@ -21,7 +21,6 @@ const openForgotPassword = () => {
 }
 
 const fillValidValues = () => {
-	fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: '홍길동' } })
 	fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: 'ieum@example.com' } })
 }
 
@@ -30,36 +29,31 @@ const submitForgotPassword = () => {
 }
 
 describe('비밀번호 찾기 화면', () => {
-	it('로그인에서 이름과 이메일 폼으로 전환하고 회원가입과 같은 방향으로 패널을 바꾼다', () => {
+	it('로그인에서 이메일 단일 입력 폼으로 전환하고 회원가입과 같은 방향으로 패널을 바꾼다', () => {
 		const form = openForgotPassword()
 		expect(within(form).getByRole('heading', { name: '비밀번호 찾기' })).toBeInTheDocument()
-		expect(within(form).getAllByRole('textbox')).toHaveLength(2)
+		expect(within(form).getAllByRole('textbox')).toHaveLength(1)
 		expect(screen.queryByLabelText('비밀번호', { exact: true })).not.toBeInTheDocument()
 		expect(useAuthMode.getState().swapDirection).toBe(1)
 		expect(form.closest('.lg\\:basis-1\\/2')).toHaveClass('lg:order-1')
 	})
 
-	it('빈 값을 제출하면 두 입력창에 오류를 표시하고 오류 설명을 연결한다', () => {
+	it('빈 값을 제출하면 이메일 입력창에 오류를 표시하고 오류 설명을 연결한다', () => {
 		openForgotPassword()
 		submitForgotPassword()
 
-		const name = screen.getByLabelText('이름', { exact: true })
 		const email = screen.getByLabelText('이메일', { exact: true })
-		expect(name).toHaveAttribute('aria-invalid', 'true')
 		expect(email).toHaveAttribute('aria-invalid', 'true')
-		expect(name).toHaveAccessibleDescription('이름을 입력해주세요!')
 		expect(email).toHaveAccessibleDescription('이메일 주소를 다시 확인해주세요!')
-		expect(screen.getAllByRole('alert')).toHaveLength(2)
+		expect(screen.getAllByRole('alert')).toHaveLength(1)
 		expect(screen.queryByRole('status')).not.toBeInTheDocument()
 	})
 
-	it('공백으로만 된 이름과 잘못된 이메일을 거부한다', () => {
+	it('잘못된 이메일을 거부한다', () => {
 		openForgotPassword()
-		fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: '   ' } })
 		fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: 'invalid-email' } })
 		submitForgotPassword()
 
-		expect(screen.getByText('이름을 입력해주세요!')).toBeInTheDocument()
 		expect(screen.getByText('이메일 주소를 다시 확인해주세요!')).toBeInTheDocument()
 		expect(screen.queryByRole('status')).not.toBeInTheDocument()
 	})
@@ -67,12 +61,10 @@ describe('비밀번호 찾기 화면', () => {
 	it('오류가 있는 입력을 수정하면 해당 필드의 오류만 해제한다', () => {
 		openForgotPassword()
 		submitForgotPassword()
-		fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: '홍길동' } })
 
-		expect(screen.getByLabelText('이름', { exact: true })).toHaveAttribute('aria-invalid', 'false')
-		expect(screen.getByLabelText('이름', { exact: true })).not.toHaveAttribute('aria-describedby')
-		expect(screen.queryByText('이름을 입력해주세요!')).not.toBeInTheDocument()
-		expect(screen.getByText('이메일 주소를 다시 확인해주세요!')).toBeInTheDocument()
+		fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: 'ieum@example.com' } })
+		expect(screen.getByLabelText('이메일', { exact: true })).toHaveAttribute('aria-invalid', 'false')
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 	})
 
 	it('유효한 폼 제출은 앞뒤 공백을 정리하고 네트워크 요청 없이 준비 중 안내를 표시한다', () => {
@@ -80,11 +72,9 @@ describe('비밀번호 찾기 화면', () => {
 		server.events.on('request:start', observeRequest)
 		try {
 			const form = openForgotPassword()
-			fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: ' 홍길동 ' } })
 			fireEvent.change(screen.getByLabelText('이메일', { exact: true }), { target: { value: ' ieum@example.com ' } })
 			fireEvent.submit(form)
 
-			expect(screen.getByLabelText('이름', { exact: true })).toHaveValue('홍길동')
 			expect(screen.getByLabelText('이메일', { exact: true })).toHaveValue('ieum@example.com')
 			expect(screen.getByRole('status')).toHaveTextContent(
 				'비밀번호 재설정 이메일 발송 기능을 준비 중입니다. 아직 이메일이 발송되지 않습니다.'
@@ -116,7 +106,6 @@ describe('비밀번호 찾기 화면', () => {
 
 	it('입력 검증 없이 로그인으로 복귀하고 다시 열면 이전 값과 오류를 초기화한다', () => {
 		openForgotPassword()
-		fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: '홍길동' } })
 		submitForgotPassword()
 		fireEvent.click(screen.getByRole('button', { name: '로그인으로 돌아가기' }))
 
@@ -126,7 +115,6 @@ describe('비밀번호 찾기 화면', () => {
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 
 		fireEvent.click(screen.getByRole('button', { name: '비밀번호 찾기' }))
-		expect(screen.getByLabelText('이름', { exact: true })).toHaveValue('')
 		expect(screen.getByLabelText('이메일', { exact: true })).toHaveValue('')
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 		expect(screen.queryByRole('status')).not.toBeInTheDocument()
