@@ -25,6 +25,7 @@ export const paginationDemoWorkflows: WorkflowDto[] = Array.from({ length: PAGIN
 		triggerType,
 		cronExpression: triggerType === 'SCHEDULE' ? `0 ${index % 60} 9 * * ?` : null,
 		version: 1,
+		services: [serviceBrand.toUpperCase()],
 		nodes: [
 			{
 				id: triggerNodeId,

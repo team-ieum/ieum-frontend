@@ -5,6 +5,8 @@ import type {
 	CreateWorkflowRequest,
 	CreateWorkflowResponse,
 	ExecuteWorkflowRequest,
+	UpdateWorkflowRequest,
+	UpdateWorkflowResponse,
 	WorkflowExecutionDto,
 } from '@/types/workflow'
 import type {
@@ -21,6 +23,11 @@ export const getWorkflows = async (params: { cursor?: string; size?: number }): 
 
 export const getWorkflow = async (id: string): Promise<ApiResponse<WorkflowDto>> => {
 	const response = await api.get(`/api/v1/workflows/${id}`)
+	return response.data
+}
+
+export const updateWorkflow = async (id: string, body: UpdateWorkflowRequest): Promise<UpdateWorkflowResponse> => {
+	const response = await api.put(`/api/v1/workflows/${id}`, body)
 	return response.data
 }
 
