@@ -12,7 +12,10 @@ const { resetPasswordMock } = vi.hoisted(() => ({
 	resetPasswordMock: vi.fn<(body: ResetPasswordRequest) => Promise<AuthActionResponse>>(),
 }))
 vi.mock('@/api/auth', () => ({ resetPassword: resetPasswordMock }))
-afterEach(() => resetPasswordMock.mockReset())
+afterEach(() => {
+	resetPasswordMock.mockReset()
+	useAuthStore.getState().clearAuth()
+})
 const body = { email: 'user@example.com', newPassword: 'NewPassw0rd!' }
 const success = { success: true, code: 'OK', message: 'ok' }
 const renderMutation = () => {
