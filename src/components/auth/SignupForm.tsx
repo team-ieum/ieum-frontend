@@ -16,6 +16,7 @@ const SignupForm = () => {
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='회원가입'
+			aria-busy={verification.isPending}
 			noValidate
 			onSubmit={
 				verification.step === 'email'
@@ -29,6 +30,7 @@ const SignupForm = () => {
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
+					disabled={verification.isPending}
 					onChangeEmail={() => {
 						verification.restart()
 						resetForm()
@@ -39,6 +41,7 @@ const SignupForm = () => {
 				{verification.step === 'email' && (
 					<TextInput
 						text='email'
+						disabled={verification.isPending}
 						value={verification.email}
 						onChange={verification.changeEmail}
 						error={verification.error}
@@ -47,6 +50,7 @@ const SignupForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
+						disabled={verification.isPending}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}
@@ -88,7 +92,7 @@ const SignupForm = () => {
 								? '인증코드 확인'
 								: '회원가입'
 					}
-					disabled={verification.step === 'details' && !verification.verifiedEmail}
+					disabled={verification.isPending || (verification.step === 'details' && !verification.verifiedEmail)}
 				/>
 			</div>
 			{verification.notice && (

@@ -16,6 +16,7 @@ const ForgotPasswordForm = () => {
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='비밀번호 찾기'
+			aria-busy={verification.isPending}
 			noValidate
 			onSubmit={
 				verification.step === 'email'
@@ -29,6 +30,7 @@ const ForgotPasswordForm = () => {
 			{verification.step !== 'email' && (
 				<VerificationNavigation
 					email={verification.email}
+					disabled={verification.isPending}
 					onChangeEmail={() => {
 						verification.restart()
 						reset.resetForm()
@@ -39,6 +41,7 @@ const ForgotPasswordForm = () => {
 				{verification.step === 'email' && (
 					<TextInput
 						text='email'
+						disabled={verification.isPending}
 						value={verification.email}
 						onChange={verification.changeEmail}
 						error={verification.error}
@@ -47,6 +50,7 @@ const ForgotPasswordForm = () => {
 				)}
 				{verification.step === 'code' && (
 					<VerificationCodeInput
+						disabled={verification.isPending}
 						value={verification.code}
 						onChange={verification.changeCode}
 						error={verification.error}
@@ -82,7 +86,7 @@ const ForgotPasswordForm = () => {
 								? '인증코드 확인'
 								: '비밀번호 재설정'
 					}
-					disabled={verification.step === 'details'}
+					disabled={verification.isPending || verification.step === 'details'}
 				/>
 			</div>
 			{verification.notice && (
