@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: frontend_dev_server
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: ${{ secrets.NODE_VERSION }}
@@ -104,22 +104,11 @@ jobs:
             -t "$IMAGE_NAME:${{ github.sha }}" \
             -t "$IMAGE_NAME:latest" .
 
-      - name: Restart frontend container
+      - name: Deploy through shared blue-green controller
+        env:
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 \
-            || docker network create --subnet 10.10.10.0/24 "$DOCKER_NETWORK"
-
-          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-
-          docker run -d \
-            --name "$CONTAINER_NAME" \
-            --restart unless-stopped \
-            --network "$DOCKER_NETWORK" \
-            --ip "$FRONTEND_IP" \
-            --env-file "$ENV_FILE" \
-            "$IMAGE_NAME:latest"
-
-      - name: Health check
-        run: |
-          sleep 3
-          curl -fsS "http://$FRONTEND_IP/" >/dev/null
+          set -euo pipefail
+          python3 /home/kwung/deploy/bluegreen/bluegreen.py deploy \
+            --service frontend \
+            --image "$IMAGE_NAME:$IMAGE_TAG"
