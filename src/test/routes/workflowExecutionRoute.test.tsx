@@ -147,11 +147,21 @@ describe('실제 workflow route의 백그라운드 실행 추적', () => {
 		expect(requestedWorkflows).toEqual([WORKFLOW_FIXTURE_ID])
 	})
 
-	it('추적 중단 후 새 실행 확인을 취소하면 요청하지 않고 확인하면 한 번 요청한다', async () => {
+	it('GET 재연결 상한 뒤 새 실행 확인을 취소하면 요청하지 않고 확인하면 한 번 요청한다', async () => {
 		renderExecutionRoute()
 		await screen.findByDisplayValue(workflowFixture.name)
 		await startExecution()
-		act(() => subscriptions[0].onError?.(new Error('connection lost')))
+		vi.useFakeTimers()
+		try {
+			for (let retry = 0; retry < 7; retry++) {
+				act(() => subscriptions.at(-1)!.onError?.(new Error('connection lost')))
+				await act(async () => vi.advanceTimersByTimeAsync(30000))
+			}
+		} finally {
+			vi.useRealTimers()
+		}
+		expect(requestedWorkflows).toHaveLength(1)
+		expect(subscriptions).toHaveLength(7)
 		expect(screen.queryByText('실행 상태 추적이 중단됐어요. 이전 실행은 서버에서 계속될 수 있어요.')).not.toBeInTheDocument()
 
 		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
@@ -164,9 +174,9 @@ describe('실제 workflow route의 백그라운드 실행 추적', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Deploy' }))
 		fireEvent.click(screen.getByRole('button', { name: '새로 실행' }))
 		await screen.findByRole('button', { name: '실행 중…' })
-		await waitFor(() => expect(subscriptions).toHaveLength(2))
+		await waitFor(() => expect(subscriptions).toHaveLength(8))
 		expect(requestedWorkflows).toEqual([WORKFLOW_FIXTURE_ID, WORKFLOW_FIXTURE_ID])
 		expect(subscriptions[0].signal?.aborted).toBe(true)
-		expect(subscriptions[1].signal?.aborted).toBe(false)
+		expect(subscriptions[7].signal?.aborted).toBe(false)
 	})
 })

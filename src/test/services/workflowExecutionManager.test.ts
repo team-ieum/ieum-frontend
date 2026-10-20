@@ -28,6 +28,7 @@ const emit = (index: number, event: Record<string, unknown>) => {
 
 describe('workflowExecutionManager', () => {
 	beforeEach(() => {
+		vi.useFakeTimers()
 		mocks.execute.mockReset()
 		mocks.subscribe.mockReset()
 		subscriptions.length = 0
@@ -42,6 +43,7 @@ describe('workflowExecutionManager', () => {
 
 	afterEach(() => {
 		disposeExecutionTracking()
+		vi.useRealTimers()
 		vi.unstubAllEnvs()
 	})
 
@@ -138,7 +140,7 @@ describe('workflowExecutionManager', () => {
 		expect(mocks.execute).toHaveBeenCalledTimes(1)
 	})
 
-	it('종료 이벤트 없는 EOF와 오류를 추적 중단으로 표시하고 마지막 노드 상태를 유지한다', async () => {
+	it('종료 이벤트 없는 EOF와 오류는 같은 실행을 재구독하고 연속 실패 한도 뒤 마지막 상태를 유지한다', async () => {
 		mocks.execute
 			.mockResolvedValueOnce(responseFor('workflow-a', 'execution-a'))
 			.mockResolvedValueOnce(responseFor('workflow-b', 'execution-b'))
@@ -156,10 +158,23 @@ describe('workflowExecutionManager', () => {
 			subscriptions[0].onDone?.()
 			subscriptions[1].onError?.(new Error('network disconnected'))
 		})
+		expect(stateOf('workflow-a')?.phase).toBe('running')
+		expect(stateOf('workflow-b')?.phase).toBe('running')
+		for (let retry = 0; retry < 6; retry++) {
+			await act(async () => vi.advanceTimersByTimeAsync(30000))
+			const latestA = subscriptions.filter(item => item.url.includes('/workflow-a/')).at(-1)!
+			const latestB = subscriptions.filter(item => item.url.includes('/workflow-b/')).at(-1)!
+			act(() => {
+				latestA.onDone?.()
+				latestB.onError?.(new Error('network disconnected'))
+			})
+		}
 		expect(stateOf('workflow-a')?.phase).toBe('interrupted')
 		expect(stateOf('workflow-a')?.nodeStatus['node-a']).toBe('success')
 		expect(stateOf('workflow-b')?.phase).toBe('interrupted')
 		expect(stateOf('workflow-b')?.nodeStatus['node-b']).toBe('failed')
+		expect(mocks.execute).toHaveBeenCalledTimes(2)
+		expect(subscriptions.filter(item => item.url.includes('/execution-a/'))).toHaveLength(7)
 	})
 
 	it('추적 중단 뒤 재실행하면 이전 구독의 지연 이벤트를 무시한다', async () => {
@@ -168,7 +183,7 @@ describe('workflowExecutionManager', () => {
 			.mockResolvedValueOnce(responseFor('workflow-a', 'execution-new'))
 		await executeWorkflowTracked('workflow-a')
 		emit(0, { type: 'NODE_FAILED', workflowId: 'workflow-a', executionId: 'execution-old', nodeId: 'node-a' })
-		act(() => subscriptions[0].onDone?.())
+		act(() => subscriptions[0].onError?.(Object.assign(new Error('Forbidden'), { status: 403 })))
 		await executeWorkflowTracked('workflow-a')
 		expect(stateOf('workflow-a')?.executionId).toBe('execution-new')
 		expect(stateOf('workflow-a')?.nodeStatus).toEqual({})
@@ -290,5 +305,95 @@ describe('workflowExecutionManager', () => {
 		expect(stateOf('workflow-a')?.phase).toBe('requestFailed')
 		await executeWorkflowTracked('workflow-a')
 		expect(stateOf('workflow-a')?.phase).toBe('running')
+	})
+
+	it('재접속은 새 POST 없이 같은 실행 GET과 최신 토큰을 사용하고 중복 종료 콜백을 무시한다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		const first = subscriptions[0]
+		emit(0, {
+			type: 'NODE_COMPLETED',
+			status: 'SUCCESS',
+			workflowId: 'workflow-a',
+			executionId: 'execution-a',
+			nodeId: 'node-a',
+		})
+		act(() => {
+			first.onDone?.()
+			first.onError?.(new Error('duplicate close'))
+		})
+		useAuthStore.getState().setAuth('new-access-token', 'new-refresh-token')
+		await act(async () => vi.advanceTimersByTimeAsync(1000))
+		expect(subscriptions).toHaveLength(2)
+		expect(subscriptions[1].url).toBe(first.url)
+		expect(subscriptions[1].token).toBe('new-access-token')
+		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a')
+		expect(stateOf('workflow-a')?.executionId).toBe('execution-a')
+		emit(0, { type: 'EXECUTION_COMPLETED', workflowId: 'workflow-a', executionId: 'execution-a', executionStatus: 'FAILED' })
+		expect(stateOf('workflow-a')?.phase).toBe('running')
+		emit(1, {
+			type: 'NODE_COMPLETED',
+			status: 'SUCCESS',
+			workflowId: 'workflow-a',
+			executionId: 'execution-a',
+			nodeId: 'node-a',
+		})
+		emit(1, { type: 'NODE_STARTED', workflowId: 'workflow-a', executionId: 'execution-a', nodeId: 'node-a' })
+		expect(stateOf('workflow-a')?.nodeStatus['node-a']).toBe('success')
+		emit(1, { type: 'EXECUTION_COMPLETED', workflowId: 'workflow-a', executionId: 'execution-a', executionStatus: 'SUCCESS' })
+		act(() => subscriptions[1].onDone?.())
+		await act(async () => vi.advanceTimersByTimeAsync(60000))
+		expect(stateOf('workflow-a')?.phase).toBe('success')
+		expect(subscriptions).toHaveLength(2)
+	})
+
+	it.each([401, 403])('인증·권한 오류 %s는 GET 재시도 없이 추적을 종료한다', async status => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.(Object.assign(new Error('unauthorized'), { status })))
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(stateOf('workflow-a')?.phase).toBe('interrupted')
+		expect(subscriptions).toHaveLength(1)
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+	})
+
+	it('로그아웃은 예약한 재접속도 취소한다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onDone?.())
+		act(() => useAuthStore.getState().clearAuth())
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(subscriptions).toHaveLength(1)
+		expect(useExecutionStore.getState().executions).toEqual({})
+	})
+
+	it('정리 후 새 실행에는 이전 재접속 타이머와 이벤트가 영향을 주지 않는다', async () => {
+		mocks.execute
+			.mockResolvedValueOnce(responseFor('workflow-a', 'old'))
+			.mockResolvedValueOnce(responseFor('workflow-a', 'new'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onDone?.())
+		disposeExecutionTracking()
+		await executeWorkflowTracked('workflow-a')
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		emit(0, { type: 'EXECUTION_COMPLETED', workflowId: 'workflow-a', executionId: 'old', executionStatus: 'FAILED' })
+		expect(subscriptions).toHaveLength(2)
+		expect(stateOf('workflow-a')?.executionId).toBe('new')
+		expect(stateOf('workflow-a')?.phase).toBe('running')
+	})
+
+	it('정상 장기 스트림의 주기적 종료는 실패 예산을 소진하지 않는다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		for (let rotation = 0; rotation < 8; rotation++) {
+			const current = subscriptions.at(-1)!
+			act(() => current.onOpen?.())
+			await act(async () => vi.advanceTimersByTimeAsync(600000))
+			act(() => current.onDone?.())
+			await act(async () => vi.advanceTimersByTimeAsync(1000))
+		}
+		expect(stateOf('workflow-a')?.phase).toBe('running')
+		expect(subscriptions).toHaveLength(9)
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
 	})
 })

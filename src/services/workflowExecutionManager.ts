@@ -10,10 +10,15 @@ type Session = {
 	executionId: string | null
 	controller: AbortController | null
 	seen: Set<string>
+	connection: number
+	retryAttempt: number
+	retryTimer: ReturnType<typeof setTimeout> | null
 }
 
 const sessions = new Map<string, Session>()
 let nextRequestId = 0
+const reconnectDelays = [1000, 2000, 4000, 8000, 16000, 30000] as const
+const stableConnectionMs = 30000
 
 const eventTypes: ReadonlySet<ExecutionEventType> = new Set([
 	'NODE_STARTED',
@@ -58,8 +63,72 @@ const closeSession = (
 ) => {
 	if (!isCurrent(workflowId, session)) return
 	sessions.delete(workflowId)
+	if (session.retryTimer !== null) clearTimeout(session.retryTimer)
+	session.retryTimer = null
+	session.connection++
 	useExecutionStore.getState().finish(workflowId, session.requestId, phase, errorMessage)
 	session.controller?.abort()
+}
+
+/** Retry only the tracking GET. The execution POST must never be repeated by reconnect logic. */
+const connectSession = (workflowId: string, session: Session, baseUrl: string) => {
+	if (!isCurrent(workflowId, session) || !session.executionId) return
+	const token = useAuthStore.getState().accessToken
+	if (!token) {
+		closeSession(workflowId, session, 'interrupted', '로그인이 필요해요.')
+		return
+	}
+	const connection = ++session.connection
+	const controller = new AbortController()
+	session.controller = controller
+	let openedAt: number | null = null
+	let settled = false
+	const currentConnection = () => isCurrent(workflowId, session) && session.connection === connection
+	const disconnected = (error?: unknown) => {
+		if (!currentConnection() || settled || controller.signal.aborted) return
+		settled = true
+		controller.abort()
+		const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined
+		if (status === 401 || status === 403) {
+			closeSession(workflowId, session, 'interrupted', '실행 추적 권한을 확인할 수 없어요. 다시 로그인해 주세요.')
+			return
+		}
+		// Long-lived, successful streams rotate at the server timeout without exhausting retries.
+		// Immediate EOFs/replayed snapshots do not reset the consecutive failure budget.
+		if (openedAt !== null && Date.now() - openedAt >= stableConnectionMs) session.retryAttempt = 0
+		const delay = reconnectDelays[session.retryAttempt]
+		if (delay === undefined) {
+			closeSession(
+				workflowId,
+				session,
+				'interrupted',
+				'실행 추적에 다시 연결하지 못했어요. 이전 실행은 서버에서 계속될 수 있어요.'
+			)
+			return
+		}
+		session.retryAttempt++
+		session.retryTimer = setTimeout(() => {
+			session.retryTimer = null
+			if (currentConnection()) connectSession(workflowId, session, baseUrl)
+		}, delay)
+	}
+	try {
+		void subscribeSSE({
+			url: `${baseUrl}/api/v1/workflows/${workflowId}/executions/${session.executionId}/events`,
+			token,
+			signal: controller.signal,
+			onOpen: () => {
+				if (currentConnection() && !settled) openedAt = Date.now()
+			},
+			onEvent: raw => {
+				if (currentConnection() && !settled && !controller.signal.aborted) handleEvent(workflowId, session, raw)
+			},
+			onDone: () => disconnected(),
+			onError: disconnected,
+		}).catch(disconnected)
+	} catch (error) {
+		disconnected(error)
+	}
 }
 
 const handleEvent = (workflowId: string, session: Session, raw: string) => {
@@ -98,7 +167,15 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 	if (!workflowId || sessions.has(workflowId)) return undefined
 	if (useExecutionStore.getState().executions[workflowId]?.phase === 'waitingApproval') return undefined
 
-	const session: Session = { requestId: ++nextRequestId, executionId: null, controller: null, seen: new Set() }
+	const session: Session = {
+		requestId: ++nextRequestId,
+		executionId: null,
+		controller: null,
+		seen: new Set(),
+		connection: 0,
+		retryAttempt: 0,
+		retryTimer: null,
+	}
 	sessions.set(workflowId, session)
 	useExecutionStore.getState().begin(workflowId, session.requestId)
 
@@ -113,20 +190,10 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 		if (typeof executionId !== 'string' || !executionId.trim()) throw new Error('실행 ID를 받지 못했어요.')
 
 		// POST가 인증 갱신을 거쳤을 수 있으므로 SSE에는 현재 토큰을 사용한다.
-		const token = useAuthStore.getState().accessToken
-		if (!token) throw new Error('로그인이 필요해요.')
+		if (!useAuthStore.getState().accessToken) throw new Error('로그인이 필요해요.')
 		session.executionId = executionId
-		session.controller = new AbortController()
 		useExecutionStore.getState().attach(workflowId, session.requestId, executionId)
-
-		void subscribeSSE({
-			url: `${baseUrl}/api/v1/workflows/${workflowId}/executions/${executionId}/events`,
-			token,
-			signal: session.controller.signal,
-			onEvent: raw => handleEvent(workflowId, session, raw),
-			onDone: () => closeSession(workflowId, session, 'interrupted', '실행 추적이 종료되어 결과를 확인할 수 없어요.'),
-			onError: () => closeSession(workflowId, session, 'interrupted', '실행 추적 연결이 끊겼어요.'),
-		})
+		connectSession(workflowId, session, baseUrl)
 
 		return executionId
 	} catch (error) {
@@ -140,7 +207,10 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 export const disposeExecutionTracking = () => {
 	const activeSessions = [...sessions.values()]
 	sessions.clear()
-	for (const session of activeSessions) session.controller?.abort()
+	for (const session of activeSessions) {
+		if (session.retryTimer !== null) clearTimeout(session.retryTimer)
+		session.controller?.abort()
+	}
 	useExecutionStore.getState().resetAll()
 }
 
