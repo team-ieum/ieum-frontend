@@ -2,10 +2,12 @@ import axios, { isAxiosError } from 'axios'
 import { ApiError } from '@/utils/ApiError'
 import type { ApiErrorResponse } from '@/types/api'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { refreshAccessToken } from '@/services/authRefresh'
 
 declare module 'axios' {
 	interface InternalAxiosRequestConfig {
 		_retry?: boolean
+		_authRetryToken?: string
 	}
 }
 
@@ -15,22 +17,14 @@ export const api = axios.create({
 
 api.interceptors.request.use(config => {
 	const { accessToken } = useAuthStore.getState()
+	if (config._authRetryToken && config._authRetryToken !== accessToken) {
+		return Promise.reject(new DOMException('인증 상태가 변경되어 재요청을 취소했어요.', 'AbortError'))
+	}
 	if (accessToken) {
 		config.headers['Authorization'] = `Bearer ${accessToken}`
 	}
 	return config
 })
-
-let isRefreshing = false
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (err: unknown) => void }> = []
-
-const processQueue = (error: unknown, token: string | null = null) => {
-	failedQueue.forEach(({ resolve, reject }) => {
-		if (error) reject(error)
-		else resolve(token!)
-	})
-	failedQueue = []
-}
 
 const isFailedApiResponse = (data: unknown): data is ApiErrorResponse =>
 	typeof data === 'object' && data !== null && (data as { success?: unknown }).success === false
@@ -52,43 +46,23 @@ api.interceptors.response.use(
 		const originalRequest = error.config!
 
 		if (code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
-			if (isRefreshing) {
-				return new Promise<string>((resolve, reject) => {
-					failedQueue.push({ resolve, reject })
-				}).then(token => {
-					originalRequest.headers['Authorization'] = `Bearer ${token}`
-					return api(originalRequest)
-				})
-			}
-
 			originalRequest._retry = true
-			isRefreshing = true
-
-			const { refreshToken, setAuth, clearAuth } = useAuthStore.getState()
-
-			if (!refreshToken) {
-				const apiError = new ApiError(code, message)
-				processQueue(apiError)
-				isRefreshing = false
-				clearAuth()
-				window.location.href = '/auth'
-				return Promise.reject(apiError)
-			}
-
+			const failedToken = originalRequest.headers['Authorization']?.toString().replace(/^Bearer /, '') ?? ''
 			try {
-				const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/refresh`, { refreshToken })
-				const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data
-				setAuth(newAccessToken, newRefreshToken)
-				processQueue(null, newAccessToken)
-				originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
+				const token = await refreshAccessToken(failedToken, originalRequest.signal as AbortSignal | undefined)
+				originalRequest._authRetryToken = token
+				originalRequest.headers['Authorization'] = `Bearer ${token}`
 				return api(originalRequest)
 			} catch (refreshError) {
-				processQueue(refreshError)
-				clearAuth()
-				window.location.href = '/auth'
+				// A late failure must not log out a different/newly logged-in session.
+				if (
+					!(refreshError instanceof Error && refreshError.name === 'AbortError') &&
+					useAuthStore.getState().accessToken === failedToken
+				) {
+					useAuthStore.getState().clearAuth()
+					window.location.href = '/auth'
+				}
 				return Promise.reject(refreshError)
-			} finally {
-				isRefreshing = false
 			}
 		}
 

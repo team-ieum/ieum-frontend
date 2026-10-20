@@ -1,7 +1,9 @@
 import { act } from '@testing-library/react'
+import axios, { AxiosHeaders } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { subscribeSSE } from '@/api/sse'
 import { disposeExecutionTracking, executeWorkflowTracked } from '@/services/workflowExecutionManager'
+import { refreshAccessToken } from '@/services/authRefresh'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 
@@ -21,6 +23,13 @@ const deferred = <T>() => {
 	return { promise, resolve, reject }
 }
 const responseFor = (workflowId: string, executionId: string) => ({ data: { id: executionId, workflowId } })
+const tokenResponse = (accessToken = 'refreshed-access', refreshToken = 'refreshed-refresh') => ({
+	data: { success: true, data: { accessToken, refreshToken } },
+	status: 200,
+	statusText: 'OK',
+	headers: {},
+	config: { headers: new AxiosHeaders() },
+})
 const stateOf = (workflowId: string) => useExecutionStore.getState().executions[workflowId]
 const emit = (index: number, event: Record<string, unknown>) => {
 	act(() => subscriptions[index].onEvent(JSON.stringify(event)))
@@ -31,6 +40,7 @@ describe('workflowExecutionManager', () => {
 		vi.useFakeTimers()
 		mocks.execute.mockReset()
 		mocks.subscribe.mockReset()
+		vi.spyOn(axios, 'post').mockRejectedValue(new Error('refresh unavailable'))
 		subscriptions.length = 0
 		mocks.subscribe.mockImplementation((options: Subscription) => {
 			subscriptions.push(options)
@@ -43,6 +53,7 @@ describe('workflowExecutionManager', () => {
 
 	afterEach(() => {
 		disposeExecutionTracking()
+		vi.restoreAllMocks()
 		vi.useRealTimers()
 		vi.unstubAllEnvs()
 	})
@@ -82,7 +93,7 @@ describe('workflowExecutionManager', () => {
 		mocks.execute.mockReturnValue(pending.promise)
 		const firstRun = executeWorkflowTracked('workflow-a')
 		const duplicate = executeWorkflowTracked('workflow-a')
-		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a')
+		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a', undefined, expect.any(AbortSignal))
 		await expect(duplicate).resolves.toBeUndefined()
 		pending.resolve(responseFor('workflow-a', 'execution-a'))
 		await expect(firstRun).resolves.toBe('execution-a')
@@ -93,7 +104,8 @@ describe('workflowExecutionManager', () => {
 		const pending = deferred<ReturnType<typeof responseFor>>()
 		mocks.execute.mockReturnValue(pending.promise)
 		const run = executeWorkflowTracked('workflow-a')
-		useAuthStore.getState().setAuth('refreshed-access-token', 'refreshed-refresh-token')
+		vi.mocked(axios.post).mockResolvedValueOnce(tokenResponse('refreshed-access-token', 'refreshed-refresh-token'))
+		await refreshAccessToken('test-access-token')
 		pending.resolve(responseFor('workflow-a', 'execution-a'))
 		await run
 		expect(subscriptions[0].token).toBe('refreshed-access-token')
@@ -241,6 +253,73 @@ describe('workflowExecutionManager', () => {
 		expect(useExecutionStore.getState().executions).toEqual({})
 	})
 
+	it('활성 SSE 중 직접 계정을 바꾸면 이전 연결과 상태를 지우고 새 계정 실행만 허용한다', async () => {
+		mocks.execute
+			.mockResolvedValueOnce(responseFor('workflow-a', 'execution-a'))
+			.mockResolvedValueOnce(responseFor('workflow-a', 'execution-b'))
+		await executeWorkflowTracked('workflow-a')
+		const old = subscriptions[0]
+		act(() => useAuthStore.getState().setAuth('account-b-access', 'account-b-refresh'))
+		expect(old.signal?.aborted).toBe(true)
+		expect(useExecutionStore.getState().executions).toEqual({})
+		act(() => old.onDone?.())
+		emit(0, { type: 'NODE_FAILED', workflowId: 'workflow-a', executionId: 'execution-a', nodeId: 'old' })
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(subscriptions).toHaveLength(1)
+		expect(useExecutionStore.getState().executions).toEqual({})
+		await executeWorkflowTracked('workflow-a')
+		expect(subscriptions[1].token).toBe('account-b-access')
+		expect(subscriptions[1].url).toContain('/execution-b/events')
+		expect(stateOf('workflow-a')?.executionId).toBe('execution-b')
+	})
+
+	it('재접속 타이머 중 직접 계정을 바꾸면 이전 실행 GET을 새 계정 토큰으로 열지 않는다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onDone?.())
+		act(() => useAuthStore.getState().setAuth('account-b-access', 'account-b-refresh'))
+		expect(useExecutionStore.getState().executions).toEqual({})
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(subscriptions).toHaveLength(1)
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+		expect(useExecutionStore.getState().executions).toEqual({})
+	})
+
+	it('POST 대기 중 직접 계정을 바꾸면 요청을 취소하고 늦은 이전 응답을 새 계정에 붙이지 않는다', async () => {
+		const pending = deferred<ReturnType<typeof responseFor>>()
+		mocks.execute.mockReturnValueOnce(pending.promise).mockResolvedValueOnce(responseFor('workflow-a', 'execution-b'))
+		const previousRun = executeWorkflowTracked('workflow-a')
+		const signal = mocks.execute.mock.calls[0][2] as AbortSignal
+		act(() => useAuthStore.getState().setAuth('account-b-access', 'account-b-refresh'))
+		expect(signal.aborted).toBe(true)
+		expect(useExecutionStore.getState().executions).toEqual({})
+		await executeWorkflowTracked('workflow-a')
+		pending.resolve(responseFor('workflow-a', 'execution-a'))
+		await expect(previousRun).resolves.toBeUndefined()
+		expect(subscriptions).toHaveLength(1)
+		expect(subscriptions[0].token).toBe('account-b-access')
+		expect(stateOf('workflow-a')?.executionId).toBe('execution-b')
+	})
+
+	it('401 갱신 대기 중 직접 계정을 바꾸면 갱신을 취소하고 이전 추적을 되살리지 않는다', async () => {
+		const pending = deferred<ReturnType<typeof tokenResponse>>()
+		vi.mocked(axios.post).mockReturnValue(pending.promise)
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await act(async () => Promise.resolve())
+		const signal = vi.mocked(axios.post).mock.calls[0][2]?.signal as AbortSignal
+		act(() => useAuthStore.getState().setAuth('account-b-access', 'account-b-refresh'))
+		expect(signal.aborted).toBe(true)
+		expect(useExecutionStore.getState().executions).toEqual({})
+		pending.resolve(tokenResponse())
+		await act(async () => Promise.resolve())
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(subscriptions).toHaveLength(1)
+		expect(useExecutionStore.getState().executions).toEqual({})
+		expect(useAuthStore.getState().accessToken).toBe('account-b-access')
+	})
+
 	it('알 수 없는 노드 완료를 무시한 뒤 유효한 SKIPPED 이벤트를 처리한다', async () => {
 		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
 		await executeWorkflowTracked('workflow-a')
@@ -322,12 +401,13 @@ describe('workflowExecutionManager', () => {
 			first.onDone?.()
 			first.onError?.(new Error('duplicate close'))
 		})
-		useAuthStore.getState().setAuth('new-access-token', 'new-refresh-token')
+		vi.mocked(axios.post).mockResolvedValueOnce(tokenResponse('new-access-token', 'new-refresh-token'))
+		await refreshAccessToken('test-access-token')
 		await act(async () => vi.advanceTimersByTimeAsync(1000))
 		expect(subscriptions).toHaveLength(2)
 		expect(subscriptions[1].url).toBe(first.url)
 		expect(subscriptions[1].token).toBe('new-access-token')
-		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a')
+		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a', undefined, expect.any(AbortSignal))
 		expect(stateOf('workflow-a')?.executionId).toBe('execution-a')
 		emit(0, { type: 'EXECUTION_COMPLETED', workflowId: 'workflow-a', executionId: 'execution-a', executionStatus: 'FAILED' })
 		expect(stateOf('workflow-a')?.phase).toBe('running')
@@ -347,7 +427,7 @@ describe('workflowExecutionManager', () => {
 		expect(subscriptions).toHaveLength(2)
 	})
 
-	it.each([401, 403])('인증·권한 오류 %s는 GET 재시도 없이 추적을 종료한다', async status => {
+	it.each([401, 403])('갱신 실패 또는 권한 오류 %s는 추적을 종료한다', async status => {
 		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
 		await executeWorkflowTracked('workflow-a')
 		act(() => subscriptions[0].onError?.(Object.assign(new Error('unauthorized'), { status })))
@@ -355,6 +435,69 @@ describe('workflowExecutionManager', () => {
 		expect(stateOf('workflow-a')?.phase).toBe('interrupted')
 		expect(subscriptions).toHaveLength(1)
 		expect(mocks.execute).toHaveBeenCalledTimes(1)
+		expect(axios.post).toHaveBeenCalledTimes(status === 401 ? 1 : 0)
+	})
+
+	it('401은 한 번 갱신한 뒤 기존 실행 GET만 새 토큰으로 재구독한다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		vi.mocked(axios.post).mockResolvedValueOnce(tokenResponse())
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await act(async () => Promise.resolve())
+		expect(subscriptions).toHaveLength(2)
+		expect(subscriptions[1].url).toBe(subscriptions[0].url)
+		expect(subscriptions[1].token).toBe('refreshed-access')
+		expect(mocks.execute).toHaveBeenCalledExactlyOnceWith('workflow-a', undefined, expect.any(AbortSignal))
+		expect(axios.post).toHaveBeenCalledTimes(1)
+		emit(1, { type: 'EXECUTION_COMPLETED', workflowId: 'workflow-a', executionId: 'execution-a', executionStatus: 'SUCCESS' })
+		expect(stateOf('workflow-a')?.phase).toBe('success')
+	})
+
+	it('갱신 직후 다시 401이면 갱신 루프나 실행 POST 없이 중단한다', async () => {
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		vi.mocked(axios.post).mockResolvedValueOnce(tokenResponse('bad-renewed-access', 'renewed-refresh'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await act(async () => Promise.resolve())
+		act(() => subscriptions[1].onError?.({ status: 401 }))
+		await act(async () => vi.advanceTimersByTimeAsync(120000))
+		expect(stateOf('workflow-a')?.phase).toBe('interrupted')
+		expect(subscriptions).toHaveLength(2)
+		expect(axios.post).toHaveBeenCalledTimes(1)
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+	})
+
+	it('401 갱신 대기 중 로그아웃하면 늦은 결과로 GET을 열지 않는다', async () => {
+		const pending = deferred<ReturnType<typeof tokenResponse>>()
+		vi.mocked(axios.post).mockReturnValue(pending.promise)
+		mocks.execute.mockResolvedValue(responseFor('workflow-a', 'execution-a'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await act(async () => Promise.resolve())
+		const signal = vi.mocked(axios.post).mock.calls[0][2]?.signal as AbortSignal
+		act(() => useAuthStore.getState().clearAuth())
+		expect(signal.aborted).toBe(true)
+		pending.resolve(tokenResponse())
+		await act(async () => Promise.resolve())
+		expect(subscriptions).toHaveLength(1)
+		expect(useExecutionStore.getState().executions).toEqual({})
+	})
+
+	it('갱신 중 추적 정리와 새 실행은 이전 응답을 무시한다', async () => {
+		const pending = deferred<ReturnType<typeof tokenResponse>>()
+		vi.mocked(axios.post).mockReturnValue(pending.promise)
+		mocks.execute
+			.mockResolvedValueOnce(responseFor('workflow-a', 'old'))
+			.mockResolvedValueOnce(responseFor('workflow-a', 'new'))
+		await executeWorkflowTracked('workflow-a')
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await act(async () => Promise.resolve())
+		disposeExecutionTracking()
+		await executeWorkflowTracked('workflow-a')
+		pending.resolve(tokenResponse())
+		await act(async () => Promise.resolve())
+		expect(subscriptions).toHaveLength(2)
+		expect(stateOf('workflow-a')?.executionId).toBe('new')
 	})
 
 	it('로그아웃은 예약한 재접속도 취소한다', async () => {

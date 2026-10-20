@@ -1,5 +1,6 @@
 import { subscribeSSE } from '@/api/sse'
 import { executeWorkflow } from '@/api/workflow'
+import { refreshAccessToken, subscribeAuthSessionChange } from '@/services/authRefresh'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import type { WorkflowExecutionPhase } from '@/stores/useExecutionStore'
@@ -8,11 +9,14 @@ import type { ExecutionEvent, ExecutionEventType } from '@/types/workflowExecuti
 type Session = {
 	requestId: number
 	executionId: string | null
+	requestController: AbortController
 	controller: AbortController | null
 	seen: Set<string>
 	connection: number
 	retryAttempt: number
 	retryTimer: ReturnType<typeof setTimeout> | null
+	refreshController: AbortController | null
+	authRefreshAttempted: boolean
 }
 
 const sessions = new Map<string, Session>()
@@ -66,7 +70,10 @@ const closeSession = (
 	if (session.retryTimer !== null) clearTimeout(session.retryTimer)
 	session.retryTimer = null
 	session.connection++
+	session.refreshController?.abort()
+	session.refreshController = null
 	useExecutionStore.getState().finish(workflowId, session.requestId, phase, errorMessage)
+	session.requestController.abort()
 	session.controller?.abort()
 }
 
@@ -89,13 +96,42 @@ const connectSession = (workflowId: string, session: Session, baseUrl: string) =
 		settled = true
 		controller.abort()
 		const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined
-		if (status === 401 || status === 403) {
+		if (status === 403) {
 			closeSession(workflowId, session, 'interrupted', '실행 추적 권한을 확인할 수 없어요. 다시 로그인해 주세요.')
+			return
+		}
+		if (status === 401) {
+			if (session.authRefreshAttempted) {
+				closeSession(
+					workflowId,
+					session,
+					'interrupted',
+					'인증 갱신 후에도 실행을 추적하지 못했어요. 다시 로그인해 주세요.'
+				)
+				return
+			}
+			session.authRefreshAttempted = true
+			const refresh = new AbortController()
+			session.refreshController = refresh
+			void refreshAccessToken(token, refresh.signal).then(
+				() => {
+					if (!currentConnection() || refresh.signal.aborted) return
+					session.refreshController = null
+					connectSession(workflowId, session, baseUrl)
+				},
+				() => {
+					if (!currentConnection() || refresh.signal.aborted) return
+					closeSession(workflowId, session, 'interrupted', '인증을 갱신하지 못했어요. 다시 로그인해 주세요.')
+				}
+			)
 			return
 		}
 		// Long-lived, successful streams rotate at the server timeout without exhausting retries.
 		// Immediate EOFs/replayed snapshots do not reset the consecutive failure budget.
-		if (openedAt !== null && Date.now() - openedAt >= stableConnectionMs) session.retryAttempt = 0
+		if (openedAt !== null && Date.now() - openedAt >= stableConnectionMs) {
+			session.retryAttempt = 0
+			session.authRefreshAttempted = false
+		}
 		const delay = reconnectDelays[session.retryAttempt]
 		if (delay === undefined) {
 			closeSession(
@@ -170,11 +206,14 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 	const session: Session = {
 		requestId: ++nextRequestId,
 		executionId: null,
+		requestController: new AbortController(),
 		controller: null,
 		seen: new Set(),
 		connection: 0,
 		retryAttempt: 0,
 		retryTimer: null,
+		refreshController: null,
+		authRefreshAttempted: false,
 	}
 	sessions.set(workflowId, session)
 	useExecutionStore.getState().begin(workflowId, session.requestId)
@@ -184,7 +223,7 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 		const baseUrl = getApiBaseUrl()
 		if (!baseUrl) throw new Error('API 주소가 설정되지 않았어요.')
 
-		const response = await executeWorkflow(workflowId)
+		const response = await executeWorkflow(workflowId, undefined, session.requestController.signal)
 		if (!isCurrent(workflowId, session)) return undefined
 		const executionId = response.data.id
 		if (typeof executionId !== 'string' || !executionId.trim()) throw new Error('실행 ID를 받지 못했어요.')
@@ -203,17 +242,17 @@ export const executeWorkflowTracked = async (workflowId: string): Promise<string
 	}
 }
 
-/** 로그아웃이나 앱 종료 시 모든 구독을 닫고 탭의 실행 상태를 비운다. */
+/** 계정 전환, 로그아웃이나 앱 종료 시 대기 요청과 구독을 닫고 탭의 실행 상태를 비운다. */
 export const disposeExecutionTracking = () => {
 	const activeSessions = [...sessions.values()]
 	sessions.clear()
 	for (const session of activeSessions) {
 		if (session.retryTimer !== null) clearTimeout(session.retryTimer)
+		session.refreshController?.abort()
+		session.requestController.abort()
 		session.controller?.abort()
 	}
 	useExecutionStore.getState().resetAll()
 }
 
-useAuthStore.subscribe((state, previous) => {
-	if (previous.accessToken && !state.accessToken) disposeExecutionTracking()
-})
+subscribeAuthSessionChange(disposeExecutionTracking)
