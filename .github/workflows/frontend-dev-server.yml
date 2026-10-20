@@ -15,11 +15,6 @@ concurrency:
 env:
   NODE_VERSION: ${{ secrets.NODE_VERSION }}
   IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
-  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
-  DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
-  FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
-  ENV_DIR: ${{ secrets.FRONTEND_ENV_DIR }}
-  ENV_FILE: ${{ secrets.FRONTEND_ENV_FILE }}
 
 jobs:
   deploy:
@@ -69,6 +64,13 @@ jobs:
               try_files $uri $uri/ /index.html;
             }
 
+            # Every Vite asset must return 404 when absent so the host archive fallback runs.
+            location ^~ /assets/ {
+              expires 30d;
+              add_header Cache-Control "public, immutable";
+              try_files $uri =404;
+            }
+
             location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
               expires 30d;
               add_header Cache-Control "public, immutable";
@@ -86,17 +88,6 @@ jobs:
           EXPOSE 80
           EOF
 
-      - name: Sync frontend env file to server
-        run: |
-          mkdir -p "$ENV_DIR"
-
-          tee "$ENV_FILE" > /dev/null <<EOF
-          VITE_API_URL=${{ secrets.VITE_API_URL }}
-          NODE_ENV=production
-          EOF
-
-          chmod 600 "$ENV_FILE"
-
       - name: Build Docker image
         run: |
           docker build \
@@ -104,11 +95,45 @@ jobs:
             -t "$IMAGE_NAME:${{ github.sha }}" \
             -t "$IMAGE_NAME:latest" .
 
-      - name: Deploy through shared blue-green controller
+      - name: Verify installed blue-green release
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          CONTROLLER_SHA: ${{ vars.BLUEGREEN_CONTROLLER_SHA256 }}
+          HELPER_SHA: ${{ vars.BLUEGREEN_HELPER_SHA256 }}
         run: |
           set -euo pipefail
+          if [[ ! "$CONTROLLER_SHA" =~ ^[a-f0-9]{64}$ || ! "$HELPER_SHA" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "::error::Configure the approved BLUEGREEN_CONTROLLER_SHA256 and BLUEGREEN_HELPER_SHA256 variables first"
+            exit 1
+          fi
+          if ! printf '%s  %s\n' \
+            "$CONTROLLER_SHA" /home/kwung/deploy/bluegreen/bluegreen.py \
+            "$HELPER_SHA" /usr/local/sbin/ieum-bluegreen-nginx | sha256sum -c - >/dev/null 2>&1; then
+            echo "::error::Installed blue-green controller/helper does not match the approved release"
+            exit 1
+          fi
+
+      - name: Deploy with a private candidate environment
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          set -euo pipefail
+          umask 077
+          candidate_env="$(mktemp "$RUNNER_TEMP/ieum-frontend-env.XXXXXX")"
+          trap 'rm -f -- "$candidate_env"' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          python3 - "$candidate_env" <<'PY'
+          import os
+          import sys
+          from pathlib import Path
+
+          value = os.environ['VITE_API_URL']
+          if '\n' in value or '\r' in value:
+              raise SystemExit('VITE_API_URL must be a single line')
+          Path(sys.argv[1]).write_text('VITE_API_URL=' + value + '\nNODE_ENV=production\n')
+          PY
           python3 /home/kwung/deploy/bluegreen/bluegreen.py deploy \
             --service frontend \
-            --image "$IMAGE_NAME:$IMAGE_TAG"
+            --image "$IMAGE_NAME:$IMAGE_TAG" \
+            --env-file "$candidate_env"
