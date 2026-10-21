@@ -1,6 +1,6 @@
 import { subscribeSSE } from '@/api/sse'
 import { executeWorkflow } from '@/api/workflow'
-import { refreshAccessToken, subscribeAuthSessionChange } from '@/services/authRefresh'
+import { captureAuthRequestContext, refreshAccessToken, subscribeAuthSessionChange } from '@/services/authRefresh'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import type { WorkflowExecutionPhase } from '@/stores/useExecutionStore'
@@ -80,7 +80,8 @@ const closeSession = (
 /** Retry only the tracking GET. The execution POST must never be repeated by reconnect logic. */
 const connectSession = (workflowId: string, session: Session, baseUrl: string) => {
 	if (!isCurrent(workflowId, session) || !session.executionId) return
-	const token = useAuthStore.getState().accessToken
+	const authContext = captureAuthRequestContext()
+	const token = authContext.accessToken
 	if (!token) {
 		closeSession(workflowId, session, 'interrupted', '로그인이 필요해요.')
 		return
@@ -113,7 +114,7 @@ const connectSession = (workflowId: string, session: Session, baseUrl: string) =
 			session.authRefreshAttempted = true
 			const refresh = new AbortController()
 			session.refreshController = refresh
-			void refreshAccessToken(token, refresh.signal).then(
+			void refreshAccessToken(token, refresh.signal, authContext).then(
 				() => {
 					if (!currentConnection() || refresh.signal.aborted) return
 					session.refreshController = null

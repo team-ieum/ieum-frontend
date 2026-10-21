@@ -2,12 +2,14 @@ import axios, { isAxiosError } from 'axios'
 import { ApiError } from '@/utils/ApiError'
 import type { ApiErrorResponse } from '@/types/api'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { refreshAccessToken } from '@/services/authRefresh'
+import { captureAuthRequestContext, isAuthRequestCurrent, refreshAccessToken } from '@/services/authRefresh'
+import type { AuthRequestContext } from '@/services/authRefresh'
 
 declare module 'axios' {
 	interface InternalAxiosRequestConfig {
 		_retry?: boolean
 		_authRetryToken?: string
+		_authContext?: AuthRequestContext
 	}
 }
 
@@ -17,8 +19,13 @@ export const api = axios.create({
 
 api.interceptors.request.use(config => {
 	const { accessToken } = useAuthStore.getState()
-	if (config._authRetryToken && config._authRetryToken !== accessToken) {
-		return Promise.reject(new DOMException('인증 상태가 변경되어 재요청을 취소했어요.', 'AbortError'))
+	if (config._authRetryToken) {
+		// A normal rotation may overtake this retry; its original login session must still match.
+		if (!config._authContext || !isAuthRequestCurrent(config._authContext) || !accessToken) {
+			return Promise.reject(new DOMException('인증 상태가 변경되어 재요청을 취소했어요.', 'AbortError'))
+		}
+	} else {
+		config._authContext = captureAuthRequestContext()
 	}
 	if (accessToken) {
 		config.headers['Authorization'] = `Bearer ${accessToken}`
@@ -49,7 +56,11 @@ api.interceptors.response.use(
 			originalRequest._retry = true
 			const failedToken = originalRequest.headers['Authorization']?.toString().replace(/^Bearer /, '') ?? ''
 			try {
-				const token = await refreshAccessToken(failedToken, originalRequest.signal as AbortSignal | undefined)
+				const token = await refreshAccessToken(
+					failedToken,
+					originalRequest.signal as AbortSignal | undefined,
+					originalRequest._authContext
+				)
 				originalRequest._authRetryToken = token
 				originalRequest.headers['Authorization'] = `Bearer ${token}`
 				return api(originalRequest)
@@ -57,6 +68,8 @@ api.interceptors.response.use(
 				// A late failure must not log out a different/newly logged-in session.
 				if (
 					!(refreshError instanceof Error && refreshError.name === 'AbortError') &&
+					originalRequest._authContext &&
+					isAuthRequestCurrent(originalRequest._authContext) &&
 					useAuthStore.getState().accessToken === failedToken
 				) {
 					useAuthStore.getState().clearAuth()

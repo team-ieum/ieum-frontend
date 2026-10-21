@@ -11,6 +11,18 @@ type RefreshFlight = {
 	promise: Promise<string>
 }
 
+export type AuthRequestContext = Readonly<{ session: symbol; accessToken: string | null }>
+
+let authSession = Symbol('auth-session')
+
+/** A request retains one session identity, regardless of how many token rotations follow. */
+export const captureAuthRequestContext = (): AuthRequestContext => ({
+	session: authSession,
+	accessToken: useAuthStore.getState().accessToken,
+})
+
+export const isAuthRequestCurrent = (context: AuthRequestContext): boolean => context.session === authSession
+
 const sessionChangeListeners = new Set<() => void>()
 
 /** Shared refresh rotation keeps the session; logout and manual token replacement end it. */
@@ -21,7 +33,6 @@ export const subscribeAuthSessionChange = (listener: () => void): (() => void) =
 
 let authEpoch = 0
 let flight: RefreshFlight | null = null
-let lastRenewal: { previousAccessToken: string; accessToken: string; epoch: number } | null = null
 
 const cancelled = () => new DOMException('인증 상태가 변경되어 토큰 갱신을 취소했어요.', 'AbortError')
 
@@ -37,7 +48,7 @@ useAuthStore.subscribe((state, previous) => {
 		state.refreshToken === rotation.refreshToken
 	)
 		return
-	lastRenewal = null
+	authSession = Symbol('auth-session')
 	const abandoned = flight
 	flight = null
 	abandoned?.controller.abort()
@@ -79,21 +90,23 @@ const waitForRefresh = (promise: Promise<string>, signal?: AbortSignal): Promise
 }
 
 /** One shared refresh contract for Axios requests and authenticated SSE GET reconnects. */
-export const refreshAccessToken = (failedAccessToken: string, signal?: AbortSignal): Promise<string> => {
+export const refreshAccessToken = (
+	failedAccessToken: string,
+	signal?: AbortSignal,
+	context?: AuthRequestContext
+): Promise<string> => {
 	if (signal?.aborted) return Promise.reject(cancelled())
 	const state = useAuthStore.getState()
+	if (context && (!isAuthRequestCurrent(context) || context.accessToken !== failedAccessToken)) {
+		return Promise.reject(cancelled())
+	}
 	if (!state.accessToken || !state.refreshToken) {
 		return Promise.reject(new ApiError('TOKEN_EXPIRED', '다시 로그인해 주세요.'))
 	}
 	if (state.accessToken !== failedAccessToken) {
-		// Reuse only a token produced by our refresh, never a subsequent login/account switch.
-		if (
-			lastRenewal?.previousAccessToken !== failedAccessToken ||
-			lastRenewal.accessToken !== state.accessToken ||
-			lastRenewal.epoch !== authEpoch
-		)
-			return Promise.reject(cancelled())
-		return waitForRefresh(flight?.promise ?? Promise.resolve(state.accessToken), signal)
+		// Historical tokens are accepted only with their original dispatch session, never by token value alone.
+		if (!context) return Promise.reject(cancelled())
+		return waitForRefresh(flight && isCurrent(flight) ? flight.promise : Promise.resolve(state.accessToken), signal)
 	}
 	if (flight && isCurrent(flight)) return waitForRefresh(flight.promise, signal)
 
@@ -138,7 +151,6 @@ export const refreshAccessToken = (failedAccessToken: string, signal?: AbortSign
 						current.refreshToken !== tokens.refreshToken
 					)
 						throw cancelled()
-					lastRenewal = { previousAccessToken: request.accessToken, accessToken: tokens.accessToken, epoch: authEpoch }
 					return tokens.accessToken
 				} catch (error) {
 					if (!isCurrent(request)) throw cancelled()

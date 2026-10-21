@@ -1,6 +1,6 @@
 import axios, { AxiosHeaders } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { refreshAccessToken, subscribeAuthSessionChange } from '@/services/authRefresh'
+import { captureAuthRequestContext, refreshAccessToken, subscribeAuthSessionChange } from '@/services/authRefresh'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const deferred = <T>() => {
@@ -12,8 +12,8 @@ const deferred = <T>() => {
 	})
 	return { promise, resolve, reject }
 }
-const response = () => ({
-	data: { success: true, data: { accessToken: 'renewed-access', refreshToken: 'renewed-refresh' } },
+const response = (accessToken = 'renewed-access', refreshToken = 'renewed-refresh') => ({
+	data: { success: true, data: { accessToken, refreshToken } },
 	status: 200,
 	statusText: 'OK',
 	headers: {},
@@ -33,6 +33,7 @@ describe('shared auth refresh', () => {
 	it('동시 요청은 제한 시간 있는 refresh 한 번을 공유하고 늦은 401도 같은 갱신 결과를 사용한다', async () => {
 		const pending = deferred<ReturnType<typeof response>>()
 		const post = vi.spyOn(axios, 'post').mockReturnValue(pending.promise)
+		const context = captureAuthRequestContext()
 		const first = refreshAccessToken('expired-access')
 		const second = refreshAccessToken('expired-access')
 		await Promise.resolve()
@@ -43,9 +44,56 @@ describe('shared auth refresh', () => {
 		)
 		pending.resolve(response())
 		await expect(Promise.all([first, second])).resolves.toEqual(['renewed-access', 'renewed-access'])
-		await expect(refreshAccessToken('expired-access')).resolves.toBe('renewed-access')
+		await expect(refreshAccessToken('expired-access', undefined, context)).resolves.toBe('renewed-access')
 		expect(post).toHaveBeenCalledTimes(1)
 		expect(useAuthStore.getState().refreshToken).toBe('renewed-refresh')
+	})
+
+	it('두 번 이상 회전한 뒤 늦은 T1은 원래 요청 세션으로 현재 T3을 추가 갱신 없이 재사용한다', async () => {
+		const context = captureAuthRequestContext()
+		const post = vi
+			.spyOn(axios, 'post')
+			.mockResolvedValueOnce(response('token-2', 'refresh-2'))
+			.mockResolvedValueOnce(response('token-3', 'refresh-3'))
+		await expect(refreshAccessToken('expired-access')).resolves.toBe('token-2')
+		await expect(refreshAccessToken('token-2')).resolves.toBe('token-3')
+		await expect(refreshAccessToken('expired-access', undefined, context)).resolves.toBe('token-3')
+		expect(post).toHaveBeenCalledTimes(2)
+		// A token string without its dispatch context cannot prove a historical login session.
+		await expect(refreshAccessToken('expired-access')).rejects.toMatchObject({ name: 'AbortError' })
+	})
+
+	it('이전 T1 요청은 현재 세션의 진행 중인 T2→T3 갱신도 공유한다', async () => {
+		const context = captureAuthRequestContext()
+		const pending = deferred<ReturnType<typeof response>>()
+		const post = vi
+			.spyOn(axios, 'post')
+			.mockResolvedValueOnce(response('token-2', 'refresh-2'))
+			.mockReturnValueOnce(pending.promise)
+		await refreshAccessToken('expired-access')
+		const current = refreshAccessToken('token-2')
+		const late = refreshAccessToken('expired-access', undefined, context)
+		await Promise.resolve()
+		expect(post).toHaveBeenCalledTimes(2)
+		pending.resolve(response('token-3', 'refresh-3'))
+		await expect(Promise.all([current, late])).resolves.toEqual(['token-3', 'token-3'])
+	})
+
+	it.each(['다른 계정', '같은 토큰으로 재로그인'])('%s 뒤에는 이전 세션의 T1 요청 문맥을 거절한다', async kind => {
+		const context = captureAuthRequestContext()
+		const post = vi
+			.spyOn(axios, 'post')
+			.mockResolvedValueOnce(response('token-2', 'refresh-2'))
+			.mockResolvedValueOnce(response('token-3', 'refresh-3'))
+		await refreshAccessToken('expired-access')
+		await refreshAccessToken('token-2')
+		if (kind === '다른 계정') useAuthStore.getState().setAuth('account-b', 'refresh-b')
+		else {
+			useAuthStore.getState().clearAuth()
+			useAuthStore.getState().setAuth('expired-access', 'original-refresh')
+		}
+		await expect(refreshAccessToken('expired-access', undefined, context)).rejects.toMatchObject({ name: 'AbortError' })
+		expect(post).toHaveBeenCalledTimes(2)
 	})
 
 	it('공유 갱신은 같은 세션으로 유지하고 직접 토큰 변경·로그아웃만 세션 경계를 알린다', async () => {

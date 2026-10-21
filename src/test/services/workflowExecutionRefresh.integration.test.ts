@@ -74,6 +74,155 @@ describe('SSE와 Axios의 실제 공용 refresh 계약', () => {
 		expect(useExecutionStore.getState().executions['workflow-a']?.phase).toBe('running')
 	})
 
+	it('T1→T2→T3 이후 늦은 Axios·SSE 401은 추가 갱신이나 실행 POST 없이 현재 T3으로 재연결한다', async () => {
+		const gate = deferred()
+		let refreshes = 0
+		const lateTokens: string[] = []
+		server.use(
+			http.get('*/api/v1/late', async ({ request }) => {
+				const token = request.headers.get('Authorization')!
+				lateTokens.push(token)
+				if (token === 'Bearer expired-access') {
+					await gate.promise
+					return expired()
+				}
+				expect(token).toBe('Bearer token-3')
+				return HttpResponse.json({ success: true, data: 'late-ok' })
+			}),
+			http.get('*/api/v1/rotate', ({ request }) =>
+				request.headers.get('Authorization') === `Bearer token-${new URL(request.url).searchParams.get('round')}`
+					? HttpResponse.json({ success: true, data: 'rotated' })
+					: expired()
+			),
+			http.post('*/api/v1/auth/refresh', ({ request }) => {
+				refreshes++
+				expect(request.method).toBe('POST')
+				const round = refreshes + 1
+				return HttpResponse.json({
+					success: true,
+					data: { accessToken: `token-${round}`, refreshToken: `refresh-${round}` },
+				})
+			})
+		)
+		await executeWorkflowTracked('workflow-a')
+		const late = api.get('https://api.example.com/api/v1/late')
+		await waitFor(() => expect(lateTokens).toEqual(['Bearer expired-access']))
+		await api.get('https://api.example.com/api/v1/rotate?round=2')
+		await api.get('https://api.example.com/api/v1/rotate?round=3')
+		expect(refreshes).toBe(2)
+		act(() => subscriptions[0].onError?.({ status: 401 }))
+		await waitFor(() => expect(subscriptions).toHaveLength(2))
+		gate.resolve()
+		await expect(late).resolves.toMatchObject({ data: { data: 'late-ok' } })
+		expect(lateTokens).toEqual(['Bearer expired-access', 'Bearer token-3'])
+		expect(subscriptions[1].url).toBe(subscriptions[0].url)
+		expect(subscriptions[1].token).toBe('token-3')
+		expect(refreshes).toBe(2)
+		expect(mocks.execute).toHaveBeenCalledTimes(1)
+		expect(useExecutionStore.getState().executions['workflow-a']?.phase).toBe('running')
+	})
+
+	it.each(['직접 계정 교체', '같은 토큰으로 재로그인'])(
+		'%s 뒤 늦은 Axios T1 401은 새 세션에서 재전송하지 않는다',
+		async kind => {
+			const gate = deferred()
+			let requests = 0,
+				refreshes = 0
+			server.use(
+				http.get('*/api/v1/late', async () => {
+					requests++
+					await gate.promise
+					return expired()
+				}),
+				http.post('*/api/v1/auth/refresh', () => {
+					refreshes++
+					return HttpResponse.json({ success: true, data: { accessToken: 'unused', refreshToken: 'unused-refresh' } })
+				})
+			)
+			await executeWorkflowTracked('workflow-a')
+			const rejected = expect(api.get('https://api.example.com/api/v1/late')).rejects.toMatchObject({ name: 'AbortError' })
+			await waitFor(() => expect(requests).toBe(1))
+			act(() => {
+				if (kind === '직접 계정 교체') useAuthStore.getState().setAuth('account-b', 'refresh-b')
+				else {
+					useAuthStore.getState().clearAuth()
+					useAuthStore.getState().setAuth('expired-access', 'original-refresh')
+				}
+			})
+			gate.resolve()
+			await rejected
+			expect(requests).toBe(1)
+			expect(refreshes).toBe(0)
+			expect(subscriptions[0].signal?.aborted).toBe(true)
+			expect(subscriptions).toHaveLength(1)
+			expect(useExecutionStore.getState().executions).toEqual({})
+			expect(useAuthStore.getState().accessToken).toBe(kind === '직접 계정 교체' ? 'account-b' : 'expired-access')
+		}
+	)
+
+	it.each(['정상 연쇄 회전', '갱신 토큰으로 재로그인'])('쓰기 재시도 직전 %s에서도 로그인 세션 경계를 지킨다', async kind => {
+		const gate = deferred()
+		let retryWaiting = false,
+			writes = 0,
+			refreshes = 0
+		const writeTokens: string[] = []
+		const interceptor = api.interceptors.request.use(async config => {
+			if (config.url?.endsWith('/write') && config._authRetryToken) {
+				retryWaiting = true
+				await gate.promise
+			}
+			return config
+		})
+		server.use(
+			http.post('*/api/v1/write', async ({ request }) => {
+				writes++
+				const token = request.headers.get('Authorization')!
+				writeTokens.push(token)
+				expect(await request.json()).toEqual({ value: 'preserved' })
+				return token === 'Bearer token-3' ? HttpResponse.json({ success: true, data: 'written' }) : expired()
+			}),
+			http.get('*/api/v1/rotate', ({ request }) =>
+				request.headers.get('Authorization') === 'Bearer token-3'
+					? HttpResponse.json({ success: true, data: 'rotated' })
+					: expired()
+			),
+			http.post('*/api/v1/auth/refresh', () => {
+				const round = ++refreshes + 1
+				return HttpResponse.json({
+					success: true,
+					data: { accessToken: `token-${round}`, refreshToken: `refresh-${round}` },
+				})
+			})
+		)
+		try {
+			const write = api.post('https://api.example.com/api/v1/write', { value: 'preserved' })
+			const rejected =
+				kind === '갱신 토큰으로 재로그인' ? expect(write).rejects.toMatchObject({ name: 'AbortError' }) : null
+			await waitFor(() => expect(retryWaiting).toBe(true))
+			if (kind === '정상 연쇄 회전') await api.get('https://api.example.com/api/v1/rotate')
+			else
+				act(() => {
+					useAuthStore.getState().clearAuth()
+					useAuthStore.getState().setAuth('token-2', 'refresh-2')
+				})
+			gate.resolve()
+			if (rejected) {
+				await rejected
+				expect(writeTokens).toEqual(['Bearer expired-access'])
+				expect(writes).toBe(1)
+				expect(refreshes).toBe(1)
+			} else {
+				await expect(write).resolves.toMatchObject({ data: { data: 'written' } })
+				expect(writeTokens).toEqual(['Bearer expired-access', 'Bearer token-3'])
+				expect(writes).toBe(2)
+				expect(refreshes).toBe(2)
+			}
+		} finally {
+			gate.resolve()
+			api.interceptors.request.eject(interceptor)
+		}
+	})
+
 	it('API 갱신 대기 중 계정이 바뀌면 이전 API를 재전송하거나 새 계정을 로그아웃하지 않는다', async () => {
 		const gate = deferred()
 		let refreshes = 0,
