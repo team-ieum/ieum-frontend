@@ -80,7 +80,7 @@ export const Header = ({
 				{/* 검색 pill (데스크탑) */}
 				<button
 					type='button'
-					className='hidden h-9 min-w-[200px] items-center gap-2.5 rounded-full border border-[#cde9f4] bg-white/70 pl-3.5 pr-2.5 text-[13px] text-main-deep-blue transition-colors hover:bg-white/90 lg:inline-flex'
+					className='hidden h-9 min-w-50 items-center gap-2.5 rounded-full border border-[#cde9f4] bg-white/70 pl-3.5 pr-2.5 text-[13px] text-main-deep-blue transition-colors hover:bg-white/90 lg:inline-flex'
 				>
 					<Search size={15} className='shrink-0' />
 					<span className='flex-1 text-left opacity-70'>찾기 · 명령</span>
@@ -94,11 +94,11 @@ export const Header = ({
 					type='button'
 					onClick={onNotifications}
 					aria-label='알림'
-					className='relative flex h-[38px] w-[38px] items-center justify-center rounded-xl border border-[#cde9f4] bg-white/60 text-main-deep-blue transition-colors hover:bg-white'
+					className='relative flex h-9.5 w-9.5 items-center justify-center rounded-xl border border-[#cde9f4] bg-white/60 text-main-deep-blue transition-colors hover:bg-white'
 				>
 					<Bell size={18} />
 					{hasNotifications && (
-						<span className='absolute right-1.5 top-1.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full border-2 border-[#EAF7FE] bg-node-orange px-0.5 text-[8px] font-bold text-white'>
+						<span className='absolute right-1.5 top-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full border-2 border-[#EAF7FE] bg-node-orange px-0.5 text-[8px] font-bold text-white'>
 							{notificationCount}
 						</span>
 					)}

@@ -14,7 +14,7 @@ export const IntegrationCardSkeletons = ({ count = 4 }: { count?: number }): Rea
 			<article
 				key={index}
 				aria-hidden='true'
-				className='flex min-h-[148px] flex-col gap-3 rounded-brand-md border border-neutral-200 bg-neutral-white p-4'
+				className='flex min-h-37 flex-col gap-3 rounded-brand-md border border-neutral-200 bg-neutral-white p-4'
 			>
 				<div className='flex items-center gap-3'>
 					<SkeletonPulse className='size-10 rounded-xl bg-neutral-200' />
@@ -43,7 +43,7 @@ export const IntegrationSourceError = ({ webhookResource, oauthResource }: Integ
 	return (
 		<div
 			role='alert'
-			className='col-span-full flex min-h-[148px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+			className='col-span-full flex min-h-37 flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
 		>
 			<p className='m-0 typo-body2_semibold text-danger-700'>연결 상태를 확인하지 못했습니다.</p>
 			<p className='mt-1 mb-0 typo-body3_regular text-neutral-500'>

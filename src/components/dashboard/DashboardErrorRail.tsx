@@ -13,7 +13,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 	const { visibleItems, errorCount, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = errors
 
 	return (
-		<DashboardCard className='flex min-h-[253px] w-full flex-col' aria-busy={resource.isLoading || resource.isRefetching}>
+		<DashboardCard className='flex min-h-63.25 w-full flex-col' aria-busy={resource.isLoading || resource.isRefetching}>
 			<DashboardResourceStatus
 				{...resource}
 				loadingMessage='오류 목록 불러오는 중'

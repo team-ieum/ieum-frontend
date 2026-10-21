@@ -12,7 +12,7 @@ type WorkflowListTableProps = {
 const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTableProps): ReactElement => (
 	<div className='overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,.04)]'>
 		<div className='overflow-x-auto'>
-			<table className='w-full min-w-[820px] border-collapse'>
+			<table className='w-full min-w-205 border-collapse'>
 				<thead className='bg-neutral-100'>
 					<tr className='text-left typo-caption1_semibold text-neutral-500'>
 						<th className='w-8 px-4 py-3' />
@@ -30,7 +30,7 @@ const WorkflowListTable = ({ workflows, onOpen, onDelete }: WorkflowListTablePro
 							<td className='px-4 py-3'>
 								<StatusDot status={workflow.status} />
 							</td>
-							<td className='max-w-[280px] px-3 py-3'>
+							<td className='max-w-70 px-3 py-3'>
 								<button
 									type='button'
 									onClick={() => onOpen(workflow.id, workflow.name)}

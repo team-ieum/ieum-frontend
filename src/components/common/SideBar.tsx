@@ -101,7 +101,7 @@ export const SideBar = ({
 						onFocus={preloadWorkflowEditorPage}
 						aria-label={collapsed ? '새 캔버스' : undefined}
 						className={cn(
-							'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
+							'flex h-10.5 w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
 							collapsed ? 'justify-center' : 'justify-between px-3.5'
 						)}
 					>
@@ -192,8 +192,8 @@ export const SideBar = ({
 				{/* 태그라인 카드 */}
 				{!collapsed && (
 					<div className='relative m-3 overflow-hidden rounded-xl bg-main-deep-blue p-3.5 text-white'>
-						<span className='absolute -right-5 -top-5 h-[90px] w-[90px] rounded-full bg-sub-blue/35' />
-						<span className='absolute right-[18px] -bottom-[18px] h-[50px] w-[50px] rounded-full bg-node-yellow/50' />
+						<span className='absolute -right-5 -top-5 h-22.5 w-22.5 rounded-full bg-sub-blue/35' />
+						<span className='absolute right-4.5 -bottom-4.5 h-12.5 w-12.5 rounded-full bg-node-yellow/50' />
 						<div className='relative text-lg leading-snug'>
 							모든 창작자를
 							<br />

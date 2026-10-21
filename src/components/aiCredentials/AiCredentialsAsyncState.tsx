@@ -8,7 +8,7 @@ export const AiCredentialsSkeleton = ({ count = 1 }: { count?: number }): ReactE
 			<article
 				key={index}
 				aria-hidden='true'
-				className='flex min-h-[164px] flex-col gap-4 rounded-brand-md border border-neutral-200 bg-neutral-white p-5'
+				className='flex min-h-41 flex-col gap-4 rounded-brand-md border border-neutral-200 bg-neutral-white p-5'
 			>
 				<div className='flex items-center gap-3'>
 					<SkeletonPulse className='size-11 rounded-xl bg-neutral-200' />
@@ -26,7 +26,7 @@ export const AiCredentialsSkeleton = ({ count = 1 }: { count?: number }): ReactE
 export const AiCredentialsError = ({ message, retry }: Pick<AsyncResourceState, 'retry'> & { message: string }): ReactElement => (
 	<div
 		role='alert'
-		className='flex min-h-[164px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+		className='flex min-h-41 flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
 	>
 		<p className='m-0 typo-body2_semibold text-danger-700'>{message}</p>
 		<button

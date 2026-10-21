@@ -52,7 +52,7 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 				<img src={symbolLogo} alt='이음' draggable={false} className='pointer-events-none w-4 h-4 object-contain' />
 			</span>
 			<div
-				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-[280px] flex-wrap'
+				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-70 flex-wrap'
 				style={{ background: '#F0F4FC' }}
 			>
 				<div className='flex items-center gap-1.5'>
@@ -147,7 +147,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						animate={{ x: 0, opacity: 1 }}
 						exit={{ x: 16, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-						className='absolute top-4 right-4 bottom-4 w-[380px] bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden'
+						className='absolute top-4 right-4 bottom-4 w-95 bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden'
 						style={{
 							zIndex: 10,
 							boxShadow: '0 24px 48px -8px rgba(16,24,40,.18), 0 8px 16px -4px rgba(16,24,40,.1)',
@@ -203,7 +203,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 													className='pointer-events-none w-4 h-4 object-contain'
 												/>
 											</span>
-											<div className='flex flex-col gap-2 max-w-[280px]'>
+											<div className='flex flex-col gap-2 max-w-70'>
 												<div
 													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
 													style={{ background: '#F0F4FC' }}
@@ -225,7 +225,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 										</div>
 									) : (
 										<div key={i} className='flex justify-end'>
-											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue whitespace-pre-wrap'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap'>
 												{msg.body}
 											</div>
 										</div>

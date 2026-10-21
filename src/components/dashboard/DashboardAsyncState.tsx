@@ -8,7 +8,7 @@ const skeletonClass = 'rounded bg-neutral-200'
 const DashboardHeroSkeleton = (): ReactElement => (
 	<div
 		aria-hidden='true'
-		className='grid min-h-[264px] gap-6 rounded-brand-md bg-main-deep-blue p-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8'
+		className='grid min-h-66 gap-6 rounded-brand-md bg-main-deep-blue p-6 lg:grid-cols-[minmax(220px,280px)_1fr] lg:gap-0 lg:p-8'
 	>
 		<div className='flex flex-col gap-4 lg:border-r lg:border-main-blue lg:pr-8'>
 			<SkeletonPulse className='h-4 w-24 rounded bg-main-blue' tone='brand' />
@@ -21,13 +21,13 @@ const DashboardHeroSkeleton = (): ReactElement => (
 		</div>
 		<div className='flex flex-col gap-4 lg:pl-8'>
 			<SkeletonPulse className='h-4 w-36 rounded bg-main-blue' tone='brand' />
-			<SkeletonPulse className='min-h-[200px] rounded-xl bg-main-blue' tone='brand' />
+			<SkeletonPulse className='min-h-50 rounded-xl bg-main-blue' tone='brand' />
 		</div>
 	</div>
 )
 
 const DashboardWorkflowSkeleton = (): ReactElement => (
-	<section aria-hidden='true' className='flex min-h-[116px] flex-col gap-4'>
+	<section aria-hidden='true' className='flex min-h-29 flex-col gap-4'>
 		<SkeletonPulse className={cn(skeletonClass, 'h-5 w-48')} />
 		<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
 			{Array.from({ length: 4 }, (_, index) => (
@@ -48,7 +48,7 @@ export const DashboardHeroChunkFallback = (): ReactElement => (
 export const DashboardHeroChunkError = ({ onReload }: { onReload: () => void }): ReactElement => (
 	<div
 		role='alert'
-		className='flex min-h-[264px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
+		className='flex min-h-66 flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'
 	>
 		<p className='m-0 typo-body2_semibold text-danger-700'>차트를 불러오지 못했습니다.</p>
 		<button
@@ -85,7 +85,7 @@ export const DashboardResourceStatus = ({
 )
 
 export const DashboardSummaryError = ({ retry }: Pick<AsyncResourceState, 'retry'>): ReactElement => (
-	<div className='flex min-h-[444px] flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'>
+	<div className='flex min-h-111 flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center'>
 		<p className='m-0 typo-body2_semibold text-danger-700'>통계를 불러오지 못했습니다.</p>
 		<button
 			type='button'

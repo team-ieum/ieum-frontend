@@ -21,7 +21,7 @@ const AuthPage = () => {
 				<motion.div
 					layout
 					transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-					className='w-full max-w-5xl min-h-[700px] overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-[#f0f9ff] shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]'
+					className='w-full max-w-5xl min-h-175 overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-[#f0f9ff] shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]'
 				>
 					<motion.div layout='position' className={cn('w-full lg:basis-1/2', isSignup ? 'lg:order-2' : 'lg:order-1')}>
 						<AuthWavePanel />

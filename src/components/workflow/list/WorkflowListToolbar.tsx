@@ -131,7 +131,7 @@ const WorkflowListToolbar = ({
 											: 'text-neutral-700 hover:bg-neutral-50'
 									)}
 								>
-									{option.id === sort ? <Check size={15} /> : <span className='h-[15px] w-[15px]' />}
+									{option.id === sort ? <Check size={15} /> : <span className='h-3.75 w-3.75' />}
 									{option.label}
 								</button>
 							))}

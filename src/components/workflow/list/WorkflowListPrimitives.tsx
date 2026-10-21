@@ -7,10 +7,10 @@ import type { WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/t
 import { cn } from '@/utils/cn'
 
 const SQUARE_SIZE_CLASS: Record<number, string> = {
-	7: 'w-[7px] h-[7px]',
+	7: 'w-1.75 h-1.75',
 	8: 'w-2 h-2',
 	16: 'w-4 h-4',
-	18: 'w-[18px] h-[18px]',
+	18: 'w-4.5 h-4.5',
 	24: 'w-6 h-6',
 	28: 'w-7 h-7',
 }
@@ -35,7 +35,7 @@ export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps): Rea
 			title={service.name}
 			aria-label={service.name}
 		>
-			<span className='flex h-[85%] w-[85%] items-center justify-center [&_img]:!h-full [&_img]:!w-full [&_img]:object-contain'>
+			<span className='flex h-[85%] w-[85%] items-center justify-center [&_img]:h-full! [&_img]:w-full! [&_img]:object-contain'>
 				{brand.icon}
 			</span>
 		</span>
