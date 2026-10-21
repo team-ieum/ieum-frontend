@@ -56,6 +56,7 @@ export const createWorkflow = async (body: CreateWorkflowRequest): Promise<Creat
 	return response.data
 }
 
+/** @public 아직 호출하는 화면은 없지만 서버 API 연동용으로 유지한다. */
 export const sendWorkflowChat = async (
 	workflowId: string,
 	body: WorkflowChatRequest
@@ -64,6 +65,7 @@ export const sendWorkflowChat = async (
 	return response.data
 }
 
+/** @public 아직 호출하는 화면은 없지만 서버 API 연동용으로 유지한다. */
 export const getWorkflowChatHistory = async (
 	workflowId: string,
 	params: WorkflowChatHistoryParams

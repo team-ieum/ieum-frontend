@@ -36,7 +36,7 @@ export const workflowFixture = {
 	updatedAt: '2026-08-26T09:30:00Z',
 } satisfies WorkflowDto
 
-export const emptyWorkflowFixture = {
+const emptyWorkflowFixture = {
 	...workflowFixture,
 	name: '빈 워크플로우',
 	description: '',

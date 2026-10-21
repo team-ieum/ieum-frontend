@@ -50,7 +50,7 @@ export type WorkflowDto = {
 	updatedAt: string
 }
 
-export type WorkflowPageDto = {
+type WorkflowPageDto = {
 	content: WorkflowDto[]
 	size: number
 	hasNext: boolean
@@ -107,7 +107,7 @@ export type WorkflowViewMode =
 	| 'card'
 	| 'row'
 
-export type IsoDateString = string
+type IsoDateString = string
 
 export type WorkflowListFilters = {
 	services: WorkflowServiceId[]
@@ -118,7 +118,6 @@ export type WorkflowListFilters = {
 export type WorkflowListItem = {
 	id: string
 	name: string
-	tags: string[]
 	desc: string
 	services: WorkflowServiceId[]
 	category: WorkflowCategoryId
@@ -128,7 +127,6 @@ export type WorkflowListItem = {
 	nodeCount?: number
 	updatedAt?: IsoDateString
 	lastRun: IsoDateString
-	success: number
 }
 
 export type WorkflowListRowView = {
@@ -194,8 +192,6 @@ export type WorkflowListViewModel = {
 	activeFilterCount: number
 	totalCount: number
 	serviceCounts: Record<WorkflowServiceId, number>
-	categoryCounts: Record<WorkflowCategoryId, number>
-	statusCounts: Record<WorkflowStatus, number>
 	resource: AsyncResourceState
 	isFiltered: boolean
 	isRefetching: boolean

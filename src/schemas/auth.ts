@@ -14,6 +14,3 @@ export const signupSchema = loginSchema
 		path: ['passwordConfirm'],
 		message: '비밀번호가 일치하지 않아요!',
 	})
-
-export type LoginValues = z.infer<typeof loginSchema>
-export type SignupValues = z.infer<typeof signupSchema>

@@ -62,7 +62,7 @@ export const WorkflowMoreMenu = ({ onDelete, className = '' }: WorkflowMoreMenuP
 					id={menuId}
 					role='menu'
 					aria-label='워크플로우 메뉴'
-					className='absolute right-0 top-full z-50 mt-1 min-w-[120px] overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg'
+					className='absolute right-0 top-full z-50 mt-1 min-w-30 overflow-hidden rounded-lg border border-neutral-200 bg-white py-1 shadow-lg'
 				>
 					<button
 						ref={firstItemRef}

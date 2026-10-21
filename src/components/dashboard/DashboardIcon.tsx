@@ -12,7 +12,7 @@ import {
 	Loader2,
 	type LucideIcon,
 } from 'lucide-react'
-import { cn } from '../../utils/cn'
+import { cn } from '@/utils/cn'
 
 type DashboardIconProps = {
 	name: string

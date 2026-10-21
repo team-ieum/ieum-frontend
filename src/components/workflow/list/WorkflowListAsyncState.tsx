@@ -15,12 +15,12 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 				className='overflow-hidden rounded-xl border border-neutral-200 bg-white'
 			>
 				<div aria-hidden='true' className='overflow-x-auto'>
-					<div className='min-w-[820px]'>
+					<div className='min-w-205'>
 						<div className='h-11 bg-neutral-100' />
 						{Array.from({ length: 5 }, (_, index) => (
 							<div
 								key={index}
-								className='grid h-[73px] grid-cols-[56px_2fr_1.5fr_1fr_80px_100px_56px] items-center gap-3 border-t border-neutral-200 px-4'
+								className='grid h-18.25 grid-cols-[56px_2fr_1.5fr_1fr_80px_100px_56px] items-center gap-3 border-t border-neutral-200 px-4'
 							>
 								{Array.from({ length: 7 }, (_, cellIndex) => (
 									<SkeletonPulse key={cellIndex} className={`${skeletonClass} h-4 w-full`} />
@@ -39,7 +39,7 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 				<article
 					key={index}
 					aria-hidden='true'
-					className='flex min-h-[148px] flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4'
+					className='flex min-h-37 flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4'
 				>
 					<SkeletonPulse className={`${skeletonClass} h-5 w-2/3`} />
 					<SkeletonPulse className={`${skeletonClass} mt-auto h-4 w-full`} />
@@ -56,7 +56,7 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 export const WorkflowListError = ({ retry }: Pick<AsyncResourceState, 'retry'>): ReactElement => (
 	<div
 		role='alert'
-		className='flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-danger-200 bg-danger-50 px-6 text-center'
+		className='flex min-h-90 flex-col items-center justify-center rounded-xl border border-danger-200 bg-danger-50 px-6 text-center'
 	>
 		<p className='m-0 typo-body2_semibold text-danger-700'>워크플로우를 불러오지 못했습니다.</p>
 		<p className='mt-2 mb-0 typo-body3_regular text-neutral-500'>잠시 후 다시 시도해주세요.</p>

@@ -16,8 +16,8 @@ const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 }
 
 const HANDLE_CLASS = cn(
-	'!z-[3] !size-4.5 !cursor-crosshair !border-[3px] !border-white',
-	'!bg-(--node-color) !shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]'
+	'z-3! size-4.5! cursor-crosshair! border-[3px]! border-white!',
+	'bg-(--node-color)! shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]!'
 )
 
 const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
@@ -113,11 +113,11 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					>
 						{data.technicalDetails.map(detail => (
 							<div key={detail.label} className='grid grid-cols-[4.1rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
-								<dt className='text-[0.64rem] leading-[1.5] font-bold text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
+								<dt className='text-[0.64rem] leading-normal font-bold text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
 									{detail.label}
 								</dt>
 								<dd
-									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-[1.5] font-semibold text-[#353442]'
+									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-normal font-semibold text-[#353442]'
 									title={detail.value}
 								>
 									{detail.value}

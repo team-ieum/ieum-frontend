@@ -1,4 +1,4 @@
-import { useAuthMode } from '../../stores/useAuthMode'
+import { useAuthMode } from '@/stores/useAuthMode'
 
 export const useAuthScreenMode = () => {
 	const mode = useAuthMode(state => state.mode)

@@ -7,7 +7,6 @@ const workflow: WorkflowListItem = {
 	id: 'workflow-1',
 	name: '주문 알림',
 	desc: '',
-	tags: [],
 	services: ['slack', 'notion'],
 	category: 'ops',
 	status: 'active',
@@ -16,7 +15,6 @@ const workflow: WorkflowListItem = {
 	nodeCount: 3,
 	updatedAt: '2026-09-06T11:50:00Z',
 	lastRun: '2026-09-05T12:00:00Z',
-	success: 0,
 }
 
 describe('mapWorkflowListItemToRowView', () => {

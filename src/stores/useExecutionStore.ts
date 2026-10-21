@@ -10,7 +10,7 @@ export type WorkflowExecutionPhase =
 	| 'interrupted'
 	| 'requestFailed'
 
-export interface WorkflowExecutionState {
+interface WorkflowExecutionState {
 	requestId: number
 	executionId: string | null
 	phase: WorkflowExecutionPhase

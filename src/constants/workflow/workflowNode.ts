@@ -7,7 +7,7 @@ type WorkflowNodeMeta = {
 	toneClass: string
 }
 
-export const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
+const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
 	TRIGGER: {
 		role: 'trigger',
 		label: '시작 조건',

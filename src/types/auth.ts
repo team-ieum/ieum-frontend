@@ -13,7 +13,7 @@ export interface RequestRegisterDto {
 	name: string
 }
 
-export interface ResponseRegisterDto {
+interface ResponseRegisterDto {
 	userId: string
 	email: string
 	name: string
@@ -21,20 +21,13 @@ export interface ResponseRegisterDto {
 
 export type RegisterResponse = ApiResponse<ResponseRegisterDto>
 
-export interface RequestLoginDto {
-	email: string
-	password: string
-}
-
-export interface ResponseLoginDto {
+interface ResponseLoginDto {
 	accessToken: string
 	refreshToken: string
 	expiresIn: number
 }
 
 export type LoginResponse = ApiResponse<ResponseLoginDto>
-
-export type RefreshResponse = LoginResponse
 
 export type AuthMode = 'login' | 'signup'
 

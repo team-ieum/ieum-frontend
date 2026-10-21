@@ -14,7 +14,7 @@ import type {
 /** 통합설정에서 연결 가능한 서비스 메타 (필터·목록 표시용) */
 export const WORKFLOW_SERVICE_META: Record<WorkflowServiceId, WorkflowServiceMeta> = {
 	slack: { id: 'slack', name: 'Slack', initial: 'S', bgClass: 'bg-[#4A154B]' },
-	notion: { id: 'notion', name: 'Notion', initial: 'N', bgClass: 'bg-[#191919]' },
+	notion: { id: 'notion', name: 'Notion', initial: 'N', bgClass: 'bg-neutral-800' },
 	github: { id: 'github', name: 'GitHub', initial: 'Gh', bgClass: 'bg-[#24292F]' },
 	gmail: { id: 'gmail', name: 'Gmail', initial: 'Gm', bgClass: 'bg-[#EA4335]' },
 	sheets: { id: 'sheets', name: 'Google Sheets', initial: 'Sh', bgClass: 'bg-[#0F9D58]' },
@@ -23,7 +23,7 @@ export const WORKFLOW_SERVICE_META: Record<WorkflowServiceId, WorkflowServiceMet
 	airtable: { id: 'airtable', name: 'Airtable', initial: 'A', bgClass: 'bg-[#18BFFF]' },
 	discord: { id: 'discord', name: 'Discord', initial: 'Di', bgClass: 'bg-[#5865F2]' },
 	linear: { id: 'linear', name: 'Linear', initial: 'L', bgClass: 'bg-[#5E6AD2]' },
-	webhook: { id: 'webhook', name: 'Webhook', initial: 'Wh', bgClass: 'bg-[#4F5D75]' },
+	webhook: { id: 'webhook', name: 'Webhook', initial: 'Wh', bgClass: 'bg-main-gray' },
 }
 
 /** 통합설정 카탈로그 순서와 동일한 필터용 서비스 목록 */
@@ -33,10 +33,10 @@ export const WORKFLOW_SERVICES: WorkflowServiceMeta[] = AVAILABLE_INTEGRATION_CA
 
 export const WORKFLOW_CATEGORY_META: Record<WorkflowCategoryId, WorkflowCategoryMeta> = {
 	cs: { id: 'cs', label: '고객지원', dotClass: 'bg-[#E2725B]' },
-	marketing: { id: 'marketing', label: '마케팅', dotClass: 'bg-[#7D8CC4]' },
-	dev: { id: 'dev', label: '개발', dotClass: 'bg-[#007BA7]' },
+	marketing: { id: 'marketing', label: '마케팅', dotClass: 'bg-sub-blue' },
+	dev: { id: 'dev', label: '개발', dotClass: 'bg-main-blue' },
 	sales: { id: 'sales', label: '영업', dotClass: 'bg-[#006A4E]' },
-	ops: { id: 'ops', label: '내부 운영', dotClass: 'bg-[#4F5D75]' },
+	ops: { id: 'ops', label: '내부 운영', dotClass: 'bg-main-gray' },
 	data: { id: 'data', label: '데이터/리포팅', dotClass: 'bg-[#B58900]' },
 }
 
@@ -60,14 +60,14 @@ export const WORKFLOW_STATUS_META: Record<WorkflowStatus, WorkflowStatusMeta> = 
 	paused: {
 		label: '일시정지',
 		toneClass: 'border-neutral-200 bg-neutral-100 text-neutral-500',
-		barClass: 'bg-[#959595]',
-		dotBgClass: 'bg-[#959595]',
+		barClass: 'bg-neutral-400',
+		dotBgClass: 'bg-neutral-400',
 	},
 	error: {
 		label: '에러',
 		toneClass: 'border-danger-200 bg-danger-100 text-danger-700',
-		barClass: 'bg-[#EC2D30]',
-		dotBgClass: 'bg-[#EC2D30]',
+		barClass: 'bg-danger-700',
+		dotBgClass: 'bg-danger-700',
 	},
 }
 

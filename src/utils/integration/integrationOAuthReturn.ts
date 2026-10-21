@@ -48,7 +48,7 @@ export const detectOAuthProvider = (pathname: string, searchParams: URLSearchPar
 
 export const isFrontendOAuthApiCallbackPath = (pathname: string): boolean => FRONTEND_OAUTH_CALLBACK_PATTERN.test(pathname)
 
-export const isOAuthSuccess = (searchParams: URLSearchParams): boolean => {
+const isOAuthSuccess = (searchParams: URLSearchParams): boolean => {
 	const success = searchParams.get('success') ?? searchParams.get('oauth_success') ?? searchParams.get('status')
 	return success === 'true' || success === 'success' || success === '1' || success === 'ok'
 }

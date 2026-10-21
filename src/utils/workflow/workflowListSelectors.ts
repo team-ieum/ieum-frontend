@@ -7,13 +7,11 @@ import {
 } from '@/constants/workflow/workflowList'
 import type {
 	WorkflowActiveFilter,
-	WorkflowCategoryId,
 	WorkflowListFilters,
 	WorkflowListItem,
 	WorkflowListViewModel,
 	WorkflowServiceId,
 	WorkflowSortKey,
-	WorkflowStatus,
 } from '@/types/workflowList'
 
 const createCountMap = <T extends string>(values: T[], initialValues: T[]): Record<T, number> => {
@@ -90,20 +88,10 @@ export const selectWorkflows = (
 		sort
 	)
 
-export const selectWorkflowCounts = (
-	workflows: WorkflowListItem[]
-): Pick<WorkflowListViewModel, 'serviceCounts' | 'categoryCounts' | 'statusCounts'> => ({
+export const selectWorkflowCounts = (workflows: WorkflowListItem[]): Pick<WorkflowListViewModel, 'serviceCounts'> => ({
 	serviceCounts: createCountMap(
 		workflows.flatMap(workflow => workflow.services),
 		Object.keys(WORKFLOW_SERVICE_META) as WorkflowServiceId[]
-	),
-	categoryCounts: createCountMap(
-		workflows.map(workflow => workflow.category),
-		Object.keys(WORKFLOW_CATEGORY_META) as WorkflowCategoryId[]
-	),
-	statusCounts: createCountMap(
-		workflows.map(workflow => workflow.status),
-		Object.keys(WORKFLOW_STATUS_META) as WorkflowStatus[]
 	),
 })
 

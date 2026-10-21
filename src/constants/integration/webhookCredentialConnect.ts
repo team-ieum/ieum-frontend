@@ -3,7 +3,7 @@ import type { IntegrationBrand } from '@/types/integration'
 
 export type WebhookConnectServiceId = 'slack' | 'discord'
 
-export const WEBHOOK_CONNECT_SERVICE_IDS: WebhookConnectServiceId[] = ['slack', 'discord']
+const WEBHOOK_CONNECT_SERVICE_IDS: WebhookConnectServiceId[] = ['slack', 'discord']
 
 export const isWebhookConnectServiceId = (serviceId: string): serviceId is WebhookConnectServiceId =>
 	WEBHOOK_CONNECT_SERVICE_IDS.includes(serviceId as WebhookConnectServiceId)

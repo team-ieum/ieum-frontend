@@ -12,7 +12,7 @@ type WorkflowListCardProps = {
 }
 
 const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps): ReactElement => (
-	<article className='group relative flex min-h-[148px] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)]'>
+	<article className='group relative flex min-h-37 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)]'>
 		<button
 			type='button'
 			onClick={() => onOpen(workflow.id, workflow.name)}

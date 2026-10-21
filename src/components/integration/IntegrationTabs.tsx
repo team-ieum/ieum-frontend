@@ -1,8 +1,8 @@
 import SkeletonPulse from '@/components/common/SkeletonPulse'
-import { INTEGRATION_PAGE_X } from '../../constants/integration/layout'
-import { INTEGRATION_TABS } from '../../constants/integration/statusLabels'
-import type { IntegrationTabId, IntegrationView } from '../../types/integration'
-import { cn } from '../../utils/cn'
+import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
+import { INTEGRATION_TABS } from '@/constants/integration/statusLabels'
+import type { IntegrationTabId, IntegrationView } from '@/types/integration'
+import { cn } from '@/utils/cn'
 
 type IntegrationTabsProps = {
 	active: IntegrationTabId
