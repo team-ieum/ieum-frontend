@@ -48,7 +48,7 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 			exit={{ opacity: 0, y: 6 }}
 			transition={{ duration: 0.2 }}
 		>
-			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none' style={{ background: '#e0f6ff' }}>
+			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none bg-main-light-blue'>
 				<img src={symbolLogo} alt='이음' draggable={false} className='pointer-events-none w-4 h-4 object-contain' />
 			</span>
 			<div
@@ -195,10 +195,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 								{messages.map((msg, i) =>
 									msg.type === 'assistant' ? (
 										<div key={i} className='flex gap-2 items-start'>
-											<span
-												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none'
-												style={{ background: '#e0f6ff' }}
-											>
+											<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none bg-main-light-blue'>
 												<img
 													src={symbolLogo}
 													alt='이음'
