@@ -1,14 +1,9 @@
 import { ArrowRight, History, Rocket, Sparkles, Webhook, type LucideIcon } from 'lucide-react'
 import type { ReactElement } from 'react'
-import {
-	WORKFLOW_CATEGORY_META,
-	WORKFLOW_SERVICE_META,
-	WORKFLOW_STATUS_META,
-	WORKFLOW_TRIGGER_META,
-} from '@/constants/workflow/workflowList'
+import { WORKFLOW_SERVICE_META, WORKFLOW_STATUS_META, WORKFLOW_TRIGGER_META } from '@/constants/workflow/workflowList'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { IntegrationBrand } from '@/types/integration'
-import type { WorkflowCategoryId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
+import type { WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const SQUARE_SIZE_CLASS: Record<number, string> = {
@@ -121,23 +116,6 @@ export const StatusBadge = ({ status, withDot = true }: StatusBadgeProps): React
 	)
 }
 
-type CategoryPillProps = {
-	category: WorkflowCategoryId
-	count?: number
-}
-
-export const CategoryPill = ({ category, count }: CategoryPillProps): ReactElement => {
-	const categoryMeta = WORKFLOW_CATEGORY_META[category]
-
-	return (
-		<span className='inline-flex h-7 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 typo-caption1_medium text-neutral-600'>
-			<span className={cn('h-2 w-2 rounded-[3px]', categoryMeta.dotClass)} />
-			{categoryMeta.label}
-			{count != null && <span className='text-neutral-400'>{count}</span>}
-		</span>
-	)
-}
-
 const TRIGGER_ICON: Record<WorkflowTriggerType, LucideIcon> = {
 	schedule: History,
 	webhook: Webhook,
@@ -159,13 +137,3 @@ export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => {
 		</span>
 	)
 }
-
-type WorkflowTagChipProps = {
-	children: string
-}
-
-export const WorkflowTagChip = ({ children }: WorkflowTagChipProps): ReactElement => (
-	<span className='inline-flex h-6 items-center rounded-full bg-neutral-100 px-2 typo-caption1_regular text-neutral-600'>
-		#{children}
-	</span>
-)

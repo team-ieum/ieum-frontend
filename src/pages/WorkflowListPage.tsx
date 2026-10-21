@@ -46,8 +46,6 @@ const WorkflowListPage = (): ReactElement => {
 				<WorkflowFilterSidebar
 					filters={viewModel.filters}
 					serviceCounts={viewModel.serviceCounts}
-					categoryCounts={viewModel.categoryCounts}
-					statusCounts={viewModel.statusCounts}
 					activeFilterCount={viewModel.activeFilterCount}
 					onToggleService={viewModel.toggleService}
 					onToggleCategory={viewModel.toggleCategory}

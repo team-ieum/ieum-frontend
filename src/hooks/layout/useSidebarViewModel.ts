@@ -28,8 +28,6 @@ export const useSidebarViewModel = ({ onSelect }: UseSidebarViewModelOptions = {
 				label: item.label,
 				path: item.path,
 				isActive: isPathActive(pathname, item.path),
-				dot: item.dot,
-				count: item.count,
 			})),
 		[pathname]
 	)

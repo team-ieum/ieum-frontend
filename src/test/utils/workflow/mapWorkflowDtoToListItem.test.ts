@@ -47,7 +47,6 @@ describe('mapWorkflowDtoToListItem', () => {
 			id: 'workflow-1',
 			name: '주문 알림',
 			desc: '새 주문을 안내합니다',
-			tags: [],
 			services: ['slack', 'notion'],
 			category: 'ops',
 			status: 'active',
@@ -56,7 +55,6 @@ describe('mapWorkflowDtoToListItem', () => {
 			nodeCount: 2,
 			updatedAt: '2026-09-06T00:00:00Z',
 			lastRun: '2026-09-06T00:00:00Z',
-			success: 0,
 		})
 		expect(dto).toEqual(original)
 	})
@@ -93,13 +91,11 @@ describe('mapWorkflowDtoToListItem', () => {
 
 		expect(mapWorkflowDtoToListItem(emptyDto)).toMatchObject({
 			desc: '',
-			tags: [],
 			services: [],
 			category: 'ops',
 			status: 'paused',
 			cronExpression: null,
 			nodeCount: 0,
-			success: 0,
 		})
 	})
 })

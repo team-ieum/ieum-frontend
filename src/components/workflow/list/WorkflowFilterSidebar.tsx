@@ -14,8 +14,6 @@ import { ServiceLogo, StatusDot } from './WorkflowListPrimitives'
 type WorkflowFilterSidebarProps = {
 	filters: WorkflowListFilters
 	serviceCounts: Record<WorkflowServiceId, number>
-	categoryCounts: Record<WorkflowCategoryId, number>
-	statusCounts: Record<WorkflowStatus, number>
 	activeFilterCount: number
 	onToggleService: (serviceId: WorkflowServiceId) => void
 	onToggleCategory: (categoryId: WorkflowCategoryId) => void

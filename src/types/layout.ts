@@ -5,8 +5,6 @@ export type SidebarNavItemView = {
 	label: string
 	path: string
 	isActive: boolean
-	dot?: boolean
-	count?: number
 }
 
 export type SidebarRecentWorkflowItem = {

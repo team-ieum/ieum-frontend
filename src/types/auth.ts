@@ -21,11 +21,6 @@ export interface ResponseRegisterDto {
 
 export type RegisterResponse = ApiResponse<ResponseRegisterDto>
 
-export interface RequestLoginDto {
-	email: string
-	password: string
-}
-
 export interface ResponseLoginDto {
 	accessToken: string
 	refreshToken: string
@@ -33,8 +28,6 @@ export interface ResponseLoginDto {
 }
 
 export type LoginResponse = ApiResponse<ResponseLoginDto>
-
-export type RefreshResponse = LoginResponse
 
 export type AuthMode = 'login' | 'signup'
 

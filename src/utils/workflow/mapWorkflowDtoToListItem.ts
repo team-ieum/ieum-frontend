@@ -33,7 +33,6 @@ export const mapWorkflowDtoToListItem = (dto: WorkflowDto): WorkflowListItem => 
 	id: dto.id,
 	name: dto.name,
 	desc: dto.description ?? '',
-	tags: [],
 	services: normalizeServiceIds(dto.services),
 	category: 'ops',
 	status: dto.active ? 'active' : 'paused',
@@ -42,5 +41,4 @@ export const mapWorkflowDtoToListItem = (dto: WorkflowDto): WorkflowListItem => 
 	nodeCount: dto.nodes?.length ?? 0,
 	updatedAt: dto.updatedAt,
 	lastRun: dto.updatedAt,
-	success: 0,
 })

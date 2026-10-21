@@ -140,14 +140,7 @@ export const SideBar = ({
 								)}
 							>
 								<Icon size={18} className={item.isActive ? 'text-white' : 'text-main-deep-blue/70'} />
-								{!collapsed && (
-									<>
-										<span className='flex-1 text-left'>{item.label}</span>
-										{item.dot && item.count == null && (
-											<span className='h-1.5 w-1.5 rounded-full bg-node-orange' />
-										)}
-									</>
-								)}
+								{!collapsed && <span className='flex-1 text-left'>{item.label}</span>}
 							</Link>
 						)
 					})}
