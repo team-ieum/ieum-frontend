@@ -2,7 +2,7 @@ import type { ApiResponse } from '@/types/api'
 
 export type IntegrationServiceType = 'GOOGLE' | 'NOTION' | 'GITHUB' | 'SLACK' | 'DISCORD'
 
-export type IntegrationServiceWorkflowDto = {
+type IntegrationServiceWorkflowDto = {
 	id: string
 	name: string
 	description: string
@@ -12,7 +12,7 @@ export type IntegrationServiceWorkflowDto = {
 	updatedAt: string
 }
 
-export type IntegrationServiceWorkflowsPageDto = {
+type IntegrationServiceWorkflowsPageDto = {
 	content: IntegrationServiceWorkflowDto[]
 	size: number
 	hasNext: boolean

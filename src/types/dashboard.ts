@@ -14,7 +14,7 @@ export type RunRow = {
 	when: string
 }
 
-export type ErrorSeverity = 'error' | 'warning'
+type ErrorSeverity = 'error' | 'warning'
 
 export type ErrorRow = {
 	id: string
@@ -30,7 +30,7 @@ export type HourlyExecution = {
 	count: number
 }
 
-export type PillTone = 'active' | 'inactive' | 'error' | 'running'
+type PillTone = 'active' | 'inactive' | 'error' | 'running'
 
 export type StatusPillItem = {
 	label: string
@@ -68,7 +68,7 @@ export type StatusBadgeConfig = {
 	pill: string
 }
 
-export type StatusPillSkin = {
+type StatusPillSkin = {
 	wrap: string
 	chip: string
 	num: string

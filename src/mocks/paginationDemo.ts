@@ -2,7 +2,7 @@ import { delay, http, HttpResponse, type HttpHandler, type UnhandledRequestCallb
 import type { WorkflowDto, WorkflowListResponse } from '@/types/workflowList'
 
 export const PAGINATION_DEMO_WORKFLOW_COUNT = 60
-export const PAGINATION_DEMO_PAGE_SIZE = 20
+const PAGINATION_DEMO_PAGE_SIZE = 20
 export const PAGINATION_DEMO_REQUEST_DELAY_MS = 700
 
 const serviceBrands = ['slack', 'notion', 'github', 'gmail', 'sheets', 'discord'] as const
@@ -67,7 +67,7 @@ export const onPaginationDemoUnhandledRequest: UnhandledRequestCallback = (reque
 	}
 }
 
-export const createPaginationDemoResponse = (searchParams: URLSearchParams): WorkflowListResponse => {
+const createPaginationDemoResponse = (searchParams: URLSearchParams): WorkflowListResponse => {
 	const cursor = parseNonNegativeInteger(searchParams.get('cursor'), 0)
 	const requestedSize = parseNonNegativeInteger(searchParams.get('size'), PAGINATION_DEMO_PAGE_SIZE)
 	const size = requestedSize > 0 ? requestedSize : PAGINATION_DEMO_PAGE_SIZE

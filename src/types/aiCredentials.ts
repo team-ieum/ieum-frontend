@@ -1,7 +1,7 @@
 import type { CredentialProvider } from '@/types/credential'
 
 export type AuthMethod = 'apikey' | 'oauth'
-export type ConnectionStatus = 'connected' | 'empty'
+type ConnectionStatus = 'connected' | 'empty'
 
 export interface ApiKeyState {
 	status: ConnectionStatus
@@ -14,7 +14,7 @@ export interface OAuthState {
 	account?: string
 }
 
-export interface ProviderState {
+interface ProviderState {
 	apikey?: ApiKeyState
 	oauth?: OAuthState
 }

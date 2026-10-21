@@ -20,7 +20,7 @@ export type IntegrationStatus = 'connected' | 'available' | 'error' | 'expired'
 export type IntegrationConnectedDisplayStatus = 'connected' | 'error' | 'expired'
 
 /** 연결된 서비스의 출처 (웹훅 자격증명 / OAuth 연동) */
-export type IntegrationOrigin = 'webhook' | 'oauth'
+type IntegrationOrigin = 'webhook' | 'oauth'
 
 export type IntegrationService = {
 	id: string

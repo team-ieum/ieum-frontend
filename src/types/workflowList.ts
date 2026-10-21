@@ -50,7 +50,7 @@ export type WorkflowDto = {
 	updatedAt: string
 }
 
-export type WorkflowPageDto = {
+type WorkflowPageDto = {
 	content: WorkflowDto[]
 	size: number
 	hasNext: boolean
@@ -107,7 +107,7 @@ export type WorkflowViewMode =
 	| 'card'
 	| 'row'
 
-export type IsoDateString = string
+type IsoDateString = string
 
 export type WorkflowListFilters = {
 	services: WorkflowServiceId[]

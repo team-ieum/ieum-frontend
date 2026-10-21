@@ -1,6 +1,6 @@
 import type { SidebarNavId } from '@/constants/layout'
 
-export type SidebarNavItemView = {
+type SidebarNavItemView = {
 	id: SidebarNavId
 	label: string
 	path: string

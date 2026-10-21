@@ -1,14 +1,14 @@
 import type { KeyboardEvent, RefObject } from 'react'
 export type ChatMessage = { type: 'user'; body: string } | { type: 'assistant'; body: string; actions?: WorkflowChatAction[] }
 
-export interface WorkflowChatAction {
+interface WorkflowChatAction {
 	type: string
 	provider: string
 	label: string
 	oauthUrl: string
 }
 
-export interface WorkflowChatOption {
+interface WorkflowChatOption {
 	value: string
 	label: string
 	description: string
@@ -24,7 +24,7 @@ export interface WorkflowChatRequest {
 
 export type WorkflowChatConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error'
 
-export type WorkflowChatStreamType = 'token' | 'stage' | 'done' | 'complete' | 'error'
+type WorkflowChatStreamType = 'token' | 'stage' | 'done' | 'complete' | 'error'
 
 export interface WorkflowChatStreamResponse {
 	type: WorkflowChatStreamType

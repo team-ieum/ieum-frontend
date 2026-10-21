@@ -12,7 +12,7 @@ export type WorkflowTechnicalDetail = {
 	value: string
 }
 
-export type WorkflowNodeData = {
+type WorkflowNodeData = {
 	nodeType: string
 	role: WorkflowNodeRole
 	typeLabel: string
@@ -28,21 +28,21 @@ export type WorkflowNodeData = {
 
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
 
-export type WorkflowEdgeData = {
+type WorkflowEdgeData = {
 	conditionType?: string | null
 	flowing?: boolean
 }
 
 export type WorkflowEdgeType = Edge<WorkflowEdgeData>
 
-export type CreateWorkflowNodeDto = {
+type CreateWorkflowNodeDto = {
 	id: string
 	type: WorkflowNodeKind
 	label: string
 	config: Record<string, unknown>
 }
 
-export type CreateWorkflowEdgeDto = {
+type CreateWorkflowEdgeDto = {
 	source: string
 	target: string
 	conditionType?: string
