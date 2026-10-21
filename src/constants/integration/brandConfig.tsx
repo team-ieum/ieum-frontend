@@ -1,16 +1,16 @@
-import type { IntegrationBrand, IntegrationBrandConfig } from '../../types/integration'
+import type { IntegrationBrand, IntegrationBrandConfig } from '@/types/integration'
 
-import AirtableIcon from '../../assets/serviceIcon/airtable.png'
-import GithubIcon from '../../assets/serviceIcon/github.png'
-import GmailIcon from '../../assets/serviceIcon/gmail.png'
-import JiraIcon from '../../assets/serviceIcon/jira.png'
-import LinearIcon from '../../assets/serviceIcon/linear.png'
-import NotionIcon from '../../assets/serviceIcon/notion.png'
-import GoogleSheetsIcon from '../../assets/serviceIcon/googlesheets.png'
-import SlackIcon from '../../assets/serviceIcon/slack.png'
-import WebhookIcon from '../../assets/serviceIcon/webhook.png'
-import DiscordIcon from '../../assets/serviceIcon/discord.png'
-import GoogleDriveIcon from '../../assets/serviceIcon/googledrive.png'
+import AirtableIcon from '@/assets/serviceIcon/airtable.png'
+import GithubIcon from '@/assets/serviceIcon/github.png'
+import GmailIcon from '@/assets/serviceIcon/gmail.png'
+import JiraIcon from '@/assets/serviceIcon/jira.png'
+import LinearIcon from '@/assets/serviceIcon/linear.png'
+import NotionIcon from '@/assets/serviceIcon/notion.png'
+import GoogleSheetsIcon from '@/assets/serviceIcon/googlesheets.png'
+import SlackIcon from '@/assets/serviceIcon/slack.png'
+import WebhookIcon from '@/assets/serviceIcon/webhook.png'
+import DiscordIcon from '@/assets/serviceIcon/discord.png'
+import GoogleDriveIcon from '@/assets/serviceIcon/googledrive.png'
 
 const brandLogo = (src: string, alt: string) => (
 	<img src={src} alt={alt} className='h-[24px] w-[24px] object-contain' loading='lazy' />

@@ -1,6 +1,6 @@
 import type { Ref } from 'react'
 import { useNavigate } from 'react-router'
-import logoSymbol from '../../assets/symbol.png'
+import logoSymbol from '@/assets/symbol.png'
 import { Bell, ChevronRight, Menu, Search } from 'lucide-react'
 import { SIDEBAR_ELEMENT_ID } from '@/constants/layout'
 

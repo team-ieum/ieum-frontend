@@ -1,4 +1,4 @@
-import type { IntegrationConnectedDisplayStatus, IntegrationStatusLabelConfig, IntegrationTabItem } from '../../types/integration'
+import type { IntegrationConnectedDisplayStatus, IntegrationStatusLabelConfig, IntegrationTabItem } from '@/types/integration'
 
 export const INTEGRATION_TABS: IntegrationTabItem[] = [
 	{ id: 'services', label: '서비스 관리' },

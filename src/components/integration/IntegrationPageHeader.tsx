@@ -1,5 +1,5 @@
-import { INTEGRATION_PAGE_X } from '../../constants/integration/layout'
-import { cn } from '../../utils/cn'
+import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
+import { cn } from '@/utils/cn'
 
 const IntegrationPageHeader = () => (
 	<div

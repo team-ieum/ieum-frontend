@@ -1,6 +1,6 @@
 import { AtSignIcon, LockKeyhole, UserIcon } from 'lucide-react'
-import type { InputText } from '../../types/textInput'
-import { cn } from '../../utils/cn'
+import type { InputText } from '@/types/textInput'
+import { cn } from '@/utils/cn'
 
 type TextInputProps = {
 	text: InputText

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { AuthMode, SwapDirection } from '../types/auth'
+import type { AuthMode, SwapDirection } from '@/types/auth'
 
 interface AuthModeState {
 	mode: AuthMode

@@ -1,18 +1,18 @@
-import IntegrationConnectedDetail from '../components/integration/IntegrationConnectedDetail'
-import IntegrationDetailAsyncState from '../components/integration/IntegrationDetailAsyncState'
-import IntegrationListBody from '../components/integration/IntegrationListBody'
-import IntegrationSettingLayout from '../components/integration/IntegrationSettingLayout'
+import IntegrationConnectedDetail from '@/components/integration/IntegrationConnectedDetail'
+import IntegrationDetailAsyncState from '@/components/integration/IntegrationDetailAsyncState'
+import IntegrationListBody from '@/components/integration/IntegrationListBody'
+import IntegrationSettingLayout from '@/components/integration/IntegrationSettingLayout'
 import {
 	createIntegrationViewVariants,
 	getIntegrationViewDirection,
 	getIntegrationViewKey,
 	INTEGRATION_VIEW_TRANSITION,
 	INTEGRATION_VIEW_TRANSITION_MODE,
-} from '../components/integration/integrationViewMotion'
-import { INTEGRATION_PAGE_X } from '../constants/integration/layout'
-import { useIntegrationSetting } from '../hooks/integration/useIntegrationSetting'
-import type { IntegrationTabId, IntegrationView } from '../types/integration'
-import { cn } from '../utils/cn'
+} from '@/components/integration/integrationViewMotion'
+import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
+import { useIntegrationSetting } from '@/hooks/integration/useIntegrationSetting'
+import type { IntegrationTabId, IntegrationView } from '@/types/integration'
+import { cn } from '@/utils/cn'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MotionProps } from 'framer-motion'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'

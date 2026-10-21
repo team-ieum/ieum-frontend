@@ -1,10 +1,10 @@
-import LoginForm from '../components/auth/LoginForm'
-import SignupForm from '../components/auth/SignupForm'
-import AuthWavePanel from '../components/auth/AuthWavePanel'
+import LoginForm from '@/components/auth/LoginForm'
+import SignupForm from '@/components/auth/SignupForm'
+import AuthWavePanel from '@/components/auth/AuthWavePanel'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { useAuthScreenMode } from '../hooks/auth/useAuthScreenMode'
-import type { SwapDirection } from '../types/auth'
-import { cn } from '../utils/cn'
+import { useAuthScreenMode } from '@/hooks/auth/useAuthScreenMode'
+import type { SwapDirection } from '@/types/auth'
+import { cn } from '@/utils/cn'
 
 const swapVariants = {
 	initial: (direction: SwapDirection) => ({ x: direction * 28, opacity: 0 }),

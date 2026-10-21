@@ -1,4 +1,4 @@
-import type { IntegrationConnectedDisplayStatus, IntegrationService, IntegrationStatus } from '../../types/integration'
+import type { IntegrationConnectedDisplayStatus, IntegrationService, IntegrationStatus } from '@/types/integration'
 
 export const findServiceById = (services: IntegrationService[], id: string) => services.find(service => service.id === id)
 
