@@ -26,10 +26,9 @@
     "noUncheckedSideEffectImports": true,
 
     /* Path Alias */
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src"]
 }
