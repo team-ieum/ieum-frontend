@@ -4,10 +4,16 @@ import { LazyWorkflowEditorPage } from '@/app/lazyModules'
 import { ChunkLoadErrorBoundary } from '@/components/common/ChunkLoadErrorBoundary'
 import { WorkflowDetailSkeleton, WorkflowEditorLoadError } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useWorkflowDetailPrefetch } from '@/hooks/workflow/queries/useWorkflowDetailPrefetch'
+import { useWorkflowEditorDataPrefetch } from '@/hooks/workflow/queries/useWorkflowEditorDataPrefetch'
 
 // 상세 query는 lazy page 안에서 시작되므로, chunk를 기다리는 동안 상세 데이터도 함께 받도록 route에서 먼저 요청한다.
 const WorkflowDetailPrefetch = ({ workflowId }: { workflowId: string }) => {
 	useWorkflowDetailPrefetch(workflowId)
+	return null
+}
+
+const WorkflowEditorDataPrefetch = () => {
+	useWorkflowEditorDataPrefetch()
 	return null
 }
 
@@ -17,6 +23,7 @@ export const WorkflowEditorRoute = () => {
 
 	return (
 		<>
+			<WorkflowEditorDataPrefetch />
 			{workflowId && <WorkflowDetailPrefetch workflowId={workflowId} />}
 			<ChunkLoadErrorBoundary renderFallback={reload => <WorkflowEditorLoadError onReload={reload} />}>
 				<Suspense
