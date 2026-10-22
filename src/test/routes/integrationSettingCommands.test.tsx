@@ -180,7 +180,7 @@ describe('통합 설정 연결 해제', () => {
 		expect(pendingButton).toBeDisabled()
 		fireEvent.click(pendingButton)
 		expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-		expect(deleteRequest.deletedIds).toEqual([WEBHOOK_SERVICE_ID])
+		await waitFor(() => expect(deleteRequest.deletedIds).toEqual([WEBHOOK_SERVICE_ID]))
 
 		deleteRequest.release()
 		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
