@@ -4,7 +4,12 @@ import { cn } from '@/utils/cn'
 import IntegrationAvailableTile from './IntegrationAvailableTile'
 import IntegrationConnectedCard from './IntegrationConnectedCard'
 import IntegrationSectionHeading from './IntegrationSectionHeading'
-import { IntegrationCardSkeletons, IntegrationRefreshFeedback, IntegrationSourceError } from './IntegrationAsyncState'
+import {
+	IntegrationAvailableTileSkeletons,
+	IntegrationCardSkeletons,
+	IntegrationRefreshFeedback,
+	IntegrationSourceError,
+} from './IntegrationAsyncState'
 import type { AsyncResourceState } from '@/types/asyncResource'
 
 type IntegrationListBodyProps = {
@@ -76,8 +81,11 @@ const IntegrationListBody = ({
 				isCountPending={!canResolveAvailable}
 			/>
 			<div className={INTEGRATION_SECTION_GRID}>
-				{webhookResource.isLoading || oauthResource.isLoading ? null : webhookResource.isLoadingError ||
-				  oauthResource.isLoadingError ? (
+				{webhookResource.isLoading || oauthResource.isLoading ? (
+					<div className='col-span-full'>
+						<IntegrationAvailableTileSkeletons />
+					</div>
+				) : webhookResource.isLoadingError || oauthResource.isLoadingError ? (
 					<IntegrationSourceError webhookResource={webhookResource} oauthResource={oauthResource} />
 				) : available.length === 0 ? (
 					<p className='col-span-full m-0 py-8 text-center typo-body3_regular text-neutral-500'>

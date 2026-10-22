@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
 import { queryKeys } from '@/constants/queryKeys'
 import {
 	createAllFailureHandlers,
@@ -300,8 +301,20 @@ describe('주요 route 테스트 harness', () => {
 		const aiCredentialSkeleton = screen.getByRole('status', { name: 'AI 자격 증명 불러오는 중' })
 		expect(integrationSkeleton.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(16)
 		expect(aiCredentialSkeleton.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(4)
+		const availableSkeleton = screen.getByRole('status', { name: '사용 가능한 서비스 불러오는 중' })
+		expect(availableSkeleton.querySelectorAll('article')).toHaveLength(AVAILABLE_INTEGRATION_CATALOG.length)
+		expect(availableSkeleton.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(
+			AVAILABLE_INTEGRATION_CATALOG.length * 4
+		)
+		expect(availableSkeleton).toHaveTextContent('')
+		// RF-01: 연결 여부를 모르는 동안 사용 가능한 서비스 이름과 연결 버튼을 보이지 않는다.
 		expect(screen.queryByText('Slack')).not.toBeInTheDocument()
+		expect(screen.queryByText('Notion')).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: '연결하기' })).not.toBeInTheDocument()
 		expect(await screen.findByText('팀 Slack')).toBeInTheDocument()
+		await waitFor(() =>
+			expect(screen.queryByRole('status', { name: '사용 가능한 서비스 불러오는 중' })).not.toBeInTheDocument()
+		)
 		delayed.dispose()
 
 		server.use(...createEmptyHandlers())

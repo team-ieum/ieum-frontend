@@ -19,8 +19,11 @@ const DashboardHeroSkeleton = (): ReactElement => (
 				<SkeletonPulse className='h-12 w-20 rounded bg-main-blue' tone='brand' />
 			</div>
 		</div>
-		<div className='flex flex-col gap-4 lg:pl-8'>
-			<SkeletonPulse className='h-4 w-36 rounded bg-main-blue' tone='brand' />
+		<div className='flex flex-col lg:pl-8'>
+			{/* 차트 제목 행은 '실시간' pill(py-1 + caption 한 줄) 높이를 따른다. */}
+			<div className='mb-3 flex h-6.5 items-center'>
+				<SkeletonPulse className='h-4 w-36 rounded bg-main-blue' tone='brand' />
+			</div>
 			<SkeletonPulse className='min-h-50 rounded-xl bg-main-blue' tone='brand' />
 		</div>
 	</div>
@@ -28,10 +31,12 @@ const DashboardHeroSkeleton = (): ReactElement => (
 
 const DashboardWorkflowSkeleton = (): ReactElement => (
 	<section aria-hidden='true' className='flex min-h-29 flex-col gap-4'>
-		<SkeletonPulse className={cn(skeletonClass, 'h-5 w-48')} />
+		<div className='typo-title3_semibold flex h-lh items-center'>
+			<SkeletonPulse className={cn(skeletonClass, 'h-5 w-48')} />
+		</div>
 		<div className='grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4'>
 			{Array.from({ length: 4 }, (_, index) => (
-				<SkeletonPulse key={index} className={cn(skeletonClass, 'h-20 rounded-brand-md')} />
+				<SkeletonPulse key={index} className={cn(skeletonClass, 'h-19.5 rounded-brand-md')} />
 			))}
 		</div>
 	</section>
