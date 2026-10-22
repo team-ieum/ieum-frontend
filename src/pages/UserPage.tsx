@@ -19,6 +19,8 @@ import '@/styles/UserPage.css'
 const UserPage = () => {
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
+			{/* 디자인상 화면 제목은 두지 않고 보조 기술에만 페이지 제목을 제공한다. */}
+			<h1 className='sr-only'>계정 설정</h1>
 			<div className='account-pattern-drift pointer-events-none absolute inset-0 text-sub-blue' aria-hidden='true'>
 				<GitBranch className='absolute left-[5%] top-[12%] h-8 w-8 rotate-12 opacity-[0.16]' strokeWidth={1.35} />
 				<Send className='absolute left-[18%] top-[42%] h-9 w-9 -rotate-12 opacity-[0.14]' strokeWidth={1.3} />
