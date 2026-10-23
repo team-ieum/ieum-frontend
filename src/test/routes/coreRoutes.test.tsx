@@ -56,8 +56,10 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.getByText('오류 목록 불러오는 중')).toHaveAttribute('role', 'status')
 		expect(document.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(52)
 		expect(screen.queryByText('오늘 총 실행')).not.toBeInTheDocument()
-		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
-		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
+		// '고객 문의 자동 분류'는 SideBar와 오류 목록에도 표시되므로 실행 로그 table 행으로 응답 도착을 확인한다.
+		expect(await screen.findByRole('row', { name: /고객 문의 자동 분류/ })).toBeInTheDocument()
+		expect(await screen.findByText('총 8개 워크플로우')).toBeInTheDocument()
+		expect(await screen.findByText('외부 서비스 응답 지연')).toBeInTheDocument()
 	})
 
 	it('/main summary skeleton은 reduced-motion에서 pulse를 정지한다', () => {
@@ -142,8 +144,8 @@ describe('주요 route 테스트 harness', () => {
 		renderAppRoute('/main')
 
 		expect(await screen.findByText('최근 실행 이력이 없습니다.')).toBeInTheDocument()
-		expect(screen.getByText('최근 오류가 없습니다.')).toBeInTheDocument()
-		expect(screen.getByText('총 0개 워크플로우')).toBeInTheDocument()
+		expect(await screen.findByText('최근 오류가 없습니다.')).toBeInTheDocument()
+		expect(await screen.findByText('총 0개 워크플로우')).toBeInTheDocument()
 	})
 
 	it('/main 전체 실패를 각 영역의 현재 오류 상태로 재현한다', async () => {
@@ -156,11 +158,11 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.getAllByRole('status')).toHaveLength(3)
 
 		expect(await screen.findByText('통계를 불러오지 못했습니다.')).toBeInTheDocument()
-		expect(screen.getByText('실행 로그를 불러오지 못했습니다.')).toBeInTheDocument()
-		expect(screen.getByText('오류 목록을 불러오지 못했습니다.')).toBeInTheDocument()
+		expect(await screen.findByText('실행 로그를 불러오지 못했습니다.')).toBeInTheDocument()
+		expect(await screen.findByText('오류 목록을 불러오지 못했습니다.')).toBeInTheDocument()
 		expect(await screen.findByText('대시보드 요약을 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(summaryStatus)
-		expect(screen.getByText('최근 실행 로그를 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(executionsStatus)
-		expect(screen.getByText('오류 목록을 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(errorsStatus)
+		expect(await screen.findByText('최근 실행 로그를 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(executionsStatus)
+		expect(await screen.findByText('오류 목록을 불러오지 못했습니다. 다시 시도할 수 있습니다.')).toBe(errorsStatus)
 		expect(screen.getAllByRole('status')).toHaveLength(3)
 		expect(screen.getAllByRole('button', { name: '다시 시도' })).toHaveLength(3)
 	})
@@ -171,8 +173,8 @@ describe('주요 route 테스트 harness', () => {
 		renderAppRoute('/main')
 
 		expect(await screen.findByText('실행 로그를 불러오지 못했습니다.')).toBeInTheDocument()
-		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
-		expect(screen.getByText('총 8개 워크플로우')).toBeInTheDocument()
+		expect(await screen.findByText('외부 서비스 응답 지연')).toBeInTheDocument()
+		expect(await screen.findByText('총 8개 워크플로우')).toBeInTheDocument()
 		expect(screen.queryByText('통계를 불러오지 못했습니다.')).not.toBeInTheDocument()
 	})
 
@@ -187,7 +189,7 @@ describe('주요 route 테스트 harness', () => {
 
 		await waitFor(() => expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(1))
 		expect(observeRequest).toHaveBeenCalledTimes(1)
-		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
+		expect(await screen.findByRole('row', { name: /고객 문의 자동 분류/ })).toBeInTheDocument()
 	})
 
 	it('/workflow cold loading과 empty 결과를 재현한다', async () => {
@@ -405,7 +407,7 @@ describe('주요 route 테스트 harness', () => {
 		renderAppRoute('/inter-setting')
 
 		expect(await screen.findByText('연결 상태를 확인하지 못했습니다.')).toBeInTheDocument()
-		expect(screen.getByText('팀 Slack')).toBeInTheDocument()
+		expect(await screen.findByText('팀 Slack')).toBeInTheDocument()
 		expect(screen.queryByText('Notion')).not.toBeInTheDocument()
 	})
 
@@ -420,7 +422,7 @@ describe('주요 route 테스트 harness', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'OAuth 연결 다시 시도' }))
 
 		expect(await screen.findByText('Notion')).toBeInTheDocument()
-		expect(screen.getByText('팀 Slack')).toBeInTheDocument()
+		expect(await screen.findByText('팀 Slack')).toBeInTheDocument()
 		expect(observeRequest).toHaveBeenCalledTimes(1)
 		expect(countRequests(observeRequest, 'oauthConnections')).toBe(1)
 	})
@@ -482,9 +484,13 @@ describe('주요 route 테스트 harness', () => {
 	it('/inter-setting providers empty는 credentials 최초 오류보다 우선한다', async () => {
 		server.use(createResourceEmptyHandler('providers'), ...createPartialFailureHandlers(['credentials']))
 
-		renderAppRoute('/inter-setting')
+		const { queryClient } = renderAppRoute('/inter-setting')
 
 		expect(await screen.findByText('등록 가능한 AI 제공자가 없습니다.')).toBeInTheDocument()
+		// query cache 상태는 render commit 전에 바뀔 수 있으므로, credentials 오류가 화면에 반영된 것을 aria-busy로 기다린다.
+		const aiCredentialsSection = screen.getByRole('heading', { level: 2, name: 'AI 자격 증명' }).closest('[aria-busy]')
+		await waitFor(() => expect(aiCredentialsSection).toHaveAttribute('aria-busy', 'false'))
+		expect(queryClient.getQueryState(queryKeys.credentials.list())?.status).toBe('error')
 		expect(screen.queryByText('AI 자격 증명을 불러오지 못했습니다.')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 	})
@@ -494,7 +500,7 @@ describe('주요 route 테스트 harness', () => {
 		const { queryClient } = renderAppRoute('/inter-setting')
 
 		expect(await screen.findByText('연결 상태를 확인하지 못했습니다.')).toBeInTheDocument()
-		expect(screen.getByText('AI 제공자 정보를 불러오지 못했습니다.')).toBeInTheDocument()
+		expect(await screen.findByText('AI 제공자 정보를 불러오지 못했습니다.')).toBeInTheDocument()
 		await waitFor(() => {
 			expect(queryClient.getQueryState(queryKeys.webhookCredentials.list())?.status).toBe('error')
 			expect(queryClient.getQueryState(queryKeys.oauthConnections.list())?.status).toBe('error')

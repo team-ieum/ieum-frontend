@@ -159,7 +159,8 @@ describe('통합 설정 연결 해제', () => {
 
 		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
 		expect(deleteRequest.deletedIds).toEqual([WEBHOOK_SERVICE_ID])
-		expect(document.querySelector('[data-integration-view="list"]')).not.toBeNull()
+		// router 상태는 startTransition render보다 먼저 바뀌므로 목록 view는 DOM 기준으로 기다린다.
+		await waitFor(() => expect(document.querySelector('[data-integration-view="list"]')).not.toBeNull())
 	})
 
 	it('취소하면 삭제 요청 없이 상세에 머문다', async () => {

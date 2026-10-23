@@ -165,6 +165,20 @@ export const createPartialFailureHandlers = (resources: ApiMockResource[]): Http
 export const createResourceSuccessHandler = (resource: ApiMockResource, delayMs?: number): HttpHandler =>
 	createHandler(getEndpointDefinition(resource), { delayMs })
 
+/**
+ * `release`가 resolve될 때까지 resource 요청을 붙잡은 뒤 다음 handler로 넘긴다.
+ * 응답을 만들지 않으므로 응답을 줄 handler(예: `createObservedSuccessHandlers`)를 먼저 등록하고 이 handler를 나중에 `server.use`해야 한다.
+ */
+export const createResourceHoldHandler = (
+	resource: ApiMockResource,
+	release: Promise<void>,
+	onHold?: (resource: ApiMockResource) => void
+): HttpHandler =>
+	http.get(`*${getEndpointDefinition(resource).path}`, async () => {
+		onHold?.(resource)
+		await release
+	})
+
 export const createResourceEmptyHandler = (resource: ApiMockResource): HttpHandler =>
 	createHandler(getEndpointDefinition(resource), { empty: true })
 
