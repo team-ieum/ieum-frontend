@@ -56,7 +56,9 @@ describe('주요 route 테스트 harness', () => {
 		expect(screen.getByText('오류 목록 불러오는 중')).toHaveAttribute('role', 'status')
 		expect(document.querySelectorAll('[data-skeleton-highlight]')).toHaveLength(52)
 		expect(screen.queryByText('오늘 총 실행')).not.toBeInTheDocument()
-		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
+		// '고객 문의 자동 분류'는 SideBar와 오류 목록에도 표시되므로 실행 로그 table 행으로 응답 도착을 확인한다.
+		expect(await screen.findByRole('row', { name: /고객 문의 자동 분류/ })).toBeInTheDocument()
+		expect(await screen.findByText('총 8개 워크플로우')).toBeInTheDocument()
 		expect(await screen.findByText('외부 서비스 응답 지연')).toBeInTheDocument()
 	})
 
@@ -187,7 +189,7 @@ describe('주요 route 테스트 harness', () => {
 
 		await waitFor(() => expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(1))
 		expect(observeRequest).toHaveBeenCalledTimes(1)
-		expect(await screen.findAllByText('고객 문의 자동 분류')).not.toHaveLength(0)
+		expect(await screen.findByRole('row', { name: /고객 문의 자동 분류/ })).toBeInTheDocument()
 	})
 
 	it('/workflow cold loading과 empty 결과를 재현한다', async () => {
@@ -482,9 +484,10 @@ describe('주요 route 테스트 harness', () => {
 	it('/inter-setting providers empty는 credentials 최초 오류보다 우선한다', async () => {
 		server.use(createResourceEmptyHandler('providers'), ...createPartialFailureHandlers(['credentials']))
 
-		renderAppRoute('/inter-setting')
+		const { queryClient } = renderAppRoute('/inter-setting')
 
 		expect(await screen.findByText('등록 가능한 AI 제공자가 없습니다.')).toBeInTheDocument()
+		await waitFor(() => expect(queryClient.getQueryState(queryKeys.credentials.list())?.status).toBe('error'))
 		expect(screen.queryByText('AI 자격 증명을 불러오지 못했습니다.')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 	})
