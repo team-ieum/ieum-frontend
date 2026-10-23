@@ -3,7 +3,9 @@ import type { IntegrationServiceType } from '@/types/integrationWorkflows'
 export const queryKeys = {
 	workflows: {
 		all: () => ['workflows'] as const,
-		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.all(), 'list', params] as const,
+		/** params와 무관하게 모든 목록 query를 prefix로 무효화할 때 쓴다. */
+		lists: () => [...queryKeys.workflows.all(), 'list'] as const,
+		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.lists(), params] as const,
 		dashboardSummary: () => [...queryKeys.workflows.all(), 'dashboard', 'summary'] as const,
 		dashboardExecutions: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'executions', { size }] as const,
 		dashboardErrors: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'errors', { size }] as const,

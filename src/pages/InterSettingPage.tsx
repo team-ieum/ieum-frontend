@@ -18,8 +18,6 @@ import type { MotionProps } from 'framer-motion'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
 import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
-import { useDeleteWebhookCredentialMutation } from '@/hooks/webhookCredentials/mutations/useDeleteWebhookCredentialMutation'
-import { useModalStore } from '@/stores/useModalStore'
 
 type IntegrationViewAnimationDefinition = Parameters<NonNullable<MotionProps['onAnimationComplete']>>[0]
 
@@ -59,6 +57,8 @@ const InterSettingPage = () => {
 		goList,
 		handleTabChange,
 		onConnect,
+		onDisconnect,
+		isDisconnecting,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	} = useIntegrationSetting()
@@ -153,21 +153,6 @@ const InterSettingPage = () => {
 		return () => window.cancelAnimationFrame(frame)
 	}, [detailResolution, view.kind, viewKey])
 
-	const { mutate: deleteWebhookCredential, isPending: isDisconnecting } = useDeleteWebhookCredentialMutation()
-	const openConfirm = useModalStore(state => state.openConfirm)
-
-	const handleDisconnect = () => {
-		if (!currentService || isDisconnecting) return
-		const serviceId = currentService.id
-		openConfirm({
-			title: '연결 해제',
-			message: `${currentService.name} 연결을 해제할까요? 이 서비스를 사용하는 워크플로우가 동작하지 않을 수 있습니다.`,
-			confirmText: '연결 해제',
-			variant: 'danger',
-			onConfirm: () => deleteWebhookCredential(serviceId, { onSuccess: goList }),
-		})
-	}
-
 	return (
 		<IntegrationSettingLayout
 			active={activeTab}
@@ -218,7 +203,7 @@ const InterSettingPage = () => {
 								<IntegrationConnectedDetail
 									service={currentService}
 									onBack={handleBack}
-									onDisconnect={handleDisconnect}
+									onDisconnect={onDisconnect}
 									isDisconnecting={isDisconnecting}
 									headingRef={detailHeadingRef}
 								/>

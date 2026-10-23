@@ -6,7 +6,9 @@ describe('UserPage', () => {
 	it('프로필과 계정 설정 UI를 표시한다', () => {
 		render(<UserPage />)
 
-		expect(screen.queryByRole('heading', { level: 1, name: '계정 설정' })).not.toBeInTheDocument()
+		// 화면에는 제목을 보이지 않는 디자인이므로 보조 기술용 sr-only 제목만 둔다.
+		expect(screen.getByRole('heading', { level: 1, name: '계정 설정' })).toHaveClass('sr-only')
+		expect(screen.getAllByRole('heading').map(heading => Number(heading.tagName.slice(1)))).toEqual([1, 2])
 		expect(screen.getByRole('heading', { level: 2, name: '프로필 정보' })).toBeInTheDocument()
 		expect(screen.getByLabelText('닉네임')).toHaveValue('이음새')
 		expect(screen.getByLabelText('이메일')).toHaveValue('ieumsae@example.com')
