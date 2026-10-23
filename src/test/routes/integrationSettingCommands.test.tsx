@@ -100,6 +100,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals()
+	vi.unstubAllEnvs()
 	vi.restoreAllMocks()
 })
 
@@ -107,6 +108,8 @@ describe('통합 설정 연결', () => {
 	it('OAuth 서비스 연결은 authorize URL로 이동한다', async () => {
 		const assign = vi.fn()
 		vi.stubGlobal('location', { ...window.location, assign })
+		// OAuth 이동 주소는 VITE_API_URL을 기준으로 만든다. .env가 없는 CI에서도 같은 조건으로 실행한다.
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 		server.use(
 			http.get('*/api/v1/github/oauth2/authorize', () =>
 				HttpResponse.json({
