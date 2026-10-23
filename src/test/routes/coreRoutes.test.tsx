@@ -487,7 +487,10 @@ describe('주요 route 테스트 harness', () => {
 		const { queryClient } = renderAppRoute('/inter-setting')
 
 		expect(await screen.findByText('등록 가능한 AI 제공자가 없습니다.')).toBeInTheDocument()
-		await waitFor(() => expect(queryClient.getQueryState(queryKeys.credentials.list())?.status).toBe('error'))
+		// query cache 상태는 render commit 전에 바뀔 수 있으므로, credentials 오류가 화면에 반영된 것을 aria-busy로 기다린다.
+		const aiCredentialsSection = screen.getByRole('heading', { level: 2, name: 'AI 자격 증명' }).closest('[aria-busy]')
+		await waitFor(() => expect(aiCredentialsSection).toHaveAttribute('aria-busy', 'false'))
+		expect(queryClient.getQueryState(queryKeys.credentials.list())?.status).toBe('error')
 		expect(screen.queryByText('AI 자격 증명을 불러오지 못했습니다.')).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 시도' })).not.toBeInTheDocument()
 	})
