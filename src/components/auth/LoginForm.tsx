@@ -7,6 +7,7 @@ import { useAuthMode } from '@/stores/useAuthMode'
 const LoginForm = () => {
 	const { values, errors, handleChange, handleSubmit } = useValidatedLoginForm()
 	const toSignup = useAuthMode(state => state.toSignup)
+	const toForgotPassword = useAuthMode(state => state.toForgotPassword)
 
 	return (
 		<form className='w-full flex flex-col justify-center' onSubmit={handleSubmit}>
@@ -48,7 +49,8 @@ const LoginForm = () => {
 				<div className='flex items-center justify-center gap-10'>
 					<button
 						type='button'
-						className='typo-caption1_medium text-main-deep-blue hover:typo-caption1_bold transition-all'
+						onClick={toForgotPassword}
+						className='typo-caption1_medium rounded-brand-md text-main-deep-blue hover:typo-caption1_bold transition-all focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-main-blue'
 					>
 						비밀번호 찾기
 					</button>
