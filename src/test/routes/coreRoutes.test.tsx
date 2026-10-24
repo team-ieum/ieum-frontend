@@ -7,6 +7,7 @@ import {
 	createAllFailureHandlers,
 	createDelayedSuccessHandlers,
 	createEmptyHandlers,
+	createHeldSuccessHandlers,
 	createObservedSuccessHandlers,
 	createPartialFailureHandlers,
 	createResourceEmptyHandler,
@@ -108,6 +109,8 @@ describe('주요 route 테스트 harness', () => {
 		markQueryStale(queryClient, queryKeys.workflows.dashboardExecutions(20))
 		markQueryStale(queryClient, queryKeys.workflows.dashboardErrors(20))
 		await act(async () => router.navigate('/user'))
+		const heldResponses = createHeldSuccessHandlers(observeRequest)
+		server.use(...heldResponses.handlers)
 		await act(async () => router.navigate('/main'))
 
 		expect(screen.getByText('총 8개 워크플로우')).toBeInTheDocument()
@@ -115,9 +118,12 @@ describe('주요 route 테스트 harness', () => {
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardSummary() })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardExecutions(20) })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.dashboardErrors(20) })).toBe(1)
-		expect(countRequests(observeRequest, 'dashboardSummary')).toBe(2)
-		expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(2)
-		expect(countRequests(observeRequest, 'dashboardErrors')).toBe(2)
+		await waitFor(() => {
+			expect(countRequests(observeRequest, 'dashboardSummary')).toBe(2)
+			expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(2)
+			expect(countRequests(observeRequest, 'dashboardErrors')).toBe(2)
+		})
+		heldResponses.release()
 		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
@@ -245,12 +251,15 @@ describe('주요 route 테스트 harness', () => {
 		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 		markQueryStale(queryClient, queryKeys.workflows.list({ size: 20 }))
 		await act(async () => router.navigate('/user'))
+		const heldResponses = createHeldSuccessHandlers(observeRequest)
+		server.use(...heldResponses.handlers)
 		await act(async () => router.navigate('/workflow'))
 
 		expect(screen.getByRole('button', { name: '고객 문의 자동 분류 열기' })).toBeInTheDocument()
 		expect(screen.queryByRole('status', { name: '로딩 중' })).not.toBeInTheDocument()
 		expect(queryClient.isFetching({ queryKey: queryKeys.workflows.list({ size: 20 }) })).toBe(1)
-		expect(countRequests(observeRequest, 'workflowList')).toBe(2)
+		await waitFor(() => expect(countRequests(observeRequest, 'workflowList')).toBe(2))
+		heldResponses.release()
 		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
@@ -367,6 +376,8 @@ describe('주요 route 테스트 harness', () => {
 		markQueryStale(queryClient, queryKeys.oauthConnections.list())
 		markQueryStale(queryClient, queryKeys.credentials.list())
 		await act(async () => router.navigate('/user'))
+		const heldResponses = createHeldSuccessHandlers(observeRequest)
+		server.use(...heldResponses.handlers)
 		await act(async () => router.navigate('/inter-setting'))
 
 		expect(screen.getByText('팀 Slack')).toBeInTheDocument()
@@ -376,10 +387,13 @@ describe('주요 route 테스트 harness', () => {
 		expect(queryClient.isFetching({ queryKey: queryKeys.oauthConnections.list() })).toBe(1)
 		expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
 		expect(queryClient.isFetching({ queryKey: queryKeys.credentials.list() })).toBe(1)
-		expect(countRequests(observeRequest, 'webhookCredentials')).toBe(2)
-		expect(countRequests(observeRequest, 'oauthConnections')).toBe(2)
+		await waitFor(() => {
+			expect(countRequests(observeRequest, 'webhookCredentials')).toBe(2)
+			expect(countRequests(observeRequest, 'oauthConnections')).toBe(2)
+			expect(countRequests(observeRequest, 'credentials')).toBe(2)
+		})
 		expect(countRequests(observeRequest, 'providers')).toBe(1)
-		expect(countRequests(observeRequest, 'credentials')).toBe(2)
+		heldResponses.release()
 		await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 	})
 
