@@ -1,7 +1,8 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { HttpResponse, http } from 'msw'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { subscribeSSE } from '@/api/sse'
+import { preloadWorkflowEditorPage } from '@/app/lazyModules'
 import { queryKeys } from '@/constants/queryKeys'
 import { WORKFLOW_FIXTURE_ID, workflowDetailResponse, workflowFixture } from '@/mocks/fixtures/workflows'
 import { server } from '@/mocks/server'
@@ -65,6 +66,15 @@ const startExecution = async () => {
 }
 
 describe('실제 workflow route의 백그라운드 실행 추적', () => {
+	// 실행 추적만 검증하므로 편집 page chunk의 cold import와 Suspense fallback 최소 유지 시간(300ms)을 테스트 시간에서 뺀다.
+	// cold 진입은 lazyRouteChunks.test.tsx가 검증한다. preload가 늦게 끝나도 첫 진입이 suspend할 뿐 결과는 같다.
+	beforeAll(async () => {
+		preloadWorkflowEditorPage()
+		await import('@/pages/WorkFlowPage')
+		// preload가 같은 import 결과를 받아 저장하는 then 콜백까지 끝나도록 한 task를 넘긴다.
+		await new Promise(resolve => setTimeout(resolve, 0))
+	})
+
 	beforeEach(() => {
 		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
 		subscriptions.length = 0
