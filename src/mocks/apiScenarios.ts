@@ -119,11 +119,13 @@ const createHandler = (
 		empty?: boolean
 		failure?: boolean
 		exposeTiming?: boolean
+		holdUntil?: Promise<void>
 		onRequest?: (resource: ApiMockResource) => void
 	} = {}
 ) =>
 	http.get(`*${definition.path}`, async () => {
 		options.onRequest?.(definition.resource)
+		if (options.holdUntil) await options.holdUntil
 		if (options.delayMs) await delay(options.delayMs)
 		if (options.failure) return new HttpResponse(null, { status: 500 })
 		return HttpResponse.json(options.empty ? definition.emptyBody : definition.successBody, {
@@ -138,6 +140,22 @@ export const createDelayedSuccessHandlers = (delayMs: number): HttpHandler[] =>
 
 export const createObservedSuccessHandlers = (onRequest: (resource: ApiMockResource) => void, delayMs?: number): HttpHandler[] =>
 	endpointDefinitions.map(definition => createHandler(definition, { delayMs, onRequest }))
+
+/**
+ * 모든 endpoint의 성공 응답을 `release` 호출 전까지 보류하는 handler를 만든다.
+ * background refetch 진행 중처럼 응답 전 상태를 응답 시점과 무관하게 확인할 때 쓴다.
+ * 보류된 요청은 `release` 전까지 끝나지 않으므로, 확인을 마치면 `release`한 뒤 완료를 기다린다. 이후 요청은 바로 응답한다.
+ */
+export const createHeldSuccessHandlers = (onRequest?: (resource: ApiMockResource) => void) => {
+	let release!: () => void
+	const released = new Promise<void>(resolve => {
+		release = resolve
+	})
+	return {
+		handlers: endpointDefinitions.map(definition => createHandler(definition, { holdUntil: released, onRequest })),
+		release,
+	}
+}
 
 export const createObservedFailureHandlers = (
 	resources: ApiMockResource[],
