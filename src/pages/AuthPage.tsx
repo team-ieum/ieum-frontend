@@ -1,11 +1,11 @@
-import LoginForm from '../components/auth/LoginForm'
-import SignupForm from '../components/auth/SignupForm'
-import ForgotPasswordForm from '../components/auth/ForgotPasswordForm'
-import AuthWavePanel from '../components/auth/AuthWavePanel'
+import LoginForm from '@/components/auth/LoginForm'
+import SignupForm from '@/components/auth/SignupForm'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
+import AuthWavePanel from '@/components/auth/AuthWavePanel'
 import { AnimatePresence, LayoutGroup, motion } from 'framer-motion'
-import { useAuthScreenMode } from '../hooks/auth/useAuthScreenMode'
-import type { SwapDirection } from '../types/auth'
-import { cn } from '../utils/cn'
+import { useAuthScreenMode } from '@/hooks/auth/useAuthScreenMode'
+import type { SwapDirection } from '@/types/auth'
+import { cn } from '@/utils/cn'
 
 const swapVariants = {
 	initial: (direction: SwapDirection) => ({ x: direction * 28, opacity: 0 }),
@@ -32,7 +32,7 @@ const AuthPage = () => {
 					transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
 					className={cn(
 						'w-full max-w-5xl overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-[#f0f9ff] shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]',
-						isVerification ? 'min-h-0 lg:min-h-[700px]' : 'min-h-[700px]'
+						isVerification ? 'min-h-0 lg:min-h-175' : 'min-h-175'
 					)}
 				>
 					<motion.div

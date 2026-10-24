@@ -1,5 +1,4 @@
 import type { CredentialProvider } from '@/types/credential'
-import type { IntegrationTabItem } from '@/types/aiCredentials'
 
 type ProviderVisual = { brand: string; tint: string }
 
@@ -14,9 +13,3 @@ export const PROVIDER_DISPLAY_NAME: Record<CredentialProvider, string> = {
 	CLAUDE: 'Claude',
 	GEMINI: 'Gemini',
 }
-
-export const INTEGRATION_TABS: IntegrationTabItem[] = [
-	{ id: 'connected', label: '연결된 서비스', icon: 'cable' },
-	{ id: 'ai-creds', label: 'AI 자격 증명', icon: 'vpn_key' },
-	{ id: 'browser', label: '통합 모듈 브라우저', icon: 'travel_explore' },
-]

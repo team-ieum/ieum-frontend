@@ -86,7 +86,7 @@ const DashboardHeroSection = ({ hero, hourlyExecutions, resource }: DashboardHer
 					</span>
 				</div>
 				<div
-					className='min-h-[200px] w-full overflow-visible text-main-light-blue [&_.recharts-cartesian-axis-tick-value]:fill-current [&_.recharts-cartesian-axis-tick-value]:text-[11px] [&_.recharts-cartesian-grid_line]:stroke-main-blue [&_.recharts-area-curve]:stroke-main-light-blue'
+					className='min-h-50 w-full overflow-visible text-main-light-blue [&_.recharts-cartesian-axis-tick-value]:fill-current [&_.recharts-cartesian-axis-tick-value]:text-[11px] [&_.recharts-cartesian-grid_line]:stroke-main-blue [&_.recharts-area-curve]:stroke-main-light-blue'
 					style={{ fontFamily: 'inherit' }}
 				>
 					<ResponsiveContainer width='100%' height={200}>

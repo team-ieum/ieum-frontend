@@ -46,8 +46,6 @@ const WorkflowListPage = (): ReactElement => {
 				<WorkflowFilterSidebar
 					filters={viewModel.filters}
 					serviceCounts={viewModel.serviceCounts}
-					categoryCounts={viewModel.categoryCounts}
-					statusCounts={viewModel.statusCounts}
 					activeFilterCount={viewModel.activeFilterCount}
 					onToggleService={viewModel.toggleService}
 					onToggleCategory={viewModel.toggleCategory}
@@ -76,7 +74,7 @@ const WorkflowListPage = (): ReactElement => {
 						className={cn(
 							'mt-4',
 							(viewModel.resource.isLoading || viewModel.workflows.length > 0) &&
-								(viewModel.view === 'card' ? 'min-h-[948px] lg:min-h-[468px] 2xl:min-h-[308px]' : 'min-h-[410px]')
+								(viewModel.view === 'card' ? 'min-h-237 lg:min-h-117 2xl:min-h-77' : 'min-h-102.5')
 						)}
 						aria-busy={
 							viewModel.resource.isLoading || viewModel.resource.isRefetching || viewModel.isFetchingNextPage

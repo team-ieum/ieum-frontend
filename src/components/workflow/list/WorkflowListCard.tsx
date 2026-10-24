@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { Boxes } from 'lucide-react'
 import type { WorkflowListRowView } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
-import { StatusBadge, TriggerPill } from './WorkflowListPrimitives'
+import { ServiceChain, StatusBadge, TriggerPill } from './WorkflowListPrimitives'
 import { WorkflowMoreMenu } from './WorkflowMoreMenu'
 
 type WorkflowListCardProps = {
@@ -12,7 +12,7 @@ type WorkflowListCardProps = {
 }
 
 const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps): ReactElement => (
-	<article className='group relative flex min-h-[148px] flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)]'>
+	<article className='group relative flex min-h-37 flex-col overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,.04)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[#cde9f4] hover:shadow-[0_16px_32px_-18px_rgba(41,83,124,.35)]'>
 		<button
 			type='button'
 			onClick={() => onOpen(workflow.id, workflow.name)}
@@ -32,9 +32,13 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 
 			<div className='mt-auto flex flex-col gap-3'>
 				<div className='flex items-center gap-2 pl-1'>
-					<p className='min-w-0 flex-1 truncate typo-caption1_regular text-neutral-500'>
-						{workflow.hasServices ? workflow.serviceNamesLabel : '연결된 서비스 없음'}
-					</p>
+					<div className='min-w-0 flex-1'>
+						{workflow.hasServices ? (
+							<ServiceChain services={workflow.services} size={18} max={4} showArrow={false} />
+						) : (
+							<p className='truncate typo-caption1_regular text-neutral-500'>연결된 서비스 없음</p>
+						)}
+					</div>
 					<span className='inline-flex shrink-0 items-center gap-1.5 typo-caption1_regular text-neutral-400'>
 						<Boxes size={14} />
 						노드 {workflow.nodeCount}개

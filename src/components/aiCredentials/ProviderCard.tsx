@@ -45,7 +45,7 @@ export const ProviderCard = ({
 			</header>
 
 			{/* Body */}
-			<div className='flex flex-col gap-[18px] px-6 py-5'>
+			<div className='flex flex-col gap-4.5 px-6 py-5'>
 				{provider.methods.includes('apikey') && (
 					<ApiKeySection
 						provider={provider}

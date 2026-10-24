@@ -1,4 +1,4 @@
-import type { StatusPillSkins } from '../../types/dashboard'
+import type { StatusPillSkins } from '@/types/dashboard'
 
 export const PILL_SKINS: StatusPillSkins = {
 	active: {

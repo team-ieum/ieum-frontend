@@ -12,6 +12,7 @@ export const workflowFixture = {
 	triggerType: 'MANUAL',
 	cronExpression: '',
 	version: 3,
+	services: ['SLACK'],
 	nodes: [
 		{
 			id: 'trigger-1',
@@ -35,10 +36,11 @@ export const workflowFixture = {
 	updatedAt: '2026-08-26T09:30:00Z',
 } satisfies WorkflowDto
 
-export const emptyWorkflowFixture = {
+const emptyWorkflowFixture = {
 	...workflowFixture,
 	name: '빈 워크플로우',
 	description: '',
+	services: [],
 	nodes: [],
 	edges: [],
 } satisfies WorkflowDto

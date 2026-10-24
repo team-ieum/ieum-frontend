@@ -1,4 +1,4 @@
-import googleIcon from '../../assets/web_light_rd_na.svg'
+import googleIcon from '@/assets/web_light_rd_na.svg'
 
 type GoogleSignInButtonProps = {
 	onClick?: () => void

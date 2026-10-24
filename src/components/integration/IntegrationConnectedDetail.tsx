@@ -1,7 +1,7 @@
 import type { Ref } from 'react'
 import { ArrowLeft, Link2Off } from 'lucide-react'
-import { getBrandConfig } from '../../constants/integration/brandConfig'
-import type { IntegrationService } from '../../types/integration'
+import { getBrandConfig } from '@/constants/integration/brandConfig'
+import type { IntegrationService } from '@/types/integration'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
 type IntegrationConnectedDetailProps = {

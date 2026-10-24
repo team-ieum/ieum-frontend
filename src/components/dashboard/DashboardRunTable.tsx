@@ -25,7 +25,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 	const { visibleItems, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = runs
 
 	return (
-		<DashboardCard className='min-h-[319px] w-full' aria-busy={resource.isLoading || resource.isRefetching}>
+		<DashboardCard className='min-h-79.75 w-full' aria-busy={resource.isLoading || resource.isRefetching}>
 			<DashboardResourceStatus
 				{...resource}
 				loadingMessage='최근 실행 로그 불러오는 중'
@@ -43,7 +43,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 			) : null}
 
 			<div className='overflow-x-auto'>
-				<table className='w-full min-w-[720px] border-collapse'>
+				<table className='w-full min-w-180 border-collapse'>
 					<thead>
 						<tr className='bg-neutral-50'>
 							{TABLE_HEADERS.map(header => (

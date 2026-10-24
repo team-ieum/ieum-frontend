@@ -32,8 +32,17 @@ const processQueue = (error: unknown, token: string | null = null) => {
 	failedQueue = []
 }
 
+const isFailedApiResponse = (data: unknown): data is ApiErrorResponse =>
+	typeof data === 'object' && data !== null && (data as { success?: unknown }).success === false
+
 api.interceptors.response.use(
-	response => response,
+	response => {
+		if (isFailedApiResponse(response.data)) {
+			const { code = 'INTERNAL_SERVER_ERROR', message } = response.data
+			return Promise.reject(new ApiError(code, message ?? '요청을 처리하지 못했어요.'))
+		}
+		return response
+	},
 	async error => {
 		if (!isAxiosError(error) || error.response?.data?.success !== false) {
 			return Promise.reject(error)

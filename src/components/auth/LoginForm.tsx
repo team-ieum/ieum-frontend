@@ -1,8 +1,8 @@
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import GoogleSignInButton from './GoogleSignInButton'
-import { useValidatedLoginForm } from '../../hooks/auth/useValidatedLoginForm'
-import { useAuthMode } from '../../stores/useAuthMode'
+import { useValidatedLoginForm } from '@/hooks/auth/useValidatedLoginForm'
+import { useAuthMode } from '@/stores/useAuthMode'
 
 const LoginForm = () => {
 	const { values, errors, handleChange, handleSubmit } = useValidatedLoginForm()

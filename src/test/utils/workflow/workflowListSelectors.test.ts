@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { WORKFLOW_CATEGORY_META, WORKFLOW_SERVICE_META, WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import { WORKFLOW_CATEGORY_META, WORKFLOW_SERVICE_META } from '@/constants/workflow/workflowList'
 import type { WorkflowListFilters, WorkflowListItem, WorkflowSortKey } from '@/types/workflowList'
 import { selectActiveWorkflowFilters, selectWorkflowCounts, selectWorkflows } from '@/utils/workflow/workflowListSelectors'
 
@@ -9,13 +9,11 @@ const createWorkflow = (overrides: Partial<WorkflowListItem>): WorkflowListItem 
 	id: 'a',
 	name: '다 알림',
 	desc: '주문 도착 안내',
-	tags: ['태그전용검색어'],
 	services: ['slack'],
 	category: 'ops',
 	status: 'active',
 	trigger: 'schedule',
 	lastRun: '2026-09-01T00:00:00Z',
-	success: 0,
 	...overrides,
 })
 
@@ -54,9 +52,8 @@ describe('selectWorkflows', () => {
 		}
 	)
 
-	it('공백 검색은 전체를 유지하고 태그와 일치하지 않는 검색어는 제외한다', () => {
+	it('공백 검색은 전체를 유지하고 일치하지 않는 검색어는 제외한다', () => {
 		expect(selectWorkflows(workflows, emptyFilters, '   ', 'recent')).toHaveLength(4)
-		expect(selectWorkflows(workflows, emptyFilters, '태그전용검색어', 'recent')).toEqual([])
 		expect(selectWorkflows(workflows, emptyFilters, '존재하지 않는 검색어', 'recent')).toEqual([])
 	})
 
@@ -102,22 +99,18 @@ describe('selectWorkflows', () => {
 })
 
 describe('selectWorkflowCounts', () => {
-	it('검색 결과와 관계없이 전달한 전체 목록의 서비스·분류·상태를 집계한다', () => {
+	it('검색 결과와 관계없이 전달한 전체 목록의 서비스를 집계한다', () => {
 		const filtered = selectWorkflows(workflows, emptyFilters, '다 알림', 'recent')
 		const counts = selectWorkflowCounts(workflows)
 
 		expect(filtered).toHaveLength(1)
 		expect(counts.serviceCounts).toMatchObject({ slack: 2, notion: 2, github: 1, gmail: 0 })
-		expect(counts.categoryCounts).toEqual({ cs: 0, marketing: 0, dev: 1, sales: 0, ops: 2, data: 1 })
-		expect(counts.statusCounts).toEqual({ active: 1, paused: 1, error: 2 })
 	})
 
-	it('빈 목록에서도 모든 메타 키에 0을 제공한다', () => {
+	it('빈 목록에서도 모든 서비스 메타 키에 0을 제공한다', () => {
 		const counts = selectWorkflowCounts([])
 
 		expect(counts.serviceCounts).toEqual(Object.fromEntries(Object.keys(WORKFLOW_SERVICE_META).map(id => [id, 0])))
-		expect(counts.categoryCounts).toEqual(Object.fromEntries(Object.keys(WORKFLOW_CATEGORY_META).map(id => [id, 0])))
-		expect(counts.statusCounts).toEqual(Object.fromEntries(Object.keys(WORKFLOW_STATUS_META).map(id => [id, 0])))
 	})
 })
 
