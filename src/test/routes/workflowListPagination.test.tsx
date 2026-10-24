@@ -53,15 +53,17 @@ describe('워크플로우 목록 페이지네이션', () => {
 
 		renderAppRoute('/workflow')
 
-		expect(await screen.findByRole('button', { name: '첫 번째 워크플로우 열기' })).toBeInTheDocument()
-		expect(screen.getByText('불러온 1개')).toBeInTheDocument()
+		// *ByRole의 접근 이름 계산은 jsdom에서 비싸 render마다 반복하면 CI 부하에서 timeout을 넘는다.
+		// 각 응답에서만 바뀌는 개수 문구로 기다린 뒤 role 단언은 한 번만 한다.
+		expect(await screen.findByText('불러온 1개')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '첫 번째 워크플로우 열기' })).toBeInTheDocument()
 		expect(getIntersectionObserverRootMargins()).toContain('0px 0px 320px 0px')
 
 		act(() => intersectObservedElements())
 
-		expect(await screen.findByRole('button', { name: '두 번째 워크플로우 열기' })).toBeInTheDocument()
+		expect(await screen.findByText('불러온 2개')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '두 번째 워크플로우 열기' })).toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '첫 번째 워크플로우 열기' })).toBeInTheDocument()
-		expect(screen.getByText('불러온 2개')).toBeInTheDocument()
 		expect(observeRequest).toHaveBeenCalledTimes(2)
 
 		act(() => intersectObservedElements())
