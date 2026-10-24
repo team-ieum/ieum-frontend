@@ -25,10 +25,10 @@ const verify = async () => {
 	fireEvent.click(screen.getByRole('button', { name: '인증코드 확인' }))
 	await screen.findByLabelText('이름', { exact: true })
 }
-const fillSignupDetails = () => {
+const fillSignupDetails = (password = 'NewPassw0rd!', confirmation = password) => {
 	fireEvent.change(screen.getByLabelText('이름', { exact: true }), { target: { value: ' 홍길동 ' } })
-	fireEvent.change(screen.getByLabelText('비밀번호', { exact: true }), { target: { value: 'NewPassw0rd!' } })
-	fireEvent.change(screen.getByLabelText('비밀번호 확인', { exact: true }), { target: { value: 'NewPassw0rd!' } })
+	fireEvent.change(screen.getByLabelText('비밀번호', { exact: true }), { target: { value: password } })
+	fireEvent.change(screen.getByLabelText('비밀번호 확인', { exact: true }), { target: { value: confirmation } })
 }
 
 describe('회원가입 이메일 인증', () => {
@@ -391,6 +391,38 @@ describe('인증 정책과 오류 처리', () => {
 		await waitFor(() => expect(screen.getByLabelText('이메일', { exact: true })).toHaveValue(''))
 		expect(screen.queryByLabelText('인증코드')).not.toBeInTheDocument()
 	})
+	it.each(['signup', 'reset'])('%s에서 72자를 넘거나 한글이 포함된 비밀번호는 요청 전에 차단한다', async mode => {
+		const request = vi.fn()
+		installCodeSuccess()
+		server.use(
+			http.post(mode === 'signup' ? '*/api/v1/auth/register' : '*/api/v1/auth/password/reset', () => {
+				request()
+				return success()
+			})
+		)
+		if (mode === 'signup') {
+			openSignup()
+			await enterEmail()
+			await verify()
+		} else {
+			openReset()
+			await enterEmail()
+			await verifyReset()
+		}
+		for (const password of ['Ab1!' + 'a'.repeat(69), 'Abcdef1!가']) {
+			if (mode === 'signup') fillSignupDetails(password)
+			else fillResetDetails(password)
+			fireEvent.click(screen.getByRole('button', { name: mode === 'signup' ? '회원가입' : '비밀번호 재설정' }))
+			expect(screen.getByLabelText(mode === 'signup' ? '비밀번호' : '새 비밀번호', { exact: true })).toHaveAttribute(
+				'aria-invalid',
+				'true'
+			)
+			expect(screen.getByRole('alert')).toHaveTextContent(
+				'비밀번호는 8~72자이며 영문 대문자·소문자·숫자·특수문자를 각각 포함해야 합니다. 한글은 사용할 수 없습니다.'
+			)
+			expect(request).not.toHaveBeenCalled()
+		}
+	})
 	it('비밀번호 규칙과 확인 불일치는 재설정 요청 전에 차단한다', async () => {
 		const resets = vi.fn()
 		installCodeSuccess()
@@ -418,7 +450,9 @@ describe('인증 정책과 오류 처리', () => {
 		fillResetDetails()
 		fireEvent.click(screen.getByRole('button', { name: '비밀번호 재설정' }))
 		expect(await screen.findByRole('alert')).toHaveTextContent(
-			code === 'EMAIL_NOT_VERIFIED' ? '이메일 인증을 다시 진행해주세요.' : '비밀번호는 8~100자'
+			code === 'EMAIL_NOT_VERIFIED'
+				? '이메일 인증을 다시 진행해주세요.'
+				: '비밀번호는 8~72자이며 영문 대문자·소문자·숫자·특수문자를 각각 포함해야 합니다. 한글은 사용할 수 없습니다.'
 		)
 		if (code === 'EMAIL_NOT_VERIFIED') expect(screen.getByLabelText('이메일', { exact: true })).toBeInTheDocument()
 	})
