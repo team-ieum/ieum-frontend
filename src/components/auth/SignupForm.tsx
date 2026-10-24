@@ -1,4 +1,5 @@
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
+import { useSignupFormViewModel } from '@/hooks/auth/useSignupFormViewModel'
 import VerificationTimer from './VerificationTimer'
 import VerificationResend from './VerificationResend'
 import AuthFlowHeader from './AuthFlowHeader'
@@ -6,130 +7,102 @@ import VerificationNavigation from './VerificationNavigation'
 import TextInput from './textInput'
 import AuthSubmitButton from './AuthSubmitButton'
 import VerificationCodeInput from './VerificationCodeInput'
-import { useValidatedSignupForm } from '@/hooks/auth/useValidatedSignupForm'
-import { useEmailVerification } from '@/hooks/auth/useEmailVerification'
-import { useAuthMode } from '@/stores/useAuthMode'
 
 const SignupForm = () => {
-	const verification = useEmailVerification('SIGNUP')
-	const { values, errors, handleChange, handleSubmit, resetForm, formError, isPending } = useValidatedSignupForm(verification)
-	const toLogin = useAuthMode(state => state.toLogin)
+	const viewModel = useSignupFormViewModel()
+
 	return (
 		<form
 			className='flex w-full flex-col justify-center'
 			aria-label='회원가입'
-			aria-busy={verification.isPending || isPending}
+			aria-busy={viewModel.isPending}
 			noValidate
-			onSubmit={
-				verification.step === 'email'
-					? verification.submitEmail
-					: verification.step === 'code'
-						? verification.submitCode
-						: handleSubmit
-			}
+			onSubmit={viewModel.handleSubmit}
 		>
-			<AuthFlowHeader title='회원가입' step={verification.step} finalLabel='가입 정보' />
-			{verification.step !== 'email' && (
+			<AuthFlowHeader title='회원가입' step={viewModel.step} finalLabel='가입 정보' />
+			{viewModel.step !== 'email' && (
 				<VerificationNavigation
-					email={verification.email}
-					disabled={verification.isPending || isPending}
-					onChangeEmail={() => {
-						verification.restart()
-						resetForm()
-					}}
+					email={viewModel.email}
+					disabled={viewModel.isPending}
+					onChangeEmail={viewModel.handleChangeEmail}
 				/>
 			)}
 			<div className='space-y-4 mt-8 sm:mt-12'>
-				{verification.step === 'email' && (
+				{viewModel.step === 'email' && (
 					<TextInput
 						text='email'
-						disabled={verification.isPending || isPending}
-						value={verification.email}
-						onChange={verification.changeEmail}
-						error={verification.error}
+						disabled={viewModel.isPending}
+						value={viewModel.email}
+						onChange={viewModel.handleEmailChange}
+						error={viewModel.verificationError}
 						autoComplete='email'
 					/>
 				)}
-				{verification.step === 'code' && (
+				{viewModel.step === 'code' && (
 					<VerificationCodeInput
-						disabled={verification.isPending || isPending || verification.codeUnavailable}
-						value={verification.code}
-						onChange={verification.changeCode}
-						error={verification.error}
+						disabled={viewModel.isCodeDisabled}
+						value={viewModel.code}
+						onChange={viewModel.handleCodeChange}
+						error={viewModel.verificationError}
 					/>
 				)}
-				{verification.step === 'details' && (
+				{viewModel.step === 'details' && (
 					<>
 						<TextInput
 							text='name'
-							disabled={isPending}
-							value={values.name}
-							onChange={value => handleChange('name', value)}
-							error={errors.name}
+							disabled={viewModel.isDetailsPending}
+							value={viewModel.values.name}
+							onChange={value => viewModel.handleChange('name', value)}
+							error={viewModel.errors.name}
 							autoComplete='name'
 						/>
 						<TextInput
 							text='password'
-							disabled={isPending}
+							disabled={viewModel.isDetailsPending}
 							hint={PASSWORD_RULE_MESSAGE}
-							value={values.password}
-							onChange={value => handleChange('password', value)}
-							error={errors.password}
+							value={viewModel.values.password}
+							onChange={value => viewModel.handleChange('password', value)}
+							error={viewModel.errors.password}
 							autoComplete='new-password'
 						/>
 						<TextInput
 							text='passwordConfirm'
-							disabled={isPending}
-							value={values.passwordConfirm}
-							onChange={value => handleChange('passwordConfirm', value)}
-							error={errors.passwordConfirm}
+							disabled={viewModel.isDetailsPending}
+							value={viewModel.values.passwordConfirm}
+							onChange={value => viewModel.handleChange('passwordConfirm', value)}
+							error={viewModel.errors.passwordConfirm}
 							autoComplete='new-password'
 						/>
 					</>
 				)}
 			</div>
-			{verification.step === 'code' && <VerificationTimer seconds={verification.codeSeconds} />}
-			{verification.step === 'details' && <VerificationTimer seconds={verification.verifiedSeconds} verified />}
+			{viewModel.step === 'code' && <VerificationTimer seconds={viewModel.codeSeconds} />}
+			{viewModel.step === 'details' && <VerificationTimer seconds={viewModel.verifiedSeconds} verified />}
 			<div className='mt-8'>
-				<AuthSubmitButton
-					label={
-						verification.step === 'email'
-							? '인증코드 받기'
-							: verification.step === 'code'
-								? '인증코드 확인'
-								: '회원가입'
-					}
-					disabled={
-						verification.isPending ||
-						isPending ||
-						(verification.step === 'email' && verification.resendSeconds > 0) ||
-						(verification.step === 'code' && verification.codeUnavailable) ||
-						(verification.step === 'details' && !verification.isVerified())
-					}
-				/>
+				<AuthSubmitButton label={viewModel.submitLabel} disabled={viewModel.isSubmitDisabled} />
 			</div>
-			{verification.step === 'code' && (
+			{viewModel.step === 'code' && (
 				<VerificationResend
-					seconds={verification.resendSeconds}
-					isPending={verification.isPending}
-					onResend={() => void verification.resendCode()}
+					seconds={viewModel.resendSeconds}
+					isPending={viewModel.isVerificationPending}
+					onResend={viewModel.handleResendCode}
 				/>
 			)}
-			{formError && verification.step === 'details' && (
+			{viewModel.formError && viewModel.step === 'details' && (
 				<p role='alert' className='mt-4 typo-caption1_regular text-danger-700'>
-					{formError}
+					{viewModel.formError}
 				</p>
 			)}
-			{verification.notice && (
+			{viewModel.notice && (
 				<p role='status' className='mt-4 typo-caption1_regular text-main-deep-blue'>
-					{verification.notice}
+					{viewModel.notice}
 				</p>
 			)}
 			<div className='flex items-center justify-center gap-4 pt-6'>
 				<span className='typo-caption1_medium text-neutral-500'>이미 계정이 있으신가요?</span>
 				<button
 					type='button'
-					onClick={toLogin}
+					onClick={viewModel.handleBackToLogin}
 					className='min-h-10 rounded-brand-md px-3 typo-caption1_medium text-main-deep-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 				>
 					로그인하기

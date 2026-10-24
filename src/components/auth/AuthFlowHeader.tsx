@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { VerificationStep } from '@/hooks/auth/useEmailVerification'
+import type { VerificationStep } from '@/types/authFlow'
 
 type AuthFlowHeaderProps = { title: string; step: VerificationStep; finalLabel: string }
 const AuthFlowHeader = ({ title, step, finalLabel }: AuthFlowHeaderProps) => {

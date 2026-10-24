@@ -1,9 +1,16 @@
 import axios, { isAxiosError } from 'axios'
 import { ApiError } from '@/utils/ApiError'
 import type { ApiErrorResponse } from '@/types/api'
-import type { AuthActionResponse, SendEmailCodeRequest, VerifyEmailCodeRequest, ResetPasswordRequest } from '@/types/auth'
+import type {
+	AuthActionResponse,
+	LoginResponse,
+	RegisterResponse,
+	RequestRegisterDto,
+	ResetPasswordRequest,
+	SendEmailCodeRequest,
+	VerifyEmailCodeRequest,
+} from '@/types/auth'
 import { api } from '@/utils/AxiosInstance'
-import type { RequestRegisterDto, RegisterResponse, LoginResponse } from '@/types/auth'
 
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
 	const response = await api.post('/api/v1/auth/login', { email, password })
@@ -20,8 +27,8 @@ const postPublicAuth = async <T extends AuthActionResponse>(path: string, body: 
 	try {
 		const response = await publicAuthApi.post<T>(path, body)
 		if (!response.data.success) {
-			const failure = response.data as unknown as ApiErrorResponse
-			throw new ApiError(failure.code ?? 'INTERNAL_SERVER_ERROR', failure.message)
+			const code = response.data.code as ApiErrorResponse['code']
+			throw new ApiError(code ?? 'INTERNAL_SERVER_ERROR', response.data.message)
 		}
 		return response.data
 	} catch (error) {
@@ -32,11 +39,11 @@ const postPublicAuth = async <T extends AuthActionResponse>(path: string, body: 
 	}
 }
 
-export const sendEmailCode = (body: SendEmailCodeRequest) =>
+export const sendEmailCode = (body: SendEmailCodeRequest): Promise<AuthActionResponse> =>
 	postPublicAuth<AuthActionResponse>('/api/v1/auth/email/send-code', { ...body, email: body.email.trim().toLowerCase() })
 
-export const verifyEmailCode = (body: VerifyEmailCodeRequest) =>
+export const verifyEmailCode = (body: VerifyEmailCodeRequest): Promise<AuthActionResponse> =>
 	postPublicAuth<AuthActionResponse>('/api/v1/auth/email/verify-code', { ...body, email: body.email.trim().toLowerCase() })
 
-export const resetPassword = (body: ResetPasswordRequest) =>
+export const resetPassword = (body: ResetPasswordRequest): Promise<AuthActionResponse> =>
 	postPublicAuth<AuthActionResponse>('/api/v1/auth/password/reset', { ...body, email: body.email.trim().toLowerCase() })

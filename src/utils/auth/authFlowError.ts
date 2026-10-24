@@ -1,19 +1,10 @@
+import { AUTH_FLOW_ERROR_MESSAGES } from '@/constants/auth/authFlow'
 import { isApiError } from '@/utils/ApiError'
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
 import type { VerificationPurpose } from '@/types/auth'
+import type { AuthFlowAction } from '@/types/authFlow'
 
-type AuthAction = 'send' | 'verify' | 'signup' | 'reset'
-export const AUTH_FLOW_ERROR_MESSAGES = {
-	EMAIL_ALREADY_EXISTS: '이미 가입된 이메일입니다. 로그인해주세요.',
-	EMAIL_NOT_VERIFIED: '이메일 인증을 다시 진행해주세요.',
-	VERIFICATION_RESEND_TOO_SOON: '잠시 후 다시 요청해주세요.',
-	MAIL_SEND_FAILED: '메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.',
-	VERIFICATION_CODE_INVALID: '인증코드가 일치하지 않습니다.',
-	VERIFICATION_ATTEMPTS_EXCEEDED: '입력 횟수를 초과했습니다. 인증코드를 다시 받아주세요.',
-	VERIFICATION_CODE_EXPIRED: '인증코드가 만료되었습니다. 다시 받아주세요.',
-} as const
-
-export const getAuthFlowError = (error: unknown, action: AuthAction, purpose: VerificationPurpose): string => {
+export const getAuthFlowError = (error: unknown, action: AuthFlowAction, purpose: VerificationPurpose): string => {
 	if (isApiError(error)) {
 		// 재설정에서는 예기치 않은 서버 오류 문구로도 가입 여부가 드러나지 않게 한다.
 		if (error.code === 'EMAIL_ALREADY_EXISTS' && purpose === 'PASSWORD_RESET')
