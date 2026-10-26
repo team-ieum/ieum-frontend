@@ -44,7 +44,6 @@ describe('useWorkflowListCommands', () => {
 			name: '새 워크플로우',
 			nodes: [],
 			edges: [],
-			triggerType: 'MANUAL',
 		})
 		expect(result.current.location.pathname).toBe('/workflow/created-workflow')
 		expect(useModalStore.getState().isOpen).toBe(false)

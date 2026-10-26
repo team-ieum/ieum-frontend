@@ -7,6 +7,11 @@ export const PAGINATION_DEMO_REQUEST_DELAY_MS = 700
 
 const serviceBrands = ['slack', 'notion', 'github', 'gmail', 'sheets', 'discord'] as const
 const triggerTypes = ['MANUAL', 'SCHEDULE', 'WEBHOOK'] as const
+const triggerEvents = {
+	MANUAL: 'manual.run',
+	SCHEDULE: 'schedule.every',
+	WEBHOOK: 'webhook.catch',
+} as const satisfies Record<(typeof triggerTypes)[number], string>
 
 export const paginationDemoWorkflows: WorkflowDto[] = Array.from({ length: PAGINATION_DEMO_WORKFLOW_COUNT }, (_, index) => {
 	const sequence = index + 1
@@ -15,6 +20,7 @@ export const paginationDemoWorkflows: WorkflowDto[] = Array.from({ length: PAGIN
 	const serviceBrand = serviceBrands[index % serviceBrands.length]
 	const triggerNodeId = `trigger-${sequenceLabel}`
 	const serviceNodeId = `service-${sequenceLabel}`
+	const cronExpression = triggerType === 'SCHEDULE' ? `0 ${index % 60} 9 * * ?` : null
 
 	return {
 		id: `00000000-0000-4000-8000-${String(sequence).padStart(12, '0')}`,
@@ -23,20 +29,22 @@ export const paginationDemoWorkflows: WorkflowDto[] = Array.from({ length: PAGIN
 		description: `${serviceBrand} 연동을 확인하는 ${sequenceLabel}번째 워크플로우입니다.`,
 		active: sequence % 5 !== 0,
 		triggerType,
-		cronExpression: triggerType === 'SCHEDULE' ? `0 ${index % 60} 9 * * ?` : null,
+		cronExpression,
 		version: 1,
 		services: [serviceBrand.toUpperCase()],
 		nodes: [
 			{
 				id: triggerNodeId,
 				type: 'TRIGGER',
+				event: triggerEvents[triggerType],
 				label: '시작',
 				position: { x: 80, y: 120 },
-				config: {},
+				config: cronExpression ? { cron: cronExpression } : {},
 			},
 			{
 				id: serviceNodeId,
 				type: 'HTTP',
+				event: 'http.request',
 				label: `${serviceBrand} 작업`,
 				position: { x: 400, y: 120 },
 				config: { brand: serviceBrand },

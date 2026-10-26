@@ -18,7 +18,10 @@ export type WorkflowErrorCode =
 
 export type WorkflowNodeDto = {
 	id: string
+	/** 서버가 event로 계산해 응답에 채우는 값. 요청에 실어 보내도 서버는 무시합니다. */
 	type: string
+	/** 노드 정체성(카탈로그 항목 id, 예: `slack_bot.send_channel_message`). 생성·수정 요청에 필수입니다. */
+	event: string
 	label: string
 	description?: string
 	position?: {
@@ -29,6 +32,8 @@ export type WorkflowNodeDto = {
 }
 
 export type WorkflowEdgeDto = {
+	/** 서버 엣지 id. 레거시 정의는 null이고, 새 엣지는 생략하면 서버가 채웁니다. */
+	id?: string | null
 	source: string
 	target: string
 	conditionType?: string | null

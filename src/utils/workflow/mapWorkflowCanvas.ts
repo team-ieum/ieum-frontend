@@ -95,6 +95,8 @@ export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 	return (
 		typeof node.id === 'string' &&
 		typeof node.type === 'string' &&
+		typeof node.event === 'string' &&
+		node.event.trim() !== '' &&
 		typeof node.label === 'string' &&
 		(node.position === undefined || hasValidPosition(node.position)) &&
 		isConfig(node.config)
@@ -104,7 +106,11 @@ export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 export const isWorkflowEdgeDto = (value: unknown): value is WorkflowEdgeDto => {
 	if (typeof value !== 'object' || value === null) return false
 	const edge = value as Partial<WorkflowEdgeDto>
-	return typeof edge.source === 'string' && typeof edge.target === 'string'
+	return (
+		(edge.id === undefined || edge.id === null || typeof edge.id === 'string') &&
+		typeof edge.source === 'string' &&
+		typeof edge.target === 'string'
+	)
 }
 
 export const normalizeWorkflowCanvasDocument = (rawNodes: unknown[], rawEdges: unknown[]) => {
@@ -161,16 +167,18 @@ export const createWorkflowCanvasEdge = (edge: WorkflowEdgeDto, id: string): Wor
 	source: edge.source,
 	target: edge.target,
 	type: 'animated',
-	data: { conditionType: edge.conditionType ?? null },
+	data: { serverId: edge.id ?? undefined, conditionType: edge.conditionType ?? null },
 	style: { stroke: WORKFLOW_EDGE_COLOR, strokeWidth: 1.5 },
 	markerEnd: { type: MarkerType.ArrowClosed, color: WORKFLOW_EDGE_COLOR },
 })
 
 export const toWorkflowCanvasEdges = (edges: WorkflowEdgeDto[]): WorkflowEdgeType[] =>
-	edges.map((edge, index) => createWorkflowCanvasEdge(edge, `${edge.source}-${edge.target}-${index}`))
+	edges.map((edge, index) => createWorkflowCanvasEdge(edge, edge.id ?? `${edge.source}-${edge.target}-${index}`))
 
+// 서버 id가 있는 엣지만 id를 싣는다. 새 엣지와 레거시 엣지는 id를 생략해 서버가 채우게 한다.
 export const toWorkflowEdgeDtos = (edges: WorkflowEdgeType[]): WorkflowEdgeDto[] =>
 	edges.map(edge => ({
+		...(edge.data?.serverId ? { id: edge.data.serverId } : {}),
 		source: edge.source,
 		target: edge.target,
 		conditionType: edge.data?.conditionType ?? null,

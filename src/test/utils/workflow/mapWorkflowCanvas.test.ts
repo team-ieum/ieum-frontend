@@ -4,10 +4,13 @@ import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import {
 	createModelNameMap,
+	createWorkflowCanvasEdge,
+	isWorkflowEdgeDto,
 	isWorkflowNodeDto,
 	normalizeWorkflowCanvasDocument,
 	toWorkflowCanvasEdges,
 	toWorkflowCanvasNodes,
+	toWorkflowEdgeDtos,
 	toWorkflowNodeStatus,
 	toWorkflowTechnicalDetails,
 } from '@/utils/workflow/mapWorkflowCanvas'
@@ -38,6 +41,7 @@ const nodes: WorkflowNodeDto[] = [
 	{
 		id: 'trigger',
 		type: 'TRIGGER',
+		event: 'manual.run',
 		label: '문의가 도착하면',
 		description: '새 문의가 들어오면 시작해요',
 		position: { x: 40, y: 80 },
@@ -46,12 +50,14 @@ const nodes: WorkflowNodeDto[] = [
 	{
 		id: 'ai',
 		type: 'AI',
+		event: 'ai.reasoning',
 		label: '문의 분류하기',
 		config: { model: 'gemini-2.5-flash' },
 	},
 	{
 		id: 'condition',
 		type: 'CONDITION',
+		event: 'branch.if',
 		label: '긴급 문의 확인',
 		config: {},
 	},
@@ -77,19 +83,45 @@ describe('mapWorkflowCanvas', () => {
 		})
 	})
 
+	it('event가 없거나 빈 문자열인 노드를 노드 DTO로 허용하지 않는다', () => {
+		const node = { id: 'ai', type: 'AI', event: 'ai.reasoning', label: 'AI 작업', config: {} }
+
+		expect(isWorkflowNodeDto(node)).toBe(true)
+		expect(isWorkflowNodeDto({ id: 'ai', type: 'AI', label: 'AI 작업', config: {} })).toBe(false)
+		expect(isWorkflowNodeDto({ ...node, event: '' })).toBe(false)
+		expect(isWorkflowNodeDto({ ...node, event: '   ' })).toBe(false)
+		expect(isWorkflowNodeDto({ ...node, event: 42 })).toBe(false)
+	})
+
+	it('엣지 id는 문자열·null·생략만 허용한다', () => {
+		const edge = { source: 'trigger', target: 'ai' }
+
+		expect(isWorkflowEdgeDto(edge)).toBe(true)
+		expect(isWorkflowEdgeDto({ ...edge, id: 'edge-1' })).toBe(true)
+		expect(isWorkflowEdgeDto({ ...edge, id: null })).toBe(true)
+		expect(isWorkflowEdgeDto({ ...edge, id: 7 })).toBe(false)
+	})
+
 	it('잘못된 AI 캔버스 위치를 노드 DTO로 허용하지 않는다', () => {
-		const node = { id: 'ai', type: 'AI', label: 'AI 작업', config: {} }
+		const node = { id: 'ai', type: 'AI', event: 'ai.reasoning', label: 'AI 작업', config: {} }
 
 		expect(isWorkflowNodeDto(node)).toBe(true)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 40, y: 80 } })).toBe(true)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 'bad', y: 0 } })).toBe(false)
 		expect(isWorkflowNodeDto({ ...node, position: { x: 0, y: Number.POSITIVE_INFINITY } })).toBe(false)
-		expect(isWorkflowNodeDto({ id: 'ai', type: 'AI', label: 'AI 작업' })).toBe(false)
+		expect(isWorkflowNodeDto({ id: 'ai', type: 'AI', event: 'ai.reasoning', label: 'AI 작업' })).toBe(false)
 	})
 
 	it('공통 canvas 입력에서 잘못된 좌표와 orphan 연결선을 제거한다', () => {
-		const validNode = { id: 'valid', type: 'TRIGGER', label: '유효 노드', position: { x: 0, y: 80 }, config: {} }
-		const fallbackNode = { id: 'fallback', type: 'AI', label: '좌표 없는 노드', config: {} }
+		const validNode = {
+			id: 'valid',
+			type: 'TRIGGER',
+			event: 'manual.run',
+			label: '유효 노드',
+			position: { x: 0, y: 80 },
+			config: {},
+		}
+		const fallbackNode = { id: 'fallback', type: 'AI', event: 'ai.reasoning', label: '좌표 없는 노드', config: {} }
 		const rawNodes: unknown[] = [
 			validNode,
 			fallbackNode,
@@ -97,6 +129,7 @@ describe('mapWorkflowCanvas', () => {
 			{ ...validNode, id: 'nan-position', position: { x: Number.NaN, y: 0 } },
 			{ ...validNode, id: 'infinite-position', position: { x: 0, y: Number.POSITIVE_INFINITY } },
 			{ ...validNode, id: 'missing-config', config: undefined },
+			{ ...validNode, id: 'missing-event', event: undefined },
 		]
 		const validEdge = { source: 'valid', target: 'fallback' }
 		const rawEdges: unknown[] = [
@@ -112,7 +145,7 @@ describe('mapWorkflowCanvas', () => {
 			nodes: [validNode, fallbackNode],
 			edges: [validEdge],
 		})
-		expect(rawNodes).toHaveLength(6)
+		expect(rawNodes).toHaveLength(7)
 		expect(rawEdges).toHaveLength(6)
 	})
 
@@ -184,7 +217,7 @@ describe('mapWorkflowCanvas', () => {
 
 	it('Provider에 없는 모델은 원본 ID를 사용하고 기술 정보 모드를 반영한다', () => {
 		const result = toWorkflowCanvasNodes(
-			[{ id: 'ai', type: 'AI', label: 'AI 작업', config: { model: 'custom-model' } }],
+			[{ id: 'ai', type: 'AI', event: 'ai.reasoning', label: 'AI 작업', config: { model: 'custom-model' } }],
 			new Map(),
 			true
 		)
@@ -200,6 +233,26 @@ describe('mapWorkflowCanvas', () => {
 		expect(result[0].data).toEqual({ conditionType: null })
 		expect(result[0]).toMatchObject({ style: { stroke: '#a8b0ba', strokeWidth: 1.5 } })
 		expect(result[0].markerEnd).toMatchObject({ color: '#a8b0ba' })
+	})
+
+	it('서버 엣지 id는 캔버스 id로 쓰고 저장 요청에 그대로 싣는다', () => {
+		const canvasEdges = toWorkflowCanvasEdges([
+			{ id: 'edge-server', source: 'trigger', target: 'ai', conditionType: null },
+			{ id: null, source: 'ai', target: 'condition', conditionType: 'true' },
+		])
+
+		expect(canvasEdges.map(edge => edge.id)).toEqual(['edge-server', 'ai-condition-1'])
+		expect(toWorkflowEdgeDtos(canvasEdges)).toEqual([
+			{ id: 'edge-server', source: 'trigger', target: 'ai', conditionType: null },
+			{ source: 'ai', target: 'condition', conditionType: 'true' },
+		])
+	})
+
+	it('캔버스에서 새로 이은 엣지는 id 없이 저장 요청을 만든다', () => {
+		const edge = createWorkflowCanvasEdge({ source: 'trigger', target: 'ai', conditionType: null }, 'manual-trigger-ai')
+
+		expect(toWorkflowEdgeDtos([edge])).toEqual([{ source: 'trigger', target: 'ai', conditionType: null }])
+		expect(toWorkflowEdgeDtos([edge])[0]).not.toHaveProperty('id')
 	})
 
 	it('실행 실패 상태를 노드 오류 상태로 변환한다', () => {

@@ -12,8 +12,15 @@ import {
 const serverDocument: WorkflowDraftData = {
 	title: '고객 문의 분류',
 	nodes: [
-		{ id: 'trigger', type: 'TRIGGER', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
-		{ id: 'ai', type: 'AI', label: '문의 분류', position: { x: 320, y: 20 }, config: { model: 'model-1' } },
+		{ id: 'trigger', type: 'TRIGGER', event: 'manual.run', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
+		{
+			id: 'ai',
+			type: 'AI',
+			event: 'ai.reasoning',
+			label: '문의 분류',
+			position: { x: 320, y: 20 },
+			config: { model: 'model-1' },
+		},
 	],
 	edges: [{ source: 'trigger', target: 'ai', conditionType: null }],
 }
@@ -146,9 +153,16 @@ describe('useWorkflowEditorViewModel', () => {
 		act(() =>
 			result.current.handleCanvasUpdate(
 				[
-					{ id: 'ai', type: 'AI', label: '수정된 문의 분류', config: {} },
-					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
-					{ id: 'trigger', type: 'TRIGGER', label: '잘못된 위치', position: { x: '10', y: 20 }, config: {} },
+					{ id: 'ai', type: 'AI', event: 'ai.reasoning', label: '수정된 문의 분류', config: {} },
+					{ id: 'action', type: 'HTTP', event: 'http.request', label: '담당자에게 알리기', config: {} },
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						event: 'manual.run',
+						label: '잘못된 위치',
+						position: { x: '10', y: 20 },
+						config: {},
+					},
 				],
 				[
 					{ source: 'ai', target: 'action', conditionType: null },

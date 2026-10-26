@@ -12,8 +12,15 @@ import {
 const draft: WorkflowDraftData = {
 	title: '고객 문의 분류',
 	nodes: [
-		{ id: 'trigger', type: 'TRIGGER', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
-		{ id: 'ai', type: 'AI', label: '문의 분류', position: { x: 320, y: 20 }, config: { model: 'model-1' } },
+		{ id: 'trigger', type: 'TRIGGER', event: 'manual.run', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
+		{
+			id: 'ai',
+			type: 'AI',
+			event: 'ai.reasoning',
+			label: '문의 분류',
+			position: { x: 320, y: 20 },
+			config: { model: 'model-1' },
+		},
 	],
 	edges: [{ source: 'trigger', target: 'ai', conditionType: null }],
 }

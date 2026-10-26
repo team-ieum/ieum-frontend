@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
 import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const MODEL_MENU_ID = 'workflow-chat-model-menu'
@@ -80,8 +81,8 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 
 type WorkflowChatProps = {
 	workflowId: string
-	currentNodes: unknown[]
-	currentEdges: unknown[]
+	currentNodes: WorkflowNodeDto[]
+	currentEdges: WorkflowEdgeDto[]
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 }
 

@@ -20,7 +20,6 @@ export const useWorkflowListCommands = (): WorkflowListCommands => {
 				name: '새 워크플로우',
 				nodes: [],
 				edges: [],
-				triggerType: 'MANUAL',
 			})
 			navigate(`/workflow/${res.data.id}`)
 		} catch (err) {

@@ -3,11 +3,12 @@ import { PROVIDER_DISPLAY_NAME, PROVIDER_VISUAL } from '@/constants/aiCredential
 import { CHAT_SCROLLBAR_VISIBLE_MS } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
 import type { WorkflowChatCredentialOption, WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 
 type UseWorkflowChatViewModelArgs = {
 	workflowId: string
-	currentNodes: unknown[]
-	currentEdges: unknown[]
+	currentNodes: WorkflowNodeDto[]
+	currentEdges: WorkflowEdgeDto[]
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 }
 
