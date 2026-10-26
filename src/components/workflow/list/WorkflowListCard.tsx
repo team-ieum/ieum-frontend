@@ -31,28 +31,30 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 			</div>
 
 			<div className='mt-auto flex flex-col gap-3'>
-				<div className='flex items-center gap-2 pl-1'>
-					<div className='min-w-0 flex-1'>
+				<div className='flex flex-col gap-2 pl-1'>
+					<div className='min-w-0'>
 						{workflow.hasServices ? (
 							<ServiceChain services={workflow.services} size={18} max={4} showArrow={false} />
 						) : (
 							<p className='truncate typo-caption1_regular text-neutral-500'>연결된 서비스 없음</p>
 						)}
 					</div>
-					<span className='inline-flex shrink-0 items-center gap-1.5 typo-caption1_regular text-neutral-400'>
-						<Boxes size={14} />
-						노드 {workflow.nodeCount}개
-					</span>
-					<div className='flex shrink-0 items-center gap-1.5'>
-						<TriggerPill trigger={workflow.trigger} />
-						{workflow.scheduleLabel ? (
-							<span
-								className='max-w-24 truncate typo-caption1_regular text-neutral-400'
-								title={workflow.cronExpression ?? undefined}
-							>
-								{workflow.scheduleLabel}
-							</span>
-						) : null}
+					<div className='flex min-w-0 items-center gap-2 whitespace-nowrap'>
+						<span className='inline-flex shrink-0 items-center gap-1.5 typo-caption1_regular text-neutral-400'>
+							<Boxes size={14} />
+							노드 {workflow.nodeCount}개
+						</span>
+						<div className='flex min-w-0 items-center gap-1.5'>
+							<TriggerPill trigger={workflow.trigger} />
+							{workflow.scheduleLabel ? (
+								<span
+									className='max-w-24 min-w-0 truncate typo-caption1_regular text-neutral-400'
+									title={workflow.cronExpression ?? undefined}
+								>
+									{workflow.scheduleLabel}
+								</span>
+							) : null}
+						</div>
 					</div>
 				</div>
 
