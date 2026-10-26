@@ -528,7 +528,7 @@ describe('WorkFlowPage', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '복원된 문의 분류',
@@ -559,7 +559,7 @@ describe('WorkFlowPage', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '고객 문의 분류',

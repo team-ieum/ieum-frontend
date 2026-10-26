@@ -5,6 +5,7 @@ import {
 	inspectWorkflowDraft,
 	isSameWorkflowDraft,
 	readWorkflowDraft,
+	removeLegacyWorkflowDrafts,
 	removeWorkflowDraft,
 	writeWorkflowDraft,
 } from '@/utils/workflow/workflowDraftStorage'
@@ -62,7 +63,7 @@ describe('workflowDraftStorage', () => {
 			getWorkflowDraftKey('invalid-position'),
 			JSON.stringify({
 				...draft,
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				nodes: [{ ...draft.nodes[0], position: { x: 'bad', y: 0 } }],
@@ -72,6 +73,71 @@ describe('workflowDraftStorage', () => {
 
 		writeWorkflowDraft('orphan-edge', 1, { ...draft, edges: [...draft.edges, { source: 'ai', target: 'missing' }] })
 		expect(readWorkflowDraft('orphan-edge', 1)?.edges).toEqual(draft.edges)
+	})
+
+	it('v2 키에 저장하고 event 없는 옛 v1 키 초안은 읽지 않는다', () => {
+		expect(getWorkflowDraftKey('workflow-1')).toBe('ieum-workflow-draft:v2:workflow-1')
+
+		const legacyDraft = {
+			...draft,
+			schemaVersion: 1,
+			workflowVersion: 1,
+			updatedAt: new Date().toISOString(),
+			// JSON.stringify가 undefined 키를 빼므로 event 없는 v1 노드가 된다.
+			nodes: draft.nodes.map(node => ({ ...node, event: undefined })),
+		}
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', JSON.stringify(legacyDraft))
+
+		expect(readWorkflowDraft('workflow-1', 1)).toBeNull()
+		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-1')).not.toBeNull()
+	})
+
+	it('이전 버전 초안 키만 모두 지우고 v2 초안과 다른 키는 남긴다', () => {
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', '{}')
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-2', '{}')
+		writeWorkflowDraft('workflow-1', 1, draft)
+		localStorage.setItem('other-key', 'keep')
+
+		removeLegacyWorkflowDrafts()
+
+		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-1')).toBeNull()
+		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-2')).toBeNull()
+		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).not.toBeNull()
+		expect(localStorage.getItem('other-key')).toBe('keep')
+	})
+
+	it('저장소 접근이 실패해도 이전 버전 초안 정리가 예외를 전파하지 않는다', () => {
+		vi.spyOn(Storage.prototype, 'key').mockImplementation(() => {
+			throw new Error('blocked')
+		})
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', '{}')
+
+		expect(() => removeLegacyWorkflowDrafts()).not.toThrow()
+	})
+
+	it('v2 키라도 event 없는 노드가 있으면 초안을 무효화한다', () => {
+		localStorage.setItem(
+			getWorkflowDraftKey('missing-event'),
+			JSON.stringify({
+				...draft,
+				schemaVersion: 2,
+				workflowVersion: 1,
+				updatedAt: new Date().toISOString(),
+				nodes: [{ ...draft.nodes[0], event: undefined }],
+			})
+		)
+
+		expect(readWorkflowDraft('missing-event', 1)).toBeNull()
+	})
+
+	it('서버 엣지 id가 null인 정의와 id를 생략한 정의를 같은 초안으로 본다', () => {
+		const serverDraft = { ...draft, edges: [{ id: null, source: 'trigger', target: 'ai', conditionType: null }] }
+		const canvasDraft = { ...draft, edges: [{ source: 'trigger', target: 'ai', conditionType: null }] }
+
+		expect(isSameWorkflowDraft(serverDraft, canvasDraft)).toBe(true)
+		expect(isSameWorkflowDraft(serverDraft, { ...draft, edges: [{ id: 'edge-1', source: 'trigger', target: 'ai' }] })).toBe(
+			false
+		)
 	})
 
 	it('원본과 같은 정의를 판별하고 초안을 제거한다', () => {

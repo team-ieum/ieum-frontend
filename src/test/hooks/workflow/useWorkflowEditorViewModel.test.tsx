@@ -43,6 +43,16 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(result.current.isDraftPersisted).toBe(true)
 	})
 
+	it('편집 화면 진입 시 읽지 않는 이전 버전 초안 키를 지운다', () => {
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', '{}')
+		localStorage.setItem('ieum-workflow-draft:v1:other-workflow', '{}')
+
+		renderEditor()
+
+		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-1')).toBeNull()
+		expect(localStorage.getItem('ieum-workflow-draft:v1:other-workflow')).toBeNull()
+	})
+
 	it('서버 원본과 같은 초안은 마운트 이후 제거한다', () => {
 		writeWorkflowDraft('workflow-1', 3, serverDocument)
 
