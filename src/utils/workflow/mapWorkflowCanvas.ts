@@ -3,10 +3,12 @@ import { isIntegrationBrand } from '@/constants/integration/brandConfig'
 import { WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
 import { WORKFLOW_SERVICE_META } from '@/constants/workflow/workflowList'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
+import { APP_EVENT_TRIGGERS } from '@/constants/workflow/workflowTrigger'
 import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeType, WorkflowNodeStatus, WorkflowNodeType, WorkflowTechnicalDetail } from '@/types/workflow'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
+import { describeCron } from '@/utils/workflow/describeCron'
 
 const FALLBACK_DESCRIPTION = '설명 정보가 아직 없어요'
 
@@ -23,10 +25,11 @@ const readConfigScalar = (config: Record<string, unknown>, key: string) => {
 	return undefined
 }
 
-const TRIGGER_TYPE_LABELS: Record<string, string> = {
-	MANUAL: '수동 실행',
-	SCHEDULE: '예약 실행',
-	WEBHOOK: '웹훅',
+const TRIGGER_EVENT_LABELS: Record<string, string> = {
+	'manual.run': '수동 실행',
+	'webhook.catch': '웹훅',
+	'schedule.every': '스케줄',
+	...Object.fromEntries(Object.values(APP_EVENT_TRIGGERS).map(trigger => [trigger.event, trigger.label])),
 }
 
 const CONDITION_OPERATOR_LABELS: Record<string, string> = {
@@ -47,11 +50,29 @@ const createDetail = (
 	return { label, value: format?.(value) ?? value }
 }
 
-export const toWorkflowTechnicalDetails = (nodeType: string, config: Record<string, unknown>): WorkflowTechnicalDetail[] => {
+const toTriggerDetails = (event: string, config: Record<string, unknown>): WorkflowTechnicalDetail[] => {
+	const details: WorkflowTechnicalDetail[] = []
+	// 라벨을 모르는 트리거는 같은 원문이 두 번 보이지 않게 실행 방식 행을 뺀다.
+	const label = TRIGGER_EVENT_LABELS[event]
+	if (label) details.push({ label: '실행 방식', value: label })
+	details.push({ label: '이벤트', value: event })
+
+	const cron = event === 'schedule.every' ? readConfigString(config, 'cron') : undefined
+	if (cron) details.push({ label: '주기', value: describeCron(cron), title: cron })
+
+	return details
+}
+
+/** 노드의 기술 정보 행을 만든다. 트리거는 event 기준 실행 방식과 event 원문을 보여 준다. */
+export const toWorkflowTechnicalDetails = ({
+	type: nodeType,
+	event,
+	config,
+}: Pick<WorkflowNodeDto, 'type' | 'event' | 'config'>): WorkflowTechnicalDetail[] => {
 	const details: Array<WorkflowTechnicalDetail | undefined> = []
 
 	if (nodeType === 'TRIGGER') {
-		details.push(createDetail(config, 'triggerType', '실행 방식', value => formatKnownValue(value, TRIGGER_TYPE_LABELS)))
+		details.push(...toTriggerDetails(event, config))
 	}
 
 	if (nodeType === 'HTTP') {
@@ -157,7 +178,7 @@ export const toWorkflowCanvasNodes = (
 				title: dto.label,
 				// TODO: 서버가 설명을 항상 반환하면 대체 문구를 제거합니다.
 				description: dto.description ?? FALLBACK_DESCRIPTION,
-				technicalDetails: toWorkflowTechnicalDetails(dto.type, config),
+				technicalDetails: toWorkflowTechnicalDetails({ type: dto.type, event: dto.event, config }),
 				modelId,
 				modelName: modelId ? (modelNames.get(modelId) ?? modelId) : undefined,
 				status: 'idle',

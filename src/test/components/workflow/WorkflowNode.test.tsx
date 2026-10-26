@@ -68,6 +68,14 @@ describe('WorkflowNode', () => {
 		expect(screen.queryByText('Gemini 2.5 Flash')).not.toBeInTheDocument()
 	})
 
+	it('기술 정보에 title이 있으면 마우스를 올렸을 때 원문을 보여 준다', () => {
+		const props = createProps(true, 'trigger')
+		props.data.technicalDetails = [{ label: '주기', value: '오전 09:00, 월요일에만', title: '0 9 * * 1' }]
+		render(<WorkflowNode {...props} />)
+
+		expect(screen.getByText('오전 09:00, 월요일에만')).toHaveAttribute('title', '0 9 * * 1')
+	})
+
 	it('brand를 아는 ACTION 노드는 브랜드 tint 칸에 로고를 표시한다', () => {
 		const props = createProps(false)
 		Object.assign(props.data, { nodeType: 'ACTION', role: 'action', brand: 'slack', typeLabel: 'Slack' })

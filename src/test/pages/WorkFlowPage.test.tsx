@@ -152,7 +152,7 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 									event: 'manual.run',
 									label: '문의가 도착하면',
 									description: '새 문의가 들어오면 시작해요',
-									config: { triggerType: 'MANUAL', brand: 'webhook' },
+									config: { brand: 'webhook' },
 								},
 								{
 									id: 'ai',
@@ -336,7 +336,8 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(technicalSwitch)
 
 		expect(technicalSwitch).toHaveAttribute('aria-checked', 'true')
-		expect(screen.getByText('실행 방식: 수동 실행 (MANUAL)')).toBeInTheDocument()
+		expect(screen.getByText('실행 방식: 수동 실행')).toBeInTheDocument()
+		expect(screen.getByText('이벤트: manual.run')).toBeInTheDocument()
 		expect(screen.getByText('Method: POST')).toBeInTheDocument()
 		expect(screen.getByText('제공자: GEMINI')).toBeInTheDocument()
 		expect(screen.queryByText('credential-secret')).not.toBeInTheDocument()
@@ -570,7 +571,7 @@ describe('WorkFlowPage', () => {
 						event: 'manual.run',
 						label: '문의가 도착하면',
 						description: '새 문의가 들어오면 시작해요',
-						config: { triggerType: 'MANUAL', brand: 'webhook' },
+						config: { brand: 'webhook' },
 					},
 					{
 						id: 'ai',

@@ -88,6 +88,12 @@ export type WorkflowCategoryId =
 	| 'ops'
 	| 'data'
 
+/** 연동 앱 이벤트 트리거. 정의는 `APP_EVENT_TRIGGERS`에 있다. */
+// prettier-ignore
+export type WorkflowAppTriggerId =
+	| 'gmailNewEmail'
+	| 'githubNewIssue'
+
 // prettier-ignore
 export type WorkflowTriggerType =
 	| 'schedule'

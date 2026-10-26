@@ -45,7 +45,7 @@ const nodes: WorkflowNodeDto[] = [
 		label: '문의가 도착하면',
 		description: '새 문의가 들어오면 시작해요',
 		position: { x: 40, y: 80 },
-		config: { triggerType: 'MANUAL' },
+		config: {},
 	},
 	{
 		id: 'ai',
@@ -163,7 +163,10 @@ describe('mapWorkflowCanvas', () => {
 				typeLabel: '시작 조건',
 				step: 1,
 				description: '새 문의가 들어오면 시작해요',
-				technicalDetails: [{ label: '실행 방식', value: '수동 실행 (MANUAL)' }],
+				technicalDetails: [
+					{ label: '실행 방식', value: '수동 실행' },
+					{ label: '이벤트', value: 'manual.run' },
+				],
 				status: 'idle',
 			},
 		})
@@ -180,41 +183,96 @@ describe('mapWorkflowCanvas', () => {
 		expect(result[2].data).toMatchObject({ role: 'action', typeLabel: '조건', step: 3 })
 	})
 
-	it('타입별 허용 목록에 포함된 기술 정보만 변환한다', () => {
-		expect(toWorkflowTechnicalDetails('TRIGGER', { triggerType: 'WEBHOOK', brand: 'webhook' })).toEqual([
-			{ label: '실행 방식', value: '웹훅 (WEBHOOK)' },
+	it('트리거는 실행 방식과 event 원문을 두 행으로 표시한다', () => {
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'webhook.catch', config: { brand: 'webhook' } })).toEqual([
+			{ label: '실행 방식', value: '웹훅' },
+			{ label: '이벤트', value: 'webhook.catch' },
 		])
-		expect(toWorkflowTechnicalDetails('HTTP', { method: 'GET', url: 'https://example.com/todos/1' })).toEqual([
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'gmail.new_email', config: {} })).toEqual([
+			{ label: '실행 방식', value: '새 Gmail 메일' },
+			{ label: '이벤트', value: 'gmail.new_email' },
+		])
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'github.new_issue', config: {} })).toEqual([
+			{ label: '실행 방식', value: '새 GitHub 이슈' },
+			{ label: '이벤트', value: 'github.new_issue' },
+		])
+	})
+
+	it('스케줄 트리거는 cron을 한국어 문장으로 바꾸고 원문을 title로 남긴다', () => {
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'schedule.every', config: { cron: '0 9 * * 1' } })).toEqual([
+			{ label: '실행 방식', value: '스케줄' },
+			{ label: '이벤트', value: 'schedule.every' },
+			{ label: '주기', value: '오전 09:00, 월요일에만', title: '0 9 * * 1' },
+		])
+	})
+
+	it('해석할 수 없는 cron은 원문을 주기로 표시하고 cron이 없으면 주기 행을 뺀다', () => {
+		expect(
+			toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'schedule.every', config: { cron: 'every day' } })
+		).toContainEqual({ label: '주기', value: 'every day', title: 'every day' })
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'schedule.every', config: {} })).toEqual([
+			{ label: '실행 방식', value: '스케줄' },
+			{ label: '이벤트', value: 'schedule.every' },
+		])
+	})
+
+	it('표시 규칙이 없는 트리거 event는 실행 방식 행 없이 event 원문만 표시한다', () => {
+		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'calendar.new_event', config: {} })).toEqual([
+			{ label: '이벤트', value: 'calendar.new_event' },
+		])
+	})
+
+	it('트리거 외 노드는 타입별 허용 목록에 포함된 기술 정보만 변환하고 event 행을 넣지 않는다', () => {
+		expect(
+			toWorkflowTechnicalDetails({
+				type: 'HTTP',
+				event: 'http.request',
+				config: { method: 'GET', url: 'https://example.com/todos/1' },
+			})
+		).toEqual([
 			{ label: 'Method', value: 'GET' },
 			{ label: 'URL', value: 'https://example.com/todos/1' },
 		])
 		expect(
-			toWorkflowTechnicalDetails('CONDITION', {
-				left: '{{nodes.transform.output.completed}}',
-				operator: 'equals',
-				right: false,
+			toWorkflowTechnicalDetails({
+				type: 'CONDITION',
+				event: 'branch.if',
+				config: {
+					left: '{{nodes.transform.output.completed}}',
+					operator: 'equals',
+					right: false,
+				},
 			})
 		).toEqual([{ label: '비교 방식', value: '같음 (equals)' }])
+		expect(
+			toWorkflowTechnicalDetails({ type: 'ACTION', event: 'slack_bot.send_channel_message', config: { brand: 'slack' } })
+		).toEqual([])
 	})
 
 	it('민감하거나 복잡한 config와 미정의 필드를 기술 정보에서 제외한다', () => {
-		const details = toWorkflowTechnicalDetails('AI', {
-			llmProvider: 'GEMINI',
-			model: 'gemini-3.5-flash',
-			credentialId: 'credential-secret',
-			agentType: 'simple',
-			tools: ['discord'],
-			brand: 'openai',
-			prompt: 'private prompt',
-			mappings: { id: '{{nodes.http.output.id}}' },
-			unknown: 'hidden value',
+		const details = toWorkflowTechnicalDetails({
+			type: 'AI',
+			event: 'ai.agent',
+			config: {
+				llmProvider: 'GEMINI',
+				model: 'gemini-3.5-flash',
+				credentialId: 'credential-secret',
+				agentType: 'simple',
+				tools: ['discord'],
+				brand: 'openai',
+				prompt: 'private prompt',
+				mappings: { id: '{{nodes.http.output.id}}' },
+				unknown: 'hidden value',
+			},
 		})
 
 		expect(details).toEqual([
 			{ label: '제공자', value: 'GEMINI' },
 			{ label: '모델 ID', value: 'gemini-3.5-flash' },
 		])
-		expect(toWorkflowTechnicalDetails('TRANSFORM', { mappings: { id: 'value' }, brand: 'filter' })).toEqual([])
+		expect(
+			toWorkflowTechnicalDetails({ type: 'TRANSFORM', event: 'transform.map', config: { mappings: { id: 'value' } } })
+		).toEqual([])
 	})
 
 	it('Provider에 없는 모델은 원본 ID를 사용하고 기술 정보 모드를 반영한다', () => {

@@ -11,6 +11,8 @@ export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot
 export type WorkflowTechnicalDetail = {
 	label: string
 	value: string
+	/** 마우스를 올렸을 때 보여 줄 원문. 없으면 value를 쓴다. */
+	title?: string
 }
 
 type WorkflowNodeData = {

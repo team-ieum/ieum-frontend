@@ -160,7 +160,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 								</dt>
 								<dd
 									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-normal font-semibold text-[#353442]'
-									title={detail.value}
+									title={detail.title ?? detail.value}
 								>
 									{detail.value}
 								</dd>
