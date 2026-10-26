@@ -1,4 +1,5 @@
 import type { KeyboardEvent, RefObject } from 'react'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from './workflowList'
 export type ChatMessage = { type: 'user'; body: string } | { type: 'assistant'; body: string; actions?: WorkflowChatAction[] }
 
 interface WorkflowChatAction {
@@ -16,8 +17,8 @@ interface WorkflowChatOption {
 
 export interface WorkflowChatRequest {
 	prompt: string
-	currentNodes?: unknown[]
-	currentEdges?: unknown[]
+	currentNodes?: WorkflowNodeDto[]
+	currentEdges?: WorkflowEdgeDto[]
 	sessionId?: string
 	credentialId?: string
 }

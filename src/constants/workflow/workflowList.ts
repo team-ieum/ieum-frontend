@@ -1,4 +1,5 @@
 import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/availableServicesCatalog'
+import { APP_EVENT_TRIGGERS } from '@/constants/workflow/workflowTrigger'
 import type {
 	WorkflowCategoryId,
 	WorkflowCategoryMeta,
@@ -47,6 +48,8 @@ export const WORKFLOW_TRIGGER_META: Record<WorkflowTriggerType, WorkflowTriggerM
 	webhook: { label: '웹훅' },
 	event: { label: '이벤트' },
 	manual: { label: '수동' },
+	gmailNewEmail: { label: APP_EVENT_TRIGGERS.gmailNewEmail.label },
+	githubNewIssue: { label: APP_EVENT_TRIGGERS.githubNewIssue.label },
 }
 
 export const WORKFLOW_STATUS_META: Record<WorkflowStatus, WorkflowStatusMeta> = {

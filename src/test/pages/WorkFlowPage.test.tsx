@@ -137,7 +137,7 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 							name: '두 번째 워크플로우',
 							active: mocks.workflowTwoActive,
 							version: 1,
-							nodes: [{ id: 'second', type: 'AI', label: '두 번째 노드', config: {} }],
+							nodes: [{ id: 'second', type: 'AI', event: 'ai.reasoning', label: '두 번째 노드', config: {} }],
 							edges: [],
 						}
 					: {
@@ -149,13 +149,15 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 								{
 									id: 'trigger',
 									type: 'TRIGGER',
+									event: 'manual.run',
 									label: '문의가 도착하면',
 									description: '새 문의가 들어오면 시작해요',
-									config: { triggerType: 'MANUAL', brand: 'webhook' },
+									config: { brand: 'webhook' },
 								},
 								{
 									id: 'ai',
 									type: 'AI',
+									event: 'ai.reasoning',
 									label: '문의 분류하기',
 									config: {
 										llmProvider: 'GEMINI',
@@ -167,12 +169,14 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 								{
 									id: 'action',
 									type: 'HTTP',
+									event: 'http.request',
 									label: '담당자에게 알리기',
 									config: { method: 'POST', url: 'https://example.com/notify' },
 								},
 								{
 									id: 'invalid-position',
 									type: 'AI',
+									event: 'ai.reasoning',
 									label: '잘못된 좌표',
 									position: { x: Number.NaN, y: 0 },
 									config: {},
@@ -241,7 +245,16 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 				type='button'
 				onClick={() =>
 					onCanvasUpdate?.(
-						[{ id: 'ai-updated', type: 'AI', label: 'AI가 만든 노드', description: '새 흐름이에요', config: {} }],
+						[
+							{
+								id: 'ai-updated',
+								type: 'AI',
+								event: 'ai.reasoning',
+								label: 'AI가 만든 노드',
+								description: '새 흐름이에요',
+								config: {},
+							},
+						],
 						[]
 					)
 				}
@@ -323,7 +336,8 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(technicalSwitch)
 
 		expect(technicalSwitch).toHaveAttribute('aria-checked', 'true')
-		expect(screen.getByText('실행 방식: 수동 실행 (MANUAL)')).toBeInTheDocument()
+		expect(screen.getByText('실행 방식: 수동 실행')).toBeInTheDocument()
+		expect(screen.getByText('이벤트: manual.run')).toBeInTheDocument()
 		expect(screen.getByText('Method: POST')).toBeInTheDocument()
 		expect(screen.getByText('제공자: GEMINI')).toBeInTheDocument()
 		expect(screen.queryByText('credential-secret')).not.toBeInTheDocument()
@@ -515,13 +529,20 @@ describe('WorkFlowPage', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '복원된 문의 분류',
 				nodes: [
-					{ id: 'trigger', type: 'TRIGGER', label: '문의가 도착하면', position: { x: 90, y: 120 }, config: {} },
-					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						event: 'manual.run',
+						label: '문의가 도착하면',
+						position: { x: 90, y: 120 },
+						config: {},
+					},
+					{ id: 'action', type: 'HTTP', event: 'http.request', label: '담당자에게 알리기', config: {} },
 				],
 				edges: [{ source: 'trigger', target: 'action', conditionType: null }],
 			})
@@ -539,7 +560,7 @@ describe('WorkFlowPage', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '고객 문의 분류',
@@ -547,13 +568,15 @@ describe('WorkFlowPage', () => {
 					{
 						id: 'trigger',
 						type: 'TRIGGER',
+						event: 'manual.run',
 						label: '문의가 도착하면',
 						description: '새 문의가 들어오면 시작해요',
-						config: { triggerType: 'MANUAL', brand: 'webhook' },
+						config: { brand: 'webhook' },
 					},
 					{
 						id: 'ai',
 						type: 'AI',
+						event: 'ai.reasoning',
 						label: '문의 분류하기',
 						config: {
 							llmProvider: 'GEMINI',
@@ -565,6 +588,7 @@ describe('WorkFlowPage', () => {
 					{
 						id: 'action',
 						type: 'HTTP',
+						event: 'http.request',
 						label: '담당자에게 알리기',
 						config: { method: 'POST', url: 'https://example.com/notify' },
 					},

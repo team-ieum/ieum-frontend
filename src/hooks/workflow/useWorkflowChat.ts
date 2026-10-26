@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SockJS from 'sockjs-client'
 import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
 import { useAuthStore } from '@/stores/useAuthStore'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import type {
 	ChatMessage,
 	WorkflowChatConnectionStatus,
@@ -43,8 +44,8 @@ const createAssistantMessage = (data: WorkflowChatResponseData): ChatMessage => 
 
 export const useWorkflowChat = (
 	workflowId: string,
-	currentNodes: unknown[],
-	currentEdges: unknown[],
+	currentNodes: WorkflowNodeDto[],
+	currentEdges: WorkflowEdgeDto[],
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 ) => {
 	const [messages, setMessages] = useState<ChatMessage[]>([])

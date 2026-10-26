@@ -2,8 +2,9 @@ import { ArrowRight, History, Rocket, Sparkles, Webhook, type LucideIcon } from 
 import type { ReactElement } from 'react'
 import { WORKFLOW_SERVICE_META, WORKFLOW_STATUS_META, WORKFLOW_TRIGGER_META } from '@/constants/workflow/workflowList'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
+import { APP_EVENT_TRIGGERS, isAppEventTriggerId } from '@/constants/workflow/workflowTrigger'
 import type { IntegrationBrand } from '@/types/integration'
-import type { WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
+import type { WorkflowAppTriggerId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const SQUARE_SIZE_CLASS: Record<number, string> = {
@@ -116,24 +117,34 @@ export const StatusBadge = ({ status, withDot = true }: StatusBadgeProps): React
 	)
 }
 
-const TRIGGER_ICON: Record<WorkflowTriggerType, LucideIcon> = {
+// 앱 이벤트 트리거는 아이콘 대신 APP_EVENT_TRIGGERS의 브랜드 로고를 쓴다.
+const TRIGGER_ICON: Record<Exclude<WorkflowTriggerType, WorkflowAppTriggerId>, LucideIcon> = {
 	schedule: History,
 	webhook: Webhook,
 	event: Sparkles,
 	manual: Rocket,
 }
 
+const TriggerIcon = ({ trigger }: { trigger: WorkflowTriggerType }): ReactElement => {
+	if (isAppEventTriggerId(trigger)) {
+		return (
+			<span aria-hidden='true' className='inline-flex size-3.5 [&_img]:size-full! [&_img]:object-contain'>
+				{getBrandConfig(APP_EVENT_TRIGGERS[trigger].brand).icon}
+			</span>
+		)
+	}
+
+	const Icon = TRIGGER_ICON[trigger]
+	return <Icon size={14} />
+}
+
 type TriggerPillProps = {
 	trigger: WorkflowTriggerType
 }
 
-export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => {
-	const Icon = TRIGGER_ICON[trigger]
-
-	return (
-		<span className='inline-flex items-center gap-1.5 typo-caption1_regular text-neutral-500'>
-			<Icon size={14} />
-			{WORKFLOW_TRIGGER_META[trigger].label}
-		</span>
-	)
-}
+export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => (
+	<span className='inline-flex items-center gap-1.5 typo-caption1_regular text-neutral-500'>
+		<TriggerIcon trigger={trigger} />
+		{WORKFLOW_TRIGGER_META[trigger].label}
+	</span>
+)

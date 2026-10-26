@@ -4,6 +4,7 @@ import { normalizeWorkflowCanvasDocument, toWorkflowEdgeDtos } from '@/utils/wor
 import {
 	inspectWorkflowDraft,
 	isSameWorkflowDraft,
+	removeLegacyWorkflowDrafts,
 	removeWorkflowDraft,
 	type WorkflowDraftData,
 	writeWorkflowDraft,
@@ -30,6 +31,11 @@ export const useWorkflowEditorViewModel = ({
 	serverDocument,
 }: UseWorkflowEditorViewModelOptions) => {
 	const [editorSession, setEditorSession] = useState<WorkflowEditorSession | null>(null)
+
+	// 키가 바뀌어 더는 읽지 않는 이전 버전 초안이 저장 용량을 차지하지 않게 편집 화면 진입 시 정리한다.
+	useEffect(() => {
+		removeLegacyWorkflowDrafts()
+	}, [])
 	const editorKey = workflowId && workflowVersion !== undefined ? `${workflowId}:${workflowVersion}` : ''
 
 	if (workflowId && workflowVersion !== undefined && serverDocument && editorSession?.key !== editorKey) {

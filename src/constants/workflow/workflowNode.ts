@@ -38,6 +38,18 @@ const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
 		iconKey: 'bot',
 		toneClass: '[--node-color:#6d5ce7] [--node-tint:#eeeafd]',
 	},
+	ACTION: {
+		role: 'action',
+		label: '앱 작업',
+		iconKey: 'app',
+		toneClass: '[--node-color:#b8407a] [--node-tint:#fbe6f0]',
+	},
+	APPROVAL: {
+		role: 'action',
+		label: '승인 요청',
+		iconKey: 'approval',
+		toneClass: '[--node-color:#b4532a] [--node-tint:#fbe9df]',
+	},
 }
 
 const FALLBACK_NODE_META: WorkflowNodeMeta = {

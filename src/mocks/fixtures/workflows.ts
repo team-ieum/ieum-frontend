@@ -17,6 +17,7 @@ export const workflowFixture = {
 		{
 			id: 'trigger-1',
 			type: 'TRIGGER',
+			event: 'manual.run',
 			label: '수동 실행',
 			description: '테스트 트리거',
 			position: { x: 120, y: 180 },
@@ -25,6 +26,7 @@ export const workflowFixture = {
 		{
 			id: 'http-1',
 			type: 'HTTP',
+			event: 'http.request',
 			label: '문의 전달',
 			description: '분류 결과를 전달합니다.',
 			position: { x: 420, y: 180 },

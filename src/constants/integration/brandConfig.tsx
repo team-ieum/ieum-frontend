@@ -29,3 +29,6 @@ export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrand
 }
 
 export const getBrandConfig = (brand: IntegrationBrand): IntegrationBrandConfig => INTEGRATION_BRAND_CONFIG[brand]
+
+export const isIntegrationBrand = (value: unknown): value is IntegrationBrand =>
+	typeof value === 'string' && Object.hasOwn(INTEGRATION_BRAND_CONFIG, value)

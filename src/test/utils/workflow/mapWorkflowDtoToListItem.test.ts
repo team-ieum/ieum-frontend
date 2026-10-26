@@ -13,8 +13,8 @@ const dto: WorkflowDto = {
 	version: 1,
 	services: ['SLACK', 'NOTION'],
 	nodes: [
-		{ id: 'slack', type: 'HTTP', label: 'Slack 알림', config: { brand: 'Slack' } },
-		{ id: 'notion', type: 'NOTION', label: 'Notion 기록', config: {} },
+		{ id: 'slack', type: 'HTTP', event: 'http.request', label: 'Slack 알림', config: { brand: 'Slack' } },
+		{ id: 'notion', type: 'NOTION', event: 'notion.create_page', label: 'Notion 기록', config: {} },
 	],
 	edges: [],
 	createdAt: '2026-09-01T00:00:00Z',
@@ -72,6 +72,8 @@ describe('mapWorkflowDtoToListItem', () => {
 	it.each([
 		[' WEBHOOK ', 'webhook'],
 		['EVENT', 'event'],
+		['GMAIL_NEW_EMAIL', 'gmailNewEmail'],
+		[' github_new_issue ', 'githubNewIssue'],
 		['Manual', 'manual'],
 		['unknown', 'manual'],
 		['', 'manual'],

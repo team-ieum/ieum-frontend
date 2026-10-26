@@ -1,19 +1,24 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
 import type { WorkflowDto, WorkflowEdgeDto, WorkflowNodeDto } from './workflowList'
-import type { WorkflowNodeKind, WorkflowTriggerKind } from './workflowCommon'
+import type { IntegrationBrand } from './integration'
+import type { WorkflowNodeKind } from './workflowCommon'
 
 export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
 export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error' | 'waitingApproval' | 'skipped' | 'interrupted'
-export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'workflow'
+export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'app' | 'approval' | 'workflow'
 
 export type WorkflowTechnicalDetail = {
 	label: string
 	value: string
+	/** 마우스를 올렸을 때 보여 줄 원문. 없으면 value를 쓴다. */
+	title?: string
 }
 
 type WorkflowNodeData = {
 	nodeType: string
+	/** ACTION 노드 아이콘에 쓰는 연동 서비스 브랜드. 알 수 없는 brand는 비워 기본 아이콘을 쓴다. */
+	brand?: IntegrationBrand
 	role: WorkflowNodeRole
 	typeLabel: string
 	step: number
@@ -29,6 +34,8 @@ type WorkflowNodeData = {
 export type WorkflowNodeType = Node<WorkflowNodeData, 'workflowNode'>
 
 type WorkflowEdgeData = {
+	/** 서버가 발급한 엣지 id. 캔버스에서 새로 이은 엣지와 레거시 엣지는 없다. */
+	serverId?: string
 	conditionType?: string | null
 	flowing?: boolean
 }
@@ -37,24 +44,25 @@ export type WorkflowEdgeType = Edge<WorkflowEdgeData>
 
 type CreateWorkflowNodeDto = {
 	id: string
-	type: WorkflowNodeKind
+	event: string
+	type?: WorkflowNodeKind
 	label: string
 	config: Record<string, unknown>
 }
 
 type CreateWorkflowEdgeDto = {
+	id?: string
 	source: string
 	target: string
 	conditionType?: string
 }
 
+// 트리거는 서버가 노드에서 계산하므로 최상위 triggerType·cronExpression은 보내지 않는다.
 export type CreateWorkflowRequest = {
 	name: string
 	description?: string
-	triggerType?: WorkflowTriggerKind
-	cronExpression?: string
-	nodes?: CreateWorkflowNodeDto[]
-	edges?: CreateWorkflowEdgeDto[]
+	nodes: CreateWorkflowNodeDto[]
+	edges: CreateWorkflowEdgeDto[]
 }
 
 export type CreateWorkflowResponse = ApiResponse<WorkflowDto>

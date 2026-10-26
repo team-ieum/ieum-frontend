@@ -18,7 +18,10 @@ export type WorkflowErrorCode =
 
 export type WorkflowNodeDto = {
 	id: string
+	/** 서버가 event로 계산해 응답에 채우는 값. 요청에 실어 보내도 서버는 무시합니다. */
 	type: string
+	/** 노드 정체성(카탈로그 항목 id, 예: `slack_bot.send_channel_message`). 생성·수정 요청에 필수입니다. */
+	event: string
 	label: string
 	description?: string
 	position?: {
@@ -29,6 +32,8 @@ export type WorkflowNodeDto = {
 }
 
 export type WorkflowEdgeDto = {
+	/** 서버 엣지 id. 레거시 정의는 null이고, 새 엣지는 생략하면 서버가 채웁니다. */
+	id?: string | null
 	source: string
 	target: string
 	conditionType?: string | null
@@ -83,12 +88,19 @@ export type WorkflowCategoryId =
 	| 'ops'
 	| 'data'
 
+/** 연동 앱 이벤트 트리거. 정의는 `APP_EVENT_TRIGGERS`에 있다. */
+// prettier-ignore
+export type WorkflowAppTriggerId =
+	| 'gmailNewEmail'
+	| 'githubNewIssue'
+
 // prettier-ignore
 export type WorkflowTriggerType =
 	| 'schedule'
 	| 'webhook'
 	| 'event'
 	| 'manual'
+	| WorkflowAppTriggerId
 
 // prettier-ignore
 export type WorkflowStatus =
@@ -141,6 +153,8 @@ export type WorkflowListRowView = {
 	statusBarClass: string
 	trigger: WorkflowTriggerType
 	cronExpression?: string | null
+	/** 스케줄 트리거의 cron을 사람이 읽는 문장으로 바꾼 값. 해석할 수 없으면 cron 원문이다. */
+	scheduleLabel?: string
 }
 
 export type WorkflowActiveFilter = {
