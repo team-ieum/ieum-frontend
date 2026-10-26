@@ -15,8 +15,8 @@ const execution: WorkflowExecutionDto = {
 
 describe('mapWorkflowExecutionToRunRow', () => {
 	it.each([
-		['GMAIL_NEW_EMAIL', '새 Gmail 메일', 'gmail'],
-		['github_new_issue', '새 GitHub 이슈', 'github'],
+		['GMAIL_NEW_EMAIL', 'Gmail 메일', 'gmail'],
+		['github_new_issue', 'GitHub 이슈', 'github'],
 	])('앱 트리거 %s는 라벨과 로고용 brand를 함께 반환한다', (triggerType, trigger, triggerBrand) => {
 		expect(mapWorkflowExecutionToRunRow({ ...execution, triggerType })).toMatchObject({ trigger, triggerBrand })
 	})

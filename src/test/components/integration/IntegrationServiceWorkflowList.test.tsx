@@ -39,8 +39,8 @@ describe('IntegrationServiceWorkflowList', () => {
 			</MemoryRouter>
 		)
 
-		expect(screen.getByText('새 Gmail 메일')).toBeInTheDocument()
-		expect(screen.getByText('새 GitHub 이슈')).toBeInTheDocument()
+		expect(screen.getByText('Gmail 메일')).toBeInTheDocument()
+		expect(screen.getByText('GitHub 이슈')).toBeInTheDocument()
 		expect(screen.getByText('수동')).toBeInTheDocument()
 	})
 })

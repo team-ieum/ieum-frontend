@@ -27,13 +27,13 @@ describe('DashboardRunTable 트리거 칩', () => {
 		render(
 			<DashboardRunTable
 				runs={createRuns([
-					{ ...baseRow, id: 'run-gmail', trigger: '새 Gmail 메일', triggerBrand: 'gmail' },
+					{ ...baseRow, id: 'run-gmail', trigger: 'Gmail 메일', triggerBrand: 'gmail' },
 					{ ...baseRow, id: 'run-manual' },
 				])}
 			/>
 		)
 
-		const gmailChip = screen.getByText('새 Gmail 메일')
+		const gmailChip = screen.getByText('Gmail 메일')
 		expect(within(gmailChip).getByRole('img', { hidden: true, name: 'Gmail 로고' })).toBeInTheDocument()
 		expect(within(screen.getByText('수동')).queryByRole('img', { hidden: true })).not.toBeInTheDocument()
 	})

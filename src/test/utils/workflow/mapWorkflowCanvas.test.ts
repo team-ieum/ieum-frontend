@@ -189,11 +189,11 @@ describe('mapWorkflowCanvas', () => {
 			{ label: '이벤트', value: 'webhook.catch' },
 		])
 		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'gmail.new_email', config: {} })).toEqual([
-			{ label: '실행 방식', value: '새 Gmail 메일' },
+			{ label: '실행 방식', value: 'Gmail 메일' },
 			{ label: '이벤트', value: 'gmail.new_email' },
 		])
 		expect(toWorkflowTechnicalDetails({ type: 'TRIGGER', event: 'github.new_issue', config: {} })).toEqual([
-			{ label: '실행 방식', value: '새 GitHub 이슈' },
+			{ label: '실행 방식', value: 'GitHub 이슈' },
 			{ label: '이벤트', value: 'github.new_issue' },
 		])
 	})

@@ -4,8 +4,8 @@ import { TriggerPill } from '@/components/workflow/list/WorkflowListPrimitives'
 
 describe('TriggerPill', () => {
 	it.each([
-		['gmailNewEmail', '새 Gmail 메일', 'Gmail 로고'],
-		['githubNewIssue', '새 GitHub 이슈', 'GitHub 로고'],
+		['gmailNewEmail', 'Gmail 메일', 'Gmail 로고'],
+		['githubNewIssue', 'GitHub 이슈', 'GitHub 로고'],
 	] as const)('%s 앱 트리거는 브랜드 로고와 라벨을 표시한다', (trigger, label, logoName) => {
 		render(<TriggerPill trigger={trigger} />)
 
