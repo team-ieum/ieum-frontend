@@ -1,5 +1,7 @@
 import { MarkerType } from '@xyflow/react'
+import { isIntegrationBrand } from '@/constants/integration/brandConfig'
 import { WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
+import { WORKFLOW_SERVICE_META } from '@/constants/workflow/workflowList'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeType, WorkflowNodeStatus, WorkflowNodeType, WorkflowTechnicalDetail } from '@/types/workflow'
@@ -137,6 +139,7 @@ export const toWorkflowCanvasNodes = (
 		const meta = getWorkflowNodeMeta(dto.type)
 		const config = dto.config ?? {}
 		const modelId = readConfigString(config, 'model')
+		const brand = dto.type === 'ACTION' && isIntegrationBrand(config.brand) ? config.brand : undefined
 
 		return {
 			id: dto.id,
@@ -146,8 +149,10 @@ export const toWorkflowCanvasNodes = (
 			position: dto.position ?? { x: index * 360, y: 100 },
 			data: {
 				nodeType: dto.type,
+				brand,
 				role: meta.role,
-				typeLabel: meta.label,
+				// brand를 아는 ACTION 노드는 "앱 작업" 대신 서비스 이름을 보여 준다.
+				typeLabel: brand ? WORKFLOW_SERVICE_META[brand].name : meta.label,
 				step: index + 1,
 				title: dto.label,
 				// TODO: 서버가 설명을 항상 반환하면 대체 문구를 제거합니다.

@@ -70,6 +70,8 @@ describe('mapWorkflowCanvas', () => {
 		['TRANSFORM', 'action', '데이터 변환', 'shuffle', '#287fa4'],
 		['CONDITION', 'action', '조건', 'branch', '#9a6700'],
 		['AI', 'ai', 'AI 작업', 'bot', '#6d5ce7'],
+		['ACTION', 'action', '앱 작업', 'app', '#b8407a'],
+		['APPROVAL', 'action', '승인 요청', 'approval', '#b4532a'],
 	])('%s 타입의 역할, 표시명, 아이콘과 색상을 반환한다', (type, role, label, iconKey, color) => {
 		expect(getWorkflowNodeMeta(type)).toMatchObject({ role, label, iconKey })
 		expect(getWorkflowNodeMeta(type).toneClass).toContain(color)
@@ -223,6 +225,42 @@ describe('mapWorkflowCanvas', () => {
 		)
 
 		expect(result[0].data).toMatchObject({ modelName: 'custom-model', technicalMode: true })
+	})
+
+	it('ACTION 노드는 알려진 config.brand만 쓰고 그때 헤더 라벨을 서비스 이름으로 바꾼다', () => {
+		const result = toWorkflowCanvasNodes(
+			[
+				{
+					id: 'slack',
+					type: 'ACTION',
+					event: 'slack_bot.send_channel_message',
+					label: '알림',
+					config: { brand: 'slack' },
+				},
+				{ id: 'sheets', type: 'ACTION', event: 'sheets.append_row', label: '기록', config: { brand: 'sheets' } },
+				{ id: 'unknown', type: 'ACTION', event: 'unknown.app', label: '알 수 없음', config: { brand: 'unknown' } },
+				{ id: 'http', type: 'HTTP', event: 'http.request', label: '요청', config: { brand: 'slack' } },
+			],
+			new Map(),
+			false
+		)
+
+		expect(result.map(node => [node.data.brand, node.data.typeLabel])).toEqual([
+			['slack', 'Slack'],
+			['sheets', 'Google Sheets'],
+			[undefined, '앱 작업'],
+			[undefined, 'HTTP 요청'],
+		])
+	})
+
+	it('카탈로그에 없는 event 노드는 type 기준 기본 표시를 유지한다', () => {
+		const [result] = toWorkflowCanvasNodes(
+			[{ id: 'future', type: 'CUSTOM', event: 'future_app.do_something', label: '새 노드', config: {} }],
+			new Map(),
+			true
+		)
+
+		expect(result.data).toMatchObject({ typeLabel: 'CUSTOM', role: 'action', technicalDetails: [] })
 	})
 
 	it('조회한 연결 관계를 방향 표시가 있는 연결선으로 변환한다', () => {

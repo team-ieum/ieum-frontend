@@ -1,7 +1,23 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import { Bot, Check, CircleAlert, CircleDashed, GitBranch, Globe2, LoaderCircle, Play, Shuffle, Workflow } from 'lucide-react'
+import type { CSSProperties } from 'react'
+import {
+	Blocks,
+	Bot,
+	Check,
+	CircleAlert,
+	CircleDashed,
+	GitBranch,
+	Globe2,
+	LoaderCircle,
+	Play,
+	Shuffle,
+	UserCheck,
+	Workflow,
+} from 'lucide-react'
+import { getBrandConfig } from '@/constants/integration/brandConfig'
 import { getWorkflowNodeMeta, WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
+import type { IntegrationBrand } from '@/types/integration'
 import type { WorkflowNodeIconKey, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
 import { cn } from '@/utils/cn'
 
@@ -26,7 +42,40 @@ const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
 	if (iconKey === 'shuffle') return <Shuffle size={20} aria-hidden='true' />
 	if (iconKey === 'branch') return <GitBranch size={20} aria-hidden='true' />
 	if (iconKey === 'bot') return <Bot size={20} aria-hidden='true' />
+	if (iconKey === 'app') return <Blocks size={20} aria-hidden='true' />
+	if (iconKey === 'approval') return <UserCheck size={20} aria-hidden='true' />
 	return <Workflow size={20} aria-hidden='true' />
+}
+
+const NodeIcon = ({ iconKey, brand }: { iconKey: WorkflowNodeIconKey; brand?: IntegrationBrand }) => {
+	if (!brand) {
+		return (
+			<span
+				className={cn(
+					'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--node-color) text-white',
+					'[box-shadow:0_4px_0_color-mix(in_srgb,var(--node-color)_78%,black)]'
+				)}
+			>
+				<NodeTypeIcon iconKey={iconKey} />
+			</span>
+		)
+	}
+
+	const brandConfig = getBrandConfig(brand)
+
+	// 헤더 라벨이 서비스 이름을 이미 읽어 주므로 로고는 보조기기에서 숨긴다.
+	return (
+		<span
+			aria-hidden='true'
+			className={cn(
+				'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--brand-tint)',
+				'[box-shadow:0_4px_0_color-mix(in_srgb,var(--brand-tint)_70%,black)]'
+			)}
+			style={{ '--brand-tint': brandConfig.tint } as CSSProperties}
+		>
+			{brandConfig.icon}
+		</span>
+	)
 }
 
 const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
@@ -63,14 +112,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					'border-b-[color-mix(in_srgb,var(--node-color)_28%,white)]'
 				)}
 			>
-				<span
-					className={cn(
-						'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--node-color) text-white',
-						'[box-shadow:0_4px_0_color-mix(in_srgb,var(--node-color)_78%,black)]'
-					)}
-				>
-					<NodeTypeIcon iconKey={nodeMeta.iconKey} />
-				</span>
+				<NodeIcon iconKey={nodeMeta.iconKey} brand={data.brand} />
 				<span>{data.typeLabel}</span>
 				<motion.span
 					key={data.status}

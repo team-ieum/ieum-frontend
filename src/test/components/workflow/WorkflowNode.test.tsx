@@ -68,6 +68,37 @@ describe('WorkflowNode', () => {
 		expect(screen.queryByText('Gemini 2.5 Flash')).not.toBeInTheDocument()
 	})
 
+	it('brand를 아는 ACTION 노드는 브랜드 tint 칸에 로고를 표시한다', () => {
+		const props = createProps(false)
+		Object.assign(props.data, { nodeType: 'ACTION', role: 'action', brand: 'slack', typeLabel: 'Slack' })
+		render(<WorkflowNode {...props} />)
+
+		const logo = screen.getByRole('img', { hidden: true, name: 'Slack 로고' })
+		expect(screen.getByText('Slack')).toBeInTheDocument()
+		expect(logo.parentElement?.style.getPropertyValue('--brand-tint')).toBe('#e8f5f0')
+		// 헤더 라벨과 중복되지 않게 로고는 보조기기에서 숨긴다.
+		expect(logo.parentElement).toHaveAttribute('aria-hidden', 'true')
+		expect(screen.queryByRole('img', { name: 'Slack 로고' })).not.toBeInTheDocument()
+	})
+
+	it('brand가 없는 ACTION·APPROVAL 노드는 기본 아이콘과 타입 라벨을 표시한다', () => {
+		const actionProps = createProps(false)
+		Object.assign(actionProps.data, { nodeType: 'ACTION', role: 'action', typeLabel: '앱 작업' })
+		const { container: actionContainer, unmount } = render(<WorkflowNode {...actionProps} />)
+
+		expect(screen.getByText('앱 작업')).toBeInTheDocument()
+		expect(actionContainer.querySelector('header svg.lucide-blocks')).not.toBeNull()
+		expect(screen.queryByRole('img', { hidden: true, name: /로고/ })).not.toBeInTheDocument()
+		unmount()
+
+		const approvalProps = createProps(false)
+		Object.assign(approvalProps.data, { nodeType: 'APPROVAL', role: 'action', typeLabel: '승인 요청' })
+		const { container: approvalContainer } = render(<WorkflowNode {...approvalProps} />)
+
+		expect(screen.getByText('승인 요청')).toBeInTheDocument()
+		expect(approvalContainer.querySelector('header svg.lucide-user-check')).not.toBeNull()
+	})
+
 	it('기술 정보가 없으면 명시적인 대체 문구를 표시한다', () => {
 		const props = createProps(true)
 		props.data.technicalDetails = []

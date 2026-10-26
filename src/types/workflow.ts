@@ -1,11 +1,12 @@
 import type { Edge, Node } from '@xyflow/react'
 import type { ApiResponse } from './api'
 import type { WorkflowDto, WorkflowEdgeDto, WorkflowNodeDto } from './workflowList'
+import type { IntegrationBrand } from './integration'
 import type { WorkflowNodeKind } from './workflowCommon'
 
 export type WorkflowNodeRole = 'trigger' | 'ai' | 'action'
 export type WorkflowNodeStatus = 'idle' | 'running' | 'success' | 'error' | 'waitingApproval' | 'skipped' | 'interrupted'
-export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'workflow'
+export type WorkflowNodeIconKey = 'play' | 'globe' | 'shuffle' | 'branch' | 'bot' | 'app' | 'approval' | 'workflow'
 
 export type WorkflowTechnicalDetail = {
 	label: string
@@ -14,6 +15,8 @@ export type WorkflowTechnicalDetail = {
 
 type WorkflowNodeData = {
 	nodeType: string
+	/** ACTION 노드 아이콘에 쓰는 연동 서비스 브랜드. 알 수 없는 brand는 비워 기본 아이콘을 쓴다. */
+	brand?: IntegrationBrand
 	role: WorkflowNodeRole
 	typeLabel: string
 	step: number
