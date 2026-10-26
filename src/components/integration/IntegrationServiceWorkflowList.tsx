@@ -2,6 +2,7 @@ import { ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router'
 import Spinner from '@/components/common/Spinner'
+import { APP_EVENT_TRIGGERS } from '@/constants/workflow/workflowTrigger'
 import { useIntegrationServiceWorkflowsQuery } from '@/hooks/integration/queries/useIntegrationServiceWorkflowsQuery'
 import type { IntegrationService } from '@/types/integration'
 import { getIntegrationServiceType } from '@/utils/integration/getIntegrationServiceType'
@@ -13,6 +14,7 @@ const TRIGGER_LABELS: Record<string, string> = {
 	SCHEDULE: '스케줄',
 	WEBHOOK: '웹훅',
 	EVENT: '이벤트',
+	...Object.fromEntries(Object.values(APP_EVENT_TRIGGERS).map(trigger => [trigger.triggerType, trigger.label])),
 }
 
 const getTriggerLabel = (triggerType: string) => TRIGGER_LABELS[triggerType.toUpperCase()] ?? triggerType

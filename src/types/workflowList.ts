@@ -100,6 +100,7 @@ export type WorkflowTriggerType =
 	| 'webhook'
 	| 'event'
 	| 'manual'
+	| WorkflowAppTriggerId
 
 // prettier-ignore
 export type WorkflowStatus =

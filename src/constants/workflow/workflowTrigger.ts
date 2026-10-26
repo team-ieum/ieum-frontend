@@ -15,3 +15,13 @@ export const APP_EVENT_TRIGGERS: Record<WorkflowAppTriggerId, AppEventTrigger> =
 	gmailNewEmail: { triggerType: 'GMAIL_NEW_EMAIL', event: 'gmail.new_email', label: '새 Gmail 메일', brand: 'gmail' },
 	githubNewIssue: { triggerType: 'GITHUB_NEW_ISSUE', event: 'github.new_issue', label: '새 GitHub 이슈', brand: 'github' },
 }
+
+export const isAppEventTriggerId = (value: string): value is WorkflowAppTriggerId => Object.hasOwn(APP_EVENT_TRIGGERS, value)
+
+const APP_EVENT_TRIGGER_ENTRIES = Object.entries(APP_EVENT_TRIGGERS) as Array<[WorkflowAppTriggerId, AppEventTrigger]>
+
+/** 서버 triggerType(대소문자·앞뒤 공백 무시)에 해당하는 앱 트리거 id를 찾는다. */
+export const findAppEventTriggerId = (triggerType: string): WorkflowAppTriggerId | undefined => {
+	const normalized = triggerType.trim().toUpperCase()
+	return APP_EVENT_TRIGGER_ENTRIES.find(([, trigger]) => trigger.triggerType === normalized)?.[0]
+}

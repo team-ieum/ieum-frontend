@@ -1,3 +1,4 @@
+import { APP_EVENT_TRIGGERS, findAppEventTriggerId } from '@/constants/workflow/workflowTrigger'
 import type { WorkflowExecutionDto } from '@/types/workflowDashboard'
 import type { RunRow, RunStatus } from '@/types/dashboard'
 import { formatDashboardDuration } from '@/utils/dashboard/mapWorkflowDashboardSummary'
@@ -18,7 +19,14 @@ const mapExecutionStatus = (status: string): RunStatus => {
 	return 'running'
 }
 
-const mapTriggerLabel = (triggerType: string): string => TRIGGER_LABELS[triggerType.toUpperCase()] ?? triggerType
+const mapTrigger = (triggerType: string): Pick<RunRow, 'trigger' | 'triggerBrand'> => {
+	const appTriggerId = findAppEventTriggerId(triggerType)
+	if (appTriggerId) {
+		const { label, brand } = APP_EVENT_TRIGGERS[appTriggerId]
+		return { trigger: label, triggerBrand: brand }
+	}
+	return { trigger: TRIGGER_LABELS[triggerType.toUpperCase()] ?? triggerType }
+}
 
 const formatRunDisplayId = (id: string): string => {
 	const compact = id.replace(/-/g, '').toUpperCase()
@@ -40,7 +48,7 @@ export const mapWorkflowExecutionToRunRow = (execution: WorkflowExecutionDto): R
 		name: execution.workflowName,
 		status,
 		time: mapDuration(status, execution.durationSeconds),
-		trigger: mapTriggerLabel(execution.triggerType),
+		...mapTrigger(execution.triggerType),
 		when: formatRelativeTime(whenSource),
 	}
 }

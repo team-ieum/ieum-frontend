@@ -72,6 +72,8 @@ describe('mapWorkflowDtoToListItem', () => {
 	it.each([
 		[' WEBHOOK ', 'webhook'],
 		['EVENT', 'event'],
+		['GMAIL_NEW_EMAIL', 'gmailNewEmail'],
+		[' github_new_issue ', 'githubNewIssue'],
 		['Manual', 'manual'],
 		['unknown', 'manual'],
 		['', 'manual'],
