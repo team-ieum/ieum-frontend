@@ -54,7 +54,7 @@ export const groupNodeCatalogEntries = (entries: NodeCatalogEntry[]): NodeCatalo
 export const createWorkflowNodeFromCatalogEntry = (
 	entry: NodeCatalogEntry,
 	position: { x: number; y: number },
-	id: string = crypto.randomUUID()
+	id: string
 ): WorkflowNodeDto => ({
 	id,
 	event: entry.id,

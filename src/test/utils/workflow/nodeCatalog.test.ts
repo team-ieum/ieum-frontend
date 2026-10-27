@@ -63,10 +63,4 @@ describe('createWorkflowNodeFromCatalogEntry', () => {
 		expect(entry.fixed.config.tools).toEqual([])
 		expect(first.config).not.toHaveProperty('llmProvider')
 	})
-
-	it('id를 넘기지 않으면 UUID를 만든다', () => {
-		const node = createWorkflowNodeFromCatalogEntry(findEntry('manual.run'), { x: 0, y: 0 })
-
-		expect(node.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
-	})
 })

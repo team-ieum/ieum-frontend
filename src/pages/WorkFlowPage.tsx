@@ -1,4 +1,4 @@
-import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow, type ReactFlowInstance } from '@xyflow/react'
+import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
@@ -32,8 +32,6 @@ import {
 	toWorkflowCanvasNodes,
 	toWorkflowNodeStatus,
 } from '@/utils/workflow/mapWorkflowCanvas'
-import { createWorkflowNodeFromCatalogEntry } from '@/utils/workflow/nodeCatalog'
-import { getNodeRect, placeNewNode } from '@/utils/workflow/placeNewNode'
 import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
@@ -79,22 +77,20 @@ const WorkflowCanvas = ({
 	onNodePositionCommit,
 	onEdgesCommit,
 }: WorkflowCanvasProps) => {
-	const editor = useWorkflowCanvasEditor({ initialNodes: nodes, initialEdges: edges, onNodePositionCommit, onEdgesCommit })
-	const [flow, setFlow] = useState<ReactFlowInstance<WorkflowNodeType, WorkflowEdgeType> | null>(null)
-	const canvasRef = useRef<HTMLDivElement>(null)
+	// ref로 넘기는 값을 editor 객체에서 꺼내 두지 않으면 lint가 editor 전체를 ref로 보고 렌더 중 접근으로 판정한다.
+	const { setCanvasElement, ...editor } = useWorkflowCanvasEditor({
+		initialNodes: nodes,
+		initialEdges: edges,
+		onNodePositionCommit,
+		onEdgesCommit,
+		onNodeAdd,
+	})
 
 	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
-		const rect = canvasRef.current?.getBoundingClientRect()
-		if (!flow || !rect) return
-		const viewportCenter = flow.screenToFlowPosition({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 })
-		const position = placeNewNode(viewportCenter, editor.nodes.map(getNodeRect))
-		const node = createWorkflowNodeFromCatalogEntry(entry, position)
-		// 표시용 data는 문서에서 다시 계산한 nodes prop 값을 쓰므로 여기서는 캔버스 노드 뼈대만 맞춘다.
-		const [canvasNode] = toWorkflowCanvasNodes([node], new Map(), false)
-		editor.addNode(canvasNode)
-		onNodeAdd(node)
+		editor.addCatalogNode(entry)
 		onPaletteClose()
 	}
+
 	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
 		() =>
@@ -125,8 +121,8 @@ const WorkflowCanvas = ({
 	return (
 		<>
 			<ReactFlow
-				ref={canvasRef}
-				onInit={setFlow}
+				ref={setCanvasElement}
+				onInit={editor.onInit}
 				className={WORKFLOW_CANVAS_CLASS}
 				nodes={displayNodes}
 				edges={displayEdges}
