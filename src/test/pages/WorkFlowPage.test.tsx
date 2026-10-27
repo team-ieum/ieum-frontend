@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 	openConfirm: vi.fn(),
 	workflowOneActive: true,
 	workflowTwoActive: false,
+	catalogEntries: undefined as NodeCatalogEntry[] | undefined,
 }))
 
 vi.mock('@xyflow/react', async () => {
@@ -196,6 +199,14 @@ vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
 	useProvidersQuery: () => ({ data: undefined, isError: true }),
 }))
 
+vi.mock('@/hooks/workflow/queries/useNodeCatalogQuery', () => ({
+	useNodeCatalogQuery: () => ({
+		data: mocks.catalogEntries ? { data: { entries: mocks.catalogEntries } } : undefined,
+		isPending: !mocks.catalogEntries,
+		isError: false,
+	}),
+}))
+
 vi.mock('@/hooks/workflow/mutations/useToggleWorkflowMutation', () => ({
 	useToggleWorkflowMutation: () => ({ mutateAsync: mocks.toggle }),
 }))
@@ -308,6 +319,7 @@ describe('WorkFlowPage', () => {
 		mocks.openConfirm.mockReset()
 		mocks.workflowOneActive = true
 		mocks.workflowTwoActive = false
+		mocks.catalogEntries = undefined
 	})
 
 	it('조회한 노드와 연결선을 편집 가능한 캔버스로 표시한다', () => {
@@ -523,6 +535,19 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(screen.getByRole('button', { name: '연결 제거' }))
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
 		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('1')
+	})
+
+	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {
+		const { unmount } = renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+		expect(screen.queryByText('이벤트: http.request')).not.toBeInTheDocument()
+		unmount()
+
+		mocks.catalogEntries = nodeCatalogEntriesFixture.filter(entry => entry.id !== 'http.request')
+		renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+
+		expect(screen.getByText('이벤트: http.request')).toBeInTheDocument()
 	})
 
 	it('같은 서버 버전의 로컬 초안을 새로고침 진입 시 복원한다', () => {

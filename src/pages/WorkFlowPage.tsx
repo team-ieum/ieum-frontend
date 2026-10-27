@@ -9,6 +9,7 @@ import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
@@ -130,6 +131,12 @@ const WorkFlowPage = () => {
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
+	const { data: catalogData } = useNodeCatalogQuery()
+	// 카탈로그를 받기 전에는 판정하지 않아 정상 노드가 '지원하지 않는 작업'으로 보이지 않게 한다.
+	const catalogEvents = useMemo(
+		() => (catalogData ? new Set(catalogData.data.entries.map(entry => entry.id)) : undefined),
+		[catalogData]
+	)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -155,10 +162,10 @@ const WorkFlowPage = () => {
 	const canvas = useMemo(() => {
 		if (!document) return null
 		return {
-			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode),
+			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode, catalogEvents),
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
-	}, [document, modelNames, technicalMode])
+	}, [document, modelNames, technicalMode, catalogEvents])
 
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)

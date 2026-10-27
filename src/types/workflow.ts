@@ -27,6 +27,8 @@ type WorkflowNodeData = {
 	technicalDetails: WorkflowTechnicalDetail[]
 	modelId?: string
 	modelName?: string
+	/** 노드 카탈로그에 없는 event라 화면에서 설정할 수 없는 노드인지 여부. */
+	isOutsideCatalog: boolean
 	status: WorkflowNodeStatus
 	technicalMode: boolean
 }

@@ -321,6 +321,36 @@ describe('mapWorkflowCanvas', () => {
 		expect(result.data).toMatchObject({ typeLabel: 'CUSTOM', role: 'action', technicalDetails: [] })
 	})
 
+	it('카탈로그 밖 event 노드를 표시하고 트리거가 아닌 노드에는 event 행을 앞에 붙인다', () => {
+		const catalogEvents = new Set(['manual.run', 'http.request'])
+		const result = toWorkflowCanvasNodes(
+			[
+				{ id: 'known', type: 'HTTP', event: 'http.request', label: '요청', config: { method: 'GET' } },
+				{ id: 'future', type: 'ACTION', event: 'future_app.do_something', label: '새 노드', config: {} },
+				{ id: 'trigger', type: 'TRIGGER', event: 'calendar.new_event', label: '새 일정', config: {} },
+			],
+			new Map(),
+			true,
+			catalogEvents
+		)
+
+		expect(result.map(node => node.data.isOutsideCatalog)).toEqual([false, true, true])
+		expect(result[0].data.technicalDetails).toEqual([{ label: 'Method', value: 'GET' }])
+		expect(result[1].data.technicalDetails).toEqual([{ label: '이벤트', value: 'future_app.do_something' }])
+		expect(result[2].data.technicalDetails).toEqual([{ label: '이벤트', value: 'calendar.new_event' }])
+	})
+
+	it('카탈로그를 받기 전에는 어떤 노드도 카탈로그 밖으로 판정하지 않는다', () => {
+		const [result] = toWorkflowCanvasNodes(
+			[{ id: 'future', type: 'ACTION', event: 'future_app.do_something', label: '새 노드', config: {} }],
+			new Map(),
+			true
+		)
+
+		expect(result.data.isOutsideCatalog).toBe(false)
+		expect(result.data.technicalDetails).toEqual([])
+	})
+
 	it('조회한 연결 관계를 방향 표시가 있는 연결선으로 변환한다', () => {
 		const result = toWorkflowCanvasEdges(edges)
 

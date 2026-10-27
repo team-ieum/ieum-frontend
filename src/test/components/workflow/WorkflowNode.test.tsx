@@ -28,6 +28,7 @@ const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 			],
 			modelId: 'gemini-2.5-flash',
 			modelName: 'Gemini 2.5 Flash',
+			isOutsideCatalog: false,
 			status: 'idle',
 			technicalMode,
 		},
@@ -105,6 +106,20 @@ describe('WorkflowNode', () => {
 
 		expect(screen.getByText('승인 요청')).toBeInTheDocument()
 		expect(approvalContainer.querySelector('header svg.lucide-user-check')).not.toBeNull()
+	})
+
+	it('카탈로그 밖 노드에만 읽기 전용 칩을 일반·기술 정보 모드 모두 표시한다', () => {
+		const { unmount } = render(<WorkflowNode {...createProps(false)} />)
+		expect(screen.queryByText('지원하지 않는 작업 · 읽기 전용')).not.toBeInTheDocument()
+		unmount()
+
+		for (const technicalMode of [false, true]) {
+			const props = createProps(technicalMode)
+			props.data.isOutsideCatalog = true
+			const { unmount: unmountOutside } = render(<WorkflowNode {...props} />)
+			expect(screen.getByText('지원하지 않는 작업 · 읽기 전용')).toBeInTheDocument()
+			unmountOutside()
+		}
 	})
 
 	it('기술 정보가 없으면 명시적인 대체 문구를 표시한다', () => {
