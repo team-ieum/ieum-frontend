@@ -27,6 +27,21 @@ describe('useWorkflowCanvasEditor', () => {
 		expect(onNodePositionCommit).toHaveBeenCalledWith('trigger', { x: 100, y: 80 })
 	})
 
+	it('추가한 노드를 기존 노드 뒤에 붙인다', () => {
+		const { result } = renderHook(() =>
+			useWorkflowCanvasEditor({
+				initialNodes: nodes,
+				initialEdges: [],
+				onNodePositionCommit: vi.fn(),
+				onEdgesCommit: vi.fn(),
+			})
+		)
+
+		act(() => result.current.addNode(createNode('new', 'action', 900)))
+
+		expect(result.current.nodes.map(node => node.id)).toEqual(['trigger', 'ai', 'action', 'new'])
+	})
+
 	it('연결 생성과 삭제를 편집 문서에 반영한다', () => {
 		const onEdgesCommit = vi.fn()
 		const { result } = renderHook(() =>

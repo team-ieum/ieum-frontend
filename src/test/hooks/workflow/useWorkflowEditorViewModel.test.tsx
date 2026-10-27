@@ -62,6 +62,24 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
 	})
 
+	it('팔레트로 추가한 노드를 편집 문서 끝에 붙이고 로컬 초안에 남긴다', () => {
+		const { result } = renderEditor()
+		const node = {
+			id: 'slack-1',
+			type: 'ACTION',
+			event: 'slack_bot.send_channel_message',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: 400, y: 200 },
+			config: { brand: 'slack' },
+		}
+
+		act(() => result.current.handleNodeAdd(node))
+
+		expect(result.current.document?.nodes.at(-1)).toEqual(node)
+		expect(result.current.hasUnsavedChanges).toBe(true)
+		expect(readWorkflowDraft('workflow-1', 3)?.nodes.at(-1)).toEqual(node)
+	})
+
 	it('제목, 노드 위치와 연결선 변경을 같은 로컬 초안에 반영한다', () => {
 		const { result } = renderEditor()
 

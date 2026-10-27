@@ -36,7 +36,7 @@ const HANDLE_CLASS = cn(
 	'bg-(--node-color)! shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]!'
 )
 
-const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
+export const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
 	if (iconKey === 'play') return <Play size={20} aria-hidden='true' />
 	if (iconKey === 'globe') return <Globe2 size={20} aria-hidden='true' />
 	if (iconKey === 'shuffle') return <Shuffle size={20} aria-hidden='true' />

@@ -103,6 +103,16 @@ export const useWorkflowCanvasEditor = ({
 		[onNodePositionCommit]
 	)
 
+	// 캔버스를 다시 마운트하지 않고 노드를 붙여 보던 화면 위치를 유지한다. 저장 문서 반영은 호출자가 따로 한다.
+	const addNode = useCallback(
+		(node: WorkflowNodeType) => {
+			const nextNodes = [...nodesRef.current, node]
+			nodesRef.current = nextNodes
+			setNodes(nextNodes)
+		},
+		[setNodes]
+	)
+
 	return {
 		nodes,
 		edges,
@@ -114,5 +124,6 @@ export const useWorkflowCanvasEditor = ({
 		onReconnectEnd,
 		onNodeDragStop,
 		isValidConnection,
+		addNode,
 	}
 }
