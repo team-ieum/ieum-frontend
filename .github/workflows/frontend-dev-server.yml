@@ -14,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: ${{ secrets.NODE_VERSION }}
-  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+  NODE_VERSION: ${{ secrets.DEV_NODE_VERSION }}
+  IMAGE_NAME: ${{ secrets.DEV_IMAGE_NAME }}
 
 jobs:
   deploy:
@@ -72,6 +72,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate frontend CI settings
+        run: python3 scripts/bluegreen/frontend_env.py validate-ci
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -86,12 +89,27 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test -- --run --passWithNoTests
+        run: |
+          python3 -m unittest discover -s scripts/bluegreen -p 'test_*.py'
+          npm test -- --run --passWithNoTests
 
-      - name: Build frontend
-        run: npx vite build
+      - name: Build frontend from DEV Secrets
+        id: frontend_settings
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          IEUM_FRONTEND_SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          set +x
+          set -euo pipefail
+          umask 077
+          settings_dir="$(mktemp -d "$RUNNER_TEMP/ieum-frontend-settings.XXXXXX")"
+          ready=false
+          trap 'if [[ "$ready" != true ]]; then python3 scripts/bluegreen/frontend_env.py cleanup "$settings_dir"; fi' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          python3 scripts/bluegreen/frontend_env.py build "$settings_dir"
+          unset IEUM_FRONTEND_SECRETS_JSON
+          printf 'directory=%s\n' "$settings_dir" >> "$GITHUB_OUTPUT"
+          ready=true
 
       - name: Write nginx config
         run: |
@@ -157,29 +175,26 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy with a private candidate environment
+      - name: Deploy the frontend build snapshot
         env:
           IMAGE_TAG: ${{ github.sha }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
         run: |
+          set +x
           set -euo pipefail
-          umask 077
-          candidate_env="$(mktemp "$RUNNER_TEMP/ieum-frontend-env.XXXXXX")"
-          trap 'rm -f -- "$candidate_env"' EXIT
-          trap 'exit 130' INT
-          trap 'exit 143' TERM
-          python3 - "$candidate_env" <<'PY'
-          import os
-          import sys
-          from pathlib import Path
-
-          value = os.environ['VITE_API_URL']
-          if '\n' in value or '\r' in value:
-              raise SystemExit('VITE_API_URL must be a single line')
-          Path(sys.argv[1]).write_text('VITE_API_URL=' + value + '\nNODE_ENV=production\n')
-          PY
+          python3 scripts/bluegreen/frontend_env.py verify "$SETTINGS_DIR"
           python3 /home/kwung/deploy/bluegreen/bluegreen.py --lock-timeout 14400 deploy \
             --job-deadline-epoch "$IEUM_BLUEGREEN_JOB_DEADLINE_EPOCH" \
             --service frontend \
             --image "$IMAGE_NAME:$IMAGE_TAG" \
-            --env-file "$candidate_env"
+            --env-file "$SETTINGS_DIR/frontend.env" \
+            --replace-env
+
+      - name: Remove private frontend settings
+        if: always()
+        env:
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
+        run: |
+          set +x
+          set -euo pipefail
+          python3 scripts/bluegreen/frontend_env.py cleanup "$SETTINGS_DIR"

@@ -6,10 +6,12 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-	const env = loadEnv(mode, process.cwd(), '')
+	const fromDeploymentSnapshot = process.env.IEUM_FRONTEND_BUILD_FROM_SNAPSHOT === '1'
+	const env = fromDeploymentSnapshot ? process.env : loadEnv(mode, process.cwd(), '')
 	const apiTarget = env.VITE_API_URL?.replace(/\/$/, '')
 
 	return {
+		envDir: fromDeploymentSnapshot ? false : undefined,
 		define: {
 			global: 'globalThis',
 		},

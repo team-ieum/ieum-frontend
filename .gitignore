@@ -39,3 +39,6 @@ build
 *.tsbuildinfo
 
 .serena
+
+# Deployment configuration validation
+__pycache__/
