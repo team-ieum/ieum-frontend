@@ -20,6 +20,7 @@ import {
 	oauthConnectionsResponse,
 	webhookCredentialsResponse,
 } from '@/mocks/fixtures/integrations'
+import { emptyNodeCatalogResponse, nodeCatalogResponse } from '@/mocks/fixtures/nodeCatalog'
 import {
 	emptyWorkflowDetailResponse,
 	emptyWorkflowListResponse,
@@ -37,6 +38,7 @@ export type ApiMockResource =
 	| 'oauthConnections'
 	| 'providers'
 	| 'credentials'
+	| 'nodeCatalog'
 
 type EndpointDefinition = {
 	resource: ApiMockResource
@@ -101,6 +103,12 @@ const endpointDefinitions: EndpointDefinition[] = [
 		path: '/api/v1/credentials',
 		successBody: credentialsResponse,
 		emptyBody: emptyCredentialsResponse,
+	},
+	{
+		resource: 'nodeCatalog',
+		path: '/api/v1/nodes/catalog',
+		successBody: nodeCatalogResponse,
+		emptyBody: emptyNodeCatalogResponse,
 	},
 ]
 
