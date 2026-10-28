@@ -3,12 +3,14 @@ import '@/styles/react-flow.css'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
+import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
@@ -18,7 +20,9 @@ import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
 import type { ApiErrorCode } from '@/types/api'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
+import type { WorkflowNodeDto } from '@/types/workflowList'
 import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
 import {
@@ -55,12 +59,38 @@ type WorkflowCanvasProps = {
 	edges: WorkflowEdgeType[]
 	nodeStatus: Record<string, NodeExecutionStatus>
 	isTracking: boolean
+	isPaletteOpen: boolean
+	onPaletteClose: () => void
+	onNodeAdd: (node: WorkflowNodeDto) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
 }
 
-const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCommit, onEdgesCommit }: WorkflowCanvasProps) => {
-	const editor = useWorkflowCanvasEditor({ initialNodes: nodes, initialEdges: edges, onNodePositionCommit, onEdgesCommit })
+const WorkflowCanvas = ({
+	nodes,
+	edges,
+	nodeStatus,
+	isTracking,
+	isPaletteOpen,
+	onPaletteClose,
+	onNodeAdd,
+	onNodePositionCommit,
+	onEdgesCommit,
+}: WorkflowCanvasProps) => {
+	// ref로 넘기는 값을 editor 객체에서 꺼내 두지 않으면 lint가 editor 전체를 ref로 보고 렌더 중 접근으로 판정한다.
+	const { setCanvasElement, ...editor } = useWorkflowCanvasEditor({
+		initialNodes: nodes,
+		initialEdges: edges,
+		onNodePositionCommit,
+		onEdgesCommit,
+		onNodeAdd,
+	})
+
+	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
+		editor.addCatalogNode(entry)
+		onPaletteClose()
+	}
+
 	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
 		() =>
@@ -89,36 +119,41 @@ const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCo
 	)
 
 	return (
-		<ReactFlow
-			className={WORKFLOW_CANVAS_CLASS}
-			nodes={displayNodes}
-			edges={displayEdges}
-			nodeTypes={nodeTypes}
-			edgeTypes={edgeTypes}
-			onNodesChange={editor.onNodesChange}
-			onEdgesChange={editor.onEdgesChange}
-			onNodeDragStop={editor.onNodeDragStop}
-			onConnect={editor.onConnect}
-			onReconnect={editor.onReconnect}
-			onReconnectStart={editor.onReconnectStart}
-			onReconnectEnd={editor.onReconnectEnd}
-			isValidConnection={editor.isValidConnection}
-			nodesDraggable
-			nodesConnectable
-			edgesReconnectable
-			elementsSelectable
-			panOnDrag
-			deleteKeyCode={['Backspace', 'Delete']}
-			fitView
-			fitViewOptions={{ padding: 0.24, minZoom: 0.78, maxZoom: 1 }}
-			minZoom={0.5}
-			maxZoom={1.4}
-			proOptions={{ hideAttribution: true }}
-		>
-			<Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color='rgba(74, 101, 124, 0.18)' />
-			<Controls showInteractive={false} />
-			<MiniMap pannable zoomable nodeStrokeWidth={3} />
-		</ReactFlow>
+		<>
+			<ReactFlow
+				ref={setCanvasElement}
+				onInit={editor.onInit}
+				className={WORKFLOW_CANVAS_CLASS}
+				nodes={displayNodes}
+				edges={displayEdges}
+				nodeTypes={nodeTypes}
+				edgeTypes={edgeTypes}
+				onNodesChange={editor.onNodesChange}
+				onEdgesChange={editor.onEdgesChange}
+				onNodeDragStop={editor.onNodeDragStop}
+				onConnect={editor.onConnect}
+				onReconnect={editor.onReconnect}
+				onReconnectStart={editor.onReconnectStart}
+				onReconnectEnd={editor.onReconnectEnd}
+				isValidConnection={editor.isValidConnection}
+				nodesDraggable
+				nodesConnectable
+				edgesReconnectable
+				elementsSelectable
+				panOnDrag
+				deleteKeyCode={['Backspace', 'Delete']}
+				fitView
+				fitViewOptions={{ padding: 0.24, minZoom: 0.78, maxZoom: 1 }}
+				minZoom={0.5}
+				maxZoom={1.4}
+				proOptions={{ hideAttribution: true }}
+			>
+				<Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color='rgba(74, 101, 124, 0.18)' />
+				<Controls showInteractive={false} />
+				<MiniMap pannable zoomable nodeStrokeWidth={3} />
+			</ReactFlow>
+			{isPaletteOpen ? <NodeCatalogPalette onSelect={handleCatalogSelect} onClose={onPaletteClose} /> : null}
+		</>
 	)
 }
 
@@ -130,6 +165,19 @@ const WorkFlowPage = () => {
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
+	const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+	const paletteButtonRef = useRef<HTMLButtonElement>(null)
+	// 팔레트는 열릴 때 패널로 포커스를 가져가므로 닫힐 때 여는 버튼으로 돌려줘야 키보드 위치를 잃지 않는다.
+	const closePalette = () => {
+		setIsPaletteOpen(false)
+		paletteButtonRef.current?.focus()
+	}
+	const { data: catalogData } = useNodeCatalogQuery()
+	// 카탈로그를 받기 전에는 판정하지 않아 정상 노드가 '지원하지 않는 작업'으로 보이지 않게 한다.
+	const catalogEvents = useMemo(
+		() => (catalogData ? new Set(catalogData.data.entries.map(entry => entry.id)) : undefined),
+		[catalogData]
+	)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -144,6 +192,7 @@ const WorkFlowPage = () => {
 		canvasKey,
 		handleTitleChange,
 		handleNodePositionCommit,
+		handleNodeAdd,
 		handleEdgesCommit,
 		handleCanvasUpdate,
 	} = useWorkflowEditorViewModel({
@@ -155,10 +204,10 @@ const WorkFlowPage = () => {
 	const canvas = useMemo(() => {
 		if (!document) return null
 		return {
-			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode),
+			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode, catalogEvents),
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
-	}, [document, modelNames, technicalMode])
+	}, [document, modelNames, technicalMode, catalogEvents])
 
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)
@@ -264,6 +313,9 @@ const WorkFlowPage = () => {
 				canExecute={canExecute}
 				technicalMode={technicalMode}
 				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
+				isNodePaletteOpen={isPaletteOpen}
+				onToggleNodePalette={() => setIsPaletteOpen(open => !open)}
+				nodePaletteButtonRef={paletteButtonRef}
 				isRefreshing={workflowQuery.isRefetching}
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
@@ -276,6 +328,9 @@ const WorkFlowPage = () => {
 						edges={canvas.edges}
 						nodeStatus={nodeStatus}
 						isTracking={phase === 'running'}
+						isPaletteOpen={isPaletteOpen}
+						onPaletteClose={closePalette}
+						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
 					/>

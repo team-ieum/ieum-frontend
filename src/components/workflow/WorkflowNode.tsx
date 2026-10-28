@@ -36,7 +36,7 @@ const HANDLE_CLASS = cn(
 	'bg-(--node-color)! shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]!'
 )
 
-const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
+export const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
 	if (iconKey === 'play') return <Play size={20} aria-hidden='true' />
 	if (iconKey === 'globe') return <Globe2 size={20} aria-hidden='true' />
 	if (iconKey === 'shuffle') return <Shuffle size={20} aria-hidden='true' />
@@ -172,6 +172,12 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 				) : (
 					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>{data.description}</p>
 				)}
+
+				{data.isOutsideCatalog ? (
+					<span className='inline-flex w-fit items-center rounded-full bg-[#eef1f3] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#5a6975]'>
+						지원하지 않는 작업 · 읽기 전용
+					</span>
+				) : null}
 
 				{data.role === 'ai' && !data.technicalMode ? (
 					<span

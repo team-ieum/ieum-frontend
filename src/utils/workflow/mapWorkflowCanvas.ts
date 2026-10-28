@@ -151,16 +151,26 @@ export const toWorkflowNodeStatus = (status?: NodeExecutionStatus): WorkflowNode
 	return status ?? 'idle'
 }
 
+/**
+ * 저장 노드를 캔버스 노드로 바꾼다.
+ * `catalogEvents`를 넘기면 그 안에 없는 event 노드를 카탈로그 밖 노드로 표시한다.
+ * 카탈로그를 아직 받지 못했으면 넘기지 않아야 정상 노드가 미지원으로 보이지 않는다.
+ */
 export const toWorkflowCanvasNodes = (
 	nodes: WorkflowNodeDto[],
 	modelNames: ReadonlyMap<string, string>,
-	technicalMode: boolean
+	technicalMode: boolean,
+	catalogEvents?: ReadonlySet<string>
 ): WorkflowNodeType[] => {
 	return nodes.map((dto, index) => {
 		const meta = getWorkflowNodeMeta(dto.type)
 		const config = dto.config ?? {}
 		const modelId = readConfigString(config, 'model')
 		const brand = dto.type === 'ACTION' && isIntegrationBrand(config.brand) ? config.brand : undefined
+		const isOutsideCatalog = catalogEvents ? !catalogEvents.has(dto.event) : false
+		const technicalDetails = toWorkflowTechnicalDetails({ type: dto.type, event: dto.event, config })
+		// 트리거는 이벤트 행을 이미 보여 주므로 그 밖의 카탈로그 밖 노드에만 event 원문을 덧붙인다.
+		if (isOutsideCatalog && dto.type !== 'TRIGGER') technicalDetails.unshift({ label: '이벤트', value: dto.event })
 
 		return {
 			id: dto.id,
@@ -178,9 +188,10 @@ export const toWorkflowCanvasNodes = (
 				title: dto.label,
 				// TODO: 서버가 설명을 항상 반환하면 대체 문구를 제거합니다.
 				description: dto.description ?? FALLBACK_DESCRIPTION,
-				technicalDetails: toWorkflowTechnicalDetails({ type: dto.type, event: dto.event, config }),
+				technicalDetails,
 				modelId,
 				modelName: modelId ? (modelNames.get(modelId) ?? modelId) : undefined,
+				isOutsideCatalog,
 				status: 'idle',
 				technicalMode,
 			},

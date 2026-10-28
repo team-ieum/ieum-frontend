@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { WorkflowEdgeType } from '@/types/workflow'
+import type { WorkflowNodeDto } from '@/types/workflowList'
 import { normalizeWorkflowCanvasDocument, toWorkflowEdgeDtos } from '@/utils/workflow/mapWorkflowCanvas'
 import {
 	inspectWorkflowDraft,
@@ -122,6 +123,14 @@ export const useWorkflowEditorViewModel = ({
 		[commitDocument, document]
 	)
 
+	const handleNodeAdd = useCallback(
+		(node: WorkflowNodeDto) => {
+			if (!document) return
+			commitDocument({ ...document, nodes: [...document.nodes, node] })
+		},
+		[commitDocument, document]
+	)
+
 	const handleEdgesCommit = useCallback(
 		(edges: WorkflowEdgeType[]) => {
 			if (!document) return
@@ -151,6 +160,7 @@ export const useWorkflowEditorViewModel = ({
 		canvasKey: editorSession?.key === editorKey ? `${editorSession.key}:${editorSession.canvasRevision}` : null,
 		handleTitleChange,
 		handleNodePositionCommit,
+		handleNodeAdd,
 		handleEdgesCommit,
 		handleCanvasUpdate,
 	}

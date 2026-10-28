@@ -1,5 +1,6 @@
-import { ArrowLeft, Code2, HardDrive, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
-import { useRef } from 'react'
+import { ArrowLeft, Code2, HardDrive, History, Loader2, Plus, Rocket, Save, Share2 } from 'lucide-react'
+import { useRef, type Ref } from 'react'
+import { NODE_CATALOG_PALETTE_ID } from '@/constants/workflow/nodeCatalog'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
 import type { WorkflowStatus } from '@/types/workflowList'
@@ -86,6 +87,10 @@ type WorkflowToolbarProps = {
 	canExecute?: boolean
 	technicalMode?: boolean
 	onToggleTechnicalMode?: () => void
+	isNodePaletteOpen?: boolean
+	onToggleNodePalette?: () => void
+	/** 팔레트가 닫힐 때 포커스를 돌려받을 '노드 추가' 버튼. */
+	nodePaletteButtonRef?: Ref<HTMLButtonElement>
 	isRefreshing?: boolean
 	isRefreshError?: boolean
 	onRetryRefresh?: () => void
@@ -109,6 +114,9 @@ const WorkflowToolbar = ({
 	canExecute = !isExecuting && !isWaitingApproval,
 	technicalMode = false,
 	onToggleTechnicalMode,
+	isNodePaletteOpen = false,
+	onToggleNodePalette,
+	nodePaletteButtonRef,
 	isRefreshing = false,
 	isRefreshError = false,
 	onRetryRefresh,
@@ -184,6 +192,24 @@ const WorkflowToolbar = ({
 			) : null}
 
 			<div className='flex-1' />
+
+			{onToggleNodePalette ? (
+				<button
+					ref={nodePaletteButtonRef}
+					type='button'
+					onClick={onToggleNodePalette}
+					aria-expanded={isNodePaletteOpen}
+					aria-controls={isNodePaletteOpen ? NODE_CATALOG_PALETTE_ID : undefined}
+					className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] border text-xs font-semibold transition-colors cursor-pointer shrink-0 ${
+						isNodePaletteOpen
+							? 'border-main-deep-blue bg-neutral-100 text-main-deep-blue'
+							: 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
+					}`}
+				>
+					<Plus size={15} aria-hidden='true' />
+					노드 추가
+				</button>
+			) : null}
 
 			{onToggleTechnicalMode ? (
 				<button

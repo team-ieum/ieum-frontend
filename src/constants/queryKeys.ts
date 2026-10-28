@@ -27,6 +27,9 @@ export const queryKeys = {
 		all: () => ['webhook-credentials'] as const,
 		list: () => [...queryKeys.webhookCredentials.all(), 'list'] as const,
 	},
+	nodeCatalog: {
+		all: () => ['node-catalog'] as const,
+	},
 	integrations: {
 		all: () => ['integrations'] as const,
 		workflows: (serviceType: IntegrationServiceType | 'UNKNOWN', params?: { size?: number }) =>

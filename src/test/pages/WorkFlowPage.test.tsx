@@ -2,8 +2,10 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 	openConfirm: vi.fn(),
 	workflowOneActive: true,
 	workflowTwoActive: false,
+	catalogEntries: undefined as NodeCatalogEntry[] | undefined,
 }))
 
 vi.mock('@xyflow/react', async () => {
@@ -44,6 +47,8 @@ vi.mock('@xyflow/react', async () => {
 			connection: { source: string; target: string; sourceHandle: null; targetHandle: null }
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
+		onInit?: (instance: { screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number } }) => void
+		ref?: React.Ref<HTMLDivElement>
 	}
 
 	return {
@@ -59,8 +64,16 @@ vi.mock('@xyflow/react', async () => {
 			onConnect,
 			onReconnect,
 			onEdgesChange,
+			onInit,
+			ref,
 		}: ReactFlowMockProps) => (
 			<div
+				ref={element => {
+					if (typeof ref === 'function') ref(element)
+					else if (ref) ref.current = element
+					// 실제 ReactFlow처럼 마운트 직후 화면 좌표를 그대로 flow 좌표로 돌려주는 인스턴스를 넘긴다.
+					if (element) onInit?.({ screenToFlowPosition: position => position })
+				}}
 				data-testid='workflow-canvas'
 				data-nodes-draggable={nodesDraggable}
 				data-nodes-connectable={nodesConnectable}
@@ -196,6 +209,14 @@ vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
 	useProvidersQuery: () => ({ data: undefined, isError: true }),
 }))
 
+vi.mock('@/hooks/workflow/queries/useNodeCatalogQuery', () => ({
+	useNodeCatalogQuery: () => ({
+		data: mocks.catalogEntries ? { data: { entries: mocks.catalogEntries } } : undefined,
+		isPending: !mocks.catalogEntries,
+		isError: false,
+	}),
+}))
+
 vi.mock('@/hooks/workflow/mutations/useToggleWorkflowMutation', () => ({
 	useToggleWorkflowMutation: () => ({ mutateAsync: mocks.toggle }),
 }))
@@ -308,6 +329,7 @@ describe('WorkFlowPage', () => {
 		mocks.openConfirm.mockReset()
 		mocks.workflowOneActive = true
 		mocks.workflowTwoActive = false
+		mocks.catalogEntries = undefined
 	})
 
 	it('조회한 노드와 연결선을 편집 가능한 캔버스로 표시한다', () => {
@@ -523,6 +545,68 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(screen.getByRole('button', { name: '연결 제거' }))
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
 		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('1')
+	})
+
+	it('팔레트에서 고른 항목을 fixed 뼈대 그대로 노드로 추가하고 저장할 초안에 싣는다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const canvasBefore = screen.getByTestId('workflow-canvas')
+
+		const paletteButton = screen.getByRole('button', { name: '노드 추가' })
+		await user.click(paletteButton)
+		expect(paletteButton).toHaveAttribute('aria-expanded', 'true')
+
+		await user.click(screen.getByRole('button', { name: /Slack/ }))
+		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveAttribute('aria-expanded', 'false')
+		expect(paletteButton).toHaveFocus()
+		expect(screen.getAllByTestId(/^status-/)).toHaveLength(4)
+		// 캔버스를 다시 마운트하면 fitView가 다시 돌아 보던 화면 위치가 사라지므로 같은 캔버스에 붙어야 한다.
+		expect(screen.getByTestId('workflow-canvas')).toBe(canvasBefore)
+
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.at(-1)).toEqual({
+			id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+			event: 'slack_bot.send_channel_message',
+			type: 'ACTION',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: -132, y: -75 },
+			config: { brand: 'slack' },
+		})
+	})
+
+	it('팔레트를 닫기 버튼이나 Escape로 닫으면 노드 추가 버튼으로 포커스를 돌려준다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const paletteButton = screen.getByRole('button', { name: '노드 추가' })
+
+		await user.click(paletteButton)
+		await user.click(screen.getByRole('button', { name: '노드 추가 닫기' }))
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveFocus()
+
+		await user.click(paletteButton)
+		expect(screen.getByRole('complementary', { name: '노드 추가' })).toHaveFocus()
+		await user.keyboard('{Escape}')
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveFocus()
+	})
+
+	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {
+		const { unmount } = renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+		expect(screen.queryByText('이벤트: http.request')).not.toBeInTheDocument()
+		unmount()
+
+		mocks.catalogEntries = nodeCatalogEntriesFixture.filter(entry => entry.id !== 'http.request')
+		renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+
+		expect(screen.getByText('이벤트: http.request')).toBeInTheDocument()
 	})
 
 	it('같은 서버 버전의 로컬 초안을 새로고침 진입 시 복원한다', () => {
