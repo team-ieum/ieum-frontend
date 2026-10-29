@@ -71,6 +71,20 @@ describe('nodeFieldValue', () => {
 		expect(parseFieldInput(field({ type: 'datetime' }), '내일', 'fixed')).toMatchObject({ ok: false })
 	})
 
+	it('datetime은 ISO 8601 형식만 받고 날짜만 있는 값은 허용한다', () => {
+		const datetimeField = field({ type: 'datetime' })
+		// Date.parse는 아래 값을 모두 날짜로 해석하지만 서버는 ISO 8601만 받는다.
+		for (const text of ['2026', '10/29/2026', 'Oct 5', '2026-10-29 09:30']) {
+			expect(parseFieldInput(datetimeField, text, 'fixed')).toMatchObject({ ok: false })
+		}
+		expect(parseFieldInput(datetimeField, '2026-13-40', 'fixed')).toMatchObject({ ok: false })
+		expect(parseFieldInput(datetimeField, '2026-10-29', 'fixed')).toEqual({ ok: true, value: '2026-10-29' })
+		expect(parseFieldInput(datetimeField, '2026-10-29T09:30:00Z', 'fixed')).toEqual({
+			ok: true,
+			value: '2026-10-29T09:30:00Z',
+		})
+	})
+
 	it('목록 칸은 한 줄에 하나씩 받아 배열로 저장한다', () => {
 		expect(parseFieldInput(field({ type: 'string', list: true }), 'a@x.com\n\n b@x.com ', 'fixed')).toEqual({
 			ok: true,

@@ -16,6 +16,9 @@ export type NodeFieldParseResult =
 
 const REFERENCE_MARK = '{{'
 const LOCAL_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/
+// Date.parse는 '2026'·'10/29/2026' 같은 비ISO 문자열도 받아 형식은 정규식으로 먼저 거른다.
+// 종일 일정처럼 날짜만 쓰는 값이 있을 수 있어 시간 부분은 선택이다.
+const ISO_DATETIME_PATTERN = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/
 
 const containsReference = (value: unknown) => typeof value === 'string' && value.includes(REFERENCE_MARK)
 
@@ -83,9 +86,9 @@ const parseScalar = (field: NodeCatalogInputField, text: string): NodeFieldParse
 	if (field.type === 'datetime') {
 		// datetime-local 입력은 초가 없어 ISO 8601 초 단위까지 맞춰 저장한다.
 		if (LOCAL_DATETIME_PATTERN.test(text)) return { ok: true, value: `${text}:00` }
-		return Number.isNaN(Date.parse(text))
-			? { ok: false, error: '날짜와 시간을 2026-01-31T09:00:00 형식으로 입력해 주세요.' }
-			: { ok: true, value: text }
+		return ISO_DATETIME_PATTERN.test(text) && !Number.isNaN(Date.parse(text))
+			? { ok: true, value: text }
+			: { ok: false, error: '날짜와 시간을 2026-01-31T09:00:00 형식으로 입력해 주세요.' }
 	}
 	if (field.type === 'json') {
 		// json 칸은 객체가 아니라 파싱을 확인한 JSON 문자열로 저장한다.
