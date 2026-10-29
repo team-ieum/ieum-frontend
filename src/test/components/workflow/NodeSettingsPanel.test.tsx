@@ -327,6 +327,14 @@ describe('NodeSettingsPanel', () => {
 		expect(mocks.refetch).toHaveBeenCalled()
 	})
 
+	it('받은 카탈로그가 있으면 재조회가 실패해도 오류 화면 대신 칸을 계속 보여 준다', () => {
+		mocks.isError = true
+		renderPanel(createNode())
+
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+		expect(getFieldInput('메시지')).toBeInTheDocument()
+	})
+
 	it('닫기 버튼과 Escape로 닫는다', async () => {
 		const user = userEvent.setup()
 		const onClose = vi.fn()

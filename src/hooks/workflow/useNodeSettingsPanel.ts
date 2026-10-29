@@ -8,7 +8,7 @@ import { getFieldName, updateNodeField } from '@/utils/workflow/updateNodeField'
 /**
  * 설정 패널 본문 상태.
  * - `loading`: 카탈로그를 처음 받는 중
- * - `error`: 카탈로그 조회에 실패함
+ * - `error`: 받은 카탈로그 없이 조회에 실패함
  * - `outsideCatalog`: 노드 event에 맞는 카탈로그 항목이 없어 읽기 전용으로 보여 줌
  * - `ready`: 칸을 편집할 수 있음
  */
@@ -28,13 +28,14 @@ export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPane
 	const catalogQuery = useNodeCatalogQuery()
 	const entry = catalogQuery.data?.data.entries.find(item => item.id === node.event)
 
-	const status: NodeSettingsPanelStatus = catalogQuery.isPending
-		? 'loading'
-		: catalogQuery.isError
+	// 받은 카탈로그가 있으면 이후 재조회가 실패해도 그 카탈로그로 계속 편집하게 한다.
+	const status: NodeSettingsPanelStatus = !catalogQuery.data
+		? catalogQuery.isError
 			? 'error'
-			: entry
-				? 'ready'
-				: 'outsideCatalog'
+			: 'loading'
+		: entry
+			? 'ready'
+			: 'outsideCatalog'
 
 	const fields = (entry?.inputFields ?? []).map(field => ({
 		field,

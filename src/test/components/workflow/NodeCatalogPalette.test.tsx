@@ -1,8 +1,9 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
+import { nodeCatalogQueryOptions } from '@/hooks/workflow/queries/nodeCatalogQueryOptions'
 import {
 	createPartialFailureHandlers,
 	createResourceEmptyHandler,
@@ -24,6 +25,28 @@ const renderPalette = () => {
 }
 
 describe('NodeCatalogPalette', () => {
+	it('받은 카탈로그가 있으면 재조회가 실패해도 오류 화면 대신 목록을 유지한다', async () => {
+		const client = createTestQueryClient()
+		const { queryKey } = nodeCatalogQueryOptions()
+		render(
+			<QueryClientProvider client={client}>
+				<NodeCatalogPalette onSelect={vi.fn()} onClose={vi.fn()} />
+			</QueryClientProvider>
+		)
+		expect(await screen.findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+
+		server.use(...createPartialFailureHandlers(['nodeCatalog']))
+		// React Query는 결과 알림을 setTimeout(0)으로 미뤄 보내므로 실패 상태가 화면에 반영될 때까지 한 번 더 기다린다.
+		await act(async () => {
+			await client.refetchQueries({ queryKey })
+			await new Promise(resolve => setTimeout(resolve, 0))
+		})
+
+		expect(client.getQueryState(queryKey)?.status).toBe('error')
+		expect(screen.getByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+	})
+
 	it('카탈로그를 받기 전에는 앱 목록 대신 skeleton을 표시한다', async () => {
 		let release!: () => void
 		server.use(createResourceHoldHandler('nodeCatalog', new Promise<void>(resolve => (release = resolve))))
