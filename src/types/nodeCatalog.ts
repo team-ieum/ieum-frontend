@@ -39,7 +39,7 @@ type NodeCatalogField = {
 	children?: NodeCatalogField[]
 }
 
-type NodeCatalogInputField = NodeCatalogField & {
+export type NodeCatalogInputField = NodeCatalogField & {
 	/** 노드에서 값을 읽고 쓸 경로(예: `config.channel`). */
 	path: string
 }
