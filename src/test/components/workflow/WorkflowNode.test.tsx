@@ -29,6 +29,7 @@ const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 			modelId: 'gemini-2.5-flash',
 			modelName: 'Gemini 2.5 Flash',
 			isOutsideCatalog: false,
+			missingRequiredCount: 0,
 			status: 'idle',
 			technicalMode,
 		},
@@ -120,6 +121,17 @@ describe('WorkflowNode', () => {
 			expect(screen.getByText('지원하지 않는 작업 · 읽기 전용')).toBeInTheDocument()
 			unmountOutside()
 		}
+	})
+
+	it('비어 있는 필수 칸이 있을 때만 개수를 칩으로 표시한다', () => {
+		const { unmount } = render(<WorkflowNode {...createProps(false)} />)
+		expect(screen.queryByText(/필수 입력/)).not.toBeInTheDocument()
+		unmount()
+
+		const props = createProps(true)
+		props.data.missingRequiredCount = 2
+		render(<WorkflowNode {...props} />)
+		expect(screen.getByText('필수 입력 2개 비어 있음')).toBeInTheDocument()
 	})
 
 	it('기술 정보가 없으면 명시적인 대체 문구를 표시한다', () => {

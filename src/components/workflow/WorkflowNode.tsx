@@ -173,6 +173,13 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>{data.description}</p>
 				)}
 
+				{data.missingRequiredCount > 0 ? (
+					<span className='inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#9a6700]'>
+						<CircleAlert size={11} aria-hidden='true' />
+						필수 입력 {data.missingRequiredCount}개 비어 있음
+					</span>
+				) : null}
+
 				{data.isOutsideCatalog ? (
 					<span className='inline-flex w-fit items-center rounded-full bg-[#eef1f3] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#5a6975]'>
 						지원하지 않는 작업 · 읽기 전용

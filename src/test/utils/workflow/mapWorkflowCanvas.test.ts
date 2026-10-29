@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
+import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import type { ProviderInfo } from '@/types/credential'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import {
@@ -322,7 +323,11 @@ describe('mapWorkflowCanvas', () => {
 	})
 
 	it('카탈로그 밖 event 노드를 표시하고 트리거가 아닌 노드에는 event 행을 앞에 붙인다', () => {
-		const catalogEvents = new Set(['manual.run', 'http.request'])
+		const catalogEntries = new Map(
+			nodeCatalogEntriesFixture
+				.filter(entry => entry.id === 'manual.run' || entry.id === 'http.request')
+				.map(entry => [entry.id, entry])
+		)
 		const result = toWorkflowCanvasNodes(
 			[
 				{ id: 'known', type: 'HTTP', event: 'http.request', label: '요청', config: { method: 'GET' } },
@@ -331,13 +336,35 @@ describe('mapWorkflowCanvas', () => {
 			],
 			new Map(),
 			true,
-			catalogEvents
+			catalogEntries
 		)
 
 		expect(result.map(node => node.data.isOutsideCatalog)).toEqual([false, true, true])
 		expect(result[0].data.technicalDetails).toEqual([{ label: 'Method', value: 'GET' }])
 		expect(result[1].data.technicalDetails).toEqual([{ label: '이벤트', value: 'future_app.do_something' }])
 		expect(result[2].data.technicalDetails).toEqual([{ label: '이벤트', value: 'calendar.new_event' }])
+	})
+
+	it('카탈로그 항목의 비어 있는 필수 칸 수를 세고 기본값이 있는 칸과 카탈로그 밖 노드는 세지 않는다', () => {
+		const catalogEntries = new Map(nodeCatalogEntriesFixture.map(entry => [entry.id, entry]))
+		const result = toWorkflowCanvasNodes(
+			[
+				{ id: 'empty', type: 'ACTION', event: 'slack_bot.send_channel_message', label: '빈 노드', config: {} },
+				{
+					id: 'filled',
+					type: 'ACTION',
+					event: 'slack_bot.send_channel_message',
+					label: '채운 노드',
+					config: { channel: 'C1', text: '안녕' },
+				},
+				{ id: 'future', type: 'ACTION', event: 'future_app.do_something', label: '새 노드', config: {} },
+			],
+			new Map(),
+			false,
+			catalogEntries
+		)
+
+		expect(result.map(node => node.data.missingRequiredCount)).toEqual([2, 0, 0])
 	})
 
 	it('카탈로그를 받기 전에는 어떤 노드도 카탈로그 밖으로 판정하지 않는다', () => {

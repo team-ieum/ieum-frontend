@@ -174,8 +174,8 @@ const WorkFlowPage = () => {
 	}
 	const { data: catalogData } = useNodeCatalogQuery()
 	// 카탈로그를 받기 전에는 판정하지 않아 정상 노드가 '지원하지 않는 작업'으로 보이지 않게 한다.
-	const catalogEvents = useMemo(
-		() => (catalogData ? new Set(catalogData.data.entries.map(entry => entry.id)) : undefined),
+	const catalogEntries = useMemo(
+		() => (catalogData ? new Map(catalogData.data.entries.map(entry => [entry.id, entry])) : undefined),
 		[catalogData]
 	)
 
@@ -204,10 +204,10 @@ const WorkFlowPage = () => {
 	const canvas = useMemo(() => {
 		if (!document) return null
 		return {
-			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode, catalogEvents),
+			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode, catalogEntries),
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
-	}, [document, modelNames, technicalMode, catalogEvents])
+	}, [document, modelNames, technicalMode, catalogEntries])
 
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)
