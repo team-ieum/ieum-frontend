@@ -5,12 +5,9 @@ import SkeletonPulse from '@/components/common/SkeletonPulse'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
-import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
+import { useNodeSettingsPanel } from '@/hooks/workflow/useNodeSettingsPanel'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
-import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
-import { getAtPath } from '@/utils/workflow/objectPath'
-import { getFieldName, updateNodeField } from '@/utils/workflow/updateNodeField'
 
 const SKELETON_FIELD_COUNT = 3
 
@@ -27,7 +24,6 @@ const FieldsSkeleton = () => (
 
 type NodeSettingsPanelProps = {
 	node: WorkflowNodeDto
-	/** 칸을 바꾼 새 노드를 넘긴다. 편집 문서에 반영하는 일은 호출자가 맡는다. */
 	onNodeChange: (node: WorkflowNodeDto) => void
 	onClose: () => void
 }
@@ -38,11 +34,13 @@ type NodeSettingsPanelProps = {
  * 마운트할 때 패널로 포커스를 옮기므로 다른 노드를 열 때만 `key`를 바꿔 다시 마운트한다.
  */
 const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelProps) => {
-	const catalogQuery = useNodeCatalogQuery()
+	const { status, entryTitle, fields, missingRequiredCount, changeField, retry, isRetrying } = useNodeSettingsPanel({
+		node,
+		onNodeChange,
+	})
 	const panelRef = useRef<HTMLElement>(null)
 	const reduceMotion = useReducedMotion()
 	const meta = getWorkflowNodeMeta(node.type)
-	const entry = catalogQuery.data?.data.entries.find(item => item.id === node.event)
 
 	useEffect(() => {
 		panelRef.current?.focus()
@@ -55,25 +53,25 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 	}
 
 	const renderBody = () => {
-		if (catalogQuery.isPending) return <FieldsSkeleton />
+		if (status === 'loading') return <FieldsSkeleton />
 
-		if (catalogQuery.isError) {
+		if (status === 'error') {
 			return (
 				<div role='alert' className='flex flex-col items-start gap-2 p-4 text-sm text-neutral-600'>
 					<p className='m-0'>설정 칸을 불러오지 못했어요.</p>
 					<button
 						type='button'
-						onClick={() => void catalogQuery.refetch()}
-						disabled={catalogQuery.isFetching}
+						onClick={retry}
+						disabled={isRetrying}
 						className='rounded-lg border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-main-deep-blue hover:bg-neutral-50 disabled:opacity-60'
 					>
-						{catalogQuery.isFetching ? '다시 불러오는 중…' : '다시 시도'}
+						{isRetrying ? '다시 불러오는 중…' : '다시 시도'}
 					</button>
 				</div>
 			)
 		}
 
-		if (!entry) {
+		if (status === 'outsideCatalog') {
 			return (
 				<div className='flex flex-col gap-2 p-4 text-sm leading-relaxed text-neutral-600'>
 					<p className='m-0'>
@@ -86,25 +84,24 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 			)
 		}
 
-		if (entry.inputFields.length === 0) {
+		if (fields.length === 0) {
 			return <p className='m-0 p-4 text-sm text-neutral-500'>설정할 칸이 없어요.</p>
 		}
 
-		const missingCount = getMissingRequiredFields(entry, node).length
 		return (
 			<div className='flex flex-col gap-4 p-4'>
-				{missingCount > 0 ? (
+				{missingRequiredCount > 0 ? (
 					<p role='status' className='m-0 rounded-lg bg-[#fff1d6] px-3 py-2 text-xs font-semibold text-[#9a6700]'>
-						필수 칸 {missingCount}개가 비어 있어요. 저장은 되지만 채우기 전에는 실행할 수 없어요.
+						필수 칸 {missingRequiredCount}개가 비어 있어요. 저장은 되지만 채우기 전에는 실행할 수 없어요.
 					</p>
 				) : null}
-				{entry.inputFields.map(field => (
+				{fields.map(({ field, value, name }) => (
 					<NodeSettingsField
 						key={field.path}
 						field={field}
-						value={getAtPath(node, field.path)}
-						name={getFieldName(node, field)}
-						onChange={value => onNodeChange(updateNodeField(node, entry, field, value))}
+						value={value}
+						name={name}
+						onChange={next => changeField(field, next)}
 					/>
 				))}
 			</div>
@@ -137,7 +134,7 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 					<h2 className='m-0 truncate text-sm font-bold text-main-deep-blue' title={node.label}>
 						{node.label}
 					</h2>
-					{entry ? <p className='m-0 truncate text-xs text-neutral-500'>{entry.title}</p> : null}
+					{entryTitle ? <p className='m-0 truncate text-xs text-neutral-500'>{entryTitle}</p> : null}
 				</div>
 				<button
 					type='button'
