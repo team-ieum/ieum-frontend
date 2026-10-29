@@ -1,9 +1,10 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
+import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
@@ -64,6 +65,10 @@ type WorkflowCanvasProps = {
 	onNodeAdd: (node: WorkflowNodeDto) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
+	/** 설정 패널이 열린 노드. 그 노드 카드에만 강조 테두리를 그린다. */
+	settingsNodeId?: string
+	onNodeSelect: (nodeId: string) => void
+	onPaneClick: () => void
 }
 
 const WorkflowCanvas = ({
@@ -76,6 +81,9 @@ const WorkflowCanvas = ({
 	onNodeAdd,
 	onNodePositionCommit,
 	onEdgesCommit,
+	settingsNodeId,
+	onNodeSelect,
+	onPaneClick,
 }: WorkflowCanvasProps) => {
 	// ref로 넘기는 값을 editor 객체에서 꺼내 두지 않으면 lint가 editor 전체를 ref로 보고 렌더 중 접근으로 판정한다.
 	const { setCanvasElement, ...editor } = useWorkflowCanvasEditor({
@@ -104,10 +112,11 @@ const WorkflowCanvas = ({
 							nodeStatus[node.id] === 'running' && !isTracking
 								? 'interrupted'
 								: toWorkflowNodeStatus(nodeStatus[node.id]),
+						isSettingsOpen: node.id === settingsNodeId,
 					},
 				}
 			}),
-		[editor.nodes, nodePresentation, nodeStatus, isTracking]
+		[editor.nodes, nodePresentation, nodeStatus, isTracking, settingsNodeId]
 	)
 	const displayEdges = useMemo(
 		() =>
@@ -118,10 +127,20 @@ const WorkflowCanvas = ({
 		[editor.edges, nodeStatus, isTracking]
 	)
 
+	// React Flow는 노드에서 Enter·Space를 선택으로만 처리하고 onNodeClick을 부르지 않아 키보드로도 설정 패널을 열 수 있게 한다.
+	const handleCanvasKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return
+		const target = event.target
+		if (!(target instanceof HTMLElement) || !target.classList.contains('react-flow__node')) return
+		const nodeId = target.dataset.id
+		if (nodeId) onNodeSelect(nodeId)
+	}
+
 	return (
 		<>
 			<ReactFlow
 				ref={setCanvasElement}
+				onKeyDown={handleCanvasKeyDown}
 				onInit={editor.onInit}
 				className={WORKFLOW_CANVAS_CLASS}
 				nodes={displayNodes}
@@ -131,6 +150,8 @@ const WorkflowCanvas = ({
 				onNodesChange={editor.onNodesChange}
 				onEdgesChange={editor.onEdgesChange}
 				onNodeDragStop={editor.onNodeDragStop}
+				onNodeClick={(_event, node) => onNodeSelect(node.id)}
+				onPaneClick={onPaneClick}
 				onConnect={editor.onConnect}
 				onReconnect={editor.onReconnect}
 				onReconnectStart={editor.onReconnectStart}
@@ -178,6 +199,7 @@ const WorkFlowPage = () => {
 		() => (catalogData ? new Map(catalogData.data.entries.map(entry => [entry.id, entry])) : undefined),
 		[catalogData]
 	)
+	const [selectedNode, setSelectedNode] = useState<{ workflowId: string; nodeId: string } | null>(null)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -193,6 +215,7 @@ const WorkFlowPage = () => {
 		handleTitleChange,
 		handleNodePositionCommit,
 		handleNodeAdd,
+		handleNodeUpdate,
 		handleEdgesCommit,
 		handleCanvasUpdate,
 	} = useWorkflowEditorViewModel({
@@ -208,6 +231,19 @@ const WorkFlowPage = () => {
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
 	}, [document, modelNames, technicalMode, catalogEntries])
+
+	// 채팅이 캔버스를 바꿔 고른 노드가 사라지면 설정 패널도 함께 닫힌다.
+	const settingsNode =
+		selectedNode && selectedNode.workflowId === workflowId
+			? document?.nodes.find(node => node.id === selectedNode.nodeId)
+			: undefined
+	const closeNodeSettings = () => {
+		setSelectedNode(null)
+		// 설정 패널은 열릴 때 포커스를 가져가므로 닫힐 때 그 노드로 돌려줘 키보드 위치를 잃지 않게 한다.
+		if (settingsNode) {
+			window.document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(settingsNode.id)}"]`)?.focus()
+		}
+	}
 
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)
@@ -333,6 +369,18 @@ const WorkFlowPage = () => {
 						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
+						settingsNodeId={settingsNode?.id}
+						onNodeSelect={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
+						onPaneClick={() => setSelectedNode(null)}
+					/>
+				) : null}
+				{settingsNode ? (
+					<NodeSettingsPanel
+						// 캔버스가 다시 마운트돼도 패널은 유지해 입력 포커스를 뺏지 않는다. 바뀐 값은 칸이 스스로 다시 맞춘다.
+						key={settingsNode.id}
+						node={settingsNode}
+						onNodeChange={handleNodeUpdate}
+						onClose={closeNodeSettings}
 					/>
 				) : null}
 				<WorkflowChat
@@ -340,6 +388,7 @@ const WorkFlowPage = () => {
 					currentNodes={document?.nodes ?? []}
 					currentEdges={document?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
+					isBesideNodeSettings={Boolean(settingsNode)}
 				/>
 			</div>
 		</div>

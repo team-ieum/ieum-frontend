@@ -31,6 +31,8 @@ type WorkflowNodeData = {
 	isOutsideCatalog: boolean
 	/** 설정 폼에서 채울 수 있는 칸 중 비어 있는 필수 칸 수. 카탈로그를 받기 전이거나 카탈로그 밖 노드면 0이다. */
 	missingRequiredCount: number
+	/** 설정 패널이 이 노드를 편집 중인지 여부. 캔버스 표시 단계에서만 채운다. */
+	isSettingsOpen?: boolean
 	status: WorkflowNodeStatus
 	technicalMode: boolean
 }

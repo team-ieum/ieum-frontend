@@ -99,6 +99,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 			className={cn(
 				'relative w-66 rounded-[1.2rem] border-2 border-(--node-color) bg-white',
 				'shadow-[0.5rem_0.6rem_0_var(--node-tint),0_14px_30px_rgba(65,52,139,0.1)]',
+				data.isSettingsOpen && 'outline-3 outline-offset-3 outline-main-blue',
 				nodeMeta.toneClass
 			)}
 		>
