@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -30,6 +30,7 @@ vi.mock('@xyflow/react', async () => {
 			technicalDetails: { label: string; value: string }[]
 			modelName?: string
 			status: string
+			isSettingsOpen?: boolean
 		}
 	}
 	type CanvasEdge = { id: string; source: string; target: string }
@@ -48,6 +49,9 @@ vi.mock('@xyflow/react', async () => {
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
 		onInit?: (instance: { screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number } }) => void
+		onNodeClick?: (event: never, node: CanvasNode) => void
+		onPaneClick?: () => void
+		onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
 		ref?: React.Ref<HTMLDivElement>
 	}
 
@@ -65,9 +69,13 @@ vi.mock('@xyflow/react', async () => {
 			onReconnect,
 			onEdgesChange,
 			onInit,
+			onNodeClick,
+			onPaneClick,
+			onKeyDown,
 			ref,
 		}: ReactFlowMockProps) => (
 			<div
+				onKeyDown={onKeyDown}
 				ref={element => {
 					if (typeof ref === 'function') ref(element)
 					else if (ref) ref.current = element
@@ -82,7 +90,12 @@ vi.mock('@xyflow/react', async () => {
 			>
 				<span data-testid='edge-count'>{edges.length}</span>
 				{nodes.map(node => (
-					<div key={node.id}>
+					// 실제 ReactFlow 노드처럼 data-id와 포커스를 받는 요소를 둬 설정 패널이 닫힐 때 포커스 복귀를 확인한다.
+					<div key={node.id} className='react-flow__node' data-id={node.id} tabIndex={0}>
+						<button type='button' onClick={() => onNodeClick?.({} as never, node)}>
+							{`노드 선택 ${node.id}`}
+						</button>
+						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
 						{node.data.technicalMode ? (
 							node.data.technicalDetails.length > 0 ? (
@@ -106,6 +119,9 @@ vi.mock('@xyflow/react', async () => {
 					}}
 				>
 					노드 이동
+				</button>
+				<button type='button' onClick={() => onPaneClick?.()}>
+					빈 곳 클릭
 				</button>
 				<button
 					type='button'
@@ -252,12 +268,15 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 		currentNodes,
 		currentEdges,
 		onCanvasUpdate,
+		isBesideNodeSettings,
 	}: {
 		currentNodes: { id: string; position?: { x: number; y: number } }[]
 		currentEdges: unknown[]
 		onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+		isBesideNodeSettings?: boolean
 	}) => (
 		<div>
+			<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
 			<span data-testid='chat-edge-count'>{currentEdges.length}</span>
 			<span data-testid='chat-trigger-position'>
 				{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
@@ -594,6 +613,66 @@ describe('WorkFlowPage', () => {
 		await user.keyboard('{Escape}')
 		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
 		expect(paletteButton).toHaveFocus()
+	})
+
+	it('노드를 누르면 설정 패널을 열어 칸 수정을 초안에 반영하고 채팅을 패널 옆으로 민다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const canvasBefore = screen.getByTestId('workflow-canvas')
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('false')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '담당자에게 알리기' })).toBeInTheDocument()
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('true')
+
+		const url = within(panel).getByLabelText(/^URL/, { selector: 'input' })
+		await user.clear(url)
+		await user.type(url, 'https://example.com/new')
+
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.find((node: { id: string }) => node.id === 'action').config).toEqual({
+			method: 'POST',
+			url: 'https://example.com/new',
+		})
+		// 입력마다 캔버스를 다시 마운트하면 fitView와 입력 포커스가 흔들리므로 같은 캔버스를 유지해야 한다.
+		expect(screen.getByTestId('workflow-canvas')).toBe(canvasBefore)
+		expect(url).toHaveFocus()
+
+		await user.click(screen.getByRole('button', { name: '빈 곳 클릭' }))
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('false')
+	})
+
+	it('설정 패널을 Escape로 닫으면 그 노드로 포커스를 돌려주고 Enter로 다시 열며 다른 노드를 누르면 그 노드 설정으로 바꾼다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		const { container } = renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+		expect(screen.getByRole('complementary', { name: '노드 설정' })).toHaveFocus()
+		expect(screen.getByText('설정 중 action')).toBeInTheDocument()
+		await user.keyboard('{Escape}')
+
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.queryByText('설정 중 action')).not.toBeInTheDocument()
+		const actionNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="action"]')
+		expect(actionNode).toHaveFocus()
+
+		// 실제 React Flow는 노드에서 Enter를 선택으로만 처리해 캔버스 keydown으로 패널을 연다.
+		await user.keyboard('{Enter}')
+		expect(
+			within(screen.getByRole('complementary', { name: '노드 설정' })).getByRole('heading', { name: '담당자에게 알리기' })
+		).toBeInTheDocument()
+		await user.keyboard('{Escape}')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '문의 분류하기' })).toBeInTheDocument()
+		expect(within(panel).getByLabelText(/^프롬프트/, { selector: 'textarea' })).toHaveValue('private prompt')
 	})
 
 	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {

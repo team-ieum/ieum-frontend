@@ -83,7 +83,8 @@ const NodeCatalogPalette = ({ onSelect, onClose }: NodeCatalogPaletteProps) => {
 	const renderBody = () => {
 		if (catalogQuery.isPending) return <PaletteSkeleton />
 
-		if (catalogQuery.isError) {
+		// 받은 카탈로그가 있으면 이후 재조회가 실패해도 목록을 계속 보여 준다.
+		if (catalogQuery.isError && !catalogQuery.data) {
 			return (
 				<div role='alert' className='flex flex-col items-start gap-2 p-4 text-sm text-neutral-600'>
 					<p className='m-0'>노드 목록을 불러오지 못했어요.</p>

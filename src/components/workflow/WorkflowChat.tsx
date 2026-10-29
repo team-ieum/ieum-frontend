@@ -84,9 +84,19 @@ type WorkflowChatProps = {
 	currentNodes: WorkflowNodeDto[]
 	currentEdges: WorkflowEdgeDto[]
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+	/** 캔버스 오른쪽에 노드 설정 패널이 열려 있으면 채팅을 그 왼쪽으로 밀어 나란히 보여 준다. */
+	isBesideNodeSettings?: boolean
 }
 
-const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
+const WorkflowChat = ({
+	workflowId,
+	currentNodes,
+	currentEdges,
+	onCanvasUpdate,
+	isBesideNodeSettings = false,
+}: WorkflowChatProps) => {
+	// 설정 패널(right-3 + w-90)과 0.75rem 간격을 둔 위치다.
+	const rightClass = isBesideNodeSettings ? 'right-96' : 'right-4'
 	const {
 		isOpen,
 		openChat,
@@ -126,7 +136,10 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						transition={{ type: 'spring', stiffness: 300, damping: 22 }}
 						onClick={openChat}
 						aria-label='채팅 열기'
-						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
+						className={cn(
+							'absolute top-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer',
+							rightClass
+						)}
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
 					>
 						<img
@@ -148,7 +161,10 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						animate={{ x: 0, opacity: 1 }}
 						exit={{ x: 16, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-						className='absolute top-4 right-4 bottom-4 w-95 bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden'
+						className={cn(
+							'absolute top-4 bottom-4 w-95 bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden',
+							rightClass
+						)}
 						style={{
 							zIndex: 10,
 							boxShadow: '0 24px 48px -8px rgba(16,24,40,.18), 0 8px 16px -4px rgba(16,24,40,.1)',

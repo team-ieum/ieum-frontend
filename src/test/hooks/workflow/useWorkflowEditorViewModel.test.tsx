@@ -80,6 +80,18 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(readWorkflowDraft('workflow-1', 3)?.nodes.at(-1)).toEqual(node)
 	})
 
+	it('설정 폼으로 바꾼 노드를 같은 id 자리에 바꿔 넣고 캔버스는 다시 마운트하지 않는다', () => {
+		const { result } = renderEditor()
+		const canvasKey = result.current.canvasKey
+		const updated = { ...serverDocument.nodes[1], config: { model: 'model-1', prompt: '분류해 줘' } }
+
+		act(() => result.current.handleNodeUpdate(updated))
+
+		expect(result.current.document?.nodes).toEqual([serverDocument.nodes[0], updated])
+		expect(result.current.canvasKey).toBe(canvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)?.nodes[1]).toEqual(updated)
+	})
+
 	it('제목, 노드 위치와 연결선 변경을 같은 로컬 초안에 반영한다', () => {
 		const { result } = renderEditor()
 

@@ -131,6 +131,18 @@ export const useWorkflowEditorViewModel = ({
 		[commitDocument, document]
 	)
 
+	// 설정 폼 입력은 노드를 통째로 바꾸지만 캔버스는 다시 마운트하지 않아 입력 중인 칸의 포커스를 지킨다.
+	const handleNodeUpdate = useCallback(
+		(nextNode: WorkflowNodeDto) => {
+			if (!document) return
+			commitDocument({
+				...document,
+				nodes: document.nodes.map(node => (node.id === nextNode.id ? nextNode : node)),
+			})
+		},
+		[commitDocument, document]
+	)
+
 	const handleEdgesCommit = useCallback(
 		(edges: WorkflowEdgeType[]) => {
 			if (!document) return
@@ -161,6 +173,7 @@ export const useWorkflowEditorViewModel = ({
 		handleTitleChange,
 		handleNodePositionCommit,
 		handleNodeAdd,
+		handleNodeUpdate,
 		handleEdgesCommit,
 		handleCanvasUpdate,
 	}
