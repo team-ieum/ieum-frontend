@@ -4,6 +4,7 @@ import { useEffect, useRef, type KeyboardEvent } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import AiToolsSection from '@/components/workflow/settings/AiToolsSection'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
+import NodeTestSection from '@/components/workflow/settings/NodeTestSection'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import { useNodeSettingsPanel } from '@/hooks/workflow/useNodeSettingsPanel'
@@ -24,8 +25,13 @@ const FieldsSkeleton = () => (
 )
 
 type NodeSettingsPanelProps = {
+	workflowId: string
 	node: WorkflowNodeDto
+	/** 편집 문서의 모든 노드. 노드 테스트가 먼저 테스트할 노드를 라벨로 안내할 때 쓴다. */
+	nodes: WorkflowNodeDto[]
 	onNodeChange: (node: WorkflowNodeDto) => void
+	/** 다른 노드의 설정 패널로 바꾼다. */
+	onNodeOpen: (nodeId: string) => void
 	onClose: () => void
 }
 
@@ -34,11 +40,12 @@ type NodeSettingsPanelProps = {
  * 노드는 `event`가 같은 카탈로그 항목으로만 열며, 항목이 없는 노드는 원본을 바꾸지 않도록 읽기 전용으로 보여 준다.
  * 마운트할 때 패널로 포커스를 옮기므로 다른 노드를 열 때만 `key`를 바꿔 다시 마운트한다.
  */
-const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelProps) => {
-	const { status, entryTitle, fields, aiTools, missingRequiredCount, changeField, retry, isRetrying } = useNodeSettingsPanel({
-		node,
-		onNodeChange,
-	})
+const NodeSettingsPanel = ({ workflowId, node, nodes, onNodeChange, onNodeOpen, onClose }: NodeSettingsPanelProps) => {
+	const { status, entry, entryTitle, fields, aiTools, missingRequiredCount, changeField, retry, isRetrying } =
+		useNodeSettingsPanel({
+			node,
+			onNodeChange,
+		})
 	const panelRef = useRef<HTMLElement>(null)
 	const reduceMotion = useReducedMotion()
 	const meta = getWorkflowNodeMeta(node.type)
@@ -149,6 +156,9 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 				</button>
 			</header>
 			<div className='min-h-0 flex-1 overflow-y-auto'>{renderBody()}</div>
+			{status === 'ready' || status === 'outsideCatalog' ? (
+				<NodeTestSection workflowId={workflowId} node={node} entry={entry} nodes={nodes} onNodeOpen={onNodeOpen} />
+			) : null}
 		</motion.aside>
 	)
 }
