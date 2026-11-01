@@ -395,6 +395,8 @@ const WorkFlowPage = () => {
 					/>
 				) : null}
 				<WorkflowChat
+					// route가 페이지를 재사용하므로 워크플로우마다 다시 마운트해 이전 대화·응답 대기 상태를 넘기지 않는다.
+					key={workflowId}
 					workflowId={workflowId ?? ''}
 					currentNodes={document?.nodes ?? []}
 					currentEdges={document?.edges ?? []}
