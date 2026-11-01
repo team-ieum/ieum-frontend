@@ -250,6 +250,160 @@ describe('NodeSettingsPanel', () => {
 		expect(lastNode().config.tools).toBe(tools)
 	})
 
+	describe('AI 도구 칸', () => {
+		const SLACK_TOOL = 'builtin:slack_send_channel_message'
+		const SLACK_TITLE = 'Slack 채널에 메시지 보내기'
+		const DISCORD_TITLE = 'Discord 웹훅으로 보내기'
+
+		// 필수 칸 개수를 도구 칸만으로 확인하려고 AI 공통 필수 칸(제공자·프롬프트)은 채워 둔다.
+		const createAiNode = (event: 'ai.reasoning' | 'ai.agent', tools: unknown[] = []) =>
+			createNode({
+				type: 'AI',
+				event,
+				label: '요약',
+				config: {
+					agentType: event === 'ai.agent' ? 'react' : 'simple',
+					credentialId: '',
+					tools,
+					brand: 'openai',
+					llmProvider: 'CLAUDE',
+					prompt: '요약해줘',
+				},
+			})
+
+		const getToolsSection = () => screen.getByRole('region', { name: '도구' })
+		// 펼치기 버튼 이름은 도구 이름으로 시작하고, 같은 이름으로 시작하는 '도구 빼기' 버튼은 뺀다.
+		const getToolToggle = (title: string) =>
+			within(getToolsSection()).getByRole('button', { name: new RegExp(`^${title}(?!.*도구 빼기$)`) })
+		const getToolCard = (title: string) => getToolToggle(title).closest('li') as HTMLElement
+
+		const openAddList = async (user: ReturnType<typeof userEvent.setup>) => {
+			await user.click(screen.getByRole('combobox', { name: '도구 추가' }))
+			return screen.findByRole('listbox', { name: '도구 목록' })
+		}
+
+		it('도구 없는 AI 노드에서 도구를 고르면 ai.agent로 바꿔 {name, config} 원소로 저장하고 방금 추가한 도구를 펼친다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createAiNode('ai.reasoning'))
+
+			expect(screen.getByText('AI 답변 만들기')).toBeInTheDocument()
+			expect(getToolsSection()).toHaveTextContent('도구를 고르면 고른 도구를 써 가며 일하는 AI 에이전트로 바뀌어요.')
+
+			const listbox = await openAddList(user)
+			expect(within(listbox).getByRole('option', { name: new RegExp(`^${SLACK_TITLE}`) })).toBeInTheDocument()
+			await user.click(within(listbox).getByRole('option', { name: new RegExp(`^${DISCORD_TITLE}`) }))
+
+			expect(lastNode().event).toBe('ai.agent')
+			expect(lastNode().config).toEqual({
+				agentType: 'react',
+				credentialId: '',
+				tools: [{ name: 'discord', config: {} }],
+				brand: 'openai',
+				llmProvider: 'CLAUDE',
+				prompt: '요약해줘',
+			})
+			expect(screen.getByText('AI 에이전트')).toBeInTheDocument()
+			expect(getToolToggle(DISCORD_TITLE)).toHaveAttribute('aria-expanded', 'true')
+			expect(within(getToolCard(DISCORD_TITLE)).getByText(/^보낸 사람 이름/, { selector: 'label' })).toBeInTheDocument()
+
+			// 이미 고른 도구는 추가 목록에서 빠진다.
+			const nextList = await openAddList(user)
+			expect(
+				within(nextList)
+					.getAllByRole('option')
+					.map(option => option.textContent)
+			).toEqual([`${SLACK_TITLE}Slack`])
+		})
+
+		it('저장된 도구는 접어 두고, 펼친 도구 칸 값을 그 원소 config에 쓰며 비우면 키를 지우고 AI가 정한다고 안내한다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }]))
+
+			expect(getToolToggle(SLACK_TITLE)).toHaveAttribute('aria-expanded', 'false')
+			expect(screen.queryByText(/^메시지/, { selector: 'label' })).not.toBeInTheDocument()
+			await user.click(getToolToggle(SLACK_TITLE))
+
+			const card = getToolCard(SLACK_TITLE)
+			expect(within(card).getAllByText('비우면 AI가 정해요')).toHaveLength(3)
+			await user.type(getFieldInput('메시지'), '안녕')
+			expect(lastNode().config.tools).toEqual([{ name: SLACK_TOOL, config: { text: '안녕' } }])
+
+			await user.clear(getFieldInput('메시지'))
+			expect(lastNode().config.tools).toEqual([{ name: SLACK_TOOL, config: {} }])
+		})
+
+		it('마지막 도구를 빼면 원소를 지우고 ai.reasoning으로 되돌린다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: { text: '안녕' } }]))
+
+			expect(getToolsSection()).toHaveTextContent('도구를 모두 빼면 도구 없이 답만 만드는 AI로 바뀌어요.')
+			await user.click(screen.getByRole('button', { name: `${SLACK_TITLE} 도구 빼기` }))
+
+			expect(lastNode().event).toBe('ai.reasoning')
+			expect(lastNode().config).toMatchObject({ agentType: 'simple', tools: [] })
+			expect(within(getToolsSection()).queryByRole('listitem')).not.toBeInTheDocument()
+			expect(screen.getByText('AI 답변 만들기')).toBeInTheDocument()
+		})
+
+		it('도구 없는 ai.agent는 바뀐다고 안내하지 않고 도구 칸 필수 경고도 하지 않는다', () => {
+			// 팔레트의 'AI 에이전트'와 GitHub 프리셋은 도구 없이 ai.agent로 저장된다.
+			renderPanel(createAiNode('ai.agent'))
+
+			expect(getToolsSection()).toHaveTextContent('도구를 고르면 AI가 고른 도구를 써 가며 일해요.')
+			expect(getToolsSection()).not.toHaveTextContent('바뀌어요')
+			expect(screen.queryByRole('status')).not.toBeInTheDocument()
+		})
+
+		it('AI에게 맡길 수 없는 웹훅 칸은 비면 필수 경고를 하고 카드를 접어도 알린다', async () => {
+			const user = userEvent.setup()
+			renderPanel(createAiNode('ai.agent', [{ name: 'discord', config: {} }]))
+
+			expect(screen.getByRole('status')).toHaveTextContent('필수 칸 1개가 비어 있어요')
+			expect(getToolToggle(DISCORD_TITLE)).toHaveTextContent('필수 칸 비어 있음')
+
+			await user.click(getToolToggle(DISCORD_TITLE))
+			expect(getFieldInput('웹훅')).toHaveAccessibleDescription(/필수 칸이 비어 있어요/)
+			// 웹훅을 뺀 메시지·보낸 사람 이름 칸만 AI 결정 안내를 한다.
+			expect(within(getToolCard(DISCORD_TITLE)).getAllByText('비우면 AI가 정해요')).toHaveLength(2)
+		})
+
+		it('목록에 없는 도구는 이름만 보여 주고 보존하며, 문자열 원소는 칸을 처음 쓸 때 객체 원소로 바꾼다', async () => {
+			const user = userEvent.setup()
+			const mcpTool = { name: 'mcp', config: { serverId: 's1' } }
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [mcpTool, 'discord']))
+
+			await user.click(getToolToggle('mcp'))
+			expect(getToolCard('mcp')).toHaveTextContent('목록에 없는 도구라 화면에서 칸을 바꿀 수 없어요.')
+
+			await user.click(getToolToggle(DISCORD_TITLE))
+			await user.type(getFieldInput('메시지'), 'a')
+			expect(lastNode().config.tools).toEqual([mcpTool, { name: 'discord', config: { content: 'a' } }])
+		})
+
+		it('도구 칸 목록에서 고르면 그 도구 config의 _names에 이름을 남긴다', async () => {
+			const user = userEvent.setup()
+			server.use(
+				http.get('*/api/v1/integrations/:app/options/:resource', () =>
+					HttpResponse.json({
+						success: true,
+						message: 'OK',
+						code: 'OK',
+						data: { items: [{ id: 'C2', name: '#random' }], nextCursor: null },
+					})
+				)
+			)
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }]))
+
+			await user.click(getToolToggle(SLACK_TITLE))
+			await user.click(getFieldInput('채널'))
+			await user.click(await screen.findByRole('option', { name: /#random/ }))
+
+			expect(lastNode().config.tools).toEqual([
+				{ name: SLACK_TOOL, config: { channel: 'C2', _names: { channel: '#random' } } },
+			])
+		})
+	})
+
 	describe('목록 공급원 드롭다운', () => {
 		const channels: NodeOption[] = [
 			{ id: 'C1', name: '#general' },

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { providersQueryOptions } from '@/hooks/aiCredentials/queries/aiCredentialsQueryOptions'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
+import { useNodeAiTools } from '@/hooks/workflow/useNodeAiTools'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
@@ -26,6 +27,7 @@ type UseNodeSettingsPanelOptions = {
 /**
  * 노드 설정 패널이 그릴 칸 목록과 칸 변경 콜백을 만든다.
  * 노드는 `event`가 같은 카탈로그 항목으로만 열고, 칸 값을 바꾸면 `_names`·연쇄 자식 칸을 함께 정리한 새 노드를 넘긴다.
+ * AI 노드는 도구 카드(`aiTools`)도 함께 만들며, 필수 칸 개수에는 도구 안 필수 칸도 센다.
  */
 export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPanelOptions) => {
 	const catalogQuery = useNodeCatalogQuery()
@@ -60,12 +62,17 @@ export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPane
 		}
 	}
 
-	const fields = (entry?.inputFields ?? []).map(field => ({
-		field,
-		value: getAtPath(node, field.path),
-		name: getFieldName(node, field),
-		options: getFieldOptions(field),
-	}))
+	const aiTools = useNodeAiTools({ node, entries: catalogQuery.data?.data.entries ?? [], onNodeChange })
+
+	// 도구 칸은 도구 카드 영역(`aiTools`)이 따로 그린다.
+	const fields = (entry?.inputFields ?? [])
+		.filter(field => field !== aiTools?.toolsField)
+		.map(field => ({
+			field,
+			value: getAtPath(node, field.path),
+			name: getFieldName(node, field),
+			options: getFieldOptions(field),
+		}))
 
 	const changeField = (field: NodeCatalogInputField, value: unknown, name?: string) => {
 		if (entry) onNodeChange(updateNodeField(node, entry, field, value, name))
@@ -75,7 +82,8 @@ export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPane
 		status,
 		entryTitle: entry?.title,
 		fields,
-		missingRequiredCount: entry ? getMissingRequiredFields(entry, node).length : 0,
+		aiTools,
+		missingRequiredCount: entry ? getMissingRequiredFields(entry, node).length + (aiTools?.missingRequiredCount ?? 0) : 0,
 		changeField,
 		retry: () => void catalogQuery.refetch(),
 		isRetrying: catalogQuery.isFetching,

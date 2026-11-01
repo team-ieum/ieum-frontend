@@ -8,6 +8,7 @@ import { cn } from '@/utils/cn'
 import {
 	formatFieldDraft,
 	hasReferenceMode,
+	isEmptyFieldValue,
 	isFieldEditable,
 	isRequiredFieldMissing,
 	type NodeFieldMode,
@@ -35,6 +36,8 @@ type NodeSettingsFieldProps = {
 	name?: string
 	/** 목록 공급원 칸의 조회 정보. 있으면 드롭다운으로 그린다. */
 	options?: NodeFieldOptions
+	/** 칸이 비었을 때 칸 아래에 보여 줄 안내(예: AI 도구 칸의 AI 결정). */
+	emptyHint?: string
 	onChange: (value: unknown, name?: string) => void
 }
 
@@ -44,7 +47,7 @@ const getPlaceholder = (field: NodeCatalogInputField) => {
 }
 
 /** 카탈로그 칸 하나를 type에 맞는 위젯으로 보여 주고 바뀐 값을 저장할 모양으로 넘긴다. */
-const NodeSettingsField = ({ field, value, name, options, onChange }: NodeSettingsFieldProps) => {
+const NodeSettingsField = ({ field, value, name, options, emptyHint, onChange }: NodeSettingsFieldProps) => {
 	const inputId = useId()
 	const descriptionId = `${inputId}-description`
 	const messageId = `${inputId}-message`
@@ -212,6 +215,8 @@ const NodeSettingsField = ({ field, value, name, options, onChange }: NodeSettin
 				<p id={messageId} className='m-0 text-[0.72rem] font-semibold text-[#9a6700]'>
 					필수 칸이 비어 있어요. 채우지 않으면 실행할 수 없어요.
 				</p>
+			) : emptyHint && isEmptyFieldValue(value) ? (
+				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>{emptyHint}</p>
 			) : null}
 		</div>
 	)

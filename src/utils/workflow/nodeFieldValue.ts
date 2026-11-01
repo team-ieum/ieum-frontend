@@ -25,7 +25,10 @@ const containsReference = (value: unknown) => typeof value === 'string' && value
 
 const canUseReference = (field: NodeCatalogInputField) => field.ref !== false
 
-/** 0-D 폼이 편집하는 칸인지. object 목록(AI 도구 등)은 전용 편집기 전까지 값을 보존만 한다. */
+/**
+ * 공통 칸 위젯이 편집하는 칸인지. object 목록은 공통 위젯으로 편집하지 않는다.
+ * AI 도구 칸은 도구 카드 영역이 따로 편집하고, 전용 편집기가 없는 object 칸은 값을 보존만 한다.
+ */
 export const isFieldEditable = (field: NodeCatalogInputField) => field.type !== 'object'
 
 /** 참조식을 위젯과 같은 입력 칸에 바로 쓰는 칸인지. 그 밖의 칸은 값·참조식 입력 방식을 나눠 고른다. */
