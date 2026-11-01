@@ -1,6 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import type { CSSProperties } from 'react'
+import { useContext, type CSSProperties } from 'react'
 import {
 	Blocks,
 	Bot,
@@ -11,10 +11,12 @@ import {
 	Globe2,
 	LoaderCircle,
 	Play,
+	Plus,
 	Shuffle,
 	UserCheck,
 	Workflow,
 } from 'lucide-react'
+import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import { getWorkflowNodeMeta, WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
 import type { IntegrationBrand } from '@/types/integration'
@@ -87,9 +89,10 @@ const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
 	return <CircleDashed size={14} aria-hidden='true' />
 }
 
-const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
+const WorkflowNode = ({ id, data, selected }: NodeProps<WorkflowNodeType>) => {
 	const status = WORKFLOW_NODE_STATUS[data.status]
 	const nodeMeta = getWorkflowNodeMeta(data.nodeType)
+	const actions = useContext(WorkflowNodeActionsContext)
 
 	return (
 		<motion.article
@@ -100,11 +103,36 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 				'relative w-66 rounded-[1.2rem] border-2 border-(--node-color) bg-white',
 				'shadow-[0.5rem_0.6rem_0_var(--node-tint),0_14px_30px_rgba(65,52,139,0.1)]',
 				data.isSettingsOpen && 'outline-3 outline-offset-3 outline-main-blue',
+				'group/node',
 				nodeMeta.toneClass
 			)}
 		>
 			{data.role === 'trigger' ? null : <Handle type='target' position={Position.Left} className={HANDLE_CLASS} />}
 			<Handle type='source' position={Position.Right} className={HANDLE_CLASS} />
+			{actions ? (
+				<button
+					type='button'
+					// 핸들 드래그로 연결을 그리는 영역 밖에 두고, 누를 때 노드 드래그·캔버스 이동이 시작되지 않게 한다.
+					// ReactFlow 노드 래퍼는 Enter·Space·화살표를 노드 선택·이동으로 처리해, 키보드로 누르면 노드가 선택된 채
+					// 팔레트가 열리고 Backspace로 그 노드가 지워질 수 있다. 키 입력은 버튼 기본 동작(click)만 쓰게 전파를 막는다.
+					onKeyDown={event => event.stopPropagation()}
+					onClick={event => {
+						event.stopPropagation()
+						actions.onAddNext(id, event.currentTarget)
+					}}
+					aria-label={`${data.title} 뒤에 노드 추가`}
+					title='다음 노드 추가'
+					className={cn(
+						'nodrag nopan absolute top-1/2 -right-10 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded-full',
+						'border-2 border-(--node-color) bg-white text-(--node-color) shadow-sm transition-opacity',
+						'hover:bg-(--node-tint) focus-visible:opacity-100 motion-reduce:transition-none',
+						'group-hover/node:opacity-100 group-focus-within/node:opacity-100',
+						selected || data.isSettingsOpen ? 'opacity-100' : 'opacity-0'
+					)}
+				>
+					<Plus size={14} aria-hidden='true' />
+				</button>
+			) : null}
 
 			<header
 				className={cn(

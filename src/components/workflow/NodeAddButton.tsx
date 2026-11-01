@@ -4,7 +4,10 @@ import { NODE_CATALOG_PALETTE_ID } from '@/constants/workflow/nodeCatalog'
 import { cn } from '@/utils/cn'
 
 type NodeAddButtonProps = {
+	/** 어떤 목적이든 팔레트가 열려 있으면 버튼이 가려지므로 Tab 순서에서 빼고 말풍선을 숨긴다. */
 	isPaletteOpen: boolean
+	/** 이 버튼으로 연 팔레트(전체 종류)가 열려 있다. */
+	isAllPaletteOpen: boolean
 	onTogglePalette: () => void
 	/** 팔레트가 닫힐 때 포커스를 돌려받을 버튼. */
 	buttonRef?: Ref<HTMLButtonElement>
@@ -16,7 +19,7 @@ type NodeAddButtonProps = {
  * 캔버스 왼쪽 가운데의 '노드 추가' 버튼. 평소에는 + 아이콘만 보이고 호버·키보드 포커스 때 글자가 펼쳐진다.
  * 팔레트가 캔버스 왼쪽 전체를 덮으며 열리고, 닫힐 때 포커스를 돌려받아야 해서 열린 동안에도 버튼을 DOM에 남겨 둔다.
  */
-const NodeAddButton = ({ isPaletteOpen, onTogglePalette, buttonRef, showsEmptyHint }: NodeAddButtonProps) => (
+const NodeAddButton = ({ isPaletteOpen, isAllPaletteOpen, onTogglePalette, buttonRef, showsEmptyHint }: NodeAddButtonProps) => (
 	<div className='absolute top-1/2 left-3 z-10 flex -translate-y-1/2 items-center'>
 		<button
 			ref={buttonRef}
@@ -25,11 +28,11 @@ const NodeAddButton = ({ isPaletteOpen, onTogglePalette, buttonRef, showsEmptyHi
 			// inert·aria-hidden은 닫힐 때의 focus 복귀까지 막아 쓰지 않는다.
 			tabIndex={isPaletteOpen ? -1 : undefined}
 			onClick={onTogglePalette}
-			aria-expanded={isPaletteOpen}
-			aria-controls={isPaletteOpen ? NODE_CATALOG_PALETTE_ID : undefined}
+			aria-expanded={isAllPaletteOpen}
+			aria-controls={isAllPaletteOpen ? NODE_CATALOG_PALETTE_ID : undefined}
 			className={cn(
 				'group inline-flex h-10 cursor-pointer items-center rounded-full border px-[11px] text-xs font-semibold shadow-sm transition-colors',
-				isPaletteOpen
+				isAllPaletteOpen
 					? 'border-main-deep-blue bg-neutral-100 text-main-deep-blue'
 					: 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
 			)}

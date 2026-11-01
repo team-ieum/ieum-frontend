@@ -3,6 +3,9 @@ import type { WorkflowNodeKind } from '@/types/workflowCommon'
 
 export type NodeCatalogKind = 'trigger' | 'action' | 'search'
 
+/** 팔레트를 연 목적. `all`은 노드 추가 버튼, `trigger`는 빈 캔버스 시작 카드, `next`는 노드 뒤 + 버튼이다. */
+export type NodePaletteMode = 'all' | 'trigger' | 'next'
+
 type NodeCatalogFieldType =
 	| 'string'
 	| 'text'

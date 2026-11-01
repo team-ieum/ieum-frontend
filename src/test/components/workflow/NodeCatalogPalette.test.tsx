@@ -12,19 +12,47 @@ import {
 } from '@/mocks/apiScenarios'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
+import type { NodePaletteMode } from '@/types/nodeCatalog'
 
-const renderPalette = () => {
+const renderPalette = (mode?: NodePaletteMode) => {
 	const onSelect = vi.fn()
 	const onClose = vi.fn()
 	render(
 		<QueryClientProvider client={createTestQueryClient()}>
-			<NodeCatalogPalette onSelect={onSelect} onClose={onClose} />
+			<NodeCatalogPalette mode={mode} onSelect={onSelect} onClose={onClose} />
 		</QueryClientProvider>
 	)
 	return { onSelect, onClose }
 }
 
 describe('NodeCatalogPalette', () => {
+	it('트리거 고르기 모드는 트리거 항목이 있는 앱만 보여 주고 앱 안에도 트리거만 남긴다', async () => {
+		const user = userEvent.setup()
+		renderPalette('trigger')
+
+		const palette = screen.getByRole('complementary', { name: '트리거 고르기' })
+		expect(await within(palette).findByRole('button', { name: /수동 실행/ })).toBeInTheDocument()
+		expect(within(palette).getByRole('button', { name: /Gmail/ })).toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /Slack/ })).not.toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /HTTP/ })).not.toBeInTheDocument()
+		expect(within(palette).getByRole('button', { name: '트리거 고르기 닫기' })).toBeInTheDocument()
+
+		await user.click(within(palette).getByRole('button', { name: /Gmail/ }))
+		expect(within(palette).getByRole('heading', { name: '트리거' })).toBeInTheDocument()
+		expect(within(palette).queryByRole('heading', { name: '작업' })).not.toBeInTheDocument()
+	})
+
+	it('다음 노드 추가 모드는 트리거 종류를 빼고 보여 준다', async () => {
+		renderPalette('next')
+
+		const palette = screen.getByRole('complementary', { name: '다음 노드 추가' })
+		expect(await within(palette).findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(within(palette).getByRole('button', { name: /HTTP/ })).toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /수동 실행/ })).not.toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /스케줄/ })).not.toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /Gmail/ })).not.toBeInTheDocument()
+	})
+
 	it('받은 카탈로그가 있으면 재조회가 실패해도 오류 화면 대신 목록을 유지한다', async () => {
 		const client = createTestQueryClient()
 		const { queryKey } = nodeCatalogQueryOptions()

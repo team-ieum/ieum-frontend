@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getNodeRect, placeNewNode } from '@/utils/workflow/placeNewNode'
+import { getNodeRect, placeNewNode, placeNextNode } from '@/utils/workflow/placeNewNode'
 
 describe('placeNewNode', () => {
 	it('카드 중심이 화면 가운데에 오도록 왼쪽 위 좌표를 정한다', () => {
@@ -17,6 +17,20 @@ describe('placeNewNode', () => {
 		const occupied = [{ x: 368, y: 210, width: 264, height: 180 }]
 
 		expect(placeNewNode({ x: 500, y: 300 }, occupied)).toEqual({ x: 560, y: 417 })
+	})
+})
+
+describe('placeNextNode', () => {
+	const source = { x: 0, y: 40, width: 264, height: 160 }
+
+	it('앞 노드 오른쪽에 같은 높이로 간격을 두고 놓는다', () => {
+		expect(placeNextNode(source, [source])).toEqual({ x: 344, y: 40 })
+	})
+
+	it('그 자리에 이미 갈래 노드가 있으면 겹치지 않을 때까지 아래로 내린다', () => {
+		const occupied = [source, { x: 344, y: 40, width: 264, height: 150 }, { x: 344, y: 214, width: 264, height: 150 }]
+
+		expect(placeNextNode(source, occupied)).toEqual({ x: 344, y: 388 })
 	})
 })
 

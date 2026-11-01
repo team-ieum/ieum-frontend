@@ -10,6 +10,9 @@ type UseWorkflowChatViewModelArgs = {
 	currentNodes: WorkflowNodeDto[]
 	currentEdges: WorkflowEdgeDto[]
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+	/** 넘기면 열림 상태를 호출자가 가진다(빈 캔버스의 'AI로 만들기'처럼 바깥에서 채팅을 열 때). 없으면 스스로 관리한다. */
+	isOpen?: boolean
+	onOpenChange?: (isOpen: boolean) => void
 }
 
 const EMPTY_SCROLLBAR: WorkflowChatScrollbarView = {
@@ -23,8 +26,15 @@ export const useWorkflowChatViewModel = ({
 	currentNodes,
 	currentEdges,
 	onCanvasUpdate,
+	isOpen: controlledIsOpen,
+	onOpenChange,
 }: UseWorkflowChatViewModelArgs): WorkflowChatViewModel => {
-	const [isOpen, setIsOpen] = useState(false)
+	const [uncontrolledIsOpen, setUncontrolledIsOpen] = useState(false)
+	const isOpen = controlledIsOpen ?? uncontrolledIsOpen
+	const setIsOpen = (next: boolean) => {
+		if (controlledIsOpen === undefined) setUncontrolledIsOpen(next)
+		onOpenChange?.(next)
+	}
 	const [isModelMenuOpen, setIsModelMenuOpen] = useState(false)
 	const [scrollbar, setScrollbar] = useState<WorkflowChatScrollbarView>(EMPTY_SCROLLBAR)
 	const chatBodyRef = useRef<HTMLDivElement>(null)

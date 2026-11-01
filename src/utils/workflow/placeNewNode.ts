@@ -28,3 +28,21 @@ export const placeNewNode = (viewportCenter: Position, occupied: Rect[]): Positi
 	}
 	return { x: candidate.x, y: candidate.y }
 }
+
+// 앞 노드의 + 버튼과 연결선이 보이도록 두는 가로 간격, 같은 열의 노드끼리 두는 세로 간격.
+const NEXT_NODE_GAP_X = 80
+const NEXT_NODE_GAP_Y = 24
+
+/**
+ * `source` 노드 바로 오른쪽에 다음 노드를 놓을 왼쪽 위 좌표를 구한다.
+ * 그 자리에 이미 노드가 있으면(같은 노드에서 갈래를 여럿 낼 때 등) 겹치지 않을 때까지 한 칸씩 아래로 내린다.
+ */
+export const placeNextNode = (source: Rect, occupied: Rect[]): Position => {
+	const { width, height } = ESTIMATED_NODE_SIZE
+	let candidate: Rect = { x: source.x + source.width + NEXT_NODE_GAP_X, y: source.y, width, height }
+	// 아래로만 움직이므로 유한한 노드 영역을 언젠가 모두 벗어난다.
+	while (occupied.some(rect => intersects(candidate, rect))) {
+		candidate = { ...candidate, y: candidate.y + height + NEXT_NODE_GAP_Y }
+	}
+	return { x: candidate.x, y: candidate.y }
+}

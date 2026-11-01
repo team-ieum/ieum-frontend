@@ -29,6 +29,18 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@xyflow/react', async () => {
 	const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react')
+	const { useContext } = await import('react')
+	const { WorkflowNodeActionsContext } = await import('@/components/workflow/WorkflowNodeActionsContext')
+	// 실제 노드 카드의 + 버튼처럼 캔버스가 준 편집 동작으로 다음 노드 고르기를 연다.
+	const NextNodeButton = ({ nodeId }: { nodeId: string }) => {
+		const actions = useContext(WorkflowNodeActionsContext)
+		if (!actions) return null
+		return (
+			<button type='button' onClick={event => actions.onAddNext(nodeId, event.currentTarget)}>
+				{`다음 노드 추가 ${nodeId}`}
+			</button>
+		)
+	}
 	type CanvasNode = {
 		id: string
 		position: { x: number; y: number }
@@ -57,7 +69,11 @@ vi.mock('@xyflow/react', async () => {
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
 		onNodesChange?: (changes: { id: string; type: 'remove' }[]) => void
-		onInit?: (instance: { screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number } }) => void
+		onInit?: (instance: {
+			screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number }
+			setCenter: () => Promise<boolean>
+			getZoom: () => number
+		}) => void
 		onNodeClick?: (event: never, node: CanvasNode) => void
 		onPaneClick?: () => void
 		onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
@@ -90,7 +106,8 @@ vi.mock('@xyflow/react', async () => {
 					if (typeof ref === 'function') ref(element)
 					else if (ref) ref.current = element
 					// 실제 ReactFlow처럼 마운트 직후 화면 좌표를 그대로 flow 좌표로 돌려주는 인스턴스를 넘긴다.
-					if (element) onInit?.({ screenToFlowPosition: position => position })
+					if (element)
+						onInit?.({ screenToFlowPosition: position => position, setCenter: async () => true, getZoom: () => 1 })
 				}}
 				data-testid='workflow-canvas'
 				data-nodes-draggable={nodesDraggable}
@@ -117,6 +134,7 @@ vi.mock('@xyflow/react', async () => {
 						>
 							{`노드 삭제 ${node.id}`}
 						</button>
+						<NextNodeButton nodeId={node.id} />
 						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
 						{node.data.technicalMode ? (
@@ -296,12 +314,16 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 		onCanvasUpdate,
 		isBesideNodeSettings,
 		showsStartHint,
+		isOpen,
+		onOpenChange,
 	}: {
 		currentNodes: { id: string; position?: { x: number; y: number } }[]
 		currentEdges: unknown[]
 		onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 		isBesideNodeSettings?: boolean
 		showsStartHint?: boolean
+		isOpen?: boolean
+		onOpenChange?: (isOpen: boolean) => void
 	}) {
 		// 실제 채팅의 대화 상태처럼 컴포넌트 안에만 두어, 워크플로우 이동 때 다시 마운트되는지 드러낸다.
 		const [messageCount, setMessageCount] = useState(0)
@@ -313,6 +335,10 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 					채팅 대화 남기기
 				</button>
 				<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
+				<span data-testid='chat-open'>{String(Boolean(isOpen))}</span>
+				<button type='button' onClick={() => onOpenChange?.(false)}>
+					채팅 닫기
+				</button>
 				{/* 실제 채팅처럼 대화가 있으면 시작 안내를 숨겨, 이전 대화가 넘어오면 안내가 사라지는 것을 드러낸다. */}
 				<span data-testid='chat-start-hint'>{String(Boolean(showsStartHint) && messageCount === 0)}</span>
 				<span data-testid='chat-edge-count'>{currentEdges.length}</span>
@@ -701,6 +727,85 @@ describe('WorkFlowPage', () => {
 		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+	})
+
+	it('빈 캔버스는 말풍선 두 개와 함께 시작 카드를 띄우고, 트리거를 고른 뒤 그 노드 뒤에 다음 노드를 붙이면 연결까지 한 초안에 남긴다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		const startCard = screen.getByRole('group', { name: '어떻게 시작할까요?' })
+		expect(screen.getByRole('note')).toHaveTextContent('+ 버튼으로 노드를 직접 골라 추가해 보세요.')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
+
+		await user.click(within(startCard).getByRole('button', { name: '트리거 고르기' }))
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+		const triggerPalette = screen.getByRole('complementary', { name: '트리거 고르기' })
+		expect(within(triggerPalette).queryByRole('button', { name: /Slack/ })).not.toBeInTheDocument()
+		await user.click(within(triggerPalette).getByRole('button', { name: /수동 실행/ }))
+		await user.click(within(triggerPalette).getByRole('button', { name: /직접 실행할 때/ }))
+
+		// 시작 카드는 트리거를 고르면 사라지므로 포커스는 노드 추가 버튼으로 돌아간다.
+		expect(screen.queryByRole('complementary', { name: '트리거 고르기' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '노드 추가' })).toHaveFocus()
+		const [trigger] = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}').nodes
+		expect(trigger).toMatchObject({ event: 'manual.run', type: 'TRIGGER', position: { x: -132, y: -75 } })
+
+		const nextButton = screen.getByRole('button', { name: `다음 노드 추가 ${trigger.id}` })
+		await user.click(nextButton)
+		const nextPalette = screen.getByRole('complementary', { name: '다음 노드 추가' })
+		expect(within(nextPalette).queryByRole('button', { name: /수동 실행/ })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '노드 추가' })).toHaveAttribute('aria-expanded', 'false')
+		await user.click(within(nextPalette).getByRole('button', { name: /Slack/ }))
+		await user.click(within(nextPalette).getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+		expect(screen.getByRole('button', { name: `다음 노드 추가 ${trigger.id}` })).toHaveFocus()
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes).toHaveLength(2)
+		expect(draft.nodes[1]).toMatchObject({
+			event: 'slack_bot.send_channel_message',
+			position: { x: 212, y: -75 },
+		})
+		expect(draft.edges).toEqual([{ source: trigger.id, target: draft.nodes[1].id, conditionType: null }])
+	})
+
+	it('시작 카드의 AI로 만들기는 채팅을 열고, 채팅이 열린 동안 카드를 숨기며 다른 워크플로우로 옮기면 닫힌다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		renderPage()
+
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		await user.click(screen.getByRole('button', { name: 'AI로 만들기' }))
+
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('true')
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: '채팅 닫기' }))
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		expect(screen.getByRole('group', { name: '어떻게 시작할까요?' })).toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: 'AI로 만들기' }))
+		await user.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		// 노드가 있는 워크플로우에는 시작 카드를 띄우지 않는다.
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+	})
+
+	it('시작 카드로 연 트리거 팔레트를 Escape로 닫으면 트리거 고르기 버튼으로 포커스를 돌려준다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '트리거 고르기' }))
+		expect(screen.getByRole('complementary', { name: '트리거 고르기' })).toHaveFocus()
+		await user.keyboard('{Escape}')
+
+		expect(screen.queryByRole('complementary', { name: '트리거 고르기' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '트리거 고르기' })).toHaveFocus()
 	})
 
 	it('다른 워크플로우로 이동하면 이전 채팅 대화를 비우고 빈 워크플로우에는 시작 안내를 다시 띄운다', () => {

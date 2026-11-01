@@ -4,10 +4,10 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
-import { NODE_CATALOG_KIND_LABELS, NODE_CATALOG_PALETTE_ID } from '@/constants/workflow/nodeCatalog'
+import { NODE_CATALOG_KIND_LABELS, NODE_CATALOG_PALETTE_ID, NODE_PALETTE_MODES } from '@/constants/workflow/nodeCatalog'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
-import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import type { NodeCatalogEntry, NodePaletteMode } from '@/types/nodeCatalog'
 import { cn } from '@/utils/cn'
 import { groupNodeCatalogEntries, type NodeCatalogAppGroup } from '@/utils/workflow/nodeCatalog'
 
@@ -53,6 +53,8 @@ const PaletteSkeleton = () => (
 )
 
 type NodeCatalogPaletteProps = {
+	/** 제목과 보여 줄 노드 종류를 정한다. 그 종류의 항목이 없는 앱은 목록에서 빠진다. */
+	mode?: NodePaletteMode
 	onSelect: (entry: NodeCatalogEntry) => void
 	onClose: () => void
 }
@@ -61,7 +63,8 @@ type NodeCatalogPaletteProps = {
  * 노드 카탈로그를 앱 → 종류 → 이벤트 순서로 고르는 캔버스 왼쪽 패널.
  * 이벤트를 고르면 `onSelect`로 항목을 넘기며, 노드 생성과 패널 닫기는 호출자가 정한다.
  */
-const NodeCatalogPalette = ({ onSelect, onClose }: NodeCatalogPaletteProps) => {
+const NodeCatalogPalette = ({ mode = 'all', onSelect, onClose }: NodeCatalogPaletteProps) => {
+	const { title, kinds } = NODE_PALETTE_MODES[mode]
 	const catalogQuery = useNodeCatalogQuery()
 	const [selectedApp, setSelectedApp] = useState<string | null>(null)
 	const panelRef = useRef<HTMLElement>(null)
@@ -71,7 +74,9 @@ const NodeCatalogPalette = ({ onSelect, onClose }: NodeCatalogPaletteProps) => {
 		panelRef.current?.focus()
 	}, [])
 
-	const appGroups = catalogQuery.data ? groupNodeCatalogEntries(catalogQuery.data.data.entries) : []
+	const appGroups = catalogQuery.data
+		? groupNodeCatalogEntries(catalogQuery.data.data.entries.filter(entry => kinds.includes(entry.kind)))
+		: []
 	const selectedGroup = appGroups.find(group => group.app === selectedApp)
 
 	const handleKeyDown = (event: KeyboardEvent) => {
@@ -166,7 +171,7 @@ const NodeCatalogPalette = ({ onSelect, onClose }: NodeCatalogPaletteProps) => {
 		<motion.aside
 			ref={panelRef}
 			id={NODE_CATALOG_PALETTE_ID}
-			aria-label='노드 추가'
+			aria-label={title}
 			tabIndex={-1}
 			onKeyDown={handleKeyDown}
 			initial={reduceMotion ? false : { x: -24, opacity: 0 }}
@@ -189,12 +194,12 @@ const NodeCatalogPalette = ({ onSelect, onClose }: NodeCatalogPaletteProps) => {
 					</button>
 				) : null}
 				<h2 className='m-0 min-w-0 flex-1 truncate text-sm font-bold text-main-deep-blue'>
-					{selectedGroup ? selectedGroup.title : '노드 추가'}
+					{selectedGroup ? selectedGroup.title : title}
 				</h2>
 				<button
 					type='button'
 					onClick={onClose}
-					aria-label='노드 추가 닫기'
+					aria-label={`${title} 닫기`}
 					className='grid size-8 place-items-center rounded-lg text-neutral-500 hover:bg-neutral-100'
 				>
 					<X size={16} aria-hidden='true' />

@@ -90,6 +90,9 @@ type WorkflowChatProps = {
 	isBesideNodeSettings?: boolean
 	/** 새 워크플로우처럼 노드가 없을 때 닫힌 채팅 버튼 아래에 AI로 만들 수 있다는 말풍선을 띄운다. */
 	showsStartHint?: boolean
+	/** 넘기면 열림 상태를 호출자가 가진다. 없으면 채팅이 스스로 관리한다. */
+	isOpen?: boolean
+	onOpenChange?: (isOpen: boolean) => void
 }
 
 const WorkflowChat = ({
@@ -99,6 +102,8 @@ const WorkflowChat = ({
 	onCanvasUpdate,
 	isBesideNodeSettings = false,
 	showsStartHint = false,
+	isOpen: controlledIsOpen,
+	onOpenChange,
 }: WorkflowChatProps) => {
 	const reduceMotion = useReducedMotion()
 	// 설정 패널(right-3 + w-90)과 0.75rem 간격을 둔 위치다.
@@ -127,7 +132,14 @@ const WorkflowChat = ({
 		chatBodyRef,
 		messagesEndRef,
 		inputRef,
-	} = useWorkflowChatViewModel({ workflowId, currentNodes, currentEdges, onCanvasUpdate })
+	} = useWorkflowChatViewModel({
+		workflowId,
+		currentNodes,
+		currentEdges,
+		onCanvasUpdate,
+		isOpen: controlledIsOpen,
+		onOpenChange,
+	})
 
 	return (
 		<>
