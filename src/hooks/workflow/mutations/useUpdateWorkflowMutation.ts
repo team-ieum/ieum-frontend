@@ -11,7 +11,7 @@ export const useUpdateWorkflowMutation = (workflowId: string) => {
 		mutationFn: (body: UpdateWorkflowRequest) => updateWorkflow(workflowId, body),
 		onSuccess: res => {
 			queryClient.setQueryData(queryKeys.workflows.detail(workflowId), res)
-			void queryClient.invalidateQueries({ queryKey: [...queryKeys.workflows.all(), 'list'] })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.workflows.lists() })
 		},
 	})
 }

@@ -1,10 +1,16 @@
 import { MarkerType } from '@xyflow/react'
+import { isIntegrationBrand } from '@/constants/integration/brandConfig'
 import { WORKFLOW_EDGE_COLOR } from '@/constants/workflow/workflowEdge'
+import { WORKFLOW_SERVICE_META } from '@/constants/workflow/workflowList'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
+import { APP_EVENT_TRIGGERS } from '@/constants/workflow/workflowTrigger'
 import type { ProviderInfo } from '@/types/credential'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { WorkflowEdgeType, WorkflowNodeStatus, WorkflowNodeType, WorkflowTechnicalDetail } from '@/types/workflow'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
+import { describeCron } from '@/utils/workflow/describeCron'
+import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
 
 const FALLBACK_DESCRIPTION = '설명 정보가 아직 없어요'
 
@@ -21,10 +27,11 @@ const readConfigScalar = (config: Record<string, unknown>, key: string) => {
 	return undefined
 }
 
-const TRIGGER_TYPE_LABELS: Record<string, string> = {
-	MANUAL: '수동 실행',
-	SCHEDULE: '예약 실행',
-	WEBHOOK: '웹훅',
+const TRIGGER_EVENT_LABELS: Record<string, string> = {
+	'manual.run': '수동 실행',
+	'webhook.catch': '웹훅',
+	'schedule.every': '스케줄',
+	...Object.fromEntries(Object.values(APP_EVENT_TRIGGERS).map(trigger => [trigger.event, trigger.label])),
 }
 
 const CONDITION_OPERATOR_LABELS: Record<string, string> = {
@@ -45,11 +52,29 @@ const createDetail = (
 	return { label, value: format?.(value) ?? value }
 }
 
-export const toWorkflowTechnicalDetails = (nodeType: string, config: Record<string, unknown>): WorkflowTechnicalDetail[] => {
+const toTriggerDetails = (event: string, config: Record<string, unknown>): WorkflowTechnicalDetail[] => {
+	const details: WorkflowTechnicalDetail[] = []
+	// 라벨을 모르는 트리거는 같은 원문이 두 번 보이지 않게 실행 방식 행을 뺀다.
+	const label = TRIGGER_EVENT_LABELS[event]
+	if (label) details.push({ label: '실행 방식', value: label })
+	details.push({ label: '이벤트', value: event })
+
+	const cron = event === 'schedule.every' ? readConfigString(config, 'cron') : undefined
+	if (cron) details.push({ label: '주기', value: describeCron(cron), title: cron })
+
+	return details
+}
+
+/** 노드의 기술 정보 행을 만든다. 트리거는 event 기준 실행 방식과 event 원문을 보여 준다. */
+export const toWorkflowTechnicalDetails = ({
+	type: nodeType,
+	event,
+	config,
+}: Pick<WorkflowNodeDto, 'type' | 'event' | 'config'>): WorkflowTechnicalDetail[] => {
 	const details: Array<WorkflowTechnicalDetail | undefined> = []
 
 	if (nodeType === 'TRIGGER') {
-		details.push(createDetail(config, 'triggerType', '실행 방식', value => formatKnownValue(value, TRIGGER_TYPE_LABELS)))
+		details.push(...toTriggerDetails(event, config))
 	}
 
 	if (nodeType === 'HTTP') {
@@ -95,6 +120,8 @@ export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 	return (
 		typeof node.id === 'string' &&
 		typeof node.type === 'string' &&
+		typeof node.event === 'string' &&
+		node.event.trim() !== '' &&
 		typeof node.label === 'string' &&
 		(node.position === undefined || hasValidPosition(node.position)) &&
 		isConfig(node.config)
@@ -104,7 +131,11 @@ export const isWorkflowNodeDto = (value: unknown): value is WorkflowNodeDto => {
 export const isWorkflowEdgeDto = (value: unknown): value is WorkflowEdgeDto => {
 	if (typeof value !== 'object' || value === null) return false
 	const edge = value as Partial<WorkflowEdgeDto>
-	return typeof edge.source === 'string' && typeof edge.target === 'string'
+	return (
+		(edge.id === undefined || edge.id === null || typeof edge.id === 'string') &&
+		typeof edge.source === 'string' &&
+		typeof edge.target === 'string'
+	)
 }
 
 export const normalizeWorkflowCanvasDocument = (rawNodes: unknown[], rawEdges: unknown[]) => {
@@ -122,15 +153,28 @@ export const toWorkflowNodeStatus = (status?: NodeExecutionStatus): WorkflowNode
 	return status ?? 'idle'
 }
 
+/**
+ * 저장 노드를 캔버스 노드로 바꾼다.
+ * `catalogEntries`(event → 카탈로그 항목)를 넘기면 그 안에 없는 event 노드를 카탈로그 밖 노드로 표시하고,
+ * 카탈로그 항목이 있는 노드는 비어 있는 필수 칸 수를 함께 계산한다.
+ * 카탈로그를 아직 받지 못했으면 넘기지 않아야 정상 노드가 미지원으로 보이지 않는다.
+ */
 export const toWorkflowCanvasNodes = (
 	nodes: WorkflowNodeDto[],
 	modelNames: ReadonlyMap<string, string>,
-	technicalMode: boolean
+	technicalMode: boolean,
+	catalogEntries?: ReadonlyMap<string, NodeCatalogEntry>
 ): WorkflowNodeType[] => {
 	return nodes.map((dto, index) => {
 		const meta = getWorkflowNodeMeta(dto.type)
 		const config = dto.config ?? {}
 		const modelId = readConfigString(config, 'model')
+		const brand = dto.type === 'ACTION' && isIntegrationBrand(config.brand) ? config.brand : undefined
+		const catalogEntry = catalogEntries?.get(dto.event)
+		const isOutsideCatalog = catalogEntries ? !catalogEntry : false
+		const technicalDetails = toWorkflowTechnicalDetails({ type: dto.type, event: dto.event, config })
+		// 트리거는 이벤트 행을 이미 보여 주므로 그 밖의 카탈로그 밖 노드에만 event 원문을 덧붙인다.
+		if (isOutsideCatalog && dto.type !== 'TRIGGER') technicalDetails.unshift({ label: '이벤트', value: dto.event })
 
 		return {
 			id: dto.id,
@@ -140,15 +184,19 @@ export const toWorkflowCanvasNodes = (
 			position: dto.position ?? { x: index * 360, y: 100 },
 			data: {
 				nodeType: dto.type,
+				brand,
 				role: meta.role,
-				typeLabel: meta.label,
+				// brand를 아는 ACTION 노드는 "앱 작업" 대신 서비스 이름을 보여 준다.
+				typeLabel: brand ? WORKFLOW_SERVICE_META[brand].name : meta.label,
 				step: index + 1,
 				title: dto.label,
 				// TODO: 서버가 설명을 항상 반환하면 대체 문구를 제거합니다.
 				description: dto.description ?? FALLBACK_DESCRIPTION,
-				technicalDetails: toWorkflowTechnicalDetails(dto.type, config),
+				technicalDetails,
 				modelId,
 				modelName: modelId ? (modelNames.get(modelId) ?? modelId) : undefined,
+				isOutsideCatalog,
+				missingRequiredCount: catalogEntry ? getMissingRequiredFields(catalogEntry, dto).length : 0,
 				status: 'idle',
 				technicalMode,
 			},
@@ -161,16 +209,18 @@ export const createWorkflowCanvasEdge = (edge: WorkflowEdgeDto, id: string): Wor
 	source: edge.source,
 	target: edge.target,
 	type: 'animated',
-	data: { conditionType: edge.conditionType ?? null },
+	data: { serverId: edge.id ?? undefined, conditionType: edge.conditionType ?? null },
 	style: { stroke: WORKFLOW_EDGE_COLOR, strokeWidth: 1.5 },
 	markerEnd: { type: MarkerType.ArrowClosed, color: WORKFLOW_EDGE_COLOR },
 })
 
 export const toWorkflowCanvasEdges = (edges: WorkflowEdgeDto[]): WorkflowEdgeType[] =>
-	edges.map((edge, index) => createWorkflowCanvasEdge(edge, `${edge.source}-${edge.target}-${index}`))
+	edges.map((edge, index) => createWorkflowCanvasEdge(edge, edge.id ?? `${edge.source}-${edge.target}-${index}`))
 
+// 서버 id가 있는 엣지만 id를 싣는다. 새 엣지와 레거시 엣지는 id를 생략해 서버가 채우게 한다.
 export const toWorkflowEdgeDtos = (edges: WorkflowEdgeType[]): WorkflowEdgeDto[] =>
 	edges.map(edge => ({
+		...(edge.data?.serverId ? { id: edge.data.serverId } : {}),
 		source: edge.source,
 		target: edge.target,
 		conditionType: edge.data?.conditionType ?? null,

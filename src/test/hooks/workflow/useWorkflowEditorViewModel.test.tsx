@@ -12,8 +12,15 @@ import {
 const serverDocument: WorkflowDraftData = {
 	title: '고객 문의 분류',
 	nodes: [
-		{ id: 'trigger', type: 'TRIGGER', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
-		{ id: 'ai', type: 'AI', label: '문의 분류', position: { x: 320, y: 20 }, config: { model: 'model-1' } },
+		{ id: 'trigger', type: 'TRIGGER', event: 'manual.run', label: '문의 도착', position: { x: 10, y: 20 }, config: {} },
+		{
+			id: 'ai',
+			type: 'AI',
+			event: 'ai.reasoning',
+			label: '문의 분류',
+			position: { x: 320, y: 20 },
+			config: { model: 'model-1' },
+		},
 	],
 	edges: [{ source: 'trigger', target: 'ai', conditionType: null }],
 }
@@ -36,6 +43,16 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(result.current.isDraftPersisted).toBe(true)
 	})
 
+	it('편집 화면 진입 시 읽지 않는 이전 버전 초안 키를 지운다', () => {
+		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', '{}')
+		localStorage.setItem('ieum-workflow-draft:v1:other-workflow', '{}')
+
+		renderEditor()
+
+		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-1')).toBeNull()
+		expect(localStorage.getItem('ieum-workflow-draft:v1:other-workflow')).toBeNull()
+	})
+
 	it('서버 원본과 같은 초안은 마운트 이후 제거한다', () => {
 		writeWorkflowDraft('workflow-1', 3, serverDocument)
 
@@ -43,6 +60,96 @@ describe('useWorkflowEditorViewModel', () => {
 
 		expect(result.current.hasUnsavedChanges).toBe(false)
 		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
+	})
+
+	it('팔레트로 추가한 노드를 편집 문서 끝에 붙이고 로컬 초안에 남긴다', () => {
+		const { result } = renderEditor()
+		const node = {
+			id: 'slack-1',
+			type: 'ACTION',
+			event: 'slack_bot.send_channel_message',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: 400, y: 200 },
+			config: { brand: 'slack' },
+		}
+
+		act(() => result.current.handleNodeAdd(node))
+
+		expect(result.current.document?.nodes.at(-1)).toEqual(node)
+		expect(result.current.hasUnsavedChanges).toBe(true)
+		expect(readWorkflowDraft('workflow-1', 3)?.nodes.at(-1)).toEqual(node)
+	})
+
+	it('다음 노드로 함께 만든 연결은 노드와 같은 편집 문서·초안에 한 번에 남긴다', () => {
+		const { result } = renderEditor()
+		const node = {
+			id: 'slack-1',
+			type: 'ACTION',
+			event: 'slack_bot.send_channel_message',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: 664, y: 20 },
+			config: { brand: 'slack' },
+		}
+		const edges = [
+			{ id: 'trigger-ai', source: 'trigger', target: 'ai', type: 'animated', data: { conditionType: null } },
+			{ id: 'manual-ai-slack-1', source: 'ai', target: 'slack-1', type: 'animated', data: { conditionType: null } },
+		] as WorkflowEdgeType[]
+
+		act(() => result.current.handleNodeAdd(node, edges))
+
+		const expectedEdges = [
+			{ source: 'trigger', target: 'ai', conditionType: null },
+			{ source: 'ai', target: 'slack-1', conditionType: null },
+		]
+		expect(result.current.document?.nodes.at(-1)).toEqual(node)
+		expect(result.current.document?.edges).toEqual(expectedEdges)
+		expect(readWorkflowDraft('workflow-1', 3)).toMatchObject({ nodes: [...serverDocument.nodes, node], edges: expectedEdges })
+	})
+
+	it('설정 폼으로 바꾼 노드를 같은 id 자리에 바꿔 넣고 캔버스는 다시 마운트하지 않는다', () => {
+		const { result } = renderEditor()
+		const canvasKey = result.current.canvasKey
+		const updated = { ...serverDocument.nodes[1], config: { model: 'model-1', prompt: '분류해 줘' } }
+
+		act(() => result.current.handleNodeUpdate(updated))
+
+		expect(result.current.document?.nodes).toEqual([serverDocument.nodes[0], updated])
+		expect(result.current.canvasKey).toBe(canvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)?.nodes[1]).toEqual(updated)
+	})
+
+	it('지운 노드를 편집 문서와 로컬 초안에서 빼고 연결선은 캔버스가 넘긴 목록으로 바꾼다', () => {
+		const actionNode = {
+			id: 'action',
+			type: 'HTTP',
+			event: 'http.request',
+			label: '담당자에게 알리기',
+			position: { x: 640, y: 20 },
+			config: {},
+		}
+		const documentWithAction: WorkflowDraftData = {
+			...serverDocument,
+			nodes: [...serverDocument.nodes, actionNode],
+			edges: [...serverDocument.edges, { source: 'trigger', target: 'action', conditionType: null }],
+		}
+		const { result } = renderHook(() =>
+			useWorkflowEditorViewModel({ workflowId: 'workflow-1', workflowVersion: 3, serverDocument: documentWithAction })
+		)
+		const canvasKey = result.current.canvasKey
+
+		// 'ai' 노드와 함께 'ai'에 닿지 않은 trigger→action 연결도 선택해 지운 상황이다.
+		// ReactFlow는 한 삭제 이벤트에서 연결 커밋 뒤 노드 커밋을 이어 보내 두 호출이 같은 렌더의 document를 보므로,
+		// 노드 커밋이 document의 연결선을 거르기만 하면 앞서 지운 trigger→action이 되살아난다.
+		act(() => {
+			result.current.handleEdgesCommit([])
+			result.current.handleNodesRemove(['ai'], [])
+		})
+
+		const remainingNodes = [serverDocument.nodes[0], actionNode]
+		expect(result.current.document).toEqual({ ...documentWithAction, nodes: remainingNodes, edges: [] })
+		expect(result.current.hasUnsavedChanges).toBe(true)
+		expect(result.current.canvasKey).toBe(canvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)).toMatchObject({ nodes: remainingNodes, edges: [] })
 	})
 
 	it('제목, 노드 위치와 연결선 변경을 같은 로컬 초안에 반영한다', () => {
@@ -146,9 +253,16 @@ describe('useWorkflowEditorViewModel', () => {
 		act(() =>
 			result.current.handleCanvasUpdate(
 				[
-					{ id: 'ai', type: 'AI', label: '수정된 문의 분류', config: {} },
-					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
-					{ id: 'trigger', type: 'TRIGGER', label: '잘못된 위치', position: { x: '10', y: 20 }, config: {} },
+					{ id: 'ai', type: 'AI', event: 'ai.reasoning', label: '수정된 문의 분류', config: {} },
+					{ id: 'action', type: 'HTTP', event: 'http.request', label: '담당자에게 알리기', config: {} },
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						event: 'manual.run',
+						label: '잘못된 위치',
+						position: { x: '10', y: 20 },
+						config: {},
+					},
 				],
 				[
 					{ source: 'ai', target: 'action', conditionType: null },

@@ -30,6 +30,7 @@ export const registerCredential = async (body: RegisterCredentialBody): Promise<
 	return response.data
 }
 
+/** @public 아직 호출하는 화면은 없지만 서버 API 연동용으로 유지한다. */
 export const validateCredential = async (id: string): Promise<ApiResponse<ValidateCredentialResult>> => {
 	const response = await api.post(`/api/v1/credentials/${id}/validate`)
 	return response.data

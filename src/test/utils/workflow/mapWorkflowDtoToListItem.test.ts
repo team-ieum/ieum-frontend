@@ -13,8 +13,8 @@ const dto: WorkflowDto = {
 	version: 1,
 	services: ['SLACK', 'NOTION'],
 	nodes: [
-		{ id: 'slack', type: 'HTTP', label: 'Slack 알림', config: { brand: 'Slack' } },
-		{ id: 'notion', type: 'NOTION', label: 'Notion 기록', config: {} },
+		{ id: 'slack', type: 'HTTP', event: 'http.request', label: 'Slack 알림', config: { brand: 'Slack' } },
+		{ id: 'notion', type: 'NOTION', event: 'notion.create_page', label: 'Notion 기록', config: {} },
 	],
 	edges: [],
 	createdAt: '2026-09-01T00:00:00Z',
@@ -47,7 +47,6 @@ describe('mapWorkflowDtoToListItem', () => {
 			id: 'workflow-1',
 			name: '주문 알림',
 			desc: '새 주문을 안내합니다',
-			tags: [],
 			services: ['slack', 'notion'],
 			category: 'ops',
 			status: 'active',
@@ -56,7 +55,6 @@ describe('mapWorkflowDtoToListItem', () => {
 			nodeCount: 2,
 			updatedAt: '2026-09-06T00:00:00Z',
 			lastRun: '2026-09-06T00:00:00Z',
-			success: 0,
 		})
 		expect(dto).toEqual(original)
 	})
@@ -74,6 +72,8 @@ describe('mapWorkflowDtoToListItem', () => {
 	it.each([
 		[' WEBHOOK ', 'webhook'],
 		['EVENT', 'event'],
+		['GMAIL_NEW_EMAIL', 'gmailNewEmail'],
+		[' github_new_issue ', 'githubNewIssue'],
 		['Manual', 'manual'],
 		['unknown', 'manual'],
 		['', 'manual'],
@@ -93,13 +93,11 @@ describe('mapWorkflowDtoToListItem', () => {
 
 		expect(mapWorkflowDtoToListItem(emptyDto)).toMatchObject({
 			desc: '',
-			tags: [],
 			services: [],
 			category: 'ops',
 			status: 'paused',
 			cronExpression: null,
 			nodeCount: 0,
-			success: 0,
 		})
 	})
 })

@@ -3,8 +3,8 @@ import { getWorkflowDashboardErrors, getWorkflowDashboardExecutions, getWorkflow
 import { QUERY_STALE_TIME_MS } from '@/constants/queryCache'
 import { queryKeys } from '@/constants/queryKeys'
 
-export const DASHBOARD_EXECUTIONS_PAGE_SIZE = 20
-export const DASHBOARD_ERRORS_PAGE_SIZE = 20
+const DASHBOARD_EXECUTIONS_PAGE_SIZE = 20
+const DASHBOARD_ERRORS_PAGE_SIZE = 20
 
 export const workflowDashboardSummaryQueryOptions = () =>
 	queryOptions({

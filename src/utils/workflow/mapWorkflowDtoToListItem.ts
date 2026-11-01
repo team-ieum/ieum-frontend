@@ -1,4 +1,5 @@
 import { WORKFLOW_SERVICE_META } from '@/constants/workflow/workflowList'
+import { findAppEventTriggerId } from '@/constants/workflow/workflowTrigger'
 import type { WorkflowDto, WorkflowListItem, WorkflowServiceId, WorkflowTriggerType } from '@/types/workflowList'
 
 const knownServiceIds = new Set(Object.keys(WORKFLOW_SERVICE_META) as WorkflowServiceId[])
@@ -26,14 +27,13 @@ const normalizeTrigger = (triggerType: string): WorkflowTriggerType => {
 	if (normalized === 'schedule' || normalized === 'webhook' || normalized === 'event' || normalized === 'manual') {
 		return normalized
 	}
-	return 'manual'
+	return findAppEventTriggerId(triggerType) ?? 'manual'
 }
 
 export const mapWorkflowDtoToListItem = (dto: WorkflowDto): WorkflowListItem => ({
 	id: dto.id,
 	name: dto.name,
 	desc: dto.description ?? '',
-	tags: [],
 	services: normalizeServiceIds(dto.services),
 	category: 'ops',
 	status: dto.active ? 'active' : 'paused',
@@ -42,5 +42,4 @@ export const mapWorkflowDtoToListItem = (dto: WorkflowDto): WorkflowListItem => 
 	nodeCount: dto.nodes?.length ?? 0,
 	updatedAt: dto.updatedAt,
 	lastRun: dto.updatedAt,
-	success: 0,
 })

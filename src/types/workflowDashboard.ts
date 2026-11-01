@@ -23,9 +23,9 @@ export interface WorkflowDashboardSummaryData {
 
 export type WorkflowDashboardSummaryResponse = ApiResponse<WorkflowDashboardSummaryData>
 
-export type WorkflowExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | (string & {})
+type WorkflowExecutionStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | (string & {})
 
-export type WorkflowExecutionTriggerType = 'MANUAL' | 'SCHEDULE' | 'WEBHOOK' | 'EVENT' | (string & {})
+type WorkflowExecutionTriggerType = 'MANUAL' | 'SCHEDULE' | 'WEBHOOK' | 'EVENT' | (string & {})
 
 export interface WorkflowExecutionDto {
 	id: string
@@ -38,7 +38,7 @@ export interface WorkflowExecutionDto {
 	finishedAt: string | null
 }
 
-export interface WorkflowExecutionsPageDto {
+interface WorkflowExecutionsPageDto {
 	content: WorkflowExecutionDto[]
 	size: number
 	hasNext: boolean
@@ -47,7 +47,7 @@ export interface WorkflowExecutionsPageDto {
 
 export type WorkflowDashboardExecutionsResponse = ApiResponse<WorkflowExecutionsPageDto>
 
-export type WorkflowFailedNodeType = 'TRIGGER' | 'ACTION' | 'CONDITION' | (string & {})
+type WorkflowFailedNodeType = 'TRIGGER' | 'ACTION' | 'CONDITION' | (string & {})
 
 export interface WorkflowDashboardErrorDto {
 	executionId: string
@@ -60,7 +60,7 @@ export interface WorkflowDashboardErrorDto {
 	finishedAt: string | null
 }
 
-export interface WorkflowDashboardErrorsPageDto {
+interface WorkflowDashboardErrorsPageDto {
 	content: WorkflowDashboardErrorDto[]
 	size: number
 	hasNext: boolean

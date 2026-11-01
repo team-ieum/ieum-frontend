@@ -1,0 +1,10 @@
+{
+	"$schema": "https://unpkg.com/knip@6/schema.json",
+	// 화면에 아직 연결하지 않았지만 서버 API 연동용으로 유지하기로 한 mutation 훅
+	"ignoreFiles": [
+		"src/hooks/aiCredentials/mutations/useValidateCredentialMutation.ts",
+		"src/hooks/workflow/mutations/useExecuteWorkflowMutation.ts",
+	],
+	// 현재 import는 없지만 제거 여부를 따로 결정하기 전까지 유지하는 의존성
+	"ignoreDependencies": ["react-hook-form", "eslint-config-prettier", "eslint-plugin-prettier"],
+}

@@ -8,4 +8,6 @@ export const QUERY_STALE_TIME_MS = {
 	webhookCredentials: 10_000,
 	providers: 5 * 60_000,
 	credentials: 10_000,
+	nodeOptions: 60_000,
+	nodeTestSample: 10_000,
 } as const

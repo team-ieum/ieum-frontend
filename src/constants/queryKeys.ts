@@ -3,7 +3,9 @@ import type { IntegrationServiceType } from '@/types/integrationWorkflows'
 export const queryKeys = {
 	workflows: {
 		all: () => ['workflows'] as const,
-		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.all(), 'list', params] as const,
+		/** params와 무관하게 모든 목록 query를 prefix로 무효화할 때 쓴다. */
+		lists: () => [...queryKeys.workflows.all(), 'list'] as const,
+		list: (params?: { cursor?: string; size?: number }) => [...queryKeys.workflows.lists(), params] as const,
 		dashboardSummary: () => [...queryKeys.workflows.all(), 'dashboard', 'summary'] as const,
 		dashboardExecutions: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'executions', { size }] as const,
 		dashboardErrors: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'errors', { size }] as const,
@@ -24,6 +26,18 @@ export const queryKeys = {
 	webhookCredentials: {
 		all: () => ['webhook-credentials'] as const,
 		list: () => [...queryKeys.webhookCredentials.all(), 'list'] as const,
+	},
+	nodeCatalog: {
+		all: () => ['node-catalog'] as const,
+	},
+	nodeTestSamples: {
+		all: () => ['node-test-samples'] as const,
+		/** `workflows.detail` 무효화에 휩쓸리지 않도록 워크플로우 키 밖에 둔다. */
+		detail: (workflowId: string, nodeId: string) => [...queryKeys.nodeTestSamples.all(), workflowId, nodeId] as const,
+	},
+	nodeOptions: {
+		all: () => ['node-options'] as const,
+		list: (source: string, inputs: Record<string, string>) => [...queryKeys.nodeOptions.all(), source, inputs] as const,
 	},
 	integrations: {
 		all: () => ['integrations'] as const,

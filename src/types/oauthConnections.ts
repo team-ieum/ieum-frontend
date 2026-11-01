@@ -1,6 +1,6 @@
 import type { ApiResponse } from '@/types/api'
 
-export type OAuthConnectionProvider = 'GOOGLE' | 'GITHUB' | 'NOTION' | (string & {})
+type OAuthConnectionProvider = 'GOOGLE' | 'GITHUB' | 'NOTION' | (string & {})
 
 export interface OAuthConnectionDto {
 	id: string

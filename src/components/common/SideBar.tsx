@@ -1,5 +1,5 @@
 import { FocusTrap } from 'focus-trap-react'
-import { ChevronLeft, ChevronRight, HelpCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, HelpCircle, LoaderCircle, MoreHorizontal, Settings, Sparkles, X } from 'lucide-react'
 import type { Ref } from 'react'
 import { Link } from 'react-router'
 import { cn } from '@/utils/cn'
@@ -41,7 +41,7 @@ export const SideBar = ({
 	onToggleCollapse,
 	onLogout,
 }: SideBarProps) => {
-	const { navItems, recentWorkflows, isRecentWorkflowsLoading, onCreateCanvasClick, onRecentWorkflowClick } =
+	const { navItems, recentWorkflows, isRecentWorkflowsLoading, isCreatingCanvas, onCreateCanvasClick, onRecentWorkflowClick } =
 		useSidebarViewModel({ onSelect })
 	const prefetchRouteData = useSidebarRouteDataPrefetch()
 	const prefetchRoute = (navId: SidebarNavId) => {
@@ -99,14 +99,22 @@ export const SideBar = ({
 						onClick={onCreateCanvasClick}
 						onPointerEnter={preloadWorkflowEditorPage}
 						onFocus={preloadWorkflowEditorPage}
+						// disabled로 바꾸면 키보드 포커스가 풀려 실패 모달을 닫은 뒤 이 버튼으로 돌아오지 못한다.
+						// 중복 생성은 useCreateBlankWorkflow가 막으므로 비활성은 aria로만 알린다.
+						aria-disabled={isCreatingCanvas || undefined}
+						aria-busy={isCreatingCanvas || undefined}
 						aria-label={collapsed ? '새 캔버스' : undefined}
 						className={cn(
-							'flex h-[42px] w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90',
+							'flex h-10.5 w-full items-center rounded-xl bg-main-deep-blue text-sm font-semibold text-white shadow-[0_4px_12px_-4px_rgba(41,83,124,.5)] transition-colors hover:bg-main-deep-blue/90 aria-disabled:cursor-wait aria-disabled:opacity-80',
 							collapsed ? 'justify-center' : 'justify-between px-3.5'
 						)}
 					>
 						<span className='inline-flex items-center gap-2'>
-							<Sparkles size={16} />
+							{isCreatingCanvas ? (
+								<LoaderCircle size={16} aria-hidden='true' className='animate-spin motion-reduce:animate-none' />
+							) : (
+								<Sparkles size={16} />
+							)}
 							{!collapsed && '새 캔버스'}
 						</span>
 						{!collapsed && (
@@ -140,14 +148,7 @@ export const SideBar = ({
 								)}
 							>
 								<Icon size={18} className={item.isActive ? 'text-white' : 'text-main-deep-blue/70'} />
-								{!collapsed && (
-									<>
-										<span className='flex-1 text-left'>{item.label}</span>
-										{item.dot && item.count == null && (
-											<span className='h-1.5 w-1.5 rounded-full bg-node-orange' />
-										)}
-									</>
-								)}
+								{!collapsed && <span className='flex-1 text-left'>{item.label}</span>}
 							</Link>
 						)
 					})}
@@ -199,8 +200,8 @@ export const SideBar = ({
 				{/* 태그라인 카드 */}
 				{!collapsed && (
 					<div className='relative m-3 overflow-hidden rounded-xl bg-main-deep-blue p-3.5 text-white'>
-						<span className='absolute -right-5 -top-5 h-[90px] w-[90px] rounded-full bg-sub-blue/35' />
-						<span className='absolute right-[18px] -bottom-[18px] h-[50px] w-[50px] rounded-full bg-node-yellow/50' />
+						<span className='absolute -right-5 -top-5 h-22.5 w-22.5 rounded-full bg-sub-blue/35' />
+						<span className='absolute right-4.5 -bottom-4.5 h-12.5 w-12.5 rounded-full bg-node-yellow/50' />
 						<div className='relative text-lg leading-snug'>
 							모든 창작자를
 							<br />

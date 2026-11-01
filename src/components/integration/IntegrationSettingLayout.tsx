@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from 'react'
-import type { IntegrationTabId, IntegrationView } from '../../types/integration'
-import { cn } from '../../utils/cn'
+import type { IntegrationTabId, IntegrationView } from '@/types/integration'
+import { cn } from '@/utils/cn'
 import IntegrationPageHeader from './IntegrationPageHeader'
 import IntegrationTabs from './IntegrationTabs'
 

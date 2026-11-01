@@ -1,3 +1,1 @@
-export type WorkflowNodeKind = 'TRIGGER' | 'HTTP' | 'CONDITION' | 'TRANSFORM' | 'AI'
-
-export type WorkflowTriggerKind = 'MANUAL' | 'SCHEDULE' | 'WEBHOOK'
+export type WorkflowNodeKind = 'TRIGGER' | 'HTTP' | 'CONDITION' | 'TRANSFORM' | 'AI' | 'ACTION' | 'APPROVAL'

@@ -1,9 +1,17 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { useState } from 'react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
+import { NODE_TEST_PATH } from '@/mocks/nodeTestHandlers'
+import { server } from '@/mocks/server'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 
 const mocks = vi.hoisted(() => ({
@@ -14,10 +22,25 @@ const mocks = vi.hoisted(() => ({
 	openConfirm: vi.fn(),
 	workflowOneActive: true,
 	workflowTwoActive: false,
+	/** 첫 번째 워크플로를 노드·연결선 없이 내려 빈 캔버스를 만든다. */
+	workflowOneEmpty: false,
+	catalogEntries: undefined as NodeCatalogEntry[] | undefined,
 }))
 
 vi.mock('@xyflow/react', async () => {
 	const actual = await vi.importActual<typeof import('@xyflow/react')>('@xyflow/react')
+	const { useContext } = await import('react')
+	const { WorkflowNodeActionsContext } = await import('@/components/workflow/WorkflowNodeActionsContext')
+	// 실제 노드 카드의 + 버튼처럼 캔버스가 준 편집 동작으로 다음 노드 고르기를 연다.
+	const NextNodeButton = ({ nodeId }: { nodeId: string }) => {
+		const actions = useContext(WorkflowNodeActionsContext)
+		if (!actions) return null
+		return (
+			<button type='button' onClick={event => actions.onAddNext(nodeId, event.currentTarget)}>
+				{`다음 노드 추가 ${nodeId}`}
+			</button>
+		)
+	}
 	type CanvasNode = {
 		id: string
 		position: { x: number; y: number }
@@ -27,6 +50,7 @@ vi.mock('@xyflow/react', async () => {
 			technicalDetails: { label: string; value: string }[]
 			modelName?: string
 			status: string
+			isSettingsOpen?: boolean
 		}
 	}
 	type CanvasEdge = { id: string; source: string; target: string }
@@ -44,6 +68,16 @@ vi.mock('@xyflow/react', async () => {
 			connection: { source: string; target: string; sourceHandle: null; targetHandle: null }
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
+		onNodesChange?: (changes: { id: string; type: 'remove' }[]) => void
+		onInit?: (instance: {
+			screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number }
+			setCenter: () => Promise<boolean>
+			getZoom: () => number
+		}) => void
+		onNodeClick?: (event: never, node: CanvasNode) => void
+		onPaneClick?: () => void
+		onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
+		ref?: React.Ref<HTMLDivElement>
 	}
 
 	return {
@@ -59,8 +93,22 @@ vi.mock('@xyflow/react', async () => {
 			onConnect,
 			onReconnect,
 			onEdgesChange,
+			onNodesChange,
+			onInit,
+			onNodeClick,
+			onPaneClick,
+			onKeyDown,
+			ref,
 		}: ReactFlowMockProps) => (
 			<div
+				onKeyDown={onKeyDown}
+				ref={element => {
+					if (typeof ref === 'function') ref(element)
+					else if (ref) ref.current = element
+					// 실제 ReactFlow처럼 마운트 직후 화면 좌표를 그대로 flow 좌표로 돌려주는 인스턴스를 넘긴다.
+					if (element)
+						onInit?.({ screenToFlowPosition: position => position, setCenter: async () => true, getZoom: () => 1 })
+				}}
 				data-testid='workflow-canvas'
 				data-nodes-draggable={nodesDraggable}
 				data-nodes-connectable={nodesConnectable}
@@ -69,7 +117,25 @@ vi.mock('@xyflow/react', async () => {
 			>
 				<span data-testid='edge-count'>{edges.length}</span>
 				{nodes.map(node => (
-					<div key={node.id}>
+					// 실제 ReactFlow 노드처럼 data-id와 포커스를 받는 요소를 둬 설정 패널이 닫힐 때 포커스 복귀를 확인한다.
+					<div key={node.id} className='react-flow__node' data-id={node.id} tabIndex={0}>
+						<button type='button' onClick={() => onNodeClick?.({} as never, node)}>
+							{`노드 선택 ${node.id}`}
+						</button>
+						<button
+							type='button'
+							onClick={() => {
+								// 실제 ReactFlow의 deleteElements처럼 한 이벤트에서 연결 remove를 먼저, 노드 remove를 뒤에 보낸다.
+								const connected = edges.filter(edge => edge.source === node.id || edge.target === node.id)
+								if (connected.length > 0)
+									onEdgesChange?.(connected.map(edge => ({ id: edge.id, type: 'remove' })))
+								onNodesChange?.([{ id: node.id, type: 'remove' }])
+							}}
+						>
+							{`노드 삭제 ${node.id}`}
+						</button>
+						<NextNodeButton nodeId={node.id} />
+						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
 						{node.data.technicalMode ? (
 							node.data.technicalDetails.length > 0 ? (
@@ -93,6 +159,9 @@ vi.mock('@xyflow/react', async () => {
 					}}
 				>
 					노드 이동
+				</button>
+				<button type='button' onClick={() => onPaneClick?.()}>
+					빈 곳 클릭
 				</button>
 				<button
 					type='button'
@@ -137,7 +206,7 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 							name: '두 번째 워크플로우',
 							active: mocks.workflowTwoActive,
 							version: 1,
-							nodes: [{ id: 'second', type: 'AI', label: '두 번째 노드', config: {} }],
+							nodes: [{ id: 'second', type: 'AI', event: 'ai.reasoning', label: '두 번째 노드', config: {} }],
 							edges: [],
 						}
 					: {
@@ -145,44 +214,52 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 							name: '고객 문의 분류',
 							active: mocks.workflowOneActive,
 							version: 1,
-							nodes: [
-								{
-									id: 'trigger',
-									type: 'TRIGGER',
-									label: '문의가 도착하면',
-									description: '새 문의가 들어오면 시작해요',
-									config: { triggerType: 'MANUAL', brand: 'webhook' },
-								},
-								{
-									id: 'ai',
-									type: 'AI',
-									label: '문의 분류하기',
-									config: {
-										llmProvider: 'GEMINI',
-										model: 'server-unknown-model',
-										credentialId: 'credential-secret',
-										prompt: 'private prompt',
-									},
-								},
-								{
-									id: 'action',
-									type: 'HTTP',
-									label: '담당자에게 알리기',
-									config: { method: 'POST', url: 'https://example.com/notify' },
-								},
-								{
-									id: 'invalid-position',
-									type: 'AI',
-									label: '잘못된 좌표',
-									position: { x: Number.NaN, y: 0 },
-									config: {},
-								},
-							],
-							edges: [
-								{ source: 'trigger', target: 'ai', conditionType: null },
-								{ source: 'ai', target: 'missing-node', conditionType: null },
-								{ source: 'ai', target: 'invalid-position', conditionType: null },
-							],
+							nodes: mocks.workflowOneEmpty
+								? []
+								: [
+										{
+											id: 'trigger',
+											type: 'TRIGGER',
+											event: 'manual.run',
+											label: '문의가 도착하면',
+											description: '새 문의가 들어오면 시작해요',
+											config: { brand: 'webhook' },
+										},
+										{
+											id: 'ai',
+											type: 'AI',
+											event: 'ai.reasoning',
+											label: '문의 분류하기',
+											config: {
+												llmProvider: 'GEMINI',
+												model: 'server-unknown-model',
+												credentialId: 'credential-secret',
+												prompt: 'private prompt',
+											},
+										},
+										{
+											id: 'action',
+											type: 'HTTP',
+											event: 'http.request',
+											label: '담당자에게 알리기',
+											config: { method: 'POST', url: 'https://example.com/notify' },
+										},
+										{
+											id: 'invalid-position',
+											type: 'AI',
+											event: 'ai.reasoning',
+											label: '잘못된 좌표',
+											position: { x: Number.NaN, y: 0 },
+											config: {},
+										},
+									],
+							edges: mocks.workflowOneEmpty
+								? []
+								: [
+										{ source: 'trigger', target: 'ai', conditionType: null },
+										{ source: 'ai', target: 'missing-node', conditionType: null },
+										{ source: 'ai', target: 'invalid-position', conditionType: null },
+									],
 						},
 		},
 	}),
@@ -190,6 +267,14 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 
 vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
 	useProvidersQuery: () => ({ data: undefined, isError: true }),
+}))
+
+vi.mock('@/hooks/workflow/queries/useNodeCatalogQuery', () => ({
+	useNodeCatalogQuery: () => ({
+		data: mocks.catalogEntries ? { data: { entries: mocks.catalogEntries } } : undefined,
+		isPending: !mocks.catalogEntries,
+		isError: false,
+	}),
 }))
 
 vi.mock('@/hooks/workflow/mutations/useToggleWorkflowMutation', () => ({
@@ -223,44 +308,80 @@ vi.mock('@/stores/useModalStore', () => ({
 }))
 
 vi.mock('@/components/workflow/WorkflowChat', () => ({
-	default: ({
+	default: function WorkflowChatMock({
 		currentNodes,
 		currentEdges,
 		onCanvasUpdate,
+		isBesideNodeSettings,
+		showsStartHint,
+		isOpen,
+		onOpenChange,
 	}: {
 		currentNodes: { id: string; position?: { x: number; y: number } }[]
 		currentEdges: unknown[]
 		onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
-	}) => (
-		<div>
-			<span data-testid='chat-edge-count'>{currentEdges.length}</span>
-			<span data-testid='chat-trigger-position'>
-				{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
-			</span>
-			<button
-				type='button'
-				onClick={() =>
-					onCanvasUpdate?.(
-						[{ id: 'ai-updated', type: 'AI', label: 'AI가 만든 노드', description: '새 흐름이에요', config: {} }],
-						[]
-					)
-				}
-			>
-				AI 캔버스 반영
-			</button>
-		</div>
-	),
+		isBesideNodeSettings?: boolean
+		showsStartHint?: boolean
+		isOpen?: boolean
+		onOpenChange?: (isOpen: boolean) => void
+	}) {
+		// 실제 채팅의 대화 상태처럼 컴포넌트 안에만 두어, 워크플로우 이동 때 다시 마운트되는지 드러낸다.
+		const [messageCount, setMessageCount] = useState(0)
+
+		return (
+			<div>
+				<span data-testid='chat-message-count'>{messageCount}</span>
+				<button type='button' onClick={() => setMessageCount(count => count + 1)}>
+					채팅 대화 남기기
+				</button>
+				<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
+				<span data-testid='chat-open'>{String(Boolean(isOpen))}</span>
+				<button type='button' onClick={() => onOpenChange?.(false)}>
+					채팅 닫기
+				</button>
+				{/* 실제 채팅처럼 대화가 있으면 시작 안내를 숨겨, 이전 대화가 넘어오면 안내가 사라지는 것을 드러낸다. */}
+				<span data-testid='chat-start-hint'>{String(Boolean(showsStartHint) && messageCount === 0)}</span>
+				<span data-testid='chat-edge-count'>{currentEdges.length}</span>
+				<span data-testid='chat-trigger-position'>
+					{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
+				</span>
+				<button
+					type='button'
+					onClick={() =>
+						onCanvasUpdate?.(
+							[
+								{
+									id: 'ai-updated',
+									type: 'AI',
+									event: 'ai.reasoning',
+									label: 'AI가 만든 노드',
+									description: '새 흐름이에요',
+									config: {},
+								},
+							],
+							[]
+						)
+					}
+				>
+					AI 캔버스 반영
+				</button>
+			</div>
+		)
+	},
 }))
 
+// 페이지 데이터 훅은 mock이지만 설정 패널의 드롭다운·기본 모델 안내는 query를 직접 쓴다.
 const renderPage = (options?: { reactStrictMode?: boolean }) =>
 	render(
-		<MemoryRouter initialEntries={['/workflow/workflow-1']}>
-			<Link to='/workflow/workflow-1'>첫 번째 워크플로우로 이동</Link>
-			<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
-			<Routes>
-				<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
-			</Routes>
-		</MemoryRouter>,
+		<QueryClientProvider client={createTestQueryClient()}>
+			<MemoryRouter initialEntries={['/workflow/workflow-1']}>
+				<Link to='/workflow/workflow-1'>첫 번째 워크플로우로 이동</Link>
+				<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
+				<Routes>
+					<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
+				</Routes>
+			</MemoryRouter>
+		</QueryClientProvider>,
 		options
 	)
 
@@ -295,6 +416,8 @@ describe('WorkFlowPage', () => {
 		mocks.openConfirm.mockReset()
 		mocks.workflowOneActive = true
 		mocks.workflowTwoActive = false
+		mocks.workflowOneEmpty = false
+		mocks.catalogEntries = undefined
 	})
 
 	it('조회한 노드와 연결선을 편집 가능한 캔버스로 표시한다', () => {
@@ -323,7 +446,8 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(technicalSwitch)
 
 		expect(technicalSwitch).toHaveAttribute('aria-checked', 'true')
-		expect(screen.getByText('실행 방식: 수동 실행 (MANUAL)')).toBeInTheDocument()
+		expect(screen.getByText('실행 방식: 수동 실행')).toBeInTheDocument()
+		expect(screen.getByText('이벤트: manual.run')).toBeInTheDocument()
 		expect(screen.getByText('Method: POST')).toBeInTheDocument()
 		expect(screen.getByText('제공자: GEMINI')).toBeInTheDocument()
 		expect(screen.queryByText('credential-secret')).not.toBeInTheDocument()
@@ -511,17 +635,335 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('1')
 	})
 
+	it('노드를 지우면 연결선과 함께 초안에서 빼고 설정 패널을 닫으며 저장 요청에 빠진 상태를 싣는다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		mocks.update.mockReset()
+		mocks.update.mockResolvedValue(undefined)
+		renderPage()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		expect(screen.getByRole('complementary', { name: '노드 설정' })).toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: '노드 삭제 ai' }))
+
+		expect(screen.queryByRole('button', { name: '노드 선택 ai' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('0')
+		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('0')
+		expect(screen.getByRole('status', { name: '저장되지 않은 변경사항' })).toBeInTheDocument()
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.map((node: { id: string }) => node.id)).toEqual(['trigger', 'action'])
+		expect(draft.edges).toEqual([])
+
+		// 저장 버튼은 저장 중이 아닐 때 접근 가능한 이름이 없어 아이콘으로 찾는다.
+		const saveButton = screen.getAllByRole('button').find(button => button.querySelector('.lucide-save'))
+		expect(saveButton).toBeEnabled()
+		await user.click(saveButton!)
+
+		expect(mocks.update).toHaveBeenCalledOnce()
+		const request = mocks.update.mock.calls[0][0]
+		expect(request.nodes.map((node: { id: string }) => node.id)).toEqual(['trigger', 'action'])
+		expect(request.edges).toEqual([])
+	})
+
+	it('팔레트에서 고른 항목을 fixed 뼈대 그대로 노드로 추가하고 저장할 초안에 싣는다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const canvasBefore = screen.getByTestId('workflow-canvas')
+
+		const paletteButton = screen.getByRole('button', { name: '노드 추가' })
+		await user.click(paletteButton)
+		expect(paletteButton).toHaveAttribute('aria-expanded', 'true')
+
+		await user.click(screen.getByRole('button', { name: /Slack/ }))
+		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveAttribute('aria-expanded', 'false')
+		expect(paletteButton).toHaveFocus()
+		expect(screen.getAllByTestId(/^status-/)).toHaveLength(4)
+		// 캔버스를 다시 마운트하면 fitView가 다시 돌아 보던 화면 위치가 사라지므로 같은 캔버스에 붙어야 한다.
+		expect(screen.getByTestId('workflow-canvas')).toBe(canvasBefore)
+
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.at(-1)).toEqual({
+			id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+			event: 'slack_bot.send_channel_message',
+			type: 'ACTION',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: -132, y: -75 },
+			config: { brand: 'slack' },
+		})
+	})
+
+	it('노드 추가 버튼은 제목 툴바가 아니라 캔버스 위에 있고 노드가 있으면 시작 안내를 띄우지 않는다', () => {
+		renderPage()
+
+		const canvasArea = screen.getByTestId('workflow-canvas').parentElement
+		expect(canvasArea).toContainElement(screen.getByRole('button', { name: '노드 추가' }))
+		expect(screen.getByRole('switch', { name: '기술 정보' }).parentElement).not.toContainElement(
+			screen.getByRole('button', { name: '노드 추가' })
+		)
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+	})
+
+	it('빈 캔버스는 노드 추가 버튼 옆에 직접 추가를, 채팅에 AI 생성 안내를 띄우고 노드를 추가하면 둘 다 숨긴다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		expect(screen.getByRole('note')).toHaveTextContent('+ 버튼으로 노드를 직접 골라 추가해 보세요.')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
+		await user.click(screen.getByRole('button', { name: '노드 추가' }))
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: /Slack/ }))
+		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+	})
+
+	it('빈 캔버스는 말풍선 두 개와 함께 시작 카드를 띄우고, 트리거를 고른 뒤 그 노드 뒤에 다음 노드를 붙이면 연결까지 한 초안에 남긴다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		const startCard = screen.getByRole('group', { name: '어떻게 시작할까요?' })
+		expect(screen.getByRole('note')).toHaveTextContent('+ 버튼으로 노드를 직접 골라 추가해 보세요.')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
+
+		await user.click(within(startCard).getByRole('button', { name: '트리거 고르기' }))
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+		const triggerPalette = screen.getByRole('complementary', { name: '트리거 고르기' })
+		expect(within(triggerPalette).queryByRole('button', { name: /Slack/ })).not.toBeInTheDocument()
+		await user.click(within(triggerPalette).getByRole('button', { name: /수동 실행/ }))
+		await user.click(within(triggerPalette).getByRole('button', { name: /직접 실행할 때/ }))
+
+		// 시작 카드는 트리거를 고르면 사라지므로 포커스는 노드 추가 버튼으로 돌아간다.
+		expect(screen.queryByRole('complementary', { name: '트리거 고르기' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '노드 추가' })).toHaveFocus()
+		const [trigger] = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}').nodes
+		expect(trigger).toMatchObject({ event: 'manual.run', type: 'TRIGGER', position: { x: -132, y: -75 } })
+
+		const nextButton = screen.getByRole('button', { name: `다음 노드 추가 ${trigger.id}` })
+		await user.click(nextButton)
+		const nextPalette = screen.getByRole('complementary', { name: '다음 노드 추가' })
+		expect(within(nextPalette).queryByRole('button', { name: /수동 실행/ })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '노드 추가' })).toHaveAttribute('aria-expanded', 'false')
+		await user.click(within(nextPalette).getByRole('button', { name: /Slack/ }))
+		await user.click(within(nextPalette).getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+		expect(screen.getByRole('button', { name: `다음 노드 추가 ${trigger.id}` })).toHaveFocus()
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes).toHaveLength(2)
+		expect(draft.nodes[1]).toMatchObject({
+			event: 'slack_bot.send_channel_message',
+			position: { x: 212, y: -75 },
+		})
+		expect(draft.edges).toEqual([{ source: trigger.id, target: draft.nodes[1].id, conditionType: null }])
+	})
+
+	it('시작 카드의 AI로 만들기는 채팅을 열고, 채팅이 열린 동안 카드를 숨기며 다른 워크플로우로 옮기면 닫힌다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		renderPage()
+
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		await user.click(screen.getByRole('button', { name: 'AI로 만들기' }))
+
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('true')
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: '채팅 닫기' }))
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		expect(screen.getByRole('group', { name: '어떻게 시작할까요?' })).toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: 'AI로 만들기' }))
+		await user.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-open')).toHaveTextContent('false')
+		// 노드가 있는 워크플로우에는 시작 카드를 띄우지 않는다.
+		expect(screen.queryByRole('group', { name: '어떻게 시작할까요?' })).not.toBeInTheDocument()
+	})
+
+	it('시작 카드로 연 트리거 팔레트를 Escape로 닫으면 트리거 고르기 버튼으로 포커스를 돌려준다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '트리거 고르기' }))
+		expect(screen.getByRole('complementary', { name: '트리거 고르기' })).toHaveFocus()
+		await user.keyboard('{Escape}')
+
+		expect(screen.queryByRole('complementary', { name: '트리거 고르기' })).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '트리거 고르기' })).toHaveFocus()
+	})
+
+	it('다른 워크플로우로 이동하면 이전 채팅 대화를 비우고 빈 워크플로우에는 시작 안내를 다시 띄운다', () => {
+		mocks.workflowOneEmpty = true
+		renderPage()
+
+		fireEvent.click(screen.getByRole('button', { name: '채팅 대화 남기기' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('1')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('0')
+
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('0')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
+	})
+
+	it('팔레트가 열린 동안 가려진 노드 추가 버튼은 Tab으로 닿지 않고, 닫기 버튼이나 Escape로 닫으면 그 버튼으로 포커스를 돌려준다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const paletteButton = screen.getByRole('button', { name: '노드 추가' })
+
+		await user.click(paletteButton)
+		await user.click(screen.getByRole('button', { name: '노드 추가 닫기' }))
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveFocus()
+
+		await user.click(paletteButton)
+		expect(screen.getByRole('complementary', { name: '노드 추가' })).toHaveFocus()
+		// 팔레트에 가려진 버튼으로 Shift+Tab이 가면 보이지 않는 곳에서 팔레트가 닫힌다.
+		await user.tab({ shift: true })
+		expect(paletteButton).not.toHaveFocus()
+		screen.getByRole('complementary', { name: '노드 추가' }).focus()
+		await user.keyboard('{Escape}')
+		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
+		expect(paletteButton).toHaveFocus()
+	})
+
+	it('노드를 누르면 설정 패널을 열어 칸 수정을 초안에 반영하고 채팅을 패널 옆으로 민다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+		const canvasBefore = screen.getByTestId('workflow-canvas')
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('false')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '담당자에게 알리기' })).toBeInTheDocument()
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('true')
+
+		const url = within(panel).getByLabelText(/^URL/, { selector: 'input' })
+		await user.clear(url)
+		await user.type(url, 'https://example.com/new')
+
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.find((node: { id: string }) => node.id === 'action').config).toEqual({
+			method: 'POST',
+			url: 'https://example.com/new',
+		})
+		// 입력마다 캔버스를 다시 마운트하면 fitView와 입력 포커스가 흔들리므로 같은 캔버스를 유지해야 한다.
+		expect(screen.getByTestId('workflow-canvas')).toBe(canvasBefore)
+		expect(url).toHaveFocus()
+
+		await user.click(screen.getByRole('button', { name: '빈 곳 클릭' }))
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('false')
+	})
+
+	it('설정 패널을 Escape로 닫으면 그 노드로 포커스를 돌려주고 Enter로 다시 열며 다른 노드를 누르면 그 노드 설정으로 바꾼다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		const { container } = renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+		expect(screen.getByRole('complementary', { name: '노드 설정' })).toHaveFocus()
+		expect(screen.getByText('설정 중 action')).toBeInTheDocument()
+		await user.keyboard('{Escape}')
+
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.queryByText('설정 중 action')).not.toBeInTheDocument()
+		const actionNode = container.querySelector<HTMLElement>('.react-flow__node[data-id="action"]')
+		expect(actionNode).toHaveFocus()
+
+		// 실제 React Flow는 노드에서 Enter를 선택으로만 처리해 캔버스 keydown으로 패널을 연다.
+		await user.keyboard('{Enter}')
+		expect(
+			within(screen.getByRole('complementary', { name: '노드 설정' })).getByRole('heading', { name: '담당자에게 알리기' })
+		).toBeInTheDocument()
+		await user.keyboard('{Escape}')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 action' }))
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '문의 분류하기' })).toBeInTheDocument()
+		expect(within(panel).getByLabelText(/^프롬프트/, { selector: 'textarea' })).toHaveValue('private prompt')
+	})
+
+	it('노드 테스트가 먼저 테스트할 노드를 알려 주면 열기로 그 노드 설정 패널로 바꾼다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		server.use(
+			http.post(NODE_TEST_PATH, () =>
+				HttpResponse.json(
+					{
+						success: false,
+						data: { missingNodeIds: ['action'] },
+						message: '먼저 테스트해야 하는 노드가 있습니다',
+						code: 'TEST_SAMPLE_MISSING',
+					},
+					{ status: 400 }
+				)
+			)
+		)
+		renderPage()
+
+		// 직접 실행 트리거는 확인 모달 없이 바로 테스트한다.
+		await user.click(screen.getByRole('button', { name: '노드 선택 trigger' }))
+		await user.click(screen.getByRole('button', { name: '테스트' }))
+		await user.click(await screen.findByRole('button', { name: '담당자에게 알리기 노드 열기' }))
+
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '담당자에게 알리기' })).toBeInTheDocument()
+	})
+
+	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {
+		const { unmount } = renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+		expect(screen.queryByText('이벤트: http.request')).not.toBeInTheDocument()
+		unmount()
+
+		mocks.catalogEntries = nodeCatalogEntriesFixture.filter(entry => entry.id !== 'http.request')
+		renderPage()
+		fireEvent.click(screen.getByRole('switch', { name: '기술 정보' }))
+
+		expect(screen.getByText('이벤트: http.request')).toBeInTheDocument()
+	})
+
 	it('같은 서버 버전의 로컬 초안을 새로고침 진입 시 복원한다', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '복원된 문의 분류',
 				nodes: [
-					{ id: 'trigger', type: 'TRIGGER', label: '문의가 도착하면', position: { x: 90, y: 120 }, config: {} },
-					{ id: 'action', type: 'HTTP', label: '담당자에게 알리기', config: {} },
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						event: 'manual.run',
+						label: '문의가 도착하면',
+						position: { x: 90, y: 120 },
+						config: {},
+					},
+					{ id: 'action', type: 'HTTP', event: 'http.request', label: '담당자에게 알리기', config: {} },
 				],
 				edges: [{ source: 'trigger', target: 'action', conditionType: null }],
 			})
@@ -539,7 +981,7 @@ describe('WorkFlowPage', () => {
 		localStorage.setItem(
 			getWorkflowDraftKey('workflow-1'),
 			JSON.stringify({
-				schemaVersion: 1,
+				schemaVersion: 2,
 				workflowVersion: 1,
 				updatedAt: new Date().toISOString(),
 				title: '고객 문의 분류',
@@ -547,13 +989,15 @@ describe('WorkFlowPage', () => {
 					{
 						id: 'trigger',
 						type: 'TRIGGER',
+						event: 'manual.run',
 						label: '문의가 도착하면',
 						description: '새 문의가 들어오면 시작해요',
-						config: { triggerType: 'MANUAL', brand: 'webhook' },
+						config: { brand: 'webhook' },
 					},
 					{
 						id: 'ai',
 						type: 'AI',
+						event: 'ai.reasoning',
 						label: '문의 분류하기',
 						config: {
 							llmProvider: 'GEMINI',
@@ -565,6 +1009,7 @@ describe('WorkFlowPage', () => {
 					{
 						id: 'action',
 						type: 'HTTP',
+						event: 'http.request',
 						label: '담당자에게 알리기',
 						config: { method: 'POST', url: 'https://example.com/notify' },
 					},

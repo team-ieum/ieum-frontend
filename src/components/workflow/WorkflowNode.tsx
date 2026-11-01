@@ -1,7 +1,25 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { motion } from 'framer-motion'
-import { Bot, Check, CircleAlert, CircleDashed, GitBranch, Globe2, LoaderCircle, Play, Shuffle, Workflow } from 'lucide-react'
+import { useContext, type CSSProperties } from 'react'
+import {
+	Blocks,
+	Bot,
+	Check,
+	CircleAlert,
+	CircleDashed,
+	GitBranch,
+	Globe2,
+	LoaderCircle,
+	Play,
+	Plus,
+	Shuffle,
+	UserCheck,
+	Workflow,
+} from 'lucide-react'
+import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
+import { getBrandConfig } from '@/constants/integration/brandConfig'
 import { getWorkflowNodeMeta, WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
+import type { IntegrationBrand } from '@/types/integration'
 import type { WorkflowNodeIconKey, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
 import { cn } from '@/utils/cn'
 
@@ -16,17 +34,50 @@ const STATUS_CLASS: Record<WorkflowNodeStatus, string> = {
 }
 
 const HANDLE_CLASS = cn(
-	'!z-[3] !size-4.5 !cursor-crosshair !border-[3px] !border-white',
-	'!bg-(--node-color) !shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]'
+	'z-3! size-4.5! cursor-crosshair! border-[3px]! border-white!',
+	'bg-(--node-color)! shadow-[0_0_0_2px_var(--node-color),0_3px_8px_rgba(28,54,65,0.2)]!'
 )
 
-const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
+export const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
 	if (iconKey === 'play') return <Play size={20} aria-hidden='true' />
 	if (iconKey === 'globe') return <Globe2 size={20} aria-hidden='true' />
 	if (iconKey === 'shuffle') return <Shuffle size={20} aria-hidden='true' />
 	if (iconKey === 'branch') return <GitBranch size={20} aria-hidden='true' />
 	if (iconKey === 'bot') return <Bot size={20} aria-hidden='true' />
+	if (iconKey === 'app') return <Blocks size={20} aria-hidden='true' />
+	if (iconKey === 'approval') return <UserCheck size={20} aria-hidden='true' />
 	return <Workflow size={20} aria-hidden='true' />
+}
+
+const NodeIcon = ({ iconKey, brand }: { iconKey: WorkflowNodeIconKey; brand?: IntegrationBrand }) => {
+	if (!brand) {
+		return (
+			<span
+				className={cn(
+					'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--node-color) text-white',
+					'[box-shadow:0_4px_0_color-mix(in_srgb,var(--node-color)_78%,black)]'
+				)}
+			>
+				<NodeTypeIcon iconKey={iconKey} />
+			</span>
+		)
+	}
+
+	const brandConfig = getBrandConfig(brand)
+
+	// 헤더 라벨이 서비스 이름을 이미 읽어 주므로 로고는 보조기기에서 숨긴다.
+	return (
+		<span
+			aria-hidden='true'
+			className={cn(
+				'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--brand-tint)',
+				'[box-shadow:0_4px_0_color-mix(in_srgb,var(--brand-tint)_70%,black)]'
+			)}
+			style={{ '--brand-tint': brandConfig.tint } as CSSProperties}
+		>
+			{brandConfig.icon}
+		</span>
+	)
 }
 
 const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
@@ -38,9 +89,10 @@ const StatusIcon = ({ status }: { status: WorkflowNodeStatus }) => {
 	return <CircleDashed size={14} aria-hidden='true' />
 }
 
-const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
+const WorkflowNode = ({ id, data, selected }: NodeProps<WorkflowNodeType>) => {
 	const status = WORKFLOW_NODE_STATUS[data.status]
 	const nodeMeta = getWorkflowNodeMeta(data.nodeType)
+	const actions = useContext(WorkflowNodeActionsContext)
 
 	return (
 		<motion.article
@@ -50,11 +102,37 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 			className={cn(
 				'relative w-66 rounded-[1.2rem] border-2 border-(--node-color) bg-white',
 				'shadow-[0.5rem_0.6rem_0_var(--node-tint),0_14px_30px_rgba(65,52,139,0.1)]',
+				data.isSettingsOpen && 'outline-3 outline-offset-3 outline-main-blue',
+				'group/node',
 				nodeMeta.toneClass
 			)}
 		>
 			{data.role === 'trigger' ? null : <Handle type='target' position={Position.Left} className={HANDLE_CLASS} />}
 			<Handle type='source' position={Position.Right} className={HANDLE_CLASS} />
+			{actions ? (
+				<button
+					type='button'
+					// 핸들 드래그로 연결을 그리는 영역 밖에 두고, 누를 때 노드 드래그·캔버스 이동이 시작되지 않게 한다.
+					// ReactFlow 노드 래퍼는 Enter·Space·화살표를 노드 선택·이동으로 처리해, 키보드로 누르면 노드가 선택된 채
+					// 팔레트가 열리고 Backspace로 그 노드가 지워질 수 있다. 키 입력은 버튼 기본 동작(click)만 쓰게 전파를 막는다.
+					onKeyDown={event => event.stopPropagation()}
+					onClick={event => {
+						event.stopPropagation()
+						actions.onAddNext(id, event.currentTarget)
+					}}
+					aria-label={`${data.title} 뒤에 노드 추가`}
+					title='다음 노드 추가'
+					className={cn(
+						'nodrag nopan absolute top-1/2 -right-10 grid size-7 -translate-y-1/2 cursor-pointer place-items-center rounded-full',
+						'border-2 border-(--node-color) bg-white text-(--node-color) shadow-sm transition-opacity',
+						'hover:bg-(--node-tint) focus-visible:opacity-100 motion-reduce:transition-none',
+						'group-hover/node:opacity-100 group-focus-within/node:opacity-100',
+						selected || data.isSettingsOpen ? 'opacity-100' : 'opacity-0'
+					)}
+				>
+					<Plus size={14} aria-hidden='true' />
+				</button>
+			) : null}
 
 			<header
 				className={cn(
@@ -63,14 +141,7 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					'border-b-[color-mix(in_srgb,var(--node-color)_28%,white)]'
 				)}
 			>
-				<span
-					className={cn(
-						'grid size-8 shrink-0 place-items-center rounded-[0.65rem] bg-(--node-color) text-white',
-						'[box-shadow:0_4px_0_color-mix(in_srgb,var(--node-color)_78%,black)]'
-					)}
-				>
-					<NodeTypeIcon iconKey={nodeMeta.iconKey} />
-				</span>
+				<NodeIcon iconKey={nodeMeta.iconKey} brand={data.brand} />
 				<span>{data.typeLabel}</span>
 				<motion.span
 					key={data.status}
@@ -113,12 +184,12 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 					>
 						{data.technicalDetails.map(detail => (
 							<div key={detail.label} className='grid grid-cols-[4.1rem_minmax(0,1fr)] items-center gap-[0.45rem]'>
-								<dt className='text-[0.64rem] leading-[1.5] font-bold text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
+								<dt className='text-[0.64rem] leading-normal font-bold text-[color-mix(in_srgb,var(--node-color)_72%,#32313c)]'>
 									{detail.label}
 								</dt>
 								<dd
-									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-[1.5] font-semibold text-[#353442]'
-									title={detail.value}
+									className='m-0 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[0.66rem] leading-normal font-semibold text-[#353442]'
+									title={detail.title ?? detail.value}
 								>
 									{detail.value}
 								</dd>
@@ -130,6 +201,19 @@ const WorkflowNode = ({ data }: NodeProps<WorkflowNodeType>) => {
 				) : (
 					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>{data.description}</p>
 				)}
+
+				{data.missingRequiredCount > 0 ? (
+					<span className='inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#9a6700]'>
+						<CircleAlert size={11} aria-hidden='true' />
+						필수 입력 {data.missingRequiredCount}개 비어 있음
+					</span>
+				) : null}
+
+				{data.isOutsideCatalog ? (
+					<span className='inline-flex w-fit items-center rounded-full bg-[#eef1f3] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#5a6975]'>
+						지원하지 않는 작업 · 읽기 전용
+					</span>
+				) : null}
 
 				{data.role === 'ai' && !data.technicalMode ? (
 					<span

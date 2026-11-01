@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { useCreateWorkflowMutation } from '@/hooks/workflow/mutations/useCreateWorkflowMutation'
 import { useDeleteWorkflowMutation } from '@/hooks/workflow/mutations/useDeleteWorkflowMutation'
+import { useCreateBlankWorkflow } from '@/hooks/workflow/useCreateBlankWorkflow'
 import { useModalStore } from '@/stores/useModalStore'
 import type { WorkflowListViewModel } from '@/types/workflowList'
 import { isApiError } from '@/utils/ApiError'
@@ -11,26 +11,10 @@ type WorkflowListCommands = Pick<WorkflowListViewModel, 'handleCreateWorkflow' |
 export const useWorkflowListCommands = (): WorkflowListCommands => {
 	const navigate = useNavigate()
 	const openModal = useModalStore(state => state.open)
-	const createMutation = useCreateWorkflowMutation()
+	const { createBlankWorkflow } = useCreateBlankWorkflow()
 	const deleteMutation = useDeleteWorkflowMutation()
 
-	const handleCreateWorkflow = useCallback(async () => {
-		try {
-			const res = await createMutation.mutateAsync({
-				name: '새 워크플로우',
-				nodes: [],
-				edges: [],
-				triggerType: 'MANUAL',
-			})
-			navigate(`/workflow/${res.data.id}`)
-		} catch (err) {
-			if (isApiError(err)) {
-				openModal('오류', err.message)
-			} else {
-				openModal('오류', '워크플로우 생성에 실패했어요. 다시 시도해주세요.')
-			}
-		}
-	}, [createMutation, navigate, openModal])
+	const handleCreateWorkflow = useCallback(() => createBlankWorkflow(), [createBlankWorkflow])
 
 	const handleOpenWorkflow = useCallback(
 		(workflowId: string, workflowName: string) => {

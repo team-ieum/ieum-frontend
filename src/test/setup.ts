@@ -10,6 +10,7 @@ import { cleanupHarnessResources } from '@/test/harnessCleanup'
 import { installDomEnvironment, resetDomEnvironment } from '@/test/domEnvironment'
 
 installDomEnvironment()
+const settleNotifications = globalThis.setTimeout.bind(globalThis)
 
 // 전체 테스트를 병렬로 실행할 때 부하가 높으면 route 첫 렌더가 기본 대기 시간(1,000ms)을 넘어 간헐 실패한다.
 // 결과가 나타나면 바로 끝나므로 정상 실행 시간은 늘지 않는다.
@@ -30,6 +31,8 @@ afterEach(async () => {
 	useModalStore.setState(useModalStore.getInitialState(), true)
 	useExecutionStore.setState(useExecutionStore.getInitialState(), true)
 	resetDomEnvironment()
+	// Drain queued query notifications before Vitest tears down this file's window.
+	await new Promise<void>(resolve => settleNotifications(resolve, 0))
 })
 
 afterAll(() => server.close())
