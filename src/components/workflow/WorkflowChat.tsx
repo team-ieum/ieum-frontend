@@ -8,6 +8,8 @@ import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const MODEL_MENU_ID = 'workflow-chat-model-menu'
+/** 시작 안내 말풍선이 FAB 등장 spring을 기다리는 시간(초). */
+const START_HINT_DELAY_S = 0.18
 
 type ModelMenuItemProps = {
 	label: string
@@ -86,6 +88,8 @@ type WorkflowChatProps = {
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 	/** 캔버스 오른쪽에 노드 설정 패널이 열려 있으면 채팅을 그 왼쪽으로 밀어 나란히 보여 준다. */
 	isBesideNodeSettings?: boolean
+	/** 새 워크플로우처럼 노드가 없을 때 닫힌 채팅 버튼 아래에 AI로 만들 수 있다는 말풍선을 띄운다. */
+	showsStartHint?: boolean
 }
 
 const WorkflowChat = ({
@@ -94,7 +98,9 @@ const WorkflowChat = ({
 	currentEdges,
 	onCanvasUpdate,
 	isBesideNodeSettings = false,
+	showsStartHint = false,
 }: WorkflowChatProps) => {
+	const reduceMotion = useReducedMotion()
 	// 설정 패널(right-3 + w-90)과 0.75rem 간격을 둔 위치다.
 	const rightClass = isBesideNodeSettings ? 'right-96' : 'right-4'
 	const {
@@ -151,6 +157,25 @@ const WorkflowChat = ({
 					</motion.button>
 				)}
 			</AnimatePresence>
+			{/* 이미 AI에 요청을 보낸 대화가 있으면 노드가 아직 없어도 다시 권하지 않는다.
+			    퇴장 애니메이션 없이 바로 숨겨, 채팅을 열면 패널 위에 말풍선이 남지 않게 한다. */}
+			{showsStartHint && !isOpen && messages.length === 0 ? (
+				<motion.div
+					role='note'
+					// FAB이 spring으로 커지는 동안 빈 자리를 가리키지 않도록 조금 늦게 나타난다.
+					initial={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: START_HINT_DELAY_S, duration: 0.2 }}
+					className={cn(
+						'absolute top-19 z-10 max-w-60 rounded-xl break-keep bg-main-deep-blue px-3 py-2 text-xs leading-relaxed text-white shadow-[0_10px_24px_rgba(43,72,86,0.18)]',
+						rightClass
+					)}
+				>
+					{/* 원형 버튼(w-12) 가운데를 가리키는 말풍선 꼬리 */}
+					<span aria-hidden='true' className='absolute -top-1 right-[1.1875rem] size-2.5 rotate-45 bg-main-deep-blue' />
+					AI에게 원하는 자동화를 말하면 워크플로우를 만들어 드려요.
+				</motion.div>
+			) : null}
 
 			{/* 열린 상태 — 채팅 패널 */}
 			<AnimatePresence>

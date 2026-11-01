@@ -277,14 +277,17 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 		currentEdges,
 		onCanvasUpdate,
 		isBesideNodeSettings,
+		showsStartHint,
 	}: {
 		currentNodes: { id: string; position?: { x: number; y: number } }[]
 		currentEdges: unknown[]
 		onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 		isBesideNodeSettings?: boolean
+		showsStartHint?: boolean
 	}) => (
 		<div>
 			<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
+			<span data-testid='chat-start-hint'>{String(Boolean(showsStartHint))}</span>
 			<span data-testid='chat-edge-count'>{currentEdges.length}</span>
 			<span data-testid='chat-trigger-position'>
 				{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
@@ -618,15 +621,17 @@ describe('WorkFlowPage', () => {
 			screen.getByRole('button', { name: '노드 추가' })
 		)
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
 	})
 
-	it('빈 캔버스는 노드 추가 버튼 옆에 직접 추가를 안내하고 팔레트를 열거나 노드를 추가하면 숨긴다', async () => {
+	it('빈 캔버스는 노드 추가 버튼 옆에 직접 추가를, 채팅에 AI 생성 안내를 띄우고 노드를 추가하면 둘 다 숨긴다', async () => {
 		const user = userEvent.setup()
 		mocks.workflowOneEmpty = true
 		mocks.catalogEntries = nodeCatalogEntriesFixture
 		renderPage()
 
 		expect(screen.getByRole('note')).toHaveTextContent('+ 버튼으로 노드를 직접 골라 추가해 보세요.')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
 		await user.click(screen.getByRole('button', { name: '노드 추가' }))
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 
@@ -634,6 +639,7 @@ describe('WorkFlowPage', () => {
 		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
 		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
 	})
 
 	it('팔레트가 열린 동안 가려진 노드 추가 버튼은 Tab으로 닿지 않고, 닫기 버튼이나 Escape로 닫으면 그 버튼으로 포커스를 돌려준다', async () => {

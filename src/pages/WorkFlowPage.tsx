@@ -400,6 +400,7 @@ const WorkFlowPage = () => {
 					currentEdges={document?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
 					isBesideNodeSettings={Boolean(settingsNode)}
+					showsStartHint={document?.nodes.length === 0}
 				/>
 			</div>
 		</div>
