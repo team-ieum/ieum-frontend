@@ -58,4 +58,30 @@ describe('WorkflowChat 시작 안내', () => {
 		expect(screen.getByRole('button', { name: '채팅 열기' })).toBeInTheDocument()
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 	})
+
+	it('열림 상태를 넘기면 그 값으로 열고 닫으며 FAB·닫기 버튼은 onOpenChange로 알린다', async () => {
+		const user = userEvent.setup()
+		const onOpenChange = vi.fn()
+		const { rerender } = render(
+			<WorkflowChat
+				workflowId='workflow-1'
+				currentNodes={[]}
+				currentEdges={[]}
+				isOpen={false}
+				onOpenChange={onOpenChange}
+			/>
+		)
+
+		await user.click(screen.getByRole('button', { name: '채팅 열기' }))
+		expect(onOpenChange).toHaveBeenLastCalledWith(true)
+		// 호출자가 값을 바꾸기 전에는 닫힌 채로 둔다.
+		expect(screen.getByRole('button', { name: '채팅 열기' })).toBeInTheDocument()
+
+		rerender(<WorkflowChat workflowId='workflow-1' currentNodes={[]} currentEdges={[]} isOpen onOpenChange={onOpenChange} />)
+		expect(screen.getByRole('button', { name: '채팅 닫기' })).toBeInTheDocument()
+		await waitFor(() => expect(screen.getByRole('textbox')).toHaveFocus())
+
+		await user.click(screen.getByRole('button', { name: '채팅 닫기' }))
+		expect(onOpenChange).toHaveBeenLastCalledWith(false)
+	})
 })

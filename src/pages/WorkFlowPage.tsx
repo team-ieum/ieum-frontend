@@ -8,6 +8,8 @@ import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
 import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
+import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
+import WorkflowStartCard from '@/components/workflow/WorkflowStartCard'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
@@ -16,6 +18,7 @@ import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuer
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
+import { useNodePalette, type NodePaletteState } from '@/hooks/workflow/useNodePalette'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
 import { useWorkflowSave } from '@/hooks/workflow/useWorkflowSave'
 import { useExecutionStore } from '@/stores/useExecutionStore'
@@ -61,12 +64,17 @@ type WorkflowCanvasProps = {
 	edges: WorkflowEdgeType[]
 	nodeStatus: Record<string, NodeExecutionStatus>
 	isTracking: boolean
-	isPaletteOpen: boolean
+	/** 열린 팔레트와 그 목적. 닫혀 있으면 null. */
+	palette: NodePaletteState | null
 	onPaletteToggle: () => void
+	onPaletteOpen: (state: NodePaletteState, invoker: HTMLElement) => void
 	onPaletteClose: () => void
 	/** 팔레트가 닫힐 때 포커스를 돌려받을 '노드 추가' 버튼. */
 	paletteButtonRef: Ref<HTMLButtonElement>
-	onNodeAdd: (node: WorkflowNodeDto) => void
+	/** 시작 카드는 채팅이 열려 있으면 숨긴다. */
+	isChatOpen: boolean
+	onStartWithAi: () => void
+	onNodeAdd: (node: WorkflowNodeDto, edges?: WorkflowEdgeType[]) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
 	onNodesRemove: (nodeIds: string[], edges: WorkflowEdgeType[]) => void
@@ -81,10 +89,13 @@ const WorkflowCanvas = ({
 	edges,
 	nodeStatus,
 	isTracking,
-	isPaletteOpen,
+	palette,
 	onPaletteToggle,
+	onPaletteOpen,
 	onPaletteClose,
 	paletteButtonRef,
+	isChatOpen,
+	onStartWithAi,
 	onNodeAdd,
 	onNodePositionCommit,
 	onEdgesCommit,
@@ -104,9 +115,18 @@ const WorkflowCanvas = ({
 	})
 
 	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
-		editor.addCatalogNode(entry)
+		if (palette?.mode === 'next') editor.addNextCatalogNode(palette.sourceNodeId, entry)
+		else editor.addCatalogNode(entry)
 		onPaletteClose()
 	}
+	const nodeActions = useMemo(
+		() => ({
+			onAddNext: (nodeId: string, invoker: HTMLButtonElement) =>
+				onPaletteOpen({ mode: 'next', sourceNodeId: nodeId }, invoker),
+		}),
+		[onPaletteOpen]
+	)
+	const isCanvasEmpty = editor.nodes.length === 0
 
 	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
@@ -146,7 +166,7 @@ const WorkflowCanvas = ({
 	}
 
 	return (
-		<>
+		<WorkflowNodeActionsContext.Provider value={nodeActions}>
 			<ReactFlow
 				ref={setCanvasElement}
 				onKeyDown={handleCanvasKeyDown}
@@ -183,13 +203,30 @@ const WorkflowCanvas = ({
 				<MiniMap pannable zoomable nodeStrokeWidth={3} />
 			</ReactFlow>
 			<NodeAddButton
-				isPaletteOpen={isPaletteOpen}
+				isPaletteOpen={palette !== null}
+				isAllPaletteOpen={palette?.mode === 'all'}
 				onTogglePalette={onPaletteToggle}
 				buttonRef={paletteButtonRef}
-				showsEmptyHint={editor.nodes.length === 0}
+				showsEmptyHint={isCanvasEmpty}
 			/>
-			{isPaletteOpen ? <NodeCatalogPalette onSelect={handleCatalogSelect} onClose={onPaletteClose} /> : null}
-		</>
+			{isCanvasEmpty ? (
+				<WorkflowStartCard
+					// 팔레트·채팅이 열린 동안 숨기기만 해, 팔레트가 닫힐 때 '트리거 고르기' 버튼으로 포커스를 돌려줄 수 있게 한다.
+					isHidden={palette !== null || isChatOpen}
+					onPickTrigger={invoker => onPaletteOpen({ mode: 'trigger' }, invoker)}
+					onStartWithAi={onStartWithAi}
+				/>
+			) : null}
+			{palette ? (
+				<NodeCatalogPalette
+					// 목적이 바뀌면 고르던 앱 단계를 비우고 처음부터 보여 준다.
+					key={palette.mode === 'next' ? `next-${palette.sourceNodeId}` : palette.mode}
+					mode={palette.mode}
+					onSelect={handleCatalogSelect}
+					onClose={onPaletteClose}
+				/>
+			) : null}
+		</WorkflowNodeActionsContext.Provider>
 	)
 }
 
@@ -201,13 +238,12 @@ const WorkFlowPage = () => {
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
-	const [isPaletteOpen, setIsPaletteOpen] = useState(false)
-	const paletteButtonRef = useRef<HTMLButtonElement>(null)
-	// 팔레트는 열릴 때 패널로 포커스를 가져가므로 닫힐 때 여는 버튼으로 돌려줘야 키보드 위치를 잃지 않는다.
-	const closePalette = () => {
-		setIsPaletteOpen(false)
-		paletteButtonRef.current?.focus()
-	}
+	// 팔레트는 열릴 때 패널로 포커스를 가져가므로 닫힐 때 연 버튼으로 돌려줘야 키보드 위치를 잃지 않는다.
+	const { palette, openPalette, closePalette, toggleAllPalette, addButtonRef } = useNodePalette(workflowId)
+	// 채팅 열림은 워크플로우마다 따로 둔다. 시작 카드의 'AI로 만들기'가 바깥에서 채팅을 연다.
+	const [chatOpenWorkflowId, setChatOpenWorkflowId] = useState<string | null>(null)
+	const isChatOpen = Boolean(workflowId) && chatOpenWorkflowId === workflowId
+	const setChatOpen = (open: boolean) => setChatOpenWorkflowId(open && workflowId ? workflowId : null)
 	const { data: catalogData } = useNodeCatalogQuery()
 	// 카탈로그를 받기 전에는 판정하지 않아 정상 노드가 '지원하지 않는 작업'으로 보이지 않게 한다.
 	const catalogEntries = useMemo(
@@ -369,7 +405,7 @@ const WorkFlowPage = () => {
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
 			/>
-			<div className='relative flex-1'>
+			<div className='@container relative flex-1'>
 				{canvas && canvasKey ? (
 					<WorkflowCanvas
 						key={canvasKey}
@@ -377,10 +413,13 @@ const WorkFlowPage = () => {
 						edges={canvas.edges}
 						nodeStatus={nodeStatus}
 						isTracking={phase === 'running'}
-						isPaletteOpen={isPaletteOpen}
-						onPaletteToggle={() => setIsPaletteOpen(open => !open)}
+						palette={palette}
+						onPaletteToggle={toggleAllPalette}
+						onPaletteOpen={openPalette}
 						onPaletteClose={closePalette}
-						paletteButtonRef={paletteButtonRef}
+						paletteButtonRef={addButtonRef}
+						isChatOpen={isChatOpen}
+						onStartWithAi={() => setChatOpen(true)}
 						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
@@ -408,6 +447,8 @@ const WorkFlowPage = () => {
 					onCanvasUpdate={handleCanvasUpdate}
 					isBesideNodeSettings={Boolean(settingsNode)}
 					showsStartHint={document?.nodes.length === 0}
+					isOpen={isChatOpen}
+					onOpenChange={setChatOpen}
 				/>
 			</div>
 		</div>

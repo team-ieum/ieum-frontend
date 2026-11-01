@@ -123,10 +123,15 @@ export const useWorkflowEditorViewModel = ({
 		[commitDocument, document]
 	)
 
+	// 노드와 함께 만든 연결은 같은 커밋에 실어야 앞선 커밋이 이 렌더의 document를 덮어쓰며 노드를 잃지 않는다.
 	const handleNodeAdd = useCallback(
-		(node: WorkflowNodeDto) => {
+		(node: WorkflowNodeDto, edges?: WorkflowEdgeType[]) => {
 			if (!document) return
-			commitDocument({ ...document, nodes: [...document.nodes, node] })
+			commitDocument({
+				...document,
+				nodes: [...document.nodes, node],
+				edges: edges ? toWorkflowEdgeDtos(edges) : document.edges,
+			})
 		},
 		[commitDocument, document]
 	)

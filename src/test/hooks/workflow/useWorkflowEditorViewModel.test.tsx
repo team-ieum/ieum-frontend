@@ -80,6 +80,32 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(readWorkflowDraft('workflow-1', 3)?.nodes.at(-1)).toEqual(node)
 	})
 
+	it('다음 노드로 함께 만든 연결은 노드와 같은 편집 문서·초안에 한 번에 남긴다', () => {
+		const { result } = renderEditor()
+		const node = {
+			id: 'slack-1',
+			type: 'ACTION',
+			event: 'slack_bot.send_channel_message',
+			label: 'Slack 채널에 메시지 보내기',
+			position: { x: 664, y: 20 },
+			config: { brand: 'slack' },
+		}
+		const edges = [
+			{ id: 'trigger-ai', source: 'trigger', target: 'ai', type: 'animated', data: { conditionType: null } },
+			{ id: 'manual-ai-slack-1', source: 'ai', target: 'slack-1', type: 'animated', data: { conditionType: null } },
+		] as WorkflowEdgeType[]
+
+		act(() => result.current.handleNodeAdd(node, edges))
+
+		const expectedEdges = [
+			{ source: 'trigger', target: 'ai', conditionType: null },
+			{ source: 'ai', target: 'slack-1', conditionType: null },
+		]
+		expect(result.current.document?.nodes.at(-1)).toEqual(node)
+		expect(result.current.document?.edges).toEqual(expectedEdges)
+		expect(readWorkflowDraft('workflow-1', 3)).toMatchObject({ nodes: [...serverDocument.nodes, node], edges: expectedEdges })
+	})
+
 	it('설정 폼으로 바꾼 노드를 같은 id 자리에 바꿔 넣고 캔버스는 다시 마운트하지 않는다', () => {
 		const { result } = renderEditor()
 		const canvasKey = result.current.canvasKey

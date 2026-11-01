@@ -1,7 +1,9 @@
 import type { NodeProps } from '@xyflow/react'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
+import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
 import type { WorkflowNodeType } from '@/types/workflow'
 
 vi.mock('@xyflow/react', async () => {
@@ -37,6 +39,55 @@ const createProps = (technicalMode: boolean, role: 'trigger' | 'ai' = 'ai') =>
 	}) as unknown as NodeProps<WorkflowNodeType>
 
 describe('WorkflowNode', () => {
+	it('캔버스가 편집 동작을 주면 다음 노드 추가 버튼을 두고 누르면 노드 id와 그 버튼을 넘긴다', async () => {
+		const user = userEvent.setup()
+		const onAddNext = vi.fn()
+		render(
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext }}>
+				<WorkflowNode {...createProps(false)} />
+			</WorkflowNodeActionsContext.Provider>
+		)
+
+		const button = screen.getByRole('button', { name: '문의 유형 나누기 뒤에 노드 추가' })
+		// 노드 드래그·캔버스 이동이 버튼 누름에서 시작되지 않게 ReactFlow 제외 클래스를 단다.
+		expect(button).toHaveClass('nodrag', 'nopan', 'opacity-0')
+		await user.click(button)
+
+		expect(onAddNext).toHaveBeenCalledExactlyOnceWith('ai-node', button)
+	})
+
+	// ReactFlow 노드 래퍼는 Enter를 노드 선택으로 처리해, 키 입력이 올라가면 팔레트에서 Backspace로 그 노드가 지워질 수 있다.
+	it('키보드 Enter로 다음 노드 추가 버튼을 누르면 고르기만 열고 키 입력을 노드 래퍼로 올리지 않는다', async () => {
+		const user = userEvent.setup()
+		const onAddNext = vi.fn()
+		const onWrapperKeyDown = vi.fn()
+		render(
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext }}>
+				<div onKeyDown={onWrapperKeyDown}>
+					<WorkflowNode {...createProps(false)} />
+				</div>
+			</WorkflowNodeActionsContext.Provider>
+		)
+
+		screen.getByRole('button', { name: '문의 유형 나누기 뒤에 노드 추가' }).focus()
+		await user.keyboard('{Enter}')
+
+		expect(onAddNext).toHaveBeenCalledTimes(1)
+		expect(onWrapperKeyDown).not.toHaveBeenCalled()
+	})
+
+	it('선택된 노드는 다음 노드 추가 버튼을 늘 보이고, 편집 동작이 없으면 버튼을 그리지 않는다', () => {
+		const { rerender } = render(
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext: vi.fn() }}>
+				<WorkflowNode {...createProps(false)} selected />
+			</WorkflowNodeActionsContext.Provider>
+		)
+		expect(screen.getByRole('button', { name: '문의 유형 나누기 뒤에 노드 추가' })).toHaveClass('opacity-100')
+
+		rerender(<WorkflowNode {...createProps(false)} />)
+		expect(screen.queryByRole('button', { name: /뒤에 노드 추가/ })).not.toBeInTheDocument()
+	})
+
 	it('일반 모드에서 설명과 읽기 전용 모델 정보를 표시한다', () => {
 		const { container } = render(<WorkflowNode {...createProps(false)} />)
 

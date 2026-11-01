@@ -11,7 +11,74 @@ const createNode = (id: string, role: WorkflowNodeRole, x: number): WorkflowNode
 const nodes = [createNode('trigger', 'trigger', 0), createNode('ai', 'ai', 300), createNode('action', 'action', 600)]
 const slackEntry = nodeCatalogEntriesFixture.find(entry => entry.id === 'slack_bot.send_channel_message')!
 
+const renderEditorForNext = (
+	initialEdges = [createWorkflowCanvasEdge({ source: 'trigger', target: 'ai', conditionType: null }, 'e1')],
+	canvasWidth = 2000
+) => {
+	const onNodeAdd = vi.fn()
+	const onEdgesCommit = vi.fn()
+	const view = renderHook(() =>
+		useWorkflowCanvasEditor({
+			initialNodes: nodes,
+			initialEdges,
+			onNodePositionCommit: vi.fn(),
+			onEdgesCommit,
+			onNodeAdd,
+			onNodesRemove: vi.fn(),
+		})
+	)
+	const canvas = document.createElement('div')
+	canvas.getBoundingClientRect = () =>
+		({ left: 0, top: 0, right: canvasWidth, bottom: 1000, width: canvasWidth, height: 1000 }) as DOMRect
+	view.result.current.setCanvasElement(canvas)
+	const setCenter = vi.fn()
+	act(() => view.result.current.onInit({ screenToFlowPosition: position => position, setCenter, getZoom: () => 0.8 }))
+	return { ...view, onNodeAdd, onEdgesCommit, setCenter }
+}
+
 describe('useWorkflowCanvasEditor', () => {
+	it('다음 노드를 앞 노드 오른쪽에 붙이고 연결과 함께 한 번에 편집 문서로 넘기며 기존 연결은 남긴다', () => {
+		const { result, onNodeAdd, onEdgesCommit, setCenter } = renderEditorForNext()
+
+		act(() => result.current.addNextCatalogNode('trigger', slackEntry))
+
+		expect(onNodeAdd).toHaveBeenCalledTimes(1)
+		expect(onEdgesCommit).not.toHaveBeenCalled()
+		const [added, edges] = onNodeAdd.mock.calls[0]
+		// trigger(0,0) 오른쪽은 ai(300,0)와 겹치므로 한 칸 아래로 내려 갈래로 놓는다.
+		expect(added).toMatchObject({ event: 'slack_bot.send_channel_message', position: { x: 344, y: 174 } })
+		expect(edges.map((edge: { source: string; target: string }) => [edge.source, edge.target])).toEqual([
+			['trigger', 'ai'],
+			['trigger', added.id],
+		])
+		expect(result.current.edges).toHaveLength(2)
+		expect(result.current.nodes.at(-1)?.id).toBe(added.id)
+		expect(setCenter).not.toHaveBeenCalled()
+	})
+
+	it('새 노드가 보이는 화면 밖이면 지금 확대 비율을 유지한 채 그 노드로 화면을 옮긴다', () => {
+		const { result, onNodeAdd, setCenter } = renderEditorForNext([], 1000)
+
+		act(() => result.current.addNextCatalogNode('trigger', slackEntry))
+		expect(setCenter).not.toHaveBeenCalled()
+
+		act(() => result.current.addNextCatalogNode('action', slackEntry))
+
+		const [added] = onNodeAdd.mock.calls[1]
+		expect(added.position).toEqual({ x: 944, y: 0 })
+		expect(setCenter).toHaveBeenCalledExactlyOnceWith(1076, 75, expect.objectContaining({ zoom: 0.8 }))
+	})
+
+	it('고르는 사이 앞 노드가 지워졌으면 화면 가운데에 연결 없이 붙인다', () => {
+		const { result, onNodeAdd } = renderEditorForNext([])
+
+		act(() => result.current.addNextCatalogNode('removed-node', slackEntry))
+
+		expect(onNodeAdd).toHaveBeenCalledTimes(1)
+		expect(onNodeAdd.mock.calls[0]).toHaveLength(1)
+		expect(result.current.edges).toHaveLength(0)
+	})
+
 	it('노드 위치는 드래그 종료 시에만 상위 편집 문서에 반영한다', () => {
 		const onNodePositionCommit = vi.fn()
 		const { result } = renderHook(() =>
@@ -52,7 +119,7 @@ describe('useWorkflowCanvasEditor', () => {
 		canvas.getBoundingClientRect = () => ({ left: 100, top: 50, width: 800, height: 600 }) as DOMRect
 		result.current.setCanvasElement(canvas)
 		const screenToFlowPosition = vi.fn(({ x, y }: { x: number; y: number }) => ({ x: x - 100, y: y - 50 }))
-		act(() => result.current.onInit({ screenToFlowPosition }))
+		act(() => result.current.onInit({ screenToFlowPosition, setCenter: vi.fn(), getZoom: () => 1 }))
 
 		act(() => result.current.addCatalogNode(slackEntry))
 
