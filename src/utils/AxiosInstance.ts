@@ -38,8 +38,8 @@ const isFailedApiResponse = (data: unknown): data is ApiErrorResponse =>
 api.interceptors.response.use(
 	response => {
 		if (isFailedApiResponse(response.data)) {
-			const { code = 'INTERNAL_SERVER_ERROR', message } = response.data
-			return Promise.reject(new ApiError(code, message ?? '요청을 처리하지 못했어요.'))
+			const { code = 'INTERNAL_SERVER_ERROR', message, data } = response.data
+			return Promise.reject(new ApiError(code, message ?? '요청을 처리하지 못했어요.', { data, status: response.status }))
 		}
 		return response
 	},
@@ -48,7 +48,8 @@ api.interceptors.response.use(
 			return Promise.reject(error)
 		}
 
-		const { code = 'INTERNAL_SERVER_ERROR', message } = error.response.data as ApiErrorResponse
+		const { code = 'INTERNAL_SERVER_ERROR', message, data } = error.response.data as ApiErrorResponse
+		const errorDetails = { data, status: error.response.status }
 		const originalRequest = error.config!
 
 		if (code === 'TOKEN_EXPIRED' && !originalRequest._retry) {
@@ -67,7 +68,7 @@ api.interceptors.response.use(
 			const { refreshToken, setAuth, clearAuth } = useAuthStore.getState()
 
 			if (!refreshToken) {
-				const apiError = new ApiError(code, message)
+				const apiError = new ApiError(code, message, errorDetails)
 				processQueue(apiError)
 				isRefreshing = false
 				clearAuth()
@@ -92,6 +93,6 @@ api.interceptors.response.use(
 			}
 		}
 
-		return Promise.reject(new ApiError(code, message))
+		return Promise.reject(new ApiError(code, message, errorDetails))
 	}
 )
