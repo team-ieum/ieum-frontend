@@ -92,6 +92,40 @@ describe('useWorkflowEditorViewModel', () => {
 		expect(readWorkflowDraft('workflow-1', 3)?.nodes[1]).toEqual(updated)
 	})
 
+	it('지운 노드를 편집 문서와 로컬 초안에서 빼고 연결선은 캔버스가 넘긴 목록으로 바꾼다', () => {
+		const actionNode = {
+			id: 'action',
+			type: 'HTTP',
+			event: 'http.request',
+			label: '담당자에게 알리기',
+			position: { x: 640, y: 20 },
+			config: {},
+		}
+		const documentWithAction: WorkflowDraftData = {
+			...serverDocument,
+			nodes: [...serverDocument.nodes, actionNode],
+			edges: [...serverDocument.edges, { source: 'trigger', target: 'action', conditionType: null }],
+		}
+		const { result } = renderHook(() =>
+			useWorkflowEditorViewModel({ workflowId: 'workflow-1', workflowVersion: 3, serverDocument: documentWithAction })
+		)
+		const canvasKey = result.current.canvasKey
+
+		// 'ai' 노드와 함께 'ai'에 닿지 않은 trigger→action 연결도 선택해 지운 상황이다.
+		// ReactFlow는 한 삭제 이벤트에서 연결 커밋 뒤 노드 커밋을 이어 보내 두 호출이 같은 렌더의 document를 보므로,
+		// 노드 커밋이 document의 연결선을 거르기만 하면 앞서 지운 trigger→action이 되살아난다.
+		act(() => {
+			result.current.handleEdgesCommit([])
+			result.current.handleNodesRemove(['ai'], [])
+		})
+
+		const remainingNodes = [serverDocument.nodes[0], actionNode]
+		expect(result.current.document).toEqual({ ...documentWithAction, nodes: remainingNodes, edges: [] })
+		expect(result.current.hasUnsavedChanges).toBe(true)
+		expect(result.current.canvasKey).toBe(canvasKey)
+		expect(readWorkflowDraft('workflow-1', 3)).toMatchObject({ nodes: remainingNodes, edges: [] })
+	})
+
 	it('제목, 노드 위치와 연결선 변경을 같은 로컬 초안에 반영한다', () => {
 		const { result } = renderEditor()
 
