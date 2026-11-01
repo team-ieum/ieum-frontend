@@ -13,6 +13,9 @@ export type WorkflowErrorCode =
 	| 'INVALID_CURSOR'
 	| 'WORKFLOW_HAS_NO_AI_NODE'
 	| 'CHAT_SESSION_NOT_FOUND'
+	| 'TEST_SAMPLE_MISSING'
+	| 'TEST_SAMPLE_NOT_FOUND'
+	| 'WEBHOOK_TOKEN_NOT_ISSUED'
 
 // --- API response types ---
 
