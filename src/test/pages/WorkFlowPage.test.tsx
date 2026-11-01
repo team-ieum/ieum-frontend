@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
@@ -272,7 +273,7 @@ vi.mock('@/stores/useModalStore', () => ({
 }))
 
 vi.mock('@/components/workflow/WorkflowChat', () => ({
-	default: ({
+	default: function WorkflowChatMock({
 		currentNodes,
 		currentEdges,
 		onCanvasUpdate,
@@ -284,36 +285,46 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 		onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
 		isBesideNodeSettings?: boolean
 		showsStartHint?: boolean
-	}) => (
-		<div>
-			<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
-			<span data-testid='chat-start-hint'>{String(Boolean(showsStartHint))}</span>
-			<span data-testid='chat-edge-count'>{currentEdges.length}</span>
-			<span data-testid='chat-trigger-position'>
-				{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
-			</span>
-			<button
-				type='button'
-				onClick={() =>
-					onCanvasUpdate?.(
-						[
-							{
-								id: 'ai-updated',
-								type: 'AI',
-								event: 'ai.reasoning',
-								label: 'AI가 만든 노드',
-								description: '새 흐름이에요',
-								config: {},
-							},
-						],
-						[]
-					)
-				}
-			>
-				AI 캔버스 반영
-			</button>
-		</div>
-	),
+	}) {
+		// 실제 채팅의 대화 상태처럼 컴포넌트 안에만 두어, 워크플로우 이동 때 다시 마운트되는지 드러낸다.
+		const [messageCount, setMessageCount] = useState(0)
+
+		return (
+			<div>
+				<span data-testid='chat-message-count'>{messageCount}</span>
+				<button type='button' onClick={() => setMessageCount(count => count + 1)}>
+					채팅 대화 남기기
+				</button>
+				<span data-testid='chat-beside-settings'>{String(Boolean(isBesideNodeSettings))}</span>
+				{/* 실제 채팅처럼 대화가 있으면 시작 안내를 숨겨, 이전 대화가 넘어오면 안내가 사라지는 것을 드러낸다. */}
+				<span data-testid='chat-start-hint'>{String(Boolean(showsStartHint) && messageCount === 0)}</span>
+				<span data-testid='chat-edge-count'>{currentEdges.length}</span>
+				<span data-testid='chat-trigger-position'>
+					{JSON.stringify(currentNodes.find(node => node.id === 'trigger')?.position)}
+				</span>
+				<button
+					type='button'
+					onClick={() =>
+						onCanvasUpdate?.(
+							[
+								{
+									id: 'ai-updated',
+									type: 'AI',
+									event: 'ai.reasoning',
+									label: 'AI가 만든 노드',
+									description: '새 흐름이에요',
+									config: {},
+								},
+							],
+							[]
+						)
+					}
+				>
+					AI 캔버스 반영
+				</button>
+			</div>
+		)
+	},
 }))
 
 // 페이지 데이터 훅은 mock이지만 설정 패널의 드롭다운·기본 모델 안내는 query를 직접 쓴다.
@@ -640,6 +651,22 @@ describe('WorkFlowPage', () => {
 		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+	})
+
+	it('다른 워크플로우로 이동하면 이전 채팅 대화를 비우고 빈 워크플로우에는 시작 안내를 다시 띄운다', () => {
+		mocks.workflowOneEmpty = true
+		renderPage()
+
+		fireEvent.click(screen.getByRole('button', { name: '채팅 대화 남기기' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('1')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
+
+		fireEvent.click(screen.getByRole('link', { name: '두 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('0')
+
+		fireEvent.click(screen.getByRole('link', { name: '첫 번째 워크플로우로 이동' }))
+		expect(screen.getByTestId('chat-message-count')).toHaveTextContent('0')
+		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('true')
 	})
 
 	it('팔레트가 열린 동안 가려진 노드 추가 버튼은 Tab으로 닿지 않고, 닫기 버튼이나 Escape로 닫으면 그 버튼으로 포커스를 돌려준다', async () => {
