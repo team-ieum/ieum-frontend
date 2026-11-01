@@ -13,6 +13,8 @@ type AiToolsSectionProps = {
 	aiTools: NodeAiTools
 }
 
+const BLOCKED_BY_OUTPUT_FIELDS = '출력 칸을 모두 지우면 도구를 고를 수 있어요.'
+
 // 도구 없는 ai.agent(팔레트의 'AI 에이전트', GitHub 프리셋 등)는 도구를 빼서 생긴 상태가 아니라 바뀐다고 안내하지 않는다.
 const getToolsNotice = (isAgent: boolean, hasTools: boolean) => {
 	if (!isAgent) return '도구를 고르면 고른 도구를 써 가며 일하는 AI 에이전트로 바뀌어요.'
@@ -22,9 +24,10 @@ const getToolsNotice = (isAgent: boolean, hasTools: boolean) => {
 /**
  * AI 노드 도구 칸. 고른 도구를 카드로 보여 주고 '도구 추가' 드롭다운으로 도구를 더한다.
  * 도구 유무에 따라 노드가 AI 에이전트와 도구 없는 AI 사이에서 바뀐다는 점을 함께 안내한다.
+ * 출력 칸이 있으면 도구를 고르지 못하게 하고, 이미 도구를 쓰는 AI에 남은 출력 칸은 지우도록 알린다.
  */
 const AiToolsSection = ({ aiTools }: AiToolsSectionProps) => {
-	const { toolsField, isAgent, tools, addableTools, addTool, removeTool } = aiTools
+	const { toolsField, isAgent, tools, addableTools, outputFieldsConflict, addTool, removeTool, clearOutputFields } = aiTools
 	const titleId = useId()
 	// 방금 추가한 도구 카드만 펼친 채로 그린다.
 	const [addedToolKey, setAddedToolKey] = useState<string | null>(null)
@@ -51,6 +54,24 @@ const AiToolsSection = ({ aiTools }: AiToolsSectionProps) => {
 			<p className='m-0 rounded-lg bg-neutral-50 px-2.5 py-2 text-[0.7rem] leading-relaxed text-neutral-600'>
 				{getToolsNotice(isAgent, tools.length > 0)}
 			</p>
+			{outputFieldsConflict === 'agentHasFields' ? (
+				<div
+					role='alert'
+					className='flex flex-col items-start gap-2 rounded-lg bg-[#fdeee9] px-2.5 py-2 text-xs leading-relaxed text-[#a84c36]'
+				>
+					<p className='m-0 font-semibold'>
+						도구를 쓰는 AI는 출력 칸을 쓸 수 없어 지금은 실행할 수 없어요.
+						{tools.length > 0 ? ' 출력 칸을 지우거나 도구를 모두 빼 주세요.' : ' 출력 칸을 지워 주세요.'}
+					</p>
+					<button
+						type='button'
+						onClick={clearOutputFields}
+						className='rounded-lg border border-[#e7b5a6] bg-white px-2.5 py-1 font-semibold text-[#a84c36] hover:bg-[#fff7f4]'
+					>
+						출력 칸 지우기
+					</button>
+				</div>
+			) : null}
 			{keyedTools.length > 0 ? (
 				<ul className='m-0 flex list-none flex-col gap-2 p-0'>
 					{keyedTools.map(({ tool, key }) => (
@@ -63,7 +84,12 @@ const AiToolsSection = ({ aiTools }: AiToolsSectionProps) => {
 					))}
 				</ul>
 			) : null}
-			<AiToolAddSelect tools={addableTools} triggerClassName={ADD_TRIGGER_CLASS} onAdd={handleAdd} />
+			<AiToolAddSelect
+				tools={addableTools}
+				triggerClassName={ADD_TRIGGER_CLASS}
+				disabledReason={outputFieldsConflict === 'none' ? undefined : BLOCKED_BY_OUTPUT_FIELDS}
+				onAdd={handleAdd}
+			/>
 		</section>
 	)
 }
