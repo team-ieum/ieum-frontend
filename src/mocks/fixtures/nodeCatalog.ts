@@ -119,9 +119,36 @@ const aiAgentEntry = {
 } satisfies NodeCatalogEntry
 
 // 실제 카탈로그처럼 ai.reasoning에는 도구 칸이 없다. 두 AI 노드의 도구 칸은 ai.agent 항목의 칸을 함께 쓴다.
+// 출력 칸(outputFields)은 ai.reasoning에만 있다(실제 카탈로그 events/ai/reasoning.json과 같은 모양).
 const aiReasoningEntry = {
 	...aiAgentEntry,
-	inputFields: aiAgentEntry.inputFields.filter(field => field.key !== 'tools'),
+	inputFields: [
+		...aiAgentEntry.inputFields.filter(field => field.key !== 'tools'),
+		{
+			key: 'outputFields',
+			title: '출력 칸',
+			type: 'object',
+			list: true,
+			ref: false,
+			path: 'config.outputFields',
+			description: 'AI가 이 칸들로만 답해요. 다음 단계에서 칸 하나씩 골라 쓸 수 있어요. 비우면 결과 한 칸이에요.',
+			children: [
+				{ key: 'key', title: '이름', type: 'string', required: true },
+				{
+					key: 'type',
+					title: '타입',
+					type: 'string',
+					required: true,
+					choices: [
+						{ id: 'text', name: '텍스트' },
+						{ id: 'number', name: '숫자' },
+						{ id: 'boolean', name: '참/거짓' },
+					],
+				},
+				{ key: 'description', title: '설명', type: 'text' },
+			],
+		},
+	],
 	id: 'ai.reasoning',
 	title: 'AI 답변 만들기',
 	description: '도구 없이 글을 만들거나 분류합니다.',
