@@ -100,12 +100,28 @@ const aiAgentEntry = {
 			path: 'config.llmProvider',
 		},
 		{ key: 'prompt', title: '프롬프트', type: 'text', required: true, path: 'config.prompt' },
+		{
+			key: 'tools',
+			title: '도구',
+			type: 'object',
+			list: true,
+			required: true,
+			ref: false,
+			description: 'AI가 쓸 앱 동작을 골라요. 고른 도구의 칸은 직접 채우거나 AI에게 맡길 수 있어요.',
+			choices: [
+				{ id: 'discord', name: 'Discord 웹훅으로 보내기' },
+				{ id: 'builtin:slack_send_channel_message', name: 'Slack 채널에 메시지 보내기' },
+			],
+			path: 'config.tools',
+		},
 	],
 	outputFields: [{ key: 'output', title: '결과', type: 'text' }],
 } satisfies NodeCatalogEntry
 
+// 실제 카탈로그처럼 ai.reasoning에는 도구 칸이 없다. 두 AI 노드의 도구 칸은 ai.agent 항목의 칸을 함께 쓴다.
 const aiReasoningEntry = {
 	...aiAgentEntry,
+	inputFields: aiAgentEntry.inputFields.filter(field => field.key !== 'tools'),
 	id: 'ai.reasoning',
 	title: 'AI 답변 만들기',
 	description: '도구 없이 글을 만들거나 분류합니다.',
@@ -115,6 +131,32 @@ const aiReasoningEntry = {
 		config: { agentType: 'simple', credentialId: '', tools: [], brand: 'openai' },
 	},
 	outputsFrom: 'config.outputFields',
+} satisfies NodeCatalogEntry
+
+const discordSendEntry = {
+	id: 'discord.send_message',
+	kind: 'action',
+	provider: 'discord',
+	app: 'discord',
+	appTitle: 'Discord (웹훅)',
+	toolKey: 'discord',
+	nodeType: 'ACTION',
+	title: 'Discord 웹훅으로 보내기',
+	fixed: { type: 'ACTION', event: 'discord.send_message', config: { brand: 'discord' } },
+	inputFields: [
+		{
+			key: 'webhookCredentialId',
+			title: '웹훅',
+			type: 'string',
+			required: true,
+			ref: false,
+			optionsSource: 'discord.webhooks',
+			path: 'config.webhookCredentialId',
+		},
+		{ key: 'content', title: '메시지', type: 'text', path: 'config.content' },
+		{ key: 'username', title: '보낸 사람 이름', type: 'string', path: 'config.username' },
+	],
+	outputFields: [{ key: 'id', title: '메시지 ID', type: 'string' }],
 } satisfies NodeCatalogEntry
 
 const slackBotSendEntry = {
@@ -149,6 +191,7 @@ const slackBotSendEntry = {
 export const nodeCatalogEntriesFixture: NodeCatalogEntry[] = [
 	aiAgentEntry,
 	aiReasoningEntry,
+	discordSendEntry,
 	gmailNewEmailEntry,
 	httpRequestEntry,
 	manualRunEntry,

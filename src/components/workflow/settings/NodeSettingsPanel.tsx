@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import AiToolsSection from '@/components/workflow/settings/AiToolsSection'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
@@ -34,7 +35,7 @@ type NodeSettingsPanelProps = {
  * 마운트할 때 패널로 포커스를 옮기므로 다른 노드를 열 때만 `key`를 바꿔 다시 마운트한다.
  */
 const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelProps) => {
-	const { status, entryTitle, fields, missingRequiredCount, changeField, retry, isRetrying } = useNodeSettingsPanel({
+	const { status, entryTitle, fields, aiTools, missingRequiredCount, changeField, retry, isRetrying } = useNodeSettingsPanel({
 		node,
 		onNodeChange,
 	})
@@ -84,7 +85,7 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 			)
 		}
 
-		if (fields.length === 0) {
+		if (fields.length === 0 && !aiTools) {
 			return <p className='m-0 p-4 text-sm text-neutral-500'>설정할 칸이 없어요.</p>
 		}
 
@@ -105,6 +106,7 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 						onChange={(next, nextName) => changeField(field, next, nextName)}
 					/>
 				))}
+				{aiTools ? <AiToolsSection aiTools={aiTools} /> : null}
 			</div>
 		)
 	}
