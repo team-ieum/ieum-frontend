@@ -28,6 +28,20 @@ const scheduleEveryEntry = {
 	outputFields: [{ key: 'firedAt', title: '실행 시각', type: 'datetime' }],
 } satisfies NodeCatalogEntry
 
+const webhookCatchEntry = {
+	id: 'webhook.catch',
+	kind: 'trigger',
+	provider: 'ieum',
+	app: 'webhook',
+	appTitle: '웹훅',
+	nodeType: 'TRIGGER',
+	title: '웹훅을 받으면',
+	fixed: { type: 'TRIGGER', event: 'webhook.catch', config: { brand: 'ieum' } },
+	inputFields: [],
+	outputFields: [],
+	outputDynamic: true,
+} satisfies NodeCatalogEntry
+
 const gmailNewEmailEntry = {
 	id: 'gmail.new_email',
 	kind: 'trigger',
@@ -197,6 +211,7 @@ export const nodeCatalogEntriesFixture: NodeCatalogEntry[] = [
 	manualRunEntry,
 	scheduleEveryEntry,
 	slackBotSendEntry,
+	webhookCatchEntry,
 ]
 
 export const nodeCatalogResponse = {
