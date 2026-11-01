@@ -2,6 +2,7 @@ import { useId } from 'react'
 import NodeChoiceSelect, { type NodeChoice } from '@/components/workflow/settings/NodeChoiceSelect'
 import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
 import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
+import { INPUT_CLASS, TEXTAREA_CLASS } from '@/components/workflow/settings/settingsFieldClassNames'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import { cn } from '@/utils/cn'
@@ -15,12 +16,6 @@ import {
 } from '@/utils/workflow/nodeFieldValue'
 import { isOptionsComboboxField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 
-const INPUT_CLASS = cn(
-	'w-full min-w-0 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-[#27273b]',
-	'placeholder:text-neutral-400 focus:border-main-blue focus:outline-none',
-	'aria-invalid:border-[#d4664a]'
-)
-const TEXTAREA_CLASS = cn(INPUT_CLASS, 'min-h-20 resize-y leading-relaxed')
 const REFERENCE_PLACEHOLDER = '{{nodes.노드ID.output.필드}}'
 const DATETIME_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
 const MODE_LABELS: Record<NodeFieldMode, string> = { fixed: '값', reference: '참조식' }

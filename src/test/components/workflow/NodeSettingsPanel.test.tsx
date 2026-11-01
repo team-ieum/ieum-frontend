@@ -406,6 +406,239 @@ describe('NodeSettingsPanel', () => {
 				{ name: SLACK_TOOL, config: { channel: 'C2', _names: { channel: '#random' } } },
 			])
 		})
+
+		describe('출력 칸과의 충돌', () => {
+			const OUTPUT_FIELDS = [{ key: 'urgent', type: 'boolean' }]
+			const withOutputFields = (node: WorkflowNodeDto) => ({
+				...node,
+				config: { ...node.config, outputFields: OUTPUT_FIELDS },
+			})
+			const getAddTrigger = () => screen.getByRole('combobox', { name: '도구 추가' })
+
+			it('도구 없는 AI에 출력 칸이 있으면 도구 목록을 열지 않고 지우라고 안내한다', async () => {
+				const user = userEvent.setup()
+				const { onNodeChange } = renderPanel(withOutputFields(createAiNode('ai.reasoning')))
+
+				expect(getAddTrigger()).toHaveAttribute('aria-disabled', 'true')
+				expect(getAddTrigger()).toHaveAccessibleDescription('출력 칸을 모두 지우면 도구를 고를 수 있어요.')
+				await user.click(getAddTrigger())
+				expect(screen.queryByRole('listbox', { name: '도구 목록' })).not.toBeInTheDocument()
+				expect(onNodeChange).not.toHaveBeenCalled()
+			})
+
+			it('출력 칸을 모두 지우면 다시 도구를 고를 수 있다', async () => {
+				const user = userEvent.setup()
+				const { lastNode } = renderPanel(withOutputFields(createAiNode('ai.reasoning')))
+
+				await user.click(screen.getByRole('button', { name: '1번째 출력 칸 삭제' }))
+				expect(getAddTrigger()).not.toHaveAttribute('aria-disabled')
+
+				const listbox = await openAddList(user)
+				await user.click(within(listbox).getByRole('option', { name: new RegExp(`^${DISCORD_TITLE}`) }))
+				expect(lastNode().event).toBe('ai.agent')
+			})
+
+			it('도구를 쓰는 AI에 출력 칸이 남아 있으면 실행되지 않는다고 알리고 출력 칸만 지운다', async () => {
+				const user = userEvent.setup()
+				const tools = [{ name: SLACK_TOOL, config: {} }]
+				const { lastNode } = renderPanel(withOutputFields(createAiNode('ai.agent', tools)))
+
+				const alert = within(getToolsSection()).getByRole('alert')
+				expect(alert).toHaveTextContent('도구를 쓰는 AI는 출력 칸을 쓸 수 없어 지금은 실행할 수 없어요.')
+				expect(alert).toHaveTextContent('도구를 모두 빼 주세요.')
+				expect(getAddTrigger()).toHaveAttribute('aria-disabled', 'true')
+
+				await user.click(within(alert).getByRole('button', { name: '출력 칸 지우기' }))
+
+				expect(lastNode().event).toBe('ai.agent')
+				expect(lastNode().config).not.toHaveProperty('outputFields')
+				expect(lastNode().config.tools).toEqual(tools)
+				expect(within(getToolsSection()).queryByRole('alert')).not.toBeInTheDocument()
+				expect(getAddTrigger()).not.toHaveAttribute('aria-disabled')
+			})
+
+			it('도구 없는 ai.agent에 출력 칸이 남아 있으면 출력 칸을 지우라고만 안내한다', () => {
+				renderPanel(withOutputFields(createAiNode('ai.agent')))
+
+				const alert = within(getToolsSection()).getByRole('alert')
+				expect(alert).toHaveTextContent('출력 칸을 지워 주세요.')
+				expect(alert).not.toHaveTextContent('도구를 모두 빼')
+			})
+
+			it('마지막 도구를 빼서 도구 없는 AI로 돌아가면 남겨 둔 출력 칸을 다시 편집한다', async () => {
+				const user = userEvent.setup()
+				const { lastNode } = renderPanel(withOutputFields(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }])))
+
+				expect(screen.queryByRole('region', { name: '출력 칸' })).not.toBeInTheDocument()
+				await user.click(screen.getByRole('button', { name: `${SLACK_TITLE} 도구 빼기` }))
+
+				expect(lastNode().event).toBe('ai.reasoning')
+				expect(lastNode().config.outputFields).toEqual(OUTPUT_FIELDS)
+				expect(screen.getByRole('textbox', { name: '1번째 출력 칸 이름' })).toHaveValue('urgent')
+				expect(within(getToolsSection()).queryByRole('alert')).not.toBeInTheDocument()
+			})
+		})
+	})
+
+	describe('AI 출력 칸', () => {
+		const createReasoningNode = (config: Record<string, unknown> = {}) =>
+			createNode({
+				type: 'AI',
+				event: 'ai.reasoning',
+				label: '문의 분류',
+				config: { agentType: 'simple', tools: [], llmProvider: 'CLAUDE', prompt: '분류해줘', ...config },
+			})
+
+		const getOutputSection = () => screen.getByRole('region', { name: '출력 칸' })
+		const getAddButton = () => within(getOutputSection()).getByRole('button', { name: '출력 칸 추가' })
+		const getKeyInput = (order: number) => screen.getByRole('textbox', { name: `${order}번째 출력 칸 이름` })
+
+		it('ai.reasoning은 출력 칸을 읽기 전용 문구 대신 편집기로 보여 준다', () => {
+			renderPanel(createReasoningNode())
+
+			expect(getOutputSection()).toHaveTextContent('AI가 이 칸들로만 답해요.')
+			expect(screen.queryByText(/화면에서 바꿀 수 없어요/)).not.toBeInTheDocument()
+			expect(within(getOutputSection()).queryByRole('listitem')).not.toBeInTheDocument()
+		})
+
+		it('카탈로그에 출력 칸이 없는 ai.agent는 편집기를 보여 주지 않는다', () => {
+			renderPanel(createNode({ type: 'AI', event: 'ai.agent', config: { agentType: 'react', tools: [] } }))
+
+			expect(screen.getByRole('region', { name: '도구' })).toBeInTheDocument()
+			expect(screen.queryByRole('region', { name: '출력 칸' })).not.toBeInTheDocument()
+		})
+
+		it('칸을 추가하면 text 타입 빈 이름 칸을 저장하고 이름을 채우라고 알린다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createReasoningNode())
+
+			await user.click(getAddButton())
+
+			expect(lastNode().config.outputFields).toEqual([{ key: '', type: 'text' }])
+			expect(getKeyInput(1)).toHaveAttribute('aria-invalid', 'true')
+			expect(getKeyInput(1)).toHaveAccessibleDescription('이름을 입력하세요.')
+			expect(screen.getByText(/출력 칸 1곳을 고쳐야 실행할 수 있어요\./)).toHaveAttribute('role', 'status')
+		})
+
+		it('이름·타입·설명을 원소에 쓰고 비운 설명은 키를 뺀다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createReasoningNode({ outputFields: [{ key: '', type: 'text' }] }))
+
+			await user.type(getKeyInput(1), 'urgent')
+			await chooseFromDropdown(user, '1번째 출력 칸 타입', '참/거짓')
+			await user.type(screen.getByRole('textbox', { name: '1번째 출력 칸 설명' }), '급한 문의인지')
+
+			expect(lastNode().config.outputFields).toEqual([{ key: 'urgent', type: 'boolean', description: '급한 문의인지' }])
+			expect(within(getOutputSection()).getByText('7/500')).toBeInTheDocument()
+			expect(screen.queryByText(/곳을 고쳐야 실행할 수 있어요/)).not.toBeInTheDocument()
+
+			await user.clear(screen.getByRole('textbox', { name: '1번째 출력 칸 설명' }))
+			expect(lastNode().config.outputFields).toEqual([{ key: 'urgent', type: 'boolean' }])
+		})
+
+		it('규칙에 어긋난 이름도 그대로 저장하고 칸 아래와 패널 상단에 알리며 고치면 알림을 지운다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(
+				createReasoningNode({
+					outputFields: [
+						{ key: 'summary', type: 'text' },
+						{ key: 'api_token', type: 'text' },
+					],
+				})
+			)
+
+			expect(getKeyInput(2)).toHaveAccessibleDescription(/민감정보/)
+			expect(screen.getByText(/출력 칸 1곳을/)).toHaveAttribute('role', 'status')
+
+			await user.clear(getKeyInput(2))
+			await user.type(getKeyInput(2), 'summary')
+			expect(lastNode().config.outputFields).toEqual([
+				{ key: 'summary', type: 'text' },
+				{ key: 'summary', type: 'text' },
+			])
+			expect(getKeyInput(2)).toHaveAccessibleDescription('같은 이름의 칸이 이미 있어요.')
+
+			await user.type(getKeyInput(2), '_2')
+			expect(getKeyInput(2)).not.toHaveAttribute('aria-invalid')
+			expect(within(getOutputSection()).queryByRole('alert')).not.toBeInTheDocument()
+			expect(screen.queryByText(/곳을 고쳐야 실행할 수 있어요/)).not.toBeInTheDocument()
+		})
+
+		it('타입이 비었거나 목록 밖이면 타입 드롭다운을 오류로 표시하고 고르면 지운다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createReasoningNode({ outputFields: [{ key: 'score', type: 'string' }] }))
+			const getTypeTrigger = () => screen.getByRole('combobox', { name: '1번째 출력 칸 타입' })
+
+			expect(getTypeTrigger()).toHaveAttribute('aria-invalid', 'true')
+			expect(getTypeTrigger()).toHaveAccessibleDescription('타입을 고르세요.')
+
+			await chooseFromDropdown(user, '1번째 출력 칸 타입', '숫자')
+			expect(lastNode().config.outputFields).toEqual([{ key: 'score', type: 'number' }])
+			expect(getTypeTrigger()).not.toHaveAttribute('aria-invalid')
+		})
+
+		it('칸을 지우면 남은 칸을 그대로 두고 마지막 칸을 지우면 출력 칸 키를 지운다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(
+				createReasoningNode({
+					outputFields: [
+						{ key: 'first', type: 'text' },
+						{ key: 'second', type: 'number' },
+					],
+				})
+			)
+
+			await user.click(screen.getByRole('button', { name: '1번째 출력 칸 삭제' }))
+			expect(lastNode().config.outputFields).toEqual([{ key: 'second', type: 'number' }])
+			expect(getKeyInput(1)).toHaveValue('second')
+
+			await user.click(screen.getByRole('button', { name: '1번째 출력 칸 삭제' }))
+			expect(lastNode().config).not.toHaveProperty('outputFields')
+			expect(lastNode().config).toMatchObject({ prompt: '분류해줘', tools: [] })
+		})
+
+		it('20개가 되면 더 추가하지 않고 한도를 안내한다', async () => {
+			const user = userEvent.setup()
+			const outputFields = Array.from({ length: 20 }, (_, index) => ({ key: `field_${index}`, type: 'text' }))
+			const { onNodeChange } = renderPanel(createReasoningNode({ outputFields }))
+
+			expect(getAddButton()).toHaveAttribute('aria-disabled', 'true')
+			expect(getAddButton()).toHaveAccessibleDescription('출력 칸은 20개까지 만들 수 있어요.')
+			await user.click(getAddButton())
+			expect(onNodeChange).not.toHaveBeenCalled()
+		})
+
+		it('밖에서 출력 칸 값이 바뀌면 행을 다시 그린다', () => {
+			const node = createReasoningNode({ outputFields: [{ key: 'first', type: 'text' }] })
+			const { rerender } = renderWithProviders(
+				<NodeSettingsPanel {...nodeTestProps} node={node} onNodeChange={() => undefined} onClose={() => undefined} />
+			)
+			expect(getKeyInput(1)).toHaveValue('first')
+
+			const changed = createReasoningNode({
+				outputFields: [
+					{ key: 'from_chat', type: 'text' },
+					{ key: 'score', type: 'number' },
+				],
+			})
+			rerender(
+				<NodeSettingsPanel {...nodeTestProps} node={changed} onNodeChange={() => undefined} onClose={() => undefined} />
+			)
+
+			expect(getKeyInput(1)).toHaveValue('from_chat')
+			expect(getKeyInput(2)).toHaveValue('score')
+		})
+
+		it('목록이 아닌 값은 행으로 고칠 수 없어 비우기만 제공한다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createReasoningNode({ outputFields: 'urgent' }))
+
+			expect(within(getOutputSection()).getByRole('alert')).toHaveTextContent('출력 칸 값을 읽을 수 없어요.')
+			expect(within(getOutputSection()).queryByRole('button', { name: '출력 칸 추가' })).not.toBeInTheDocument()
+
+			await user.click(within(getOutputSection()).getByRole('button', { name: '출력 칸 비우기' }))
+			expect(lastNode().config).not.toHaveProperty('outputFields')
+		})
 	})
 
 	describe('목록 공급원 드롭다운', () => {

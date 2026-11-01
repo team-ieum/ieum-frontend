@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import AiOutputFieldsSection from '@/components/workflow/settings/AiOutputFieldsSection'
 import AiToolsSection from '@/components/workflow/settings/AiToolsSection'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import NodeTestSection from '@/components/workflow/settings/NodeTestSection'
@@ -41,11 +42,19 @@ type NodeSettingsPanelProps = {
  * 마운트할 때 패널로 포커스를 옮기므로 다른 노드를 열 때만 `key`를 바꿔 다시 마운트한다.
  */
 const NodeSettingsPanel = ({ workflowId, node, nodes, onNodeChange, onNodeOpen, onClose }: NodeSettingsPanelProps) => {
-	const { status, entry, entryTitle, fields, aiTools, missingRequiredCount, changeField, retry, isRetrying } =
-		useNodeSettingsPanel({
-			node,
-			onNodeChange,
-		})
+	const {
+		status,
+		entry,
+		entryTitle,
+		fields,
+		aiTools,
+		outputFields,
+		outputFieldIssueCount,
+		missingRequiredCount,
+		changeField,
+		retry,
+		isRetrying,
+	} = useNodeSettingsPanel({ node, onNodeChange })
 	const panelRef = useRef<HTMLElement>(null)
 	const reduceMotion = useReducedMotion()
 	const meta = getWorkflowNodeMeta(node.type)
@@ -92,7 +101,7 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, onNodeChange, onNodeOpen, 
 			)
 		}
 
-		if (fields.length === 0 && !aiTools) {
+		if (fields.length === 0 && !aiTools && !outputFields) {
 			return <p className='m-0 p-4 text-sm text-neutral-500'>설정할 칸이 없어요.</p>
 		}
 
@@ -101,6 +110,11 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, onNodeChange, onNodeOpen, 
 				{missingRequiredCount > 0 ? (
 					<p role='status' className='m-0 rounded-lg bg-[#fff1d6] px-3 py-2 text-xs font-semibold text-[#9a6700]'>
 						필수 칸 {missingRequiredCount}개가 비어 있어요. 저장은 되지만 채우기 전에는 실행할 수 없어요.
+					</p>
+				) : null}
+				{outputFieldIssueCount > 0 ? (
+					<p role='status' className='m-0 rounded-lg bg-[#fff1d6] px-3 py-2 text-xs font-semibold text-[#9a6700]'>
+						출력 칸 {outputFieldIssueCount}곳을 고쳐야 실행할 수 있어요. 저장은 돼요.
 					</p>
 				) : null}
 				{fields.map(({ field, value, name, options }) => (
@@ -114,6 +128,7 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, onNodeChange, onNodeOpen, 
 					/>
 				))}
 				{aiTools ? <AiToolsSection aiTools={aiTools} /> : null}
+				{outputFields ? <AiOutputFieldsSection outputFields={outputFields} /> : null}
 			</div>
 		)
 	}

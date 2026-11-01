@@ -11,6 +11,7 @@ type NodeChoiceSelectProps = {
 	value: unknown
 	triggerClassName: string
 	describedBy?: string
+	invalid?: boolean
 	/** 고른 값을 넘긴다. 맨 위 '선택 안 함'은 `undefined`(비움)다. */
 	onChange: (value: string | boolean | undefined) => void
 }
@@ -18,7 +19,16 @@ type NodeChoiceSelectProps = {
 const CLEAR_LABEL = '선택 안 함'
 
 /** 고정 선택지(choices·예/아니요) 칸의 드롭다운. 선택지에 없는 저장값은 지우지 않고 따로 보여 준다. */
-const NodeChoiceSelect = ({ id, title, choices, value, triggerClassName, describedBy, onChange }: NodeChoiceSelectProps) => {
+const NodeChoiceSelect = ({
+	id,
+	title,
+	choices,
+	value,
+	triggerClassName,
+	describedBy,
+	invalid,
+	onChange,
+}: NodeChoiceSelectProps) => {
 	const dropdown = useSettingsDropdown()
 	const isEmpty = isEmptyFieldValue(value)
 	const current = choices.find(choice => choice.value === value)
@@ -48,6 +58,7 @@ const NodeChoiceSelect = ({ id, title, choices, value, triggerClassName, describ
 			isPlaceholder={isEmpty}
 			triggerClassName={triggerClassName}
 			describedBy={describedBy}
+			invalid={invalid}
 		/>
 	)
 }

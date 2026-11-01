@@ -55,7 +55,7 @@ describe('lazy route chunk', () => {
 	it('편집 page chunk를 받는 동안 route별 page shell을 표시하고 상세·편집 데이터를 chunk와 병렬로 요청한다', async () => {
 		const observeRequest = vi.fn()
 		server.use(...createObservedSuccessHandlers(observeRequest))
-		// 편집 page chunk는 파일 안에서 한 번만 풀 수 있으므로, 풀기 전에 두 편집 route의 cold 진입을 각각 확인한다.
+		// 편집 page chunk는 파일 안에서 한 번만 풀 수 있으므로, 풀기 전에 cold 진입과 route 이동 진입을 각각 확인한다.
 		const detailEntry = renderAppRoute(`/workflow/${WORKFLOW_FIXTURE_ID}`)
 
 		expect(
@@ -71,17 +71,12 @@ describe('lazy route chunk', () => {
 		detailEntry.dispose()
 		observeRequest.mockClear()
 
+		// 새 워크플로우는 생성 API로 id를 받은 뒤 열기 때문에 이전 주소는 편집 page 없이 목록으로 바뀐다.
 		const { router } = renderAppRoute('/workflow/new')
 
-		expect(screen.getByLabelText('사이드바')).toBeInTheDocument()
-		expect(
-			within(getRouteContent('/workflow/new')).getByRole('status', { name: '워크플로우 편집 화면 불러오는 중' })
-		).toBeInTheDocument()
-		await waitFor(() => {
-			expect(countRequests(observeRequest, 'workflowList')).toBe(1)
-			expect(countRequests(observeRequest, 'providers')).toBe(1)
-			expect(countRequests(observeRequest, 'credentials')).toBe(1)
-		})
+		expect(router.state.location.pathname).toBe('/workflow')
+		expect(screen.queryByRole('status', { name: '워크플로우 상세 불러오는 중' })).not.toBeInTheDocument()
+		await waitFor(() => expect(countRequests(observeRequest, 'workflowList')).toBeGreaterThan(0))
 		expect(countRequests(observeRequest, 'workflowDetail')).toBe(0)
 
 		await act(async () => router.navigate(`/workflow/${WORKFLOW_FIXTURE_ID}`))
