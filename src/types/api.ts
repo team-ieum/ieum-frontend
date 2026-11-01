@@ -15,7 +15,8 @@ export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode |
 
 export interface ApiErrorResponse {
 	success: false
-	data: null
+	/** 오류별 추가 정보. 형태는 오류 코드마다 다르다. */
+	data: unknown
 	message: string
 	code?: ApiErrorCode
 }
