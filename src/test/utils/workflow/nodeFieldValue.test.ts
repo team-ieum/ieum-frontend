@@ -111,11 +111,12 @@ describe('nodeFieldValue', () => {
 		})
 	})
 
-	it('기본값이 없는 필수 칸 중 비어 있는 칸만 고르고 object 칸은 제외한다', () => {
+	it('서버 기본값이 없는 필수 칸 중 비어 있는 칸만 고르고 object 칸과 AI model 칸은 제외한다', () => {
 		const entry = {
 			inputFields: [
 				field({ key: 'a', path: 'config.a', required: true }),
 				field({ key: 'b', path: 'config.b', required: true, default: 'x' }),
+				field({ key: 'model', path: 'config.model', required: true, optionsSource: 'ai.models' }),
 				field({ key: 'c', path: 'config.c', required: true }),
 				field({ key: 'd', path: 'config.d' }),
 				field({ key: 'tools', path: 'config.tools', type: 'object', list: true, required: true }),
