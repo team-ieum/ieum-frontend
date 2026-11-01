@@ -28,6 +28,8 @@ type SettingsDropdownProps = {
 	isPlaceholder: boolean
 	triggerClassName: string
 	describedBy?: string
+	/** 지금 값이 규칙에 어긋나는지. 트리거에 `aria-invalid`를 붙인다. */
+	invalid?: boolean
 	/** 목록 아래(불러오는 중·오류·더보기 등)에 보여 줄 내용. */
 	footer?: ReactNode
 }
@@ -46,6 +48,7 @@ const SettingsDropdown = ({
 	isPlaceholder,
 	triggerClassName,
 	describedBy,
+	invalid,
 	footer,
 }: SettingsDropdownProps) => {
 	const listboxId = useId()
@@ -140,6 +143,7 @@ const SettingsDropdown = ({
 				aria-controls={state.isOpen ? listboxId : undefined}
 				aria-activedescendant={state.activeIndex >= 0 ? optionId(state.activeIndex) : undefined}
 				aria-describedby={describedBy}
+				aria-invalid={invalid || undefined}
 				// disabled로 막으면 막힌 칸에서 값을 비운 순간 포커스가 body로 빠져, 열기만 막고 포커스는 남긴다.
 				aria-disabled={!state.canOpen || undefined}
 				onClick={handleClick}
