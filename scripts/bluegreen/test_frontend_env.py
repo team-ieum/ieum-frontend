@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import signal
 import stat
 import subprocess
 import sys
@@ -23,15 +24,57 @@ frontend = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(frontend)
 SECRET = 'synthetic-private-value-never-log'
 URL = 'https://frontend-test.example.invalid'
+DEPLOYMENT = {'DEV_COM_DATA_DOCKER_NETWORK': 'ieum_net_data', 'DEV_COM_DATA_DOCKER_NETWORK_SUBNET': '10.30.10.0/24',
+    'DEV_COM_POSTGRES_CONTAINER_NAME': 'ieum-postgres', 'DEV_COM_REDIS_CONTAINER_NAME': 'ieum-redis', 'DEV_COM_MONGO_CONTAINER_NAME': 'ieum-mongo'}
+for _color, _subnet in [('BLUE', '10.20.10'), ('GREEN', '10.10.10')]:
+    DEPLOYMENT.update({'DEV_' + _color + '_CONTAINER_NAME': 'custom-' + _color.lower() + '-frontend',
+        'DEV_' + _color + '_DOCKER_NETWORK': 'ieum_net_' + _color.lower(),
+        'DEV_' + _color + '_DOCKER_NETWORK_SUBNET': _subnet + '.0/24',
+        'DEV_' + _color + '_FRONTEND_IP': _subnet + '.40',
+        'DEV_' + _color + '_BACKEND_IP': _subnet + '.41',
+        'DEV_' + _color + '_AGENT_IP': _subnet + '.44',
+        'DEV_' + _color + '_FRONTEND_ENV_DIR': '/home/kwung/deploy/bluegreen/runtime/' + _color.lower() + '/custom',
+        'DEV_' + _color + '_FRONTEND_ENV_FILE': '/home/kwung/deploy/bluegreen/runtime/' + _color.lower() + '/custom/frontend.env'})
 
 
 def payload(extra=None):
-    return json.dumps({'DEV_VITE_API_URL': URL, 'DEV_NODE_VERSION': '24',
-                       'DEV_IMAGE_NAME': 'ieum-frontend-dev', **(extra or {})})
+    return json.dumps({'DEV_COM_VITE_API_URL': URL, 'DEV_COM_NODE_VERSION': '24',
+                       'DEV_COM_IMAGE_NAME': 'ieum-frontend-dev', **DEPLOYMENT, **(extra or {})})
 
 
 def records(content):
     return dict(line.split('=', 1) for line in content.decode().splitlines())
+
+
+CONTROLLER_LITERAL = '/home/kwung/deploy/bluegreen/bluegreen.py'
+BUILDER_LITERAL = 'scripts/bluegreen/frontend_env.py'
+
+
+def guard_workflow_shell(code, controllers, builders):
+    if code.count(CONTROLLER_LITERAL) != controllers or code.count(BUILDER_LITERAL) != builders:
+        raise AssertionError('Workflow test command paths changed')
+
+
+def rewrite_workflow_shell(code, controller, controllers, builders):
+    guard_workflow_shell(code, controllers, builders)
+    builder = shlex.quote(str(SCRIPT))
+    script = code.replace(BUILDER_LITERAL, builder).replace(CONTROLLER_LITERAL, shlex.quote(str(controller)))
+    assert CONTROLLER_LITERAL not in script, 'Production controller remains in workflow test'
+    assert script.count(builder) == builders and BUILDER_LITERAL not in script.replace(builder, ''), 'Builder substitution failed'
+    return script
+
+
+def run_workflow_shell(script, *, cwd, env, timeout=6):
+    process = subprocess.Popen(['bash', '-c', script], cwd=cwd, env=env,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        try: os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError: pass
+        stdout, stderr = process.communicate()
+        raise subprocess.TimeoutExpired(process.args, timeout, output=stdout, stderr=stderr) from None
+    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
 
 
 class SelectionTest(unittest.TestCase):
@@ -79,7 +122,7 @@ class SelectionTest(unittest.TestCase):
                     self.reject(payload({'DEV_' + form: SECRET}))
 
     def test_duplicate_case_and_relaxed_names_are_rejected(self):
-        self.reject(payload({'dev_vite_api_url': URL}))
+        self.reject(payload({'dev_com_vite_api_url': URL}))
         self.reject(payload({'DEV_VITEAPIURL': URL}))
         self.reject(payload({'DEV_VITE__API_URL': URL}))
         self.reject(payload()[:-1] + ',"DEV_VITE_API_URL":"duplicate"}')
@@ -134,6 +177,85 @@ class SelectionTest(unittest.TestCase):
                 values = {'NODE_VERSION': '24', 'IMAGE_NAME': 'ieum-frontend-dev', key: value}
                 with self.assertRaises(frontend.FrontendEnvironmentError):
                     frontend.validate_ci(values)
+
+
+class DeploymentSettingsTest(unittest.TestCase):
+    def test_selected_deployment_values_are_separate_from_app_candidate(self):
+        config = json.loads(frontend.build_deployment(payload()))
+        self.assertEqual(config['data']['network'], 'ieum_net_data')
+        self.assertEqual(config['blue']['containerName'], 'custom-blue-frontend')
+        self.assertEqual(config['green']['ip'], '10.10.10.40')
+        app = records(frontend.build_environment(payload()))
+        self.assertTrue(set(frontend.DEPLOYMENT_KEYS).isdisjoint(app))
+
+    def test_each_deployment_secret_is_required_without_fallback(self):
+        for key in DEPLOYMENT:
+            for value in ('', '   '):
+                with self.subTest(key=key), self.assertRaises(frontend.FrontendEnvironmentError):
+                    frontend.build_deployment(payload({key: value}))
+            values = json.loads(payload()); values.pop(key)
+            with self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_deployment(json.dumps(values))
+
+    def test_conflicting_names_ips_and_invalid_network_or_paths_are_rejected(self):
+        invalid = [
+            {'DEV_BLUE_CONTAINER_NAME': 'bad; command'},
+            {'DEV_GREEN_CONTAINER_NAME': DEPLOYMENT['DEV_BLUE_CONTAINER_NAME']},
+            {'DEV_GREEN_FRONTEND_IP': DEPLOYMENT['DEV_BLUE_FRONTEND_IP']},
+            {'DEV_BLUE_FRONTEND_IP': '127.0.0.1'},
+            {'DEV_BLUE_FRONTEND_IP': '10.10.10.255'},
+            {'DEV_BLUE_FRONTEND_IP': '10.10.10.040'},
+            {'DEV_BLUE_DOCKER_NETWORK': 'host'},
+            {'DEV_BLUE_DOCKER_NETWORK_SUBNET': '10.10.10.7/24'},
+            {'DEV_BLUE_FRONTEND_ENV_DIR': '/etc'},
+            {'DEV_BLUE_FRONTEND_ENV_FILE': '/etc/passwd'},
+            {'DEV_BLUE_FRONTEND_ENV_DIR': '/home/kwung/deploy/bluegreen/runtime/blue/../green'},
+            {'DEV_BLUE_FRONTEND_ENV_FILE': DEPLOYMENT['DEV_BLUE_FRONTEND_ENV_DIR'] + '/backend.env'},
+        ]
+        for extra in invalid:
+            with self.subTest(keys=list(extra)), self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_deployment(payload(extra))
+
+    def test_metadata_alias_collisions_are_rejected(self):
+        with self.assertRaises(frontend.FrontendEnvironmentError):
+            frontend.build_deployment(payload({'DEV_BLUECONTAINERNAME': 'duplicate'}))
+
+    def test_deployment_directories_cannot_overlap_other_app_snapshot_names(self):
+        root = '/home/kwung/deploy/bluegreen/runtime/blue'
+        for suffix in ('backend.env', 'agent.env', 'a.b', '.hidden', 'custom/x.y'):
+            directory = root + '/' + suffix
+            with self.subTest(suffix=suffix), self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_deployment(payload({'DEV_BLUE_FRONTEND_ENV_DIR': directory,
+                    'DEV_BLUE_FRONTEND_ENV_FILE': directory + '/frontend.env'}))
+        for suffix in ('', '/custom', '/custom/sub'):
+            directory = root + suffix
+            content = frontend.build_deployment(payload({'DEV_BLUE_FRONTEND_ENV_DIR': directory,
+                'DEV_BLUE_FRONTEND_ENV_FILE': directory + '/frontend.env'}))
+            self.assertEqual(json.loads(content)['blue']['envDir'], directory)
+
+
+    def test_com_prefix_is_removed_and_common_values_do_not_leak_with_com_names(self):
+        values = records(frontend.build_environment(payload({'DEV_COM_VITE_NEW_OPTION': 'enabled'})))
+        self.assertEqual(values['VITE_API_URL'], URL)
+        self.assertEqual(values['VITE_NEW_OPTION'], 'enabled')
+        self.assertFalse(any(key.startswith('COM_') for key in values))
+        self.assertEqual(len(frontend.DEPLOYMENT_KEYS), 21)
+
+    def test_common_and_direct_names_collide_after_mapping_and_reservations_still_apply(self):
+        for extra in ({'DEV_VITE_API_URL': URL}, {'DEV_COM_NODE_OPTIONS': '--require=other'},
+                      {'DEV_COM_BLUE_FRONTEND_IP': '10.20.10.40'}, {'DEV_COM_': 'empty'}):
+            with self.subTest(extra=extra), self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_deployment(payload(extra))
+
+    def test_separate_network_subnets_must_not_overlap_and_stores_must_be_unique(self):
+        for extra in ({'DEV_BLUE_DOCKER_NETWORK_SUBNET': '10.10.10.0/24'},
+                      {'DEV_COM_DATA_DOCKER_NETWORK_SUBNET': '10.20.10.0/24'},
+                      {'DEV_COM_MONGO_CONTAINER_NAME': 'ieum-redis'},
+                      {'DEV_COM_DATA_DOCKER_NETWORK': 'ieum_net_green'},
+                      {'DEV_BLUE_AGENT_IP': '10.20.10.41'}):
+            with self.subTest(extra=extra), self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_deployment(payload(extra))
+
 
 
 class PrivateFileTest(unittest.TestCase):
@@ -291,6 +413,26 @@ class SnapshotTest(unittest.TestCase):
             frontend.cleanup_settings(self.directory)
         self.assertEqual(unexpected.read_text(), 'preserve')
 
+    def test_deployment_metadata_is_sealed_private_and_not_a_build_environment(self):
+        child = self.build().call_args.kwargs['env']
+        path = self.directory / frontend.DEPLOYMENT_NAME
+        self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+        self.assertEqual(path.read_bytes(), frontend.build_deployment(payload()))
+        self.assertTrue(set(frontend.DEPLOYMENT_KEYS).isdisjoint(child))
+        value = json.loads(path.read_text()); value['blue']['ip'] = '10.10.10.60'
+        path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(frontend.FrontendEnvironmentError, 'snapshot_mismatch'):
+            frontend.verify_settings(self.directory)
+
+    def test_missing_deployment_settings_prevent_build_and_file_creation(self):
+        values = json.loads(payload()); values.pop('DEV_BLUE_FRONTEND_IP')
+        with patch.object(frontend.subprocess, 'run') as build:
+            with self.assertRaises(frontend.FrontendEnvironmentError):
+                frontend.build_settings(self.directory, json.dumps(values))
+        build.assert_not_called()
+        self.assertEqual(list(self.directory.iterdir()), [])
+
+
 
 class WorkflowTest(unittest.TestCase):
     @classmethod
@@ -302,6 +444,10 @@ class WorkflowTest(unittest.TestCase):
         cls.build_shell = block('Build frontend from DEV Secrets')
         cls.deploy_shell = block('Deploy the frontend build snapshot')
         cls.cleanup_shell = block('Remove private frontend settings')
+        cls.configure_shell = block('Configure frontend deployment settings')
+        for code, controllers, builders in [(cls.build_shell, 0, 2), (cls.deploy_shell, 1, 1),
+                (cls.cleanup_shell, 0, 1), (cls.configure_shell, 1, 1)]:
+            guard_workflow_shell(code, controllers, builders)
 
     def invoke(self, source=None, build_exit=0, controller_exit=0, tamper=False, skip_deploy=False):
         with tempfile.TemporaryDirectory() as directory:
@@ -320,18 +466,18 @@ class WorkflowTest(unittest.TestCase):
             controller = root / 'controller.py'
             controller.write_text('import json,os,pathlib,sys\na=sys.argv[1:]\n'
                 'p=pathlib.Path(a[a.index("--env-file")+1])\n'
-                'pathlib.Path(' + repr(str(controller_log)) + ').write_text(json.dumps({"args":a,"content":p.read_text(),"rawInherited":' + repr(frontend.SECRETS_VARIABLE) + ' in os.environ}))\n'
+                'pathlib.Path(' + repr(str(controller_log)) + ').write_text(json.dumps({"args":a,"content":p.read_text(),"deployment":pathlib.Path(a[a.index("--frontend-deployment-file")+1]).read_text(),"rawInherited":' + repr(frontend.SECRETS_VARIABLE) + ' in os.environ}))\n'
                 'sys.exit(' + str(controller_exit) + ')\n')
             env = {'PATH': str(bins) + os.pathsep + str(Path(sys.executable).parent) + os.pathsep + os.defpath,
                 'RUNNER_TEMP': str(runner), 'GITHUB_OUTPUT': str(output), 'IMAGE_NAME': 'ieum-frontend-dev',
                 'IMAGE_TAG': 'synthetic-sha', 'IEUM_BLUEGREEN_JOB_DEADLINE_EPOCH': str(int(time.time()) + 21600),
+                'IEUM_BLUEGREEN_HOME': str(root / 'nonexistent-bluegreen-home'),
                 'VITE_AMBIENT_OLD': 'must-not-use', frontend.SECRETS_VARIABLE: source or payload({
                     'DEV_VITE_NEW': SECRET + '$(touch ' + shlex.quote(str(marker)) + ')',
                     'DEV_RUNTIME_TOKEN': SECRET})}
-            def shell(code):
-                return code.replace('scripts/bluegreen/frontend_env.py', shlex.quote(str(SCRIPT))).replace('/home/kwung/deploy/bluegreen/bluegreen.py', shlex.quote(str(controller)))
-            built = subprocess.run(['bash', '-c', shell(self.build_shell)], cwd=root, env=env,
-                                   capture_output=True, text=True, timeout=6)
+            def shell(code, controllers, builders):
+                return rewrite_workflow_shell(code, controller, controllers, builders)
+            built = run_workflow_shell(shell(self.build_shell, 0, 2), cwd=root, env=env)
             settings = ''
             if output.exists():
                 settings = output.read_text().strip().split('=', 1)[1]
@@ -342,10 +488,8 @@ class WorkflowTest(unittest.TestCase):
                 Path(settings, frontend.CANDIDATE_NAME).write_text('VITE_API_URL=changed\nNODE_ENV=production\n')
             deployed = None
             if built.returncode == 0 and not skip_deploy:
-                deployed = subprocess.run(['bash', '-c', shell(self.deploy_shell)], cwd=root, env=env,
-                                         capture_output=True, text=True, timeout=6)
-            cleaned = subprocess.run(['bash', '-c', shell(self.cleanup_shell)], cwd=root, env=env,
-                                    capture_output=True, text=True, timeout=6)
+                deployed = run_workflow_shell(shell(self.deploy_shell, 1, 1), cwd=root, env=env)
+            cleaned = run_workflow_shell(shell(self.cleanup_shell, 0, 1), cwd=root, env=env)
             return {'build': built, 'deploy': deployed, 'cleanup': cleaned,
                 'node': json.loads(node_log.read_text()) if node_log.exists() else None,
                 'controller': json.loads(controller_log.read_text()) if controller_log.exists() else None,
@@ -353,14 +497,42 @@ class WorkflowTest(unittest.TestCase):
                 'expanded': marker.exists()}
 
     def test_workflow_has_prefixed_metadata_and_only_one_raw_json_reference(self):
-        self.assertIn('NODE_VERSION: ${{ secrets.DEV_NODE_VERSION }}', self.source)
-        self.assertIn('IMAGE_NAME: ${{ secrets.DEV_IMAGE_NAME }}', self.source)
+        self.assertIn('NODE_VERSION: ${{ secrets.DEV_COM_NODE_VERSION }}', self.source)
+        self.assertIn('IMAGE_NAME: ${{ secrets.DEV_COM_IMAGE_NAME }}', self.source)
         self.assertEqual(self.source.count('${{ toJSON(secrets) }}'), 1)
         self.assertNotIn('secrets.VITE_API_URL', self.source)
         self.assertNotIn('${{ secrets.', self.build_shell + self.deploy_shell + self.cleanup_shell)
         self.assertIn('if: always()', self.source)
         self.assertIn('--replace-env', self.deploy_shell)
+        self.assertIn('--frontend-deployment-file \"$SETTINGS_DIR/frontend-deployment.json\"', self.deploy_shell)
         self.assertLess(self.deploy_shell.index('frontend_env.py verify'), self.deploy_shell.index('bluegreen.py'))
+
+    def test_initial_configuration_is_an_explicit_manual_operation_separate_from_deploy(self):
+        self.assertIn('options: [deploy, configure-frontend]', self.source)
+        configure = self.source.split('      - name: Configure frontend deployment settings\n', 1)[1].split('      - name:', 1)[0]
+        deploy = self.source.split('      - name: Deploy the frontend build snapshot\n', 1)[1].split('      - name:', 1)[0]
+        self.assertIn("if: github.event_name == 'workflow_dispatch' && inputs.operation == 'configure-frontend'", configure)
+        self.assertIn("if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'", deploy)
+        self.assertLess(configure.index('frontend_env.py verify'), configure.index('configure-frontend \\'))
+        self.assertIn('--settings-file "$SETTINGS_DIR/frontend-deployment.json"', configure)
+        self.assertNotIn('--service', configure)
+        self.assertNotIn('secrets.', configure)
+
+    def test_changed_controller_or_builder_path_is_rejected_before_execution(self):
+        for original, replacement in [(CONTROLLER_LITERAL, '/different/bluegreen.py'),
+                (BUILDER_LITERAL, 'scripts/new/frontend_env.py')]:
+            changed = self.deploy_shell.replace(original, replacement)
+            with patch.object(subprocess, 'Popen') as run:
+                with self.assertRaises(AssertionError): guard_workflow_shell(changed, 1, 1)
+                with self.assertRaises(AssertionError): rewrite_workflow_shell(changed, Path('/fake/controller.py'), 1, 1)
+            run.assert_not_called()
+
+    def test_shell_timeout_kills_the_whole_private_process_group(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(os, 'killpg', wraps=os.killpg) as kill:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                run_workflow_shell('sleep 60', cwd=directory, env=dict(os.environ), timeout=0.05)
+            self.assertEqual(kill.call_count, 1)
+            self.assertEqual(kill.call_args.args[1], signal.SIGKILL)
 
     def test_success_build_and_deploy_share_snapshot_and_cleanup_without_logging_values(self):
         result = self.invoke()
@@ -368,6 +540,7 @@ class WorkflowTest(unittest.TestCase):
         self.assertEqual(result['deploy'].returncode, 0)
         self.assertEqual(result['cleanup'].returncode, 0)
         self.assertFalse(result['controller']['rawInherited'])
+        self.assertEqual(json.loads(result['controller']['deployment']), json.loads(frontend.build_deployment(payload())))
         self.assertNotIn(frontend.SECRETS_VARIABLE, result['node'])
         self.assertNotIn('RUNTIME_TOKEN', result['node'])
         self.assertNotIn('VITE_AMBIENT_OLD', result['node'])

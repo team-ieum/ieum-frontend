@@ -4,6 +4,13 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Deploy, or pin frontend deployment Secrets before bootstrap
+        type: choice
+        required: true
+        default: deploy
+        options: [deploy, configure-frontend]
 
 permissions:
   contents: read
@@ -14,8 +21,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: ${{ secrets.DEV_NODE_VERSION }}
-  IMAGE_NAME: ${{ secrets.DEV_IMAGE_NAME }}
+  NODE_VERSION: ${{ secrets.DEV_COM_NODE_VERSION }}
+  IMAGE_NAME: ${{ secrets.DEV_COM_IMAGE_NAME }}
 
 jobs:
   deploy:
@@ -175,7 +182,19 @@ jobs:
             exit 1
           fi
 
+      - name: Configure frontend deployment settings
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'configure-frontend'
+        env:
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
+        run: |
+          set +x
+          set -euo pipefail
+          python3 scripts/bluegreen/frontend_env.py verify "$SETTINGS_DIR"
+          python3 /home/kwung/deploy/bluegreen/bluegreen.py --lock-timeout 30 configure-frontend \
+            --settings-file "$SETTINGS_DIR/frontend-deployment.json"
+
       - name: Deploy the frontend build snapshot
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
         env:
           IMAGE_TAG: ${{ github.sha }}
           SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
@@ -188,6 +207,7 @@ jobs:
             --service frontend \
             --image "$IMAGE_NAME:$IMAGE_TAG" \
             --env-file "$SETTINGS_DIR/frontend.env" \
+            --frontend-deployment-file "$SETTINGS_DIR/frontend-deployment.json" \
             --replace-env
 
       - name: Remove private frontend settings
