@@ -30,6 +30,10 @@ export const queryKeys = {
 	nodeCatalog: {
 		all: () => ['node-catalog'] as const,
 	},
+	nodeOptions: {
+		all: () => ['node-options'] as const,
+		list: (source: string, inputs: Record<string, string>) => [...queryKeys.nodeOptions.all(), source, inputs] as const,
+	},
 	integrations: {
 		all: () => ['integrations'] as const,
 		workflows: (serviceType: IntegrationServiceType | 'UNKNOWN', params?: { size?: number }) =>
