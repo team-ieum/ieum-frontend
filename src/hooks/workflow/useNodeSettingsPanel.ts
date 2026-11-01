@@ -1,7 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
+import { providersQueryOptions } from '@/hooks/aiCredentials/queries/aiCredentialsQueryOptions'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
+import { AI_MODELS_SOURCE, getDefaultModelName, getOptionsInputsState, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 import { getAtPath } from '@/utils/workflow/objectPath'
 import { getFieldName, updateNodeField } from '@/utils/workflow/updateNodeField'
 
@@ -27,6 +30,8 @@ type UseNodeSettingsPanelOptions = {
 export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPanelOptions) => {
 	const catalogQuery = useNodeCatalogQuery()
 	const entry = catalogQuery.data?.data.entries.find(item => item.id === node.event)
+	const modelField = entry?.inputFields.find(field => field.optionsSource === AI_MODELS_SOURCE)
+	const providersQuery = useQuery({ ...providersQueryOptions(), enabled: Boolean(modelField) })
 
 	// 받은 카탈로그가 있으면 이후 재조회가 실패해도 그 카탈로그로 계속 편집하게 한다.
 	const status: NodeSettingsPanelStatus = !catalogQuery.data
@@ -37,14 +42,33 @@ export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPane
 			? 'ready'
 			: 'outsideCatalog'
 
+	const getFieldOptions = (field: NodeCatalogInputField): NodeFieldOptions | undefined => {
+		if (!entry || !field.optionsSource) return undefined
+		const inputsState = getOptionsInputsState(entry, node, field)
+		if (field !== modelField) return { source: field.optionsSource, inputsState }
+		// 제공자가 비었거나 참조식이어도 비운 model은 기본 모델로 실행되므로 이름만 빼고 안내한다.
+		const defaultModel =
+			inputsState.status === 'ready'
+				? getDefaultModelName(providersQuery.data?.data.providers, inputsState.inputs.llmProvider)
+				: undefined
+		const defaultModelLabel = defaultModel ? `기본 모델(${defaultModel})` : '기본 모델'
+		return {
+			source: field.optionsSource,
+			inputsState,
+			emptyHint: `비우면 ${defaultModelLabel}로 실행해요`,
+			clearLabel: defaultModelLabel,
+		}
+	}
+
 	const fields = (entry?.inputFields ?? []).map(field => ({
 		field,
 		value: getAtPath(node, field.path),
 		name: getFieldName(node, field),
+		options: getFieldOptions(field),
 	}))
 
-	const changeField = (field: NodeCatalogInputField, value: unknown) => {
-		if (entry) onNodeChange(updateNodeField(node, entry, field, value))
+	const changeField = (field: NodeCatalogInputField, value: unknown, name?: string) => {
+		if (entry) onNodeChange(updateNodeField(node, entry, field, value, name))
 	}
 
 	return {

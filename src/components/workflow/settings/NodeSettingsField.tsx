@@ -1,5 +1,7 @@
 import { useId } from 'react'
+import NodeChoiceSelect, { type NodeChoice } from '@/components/workflow/settings/NodeChoiceSelect'
 import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
+import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import { cn } from '@/utils/cn'
@@ -10,6 +12,7 @@ import {
 	isRequiredFieldMissing,
 	type NodeFieldMode,
 } from '@/utils/workflow/nodeFieldValue'
+import { isOptionsComboboxField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 
 const INPUT_CLASS = cn(
 	'w-full min-w-0 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-[#27273b]',
@@ -20,13 +23,19 @@ const TEXTAREA_CLASS = cn(INPUT_CLASS, 'min-h-20 resize-y leading-relaxed')
 const REFERENCE_PLACEHOLDER = '{{nodes.노드ID.output.필드}}'
 const DATETIME_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
 const MODE_LABELS: Record<NodeFieldMode, string> = { fixed: '값', reference: '참조식' }
+const BOOLEAN_CHOICES: NodeChoice[] = [
+	{ value: true, label: '예' },
+	{ value: false, label: '아니요' },
+]
 
 type NodeSettingsFieldProps = {
 	field: NodeCatalogInputField
 	value: unknown
 	/** 선택 목록에서 고른 항목의 표시 이름(`_names`). */
 	name?: string
-	onChange: (value: unknown) => void
+	/** 목록 공급원 칸의 조회 정보. 있으면 드롭다운으로 그린다. */
+	options?: NodeFieldOptions
+	onChange: (value: unknown, name?: string) => void
 }
 
 const getPlaceholder = (field: NodeCatalogInputField) => {
@@ -35,7 +44,7 @@ const getPlaceholder = (field: NodeCatalogInputField) => {
 }
 
 /** 카탈로그 칸 하나를 type에 맞는 위젯으로 보여 주고 바뀐 값을 저장할 모양으로 넘긴다. */
-const NodeSettingsField = ({ field, value, name, onChange }: NodeSettingsFieldProps) => {
+const NodeSettingsField = ({ field, value, name, options, onChange }: NodeSettingsFieldProps) => {
 	const inputId = useId()
 	const descriptionId = `${inputId}-description`
 	const messageId = `${inputId}-message`
@@ -61,6 +70,25 @@ const NodeSettingsField = ({ field, value, name, onChange }: NodeSettingsFieldPr
 			)
 		}
 
+		if (options && isOptionsComboboxField(field)) {
+			return (
+				<NodeOptionsCombobox
+					id={inputId}
+					title={field.title}
+					source={options.source}
+					inputsState={options.inputsState}
+					value={value}
+					name={name}
+					placeholder={options.emptyHint}
+					clearLabel={options.clearLabel}
+					triggerClassName={INPUT_CLASS}
+					describedBy={inputProps['aria-describedby']}
+					onSelect={option => changeValue(option.id, option.name)}
+					onClear={() => changeValue(undefined)}
+				/>
+			)
+		}
+
 		if (mode === 'reference') {
 			const referenceProps = {
 				...inputProps,
@@ -79,39 +107,19 @@ const NodeSettingsField = ({ field, value, name, onChange }: NodeSettingsFieldPr
 			)
 		}
 
-		if (field.choices && !field.list) {
-			const selected = typeof value === 'string' ? value : ''
-			const isUnknown = selected !== '' && !field.choices.some(choice => choice.id === selected)
+		if ((field.choices || field.type === 'boolean') && !field.list) {
 			return (
-				<select
-					{...inputProps}
-					value={selected}
-					onChange={event => changeValue(event.target.value || undefined)}
-					className={INPUT_CLASS}
-				>
-					<option value=''>선택 안 함</option>
-					{isUnknown ? <option value={selected}>{`목록에 없는 값 (${selected})`}</option> : null}
-					{field.choices.map(choice => (
-						<option key={choice.id} value={choice.id}>
-							{choice.name}
-						</option>
-					))}
-				</select>
-			)
-		}
-
-		if (field.type === 'boolean' && !field.list) {
-			return (
-				<select
-					{...inputProps}
-					value={typeof value === 'boolean' ? String(value) : ''}
-					onChange={event => changeValue(event.target.value === '' ? undefined : event.target.value === 'true')}
-					className={INPUT_CLASS}
-				>
-					<option value=''>선택 안 함</option>
-					<option value='true'>예</option>
-					<option value='false'>아니요</option>
-				</select>
+				<NodeChoiceSelect
+					id={inputId}
+					title={field.title}
+					choices={
+						field.choices ? field.choices.map(choice => ({ value: choice.id, label: choice.name })) : BOOLEAN_CHOICES
+					}
+					value={value}
+					triggerClassName={INPUT_CLASS}
+					describedBy={inputProps['aria-describedby']}
+					onChange={next => changeValue(next)}
+				/>
 			)
 		}
 
@@ -191,9 +199,9 @@ const NodeSettingsField = ({ field, value, name, onChange }: NodeSettingsFieldPr
 				</p>
 			) : null}
 			{renderWidget()}
-			{field.optionsSource && mode === 'fixed' ? (
+			{field.optionsSource && !(options && isOptionsComboboxField(field)) && mode === 'fixed' ? (
 				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>
-					{name ? `선택한 항목: ${name} · ` : ''}목록에서 고르기는 준비 중이에요. ID를 직접 입력해 주세요.
+					{name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접 입력해 주세요.
 				</p>
 			) : null}
 			{error ? (

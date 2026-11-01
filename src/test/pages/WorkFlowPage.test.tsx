@@ -1,3 +1,4 @@
+import { QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
@@ -6,6 +7,7 @@ import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 
 const mocks = vi.hoisted(() => ({
@@ -305,15 +307,18 @@ vi.mock('@/components/workflow/WorkflowChat', () => ({
 	),
 }))
 
+// 페이지 데이터 훅은 mock이지만 설정 패널의 드롭다운·기본 모델 안내는 query를 직접 쓴다.
 const renderPage = (options?: { reactStrictMode?: boolean }) =>
 	render(
-		<MemoryRouter initialEntries={['/workflow/workflow-1']}>
-			<Link to='/workflow/workflow-1'>첫 번째 워크플로우로 이동</Link>
-			<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
-			<Routes>
-				<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
-			</Routes>
-		</MemoryRouter>,
+		<QueryClientProvider client={createTestQueryClient()}>
+			<MemoryRouter initialEntries={['/workflow/workflow-1']}>
+				<Link to='/workflow/workflow-1'>첫 번째 워크플로우로 이동</Link>
+				<Link to='/workflow/workflow-2'>두 번째 워크플로우로 이동</Link>
+				<Routes>
+					<Route path='/workflow/:workflowId' element={<WorkFlowPage />} />
+				</Routes>
+			</MemoryRouter>
+		</QueryClientProvider>,
 		options
 	)
 
