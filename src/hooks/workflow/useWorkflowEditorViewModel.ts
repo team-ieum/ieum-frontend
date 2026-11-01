@@ -151,6 +151,20 @@ export const useWorkflowEditorViewModel = ({
 		[commitDocument, document]
 	)
 
+	// 같은 삭제 이벤트에서 먼저 커밋된 연결 삭제가 이 렌더의 document에는 아직 없어, 연결은 캔버스가 넘긴 최신 목록으로 덮어쓴다.
+	const handleNodesRemove = useCallback(
+		(nodeIds: string[], edges: WorkflowEdgeType[]) => {
+			if (!document) return
+			const removedNodeIds = new Set(nodeIds)
+			commitDocument({
+				...document,
+				nodes: document.nodes.filter(node => !removedNodeIds.has(node.id)),
+				edges: toWorkflowEdgeDtos(edges),
+			})
+		},
+		[commitDocument, document]
+	)
+
 	const handleCanvasUpdate = useCallback(
 		(rawNodes: unknown[], rawEdges: unknown[]) => {
 			if (!document) return
@@ -175,6 +189,7 @@ export const useWorkflowEditorViewModel = ({
 		handleNodeAdd,
 		handleNodeUpdate,
 		handleEdgesCommit,
+		handleNodesRemove,
 		handleCanvasUpdate,
 	}
 }

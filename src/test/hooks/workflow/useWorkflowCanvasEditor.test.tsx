@@ -21,6 +21,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onNodePositionCommit,
 				onEdgesCommit: vi.fn(),
 				onNodeAdd: vi.fn(),
+				onNodesRemove: vi.fn(),
 			})
 		)
 
@@ -44,6 +45,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onNodePositionCommit: vi.fn(),
 				onEdgesCommit: vi.fn(),
 				onNodeAdd,
+				onNodesRemove: vi.fn(),
 			})
 		)
 		const canvas = document.createElement('div')
@@ -73,6 +75,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onNodePositionCommit: vi.fn(),
 				onEdgesCommit: vi.fn(),
 				onNodeAdd,
+				onNodesRemove: vi.fn(),
 			})
 		)
 		result.current.setCanvasElement(document.createElement('div'))
@@ -92,6 +95,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onNodePositionCommit: vi.fn(),
 				onEdgesCommit,
 				onNodeAdd: vi.fn(),
+				onNodesRemove: vi.fn(),
 			})
 		)
 
@@ -120,6 +124,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onNodePositionCommit: vi.fn(),
 				onEdgesCommit,
 				onNodeAdd: vi.fn(),
+				onNodesRemove: vi.fn(),
 			})
 		)
 
@@ -132,5 +137,66 @@ describe('useWorkflowCanvasEditor', () => {
 			target: 'action',
 			data: { conditionType: 'SUCCESS' },
 		})
+	})
+
+	it('노드를 지우면 그 노드에 닿은 연결을 뺀 연결 목록과 함께 편집 문서에 반영한다', () => {
+		const edges = [
+			createWorkflowCanvasEdge({ source: 'trigger', target: 'ai', conditionType: null }, 'trigger-ai'),
+			createWorkflowCanvasEdge({ source: 'ai', target: 'action', conditionType: null }, 'ai-action'),
+			createWorkflowCanvasEdge({ source: 'trigger', target: 'action', conditionType: null }, 'trigger-action'),
+		]
+		const onNodesRemove = vi.fn()
+		const { result } = renderHook(() =>
+			useWorkflowCanvasEditor({
+				initialNodes: nodes,
+				initialEdges: edges,
+				onNodePositionCommit: vi.fn(),
+				onEdgesCommit: vi.fn(),
+				onNodeAdd: vi.fn(),
+				onNodesRemove,
+			})
+		)
+
+		act(() => result.current.onNodesChange([{ id: 'ai', type: 'select', selected: true }]))
+		expect(onNodesRemove).not.toHaveBeenCalled()
+
+		act(() => result.current.onNodesChange([{ id: 'ai', type: 'remove' }]))
+
+		expect(result.current.nodes.map(node => node.id)).toEqual(['trigger', 'action'])
+		expect(result.current.edges.map(edge => edge.id)).toEqual(['trigger-action'])
+		expect(onNodesRemove).toHaveBeenCalledOnce()
+		expect(onNodesRemove).toHaveBeenCalledWith(['ai'], [expect.objectContaining({ id: 'trigger-action' })])
+	})
+
+	it('ReactFlow처럼 연결 remove 뒤 노드 remove가 이어지면 앞서 지운 연결이 빠진 목록을 넘긴다', () => {
+		const edges = [
+			createWorkflowCanvasEdge({ source: 'trigger', target: 'ai', conditionType: null }, 'trigger-ai'),
+			createWorkflowCanvasEdge({ source: 'trigger', target: 'action', conditionType: null }, 'trigger-action'),
+		]
+		const onEdgesCommit = vi.fn()
+		const onNodesRemove = vi.fn()
+		const { result } = renderHook(() =>
+			useWorkflowCanvasEditor({
+				initialNodes: nodes,
+				initialEdges: edges,
+				onNodePositionCommit: vi.fn(),
+				onEdgesCommit,
+				onNodeAdd: vi.fn(),
+				onNodesRemove,
+			})
+		)
+
+		// 'ai' 노드와 함께 선택해 둔, 'ai'와 무관한 trigger-action 연결도 같은 삭제로 지운다.
+		act(() => {
+			result.current.onEdgesChange([
+				{ id: 'trigger-ai', type: 'remove' },
+				{ id: 'trigger-action', type: 'remove' },
+			])
+			result.current.onNodesChange([{ id: 'ai', type: 'remove' }])
+		})
+
+		expect(onEdgesCommit).toHaveBeenLastCalledWith([])
+		expect(onNodesRemove).toHaveBeenCalledWith(['ai'], [])
+		expect(result.current.edges).toEqual([])
 	})
 })

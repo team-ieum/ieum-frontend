@@ -53,6 +53,7 @@ vi.mock('@xyflow/react', async () => {
 			connection: { source: string; target: string; sourceHandle: null; targetHandle: null }
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
+		onNodesChange?: (changes: { id: string; type: 'remove' }[]) => void
 		onInit?: (instance: { screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number } }) => void
 		onNodeClick?: (event: never, node: CanvasNode) => void
 		onPaneClick?: () => void
@@ -73,6 +74,7 @@ vi.mock('@xyflow/react', async () => {
 			onConnect,
 			onReconnect,
 			onEdgesChange,
+			onNodesChange,
 			onInit,
 			onNodeClick,
 			onPaneClick,
@@ -99,6 +101,18 @@ vi.mock('@xyflow/react', async () => {
 					<div key={node.id} className='react-flow__node' data-id={node.id} tabIndex={0}>
 						<button type='button' onClick={() => onNodeClick?.({} as never, node)}>
 							{`노드 선택 ${node.id}`}
+						</button>
+						<button
+							type='button'
+							onClick={() => {
+								// 실제 ReactFlow의 deleteElements처럼 한 이벤트에서 연결 remove를 먼저, 노드 remove를 뒤에 보낸다.
+								const connected = edges.filter(edge => edge.source === node.id || edge.target === node.id)
+								if (connected.length > 0)
+									onEdgesChange?.(connected.map(edge => ({ id: edge.id, type: 'remove' })))
+								onNodesChange?.([{ id: node.id, type: 'remove' }])
+							}}
+						>
+							{`노드 삭제 ${node.id}`}
 						</button>
 						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
@@ -590,6 +604,39 @@ describe('WorkFlowPage', () => {
 		fireEvent.click(screen.getByRole('button', { name: '연결 제거' }))
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
 		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('1')
+	})
+
+	it('노드를 지우면 연결선과 함께 초안에서 빼고 설정 패널을 닫으며 저장 요청에 빠진 상태를 싣는다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		mocks.update.mockReset()
+		mocks.update.mockResolvedValue(undefined)
+		renderPage()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		expect(screen.getByRole('complementary', { name: '노드 설정' })).toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: '노드 삭제 ai' }))
+
+		expect(screen.queryByRole('button', { name: '노드 선택 ai' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('0')
+		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('0')
+		expect(screen.getByRole('status', { name: '저장되지 않은 변경사항' })).toBeInTheDocument()
+		const draft = JSON.parse(localStorage.getItem(getWorkflowDraftKey('workflow-1')) ?? '{}')
+		expect(draft.nodes.map((node: { id: string }) => node.id)).toEqual(['trigger', 'action'])
+		expect(draft.edges).toEqual([])
+
+		// 저장 버튼은 저장 중이 아닐 때 접근 가능한 이름이 없어 아이콘으로 찾는다.
+		const saveButton = screen.getAllByRole('button').find(button => button.querySelector('.lucide-save'))
+		expect(saveButton).toBeEnabled()
+		await user.click(saveButton!)
+
+		expect(mocks.update).toHaveBeenCalledOnce()
+		const request = mocks.update.mock.calls[0][0]
+		expect(request.nodes.map((node: { id: string }) => node.id)).toEqual(['trigger', 'action'])
+		expect(request.edges).toEqual([])
 	})
 
 	it('팔레트에서 고른 항목을 fixed 뼈대 그대로 노드로 추가하고 저장할 초안에 싣는다', async () => {

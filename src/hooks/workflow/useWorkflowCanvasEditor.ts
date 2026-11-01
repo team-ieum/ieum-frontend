@@ -32,6 +32,12 @@ type UseWorkflowCanvasEditorOptions = {
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
 	/** 캔버스에서 새로 만든 노드를 편집 문서에 반영한다. */
 	onNodeAdd: (node: WorkflowNodeDto) => void
+	/**
+	 * 캔버스에서 지운 노드를 편집 문서에 반영한다. `edges`는 지운 노드에 닿은 연결을 뺀 캔버스의 최신 연결 목록이다.
+	 * ReactFlow는 같은 삭제 이벤트에서 연결 remove를 먼저 보내 `onEdgesCommit`이 이미 불렸을 수 있으므로,
+	 * 받는 쪽은 이전 렌더의 연결 목록이 아니라 이 `edges`로 문서를 덮어써야 앞선 연결 삭제를 잃지 않는다.
+	 */
+	onNodesRemove: (nodeIds: string[], edges: WorkflowEdgeType[]) => void
 }
 
 export const useWorkflowCanvasEditor = ({
@@ -40,6 +46,7 @@ export const useWorkflowCanvasEditor = ({
 	onNodePositionCommit,
 	onEdgesCommit,
 	onNodeAdd,
+	onNodesRemove,
 }: UseWorkflowCanvasEditorOptions) => {
 	const [nodes, setNodes] = useNodesState<WorkflowNodeType>(initialNodes)
 	const [edges, setEdges] = useEdgesState<WorkflowEdgeType>(initialEdges)
@@ -52,8 +59,20 @@ export const useWorkflowCanvasEditor = ({
 			const nextNodes = applyNodeChanges(changes, nodesRef.current)
 			nodesRef.current = nextNodes
 			setNodes(nextNodes)
+
+			const removedNodeIds = new Set(changes.flatMap(change => (change.type === 'remove' ? [change.id] : [])))
+			if (removedNodeIds.size === 0) return
+			// 연결 remove 없이 노드만 지워지는 경로에서도 문서에 끊긴 연결이 남지 않게 한 번 더 거른다.
+			const nextEdges = edgesRef.current.filter(
+				edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target)
+			)
+			if (nextEdges.length !== edgesRef.current.length) {
+				edgesRef.current = nextEdges
+				setEdges(nextEdges)
+			}
+			onNodesRemove([...removedNodeIds], nextEdges)
 		},
-		[setNodes]
+		[onNodesRemove, setEdges, setNodes]
 	)
 
 	const commitEdges = useCallback(
