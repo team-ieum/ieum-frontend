@@ -95,13 +95,14 @@ const NodeSettingsPanel = ({ node, onNodeChange, onClose }: NodeSettingsPanelPro
 						필수 칸 {missingRequiredCount}개가 비어 있어요. 저장은 되지만 채우기 전에는 실행할 수 없어요.
 					</p>
 				) : null}
-				{fields.map(({ field, value, name }) => (
+				{fields.map(({ field, value, name, options }) => (
 					<NodeSettingsField
 						key={field.path}
 						field={field}
 						value={value}
 						name={name}
-						onChange={next => changeField(field, next)}
+						options={options}
+						onChange={(next, nextName) => changeField(field, next, nextName)}
 					/>
 				))}
 			</div>

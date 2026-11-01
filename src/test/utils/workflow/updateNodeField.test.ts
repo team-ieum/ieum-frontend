@@ -66,4 +66,17 @@ describe('updateNodeField', () => {
 		expect(getFieldName(withNames, modelField)).toBe('Gemini Pro')
 		expect(getFieldName(next, modelField)).toBeUndefined()
 	})
+
+	it('목록에서 고른 항목은 값과 함께 칸 path 부모의 _names에 이름을 저장한다', () => {
+		const next = updateNodeField(node, entry, modelField, 'gemini-flash', 'Gemini Flash')
+
+		expect(next.config).toMatchObject({ model: 'gemini-flash', _names: { model: 'Gemini Flash' } })
+	})
+
+	it('비우면 이름을 넘겨도 _names를 쓰지 않는다', () => {
+		const next = updateNodeField(node, entry, modelField, undefined, 'Gemini Flash')
+
+		expect(next.config).not.toHaveProperty('model')
+		expect(next.config).not.toHaveProperty('_names')
+	})
 })

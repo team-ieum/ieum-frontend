@@ -1,5 +1,6 @@
 import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { WorkflowNodeDto } from '@/types/workflowList'
+import { AI_MODELS_SOURCE } from '@/utils/workflow/nodeOptions'
 import { getAtPath } from '@/utils/workflow/objectPath'
 
 /**
@@ -49,9 +50,12 @@ const WHOLE_REFERENCE_PATTERN = /^\s*\{\{[^{}]*\}\}\s*$/
 export const getInitialFieldMode = (field: NodeCatalogInputField, value: unknown): NodeFieldMode =>
 	hasReferenceMode(field) && typeof value === 'string' && WHOLE_REFERENCE_PATTERN.test(value) ? 'reference' : 'fixed'
 
-/** 기본값이 없는 필수 칸이 비었는지. 기본값이 있으면 비워도 서버가 그 값을 쓴다. */
+// 카탈로그는 model 칸을 required로 내리지만 서버는 빈 model을 provider 기본 모델로 실행하고 막지 않는다.
+const hasServerDefault = (field: NodeCatalogInputField) => field.default !== undefined || field.optionsSource === AI_MODELS_SOURCE
+
+/** 서버 기본값이 없는 필수 칸이 비었는지. 기본값이 있으면 비워도 서버가 그 값을 쓴다. */
 export const isRequiredFieldMissing = (field: NodeCatalogInputField, value: unknown) =>
-	field.required === true && field.default === undefined && isEmptyFieldValue(value)
+	field.required === true && !hasServerDefault(field) && isEmptyFieldValue(value)
 
 /** 폼에서 채울 수 있는 칸 중 비어 있는 필수 칸 목록. */
 export const getMissingRequiredFields = (entry: NodeCatalogEntry, node: WorkflowNodeDto) =>

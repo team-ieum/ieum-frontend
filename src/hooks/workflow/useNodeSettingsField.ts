@@ -11,8 +11,8 @@ import {
 type UseNodeSettingsFieldOptions = {
 	field: NodeCatalogInputField
 	value: unknown
-	/** 저장할 값을 넘긴다. `undefined`는 키 삭제(비움)다. */
-	onChange: (value: unknown) => void
+	/** 저장할 값을 넘긴다. `undefined`는 키 삭제(비움)다. `name`은 목록에서 고른 항목의 표시 이름이다. */
+	onChange: (value: unknown, name?: string) => void
 }
 
 /**
@@ -34,9 +34,9 @@ export const useNodeSettingsField = ({ field, value, onChange }: UseNodeSettings
 		setError(null)
 	}
 
-	const emit = (next: unknown) => {
+	const emit = (next: unknown, name?: string) => {
 		setSyncedValue(next)
-		onChange(next)
+		onChange(next, name)
 	}
 
 	const changeText = (text: string) => {
@@ -51,10 +51,10 @@ export const useNodeSettingsField = ({ field, value, onChange }: UseNodeSettings
 		emit(result.value)
 	}
 
-	/** 선택 상자처럼 해석이 필요 없는 위젯의 값을 바로 넘긴다. */
-	const changeValue = (next: unknown) => {
+	/** 선택 상자·드롭다운처럼 해석이 필요 없는 위젯의 값을 바로 넘긴다. */
+	const changeValue = (next: unknown, name?: string) => {
 		setError(null)
-		emit(next)
+		emit(next, name)
 	}
 
 	// 값과 참조식은 서로 다른 모양이라 방식을 바꾸면 이전 값을 비운다.

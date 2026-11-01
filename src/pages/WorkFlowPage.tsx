@@ -1,8 +1,9 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
+import NodeAddButton from '@/components/workflow/NodeAddButton'
 import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
 import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
@@ -61,7 +62,10 @@ type WorkflowCanvasProps = {
 	nodeStatus: Record<string, NodeExecutionStatus>
 	isTracking: boolean
 	isPaletteOpen: boolean
+	onPaletteToggle: () => void
 	onPaletteClose: () => void
+	/** 팔레트가 닫힐 때 포커스를 돌려받을 '노드 추가' 버튼. */
+	paletteButtonRef: Ref<HTMLButtonElement>
 	onNodeAdd: (node: WorkflowNodeDto) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
@@ -77,7 +81,9 @@ const WorkflowCanvas = ({
 	nodeStatus,
 	isTracking,
 	isPaletteOpen,
+	onPaletteToggle,
 	onPaletteClose,
+	paletteButtonRef,
 	onNodeAdd,
 	onNodePositionCommit,
 	onEdgesCommit,
@@ -173,6 +179,12 @@ const WorkflowCanvas = ({
 				<Controls showInteractive={false} />
 				<MiniMap pannable zoomable nodeStrokeWidth={3} />
 			</ReactFlow>
+			<NodeAddButton
+				isPaletteOpen={isPaletteOpen}
+				onTogglePalette={onPaletteToggle}
+				buttonRef={paletteButtonRef}
+				showsEmptyHint={editor.nodes.length === 0}
+			/>
 			{isPaletteOpen ? <NodeCatalogPalette onSelect={handleCatalogSelect} onClose={onPaletteClose} /> : null}
 		</>
 	)
@@ -349,9 +361,6 @@ const WorkFlowPage = () => {
 				canExecute={canExecute}
 				technicalMode={technicalMode}
 				onToggleTechnicalMode={() => setTechnicalMode(enabled => !enabled)}
-				isNodePaletteOpen={isPaletteOpen}
-				onToggleNodePalette={() => setIsPaletteOpen(open => !open)}
-				nodePaletteButtonRef={paletteButtonRef}
 				isRefreshing={workflowQuery.isRefetching}
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
@@ -365,7 +374,9 @@ const WorkFlowPage = () => {
 						nodeStatus={nodeStatus}
 						isTracking={phase === 'running'}
 						isPaletteOpen={isPaletteOpen}
+						onPaletteToggle={() => setIsPaletteOpen(open => !open)}
 						onPaletteClose={closePalette}
+						paletteButtonRef={paletteButtonRef}
 						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
@@ -389,6 +400,7 @@ const WorkFlowPage = () => {
 					currentEdges={document?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
 					isBesideNodeSettings={Boolean(settingsNode)}
+					showsStartHint={document?.nodes.length === 0}
 				/>
 			</div>
 		</div>
