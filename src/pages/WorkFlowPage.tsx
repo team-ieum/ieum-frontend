@@ -69,6 +69,7 @@ type WorkflowCanvasProps = {
 	onNodeAdd: (node: WorkflowNodeDto) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
+	onNodesRemove: (nodeIds: string[], edges: WorkflowEdgeType[]) => void
 	/** 설정 패널이 열린 노드. 그 노드 카드에만 강조 테두리를 그린다. */
 	settingsNodeId?: string
 	onNodeSelect: (nodeId: string) => void
@@ -87,6 +88,7 @@ const WorkflowCanvas = ({
 	onNodeAdd,
 	onNodePositionCommit,
 	onEdgesCommit,
+	onNodesRemove,
 	settingsNodeId,
 	onNodeSelect,
 	onPaneClick,
@@ -98,6 +100,7 @@ const WorkflowCanvas = ({
 		onNodePositionCommit,
 		onEdgesCommit,
 		onNodeAdd,
+		onNodesRemove,
 	})
 
 	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
@@ -229,6 +232,7 @@ const WorkFlowPage = () => {
 		handleNodeAdd,
 		handleNodeUpdate,
 		handleEdgesCommit,
+		handleNodesRemove,
 		handleCanvasUpdate,
 	} = useWorkflowEditorViewModel({
 		workflowId: workflow?.id,
@@ -380,6 +384,7 @@ const WorkFlowPage = () => {
 						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
+						onNodesRemove={handleNodesRemove}
 						settingsNodeId={settingsNode?.id}
 						onNodeSelect={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						onPaneClick={() => setSelectedNode(null)}
