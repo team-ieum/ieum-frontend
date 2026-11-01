@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
 	openConfirm: vi.fn(),
 	workflowOneActive: true,
 	workflowTwoActive: false,
+	/** 첫 번째 워크플로를 노드·연결선 없이 내려 빈 캔버스를 만든다. */
+	workflowOneEmpty: false,
 	catalogEntries: undefined as NodeCatalogEntry[] | undefined,
 }))
 
@@ -176,48 +178,52 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 							name: '고객 문의 분류',
 							active: mocks.workflowOneActive,
 							version: 1,
-							nodes: [
-								{
-									id: 'trigger',
-									type: 'TRIGGER',
-									event: 'manual.run',
-									label: '문의가 도착하면',
-									description: '새 문의가 들어오면 시작해요',
-									config: { brand: 'webhook' },
-								},
-								{
-									id: 'ai',
-									type: 'AI',
-									event: 'ai.reasoning',
-									label: '문의 분류하기',
-									config: {
-										llmProvider: 'GEMINI',
-										model: 'server-unknown-model',
-										credentialId: 'credential-secret',
-										prompt: 'private prompt',
-									},
-								},
-								{
-									id: 'action',
-									type: 'HTTP',
-									event: 'http.request',
-									label: '담당자에게 알리기',
-									config: { method: 'POST', url: 'https://example.com/notify' },
-								},
-								{
-									id: 'invalid-position',
-									type: 'AI',
-									event: 'ai.reasoning',
-									label: '잘못된 좌표',
-									position: { x: Number.NaN, y: 0 },
-									config: {},
-								},
-							],
-							edges: [
-								{ source: 'trigger', target: 'ai', conditionType: null },
-								{ source: 'ai', target: 'missing-node', conditionType: null },
-								{ source: 'ai', target: 'invalid-position', conditionType: null },
-							],
+							nodes: mocks.workflowOneEmpty
+								? []
+								: [
+										{
+											id: 'trigger',
+											type: 'TRIGGER',
+											event: 'manual.run',
+											label: '문의가 도착하면',
+											description: '새 문의가 들어오면 시작해요',
+											config: { brand: 'webhook' },
+										},
+										{
+											id: 'ai',
+											type: 'AI',
+											event: 'ai.reasoning',
+											label: '문의 분류하기',
+											config: {
+												llmProvider: 'GEMINI',
+												model: 'server-unknown-model',
+												credentialId: 'credential-secret',
+												prompt: 'private prompt',
+											},
+										},
+										{
+											id: 'action',
+											type: 'HTTP',
+											event: 'http.request',
+											label: '담당자에게 알리기',
+											config: { method: 'POST', url: 'https://example.com/notify' },
+										},
+										{
+											id: 'invalid-position',
+											type: 'AI',
+											event: 'ai.reasoning',
+											label: '잘못된 좌표',
+											position: { x: Number.NaN, y: 0 },
+											config: {},
+										},
+									],
+							edges: mocks.workflowOneEmpty
+								? []
+								: [
+										{ source: 'trigger', target: 'ai', conditionType: null },
+										{ source: 'ai', target: 'missing-node', conditionType: null },
+										{ source: 'ai', target: 'invalid-position', conditionType: null },
+									],
 						},
 		},
 	}),
@@ -353,6 +359,7 @@ describe('WorkFlowPage', () => {
 		mocks.openConfirm.mockReset()
 		mocks.workflowOneActive = true
 		mocks.workflowTwoActive = false
+		mocks.workflowOneEmpty = false
 		mocks.catalogEntries = undefined
 	})
 
@@ -602,7 +609,34 @@ describe('WorkFlowPage', () => {
 		})
 	})
 
-	it('팔레트를 닫기 버튼이나 Escape로 닫으면 노드 추가 버튼으로 포커스를 돌려준다', async () => {
+	it('노드 추가 버튼은 제목 툴바가 아니라 캔버스 위에 있고 노드가 있으면 시작 안내를 띄우지 않는다', () => {
+		renderPage()
+
+		const canvasArea = screen.getByTestId('workflow-canvas').parentElement
+		expect(canvasArea).toContainElement(screen.getByRole('button', { name: '노드 추가' }))
+		expect(screen.getByRole('switch', { name: '기술 정보' }).parentElement).not.toContainElement(
+			screen.getByRole('button', { name: '노드 추가' })
+		)
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+	})
+
+	it('빈 캔버스는 노드 추가 버튼 옆에 직접 추가를 안내하고 팔레트를 열거나 노드를 추가하면 숨긴다', async () => {
+		const user = userEvent.setup()
+		mocks.workflowOneEmpty = true
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		expect(screen.getByRole('note')).toHaveTextContent('+ 버튼으로 노드를 직접 골라 추가해 보세요.')
+		await user.click(screen.getByRole('button', { name: '노드 추가' }))
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+
+		await user.click(screen.getByRole('button', { name: /Slack/ }))
+		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
+		expect(screen.queryByRole('note')).not.toBeInTheDocument()
+	})
+
+	it('팔레트가 열린 동안 가려진 노드 추가 버튼은 Tab으로 닿지 않고, 닫기 버튼이나 Escape로 닫으면 그 버튼으로 포커스를 돌려준다', async () => {
 		const user = userEvent.setup()
 		mocks.catalogEntries = nodeCatalogEntriesFixture
 		renderPage()
@@ -615,6 +649,10 @@ describe('WorkFlowPage', () => {
 
 		await user.click(paletteButton)
 		expect(screen.getByRole('complementary', { name: '노드 추가' })).toHaveFocus()
+		// 팔레트에 가려진 버튼으로 Shift+Tab이 가면 보이지 않는 곳에서 팔레트가 닫힌다.
+		await user.tab({ shift: true })
+		expect(paletteButton).not.toHaveFocus()
+		screen.getByRole('complementary', { name: '노드 추가' }).focus()
 		await user.keyboard('{Escape}')
 		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
 		expect(paletteButton).toHaveFocus()
