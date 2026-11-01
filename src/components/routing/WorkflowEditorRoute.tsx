@@ -17,7 +17,7 @@ const WorkflowEditorDataPrefetch = () => {
 	return null
 }
 
-/** `workflow/new`와 `workflow/:workflowId`의 편집 page를 lazy chunk로 렌더한다. chunk를 받는 동안 page shell을, 받지 못하면 새로고침 안내를 표시한다. */
+/** `workflow/:workflowId`의 편집 page를 lazy chunk로 렌더한다. chunk를 받는 동안 page shell을, 받지 못하면 새로고침 안내를 표시한다. */
 export const WorkflowEditorRoute = () => {
 	const { workflowId } = useParams<{ workflowId: string }>()
 
@@ -26,9 +26,7 @@ export const WorkflowEditorRoute = () => {
 			<WorkflowEditorDataPrefetch />
 			{workflowId && <WorkflowDetailPrefetch workflowId={workflowId} />}
 			<ChunkLoadErrorBoundary renderFallback={reload => <WorkflowEditorLoadError onReload={reload} />}>
-				<Suspense
-					fallback={<WorkflowDetailSkeleton label={workflowId ? undefined : '워크플로우 편집 화면 불러오는 중'} />}
-				>
+				<Suspense fallback={<WorkflowDetailSkeleton />}>
 					<LazyWorkflowEditorPage />
 				</Suspense>
 			</ChunkLoadErrorBoundary>

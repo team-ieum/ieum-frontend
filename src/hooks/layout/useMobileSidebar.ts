@@ -50,6 +50,9 @@ export const useMobileSidebar = () => {
 
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== 'Escape') return
+			// 사이드바 위에 뜬 모달(생성 실패 안내 등)의 Escape는 그 모달만 닫아야 한다. 모달의 focus-trap은 Escape를
+			// 막지 않고 리스너 실행 순서도 등록 순서에 달려 있어, 이벤트 대신 열린 모달이 DOM에 있는지로 판단한다.
+			if (document.querySelector('[aria-modal="true"]')) return
 			focusTargetAfterClose.current = 'menuButton'
 			setIsOpen(false)
 		}
