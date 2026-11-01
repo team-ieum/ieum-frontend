@@ -1,10 +1,13 @@
 import { QueryClientProvider } from '@tanstack/react-query'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { useState } from 'react'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
+import { NODE_TEST_PATH } from '@/mocks/nodeTestHandlers'
+import { server } from '@/mocks/server'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
@@ -796,6 +799,33 @@ describe('WorkFlowPage', () => {
 		const panel = screen.getByRole('complementary', { name: '노드 설정' })
 		expect(within(panel).getByRole('heading', { name: '문의 분류하기' })).toBeInTheDocument()
 		expect(within(panel).getByLabelText(/^프롬프트/, { selector: 'textarea' })).toHaveValue('private prompt')
+	})
+
+	it('노드 테스트가 먼저 테스트할 노드를 알려 주면 열기로 그 노드 설정 패널로 바꾼다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		server.use(
+			http.post(NODE_TEST_PATH, () =>
+				HttpResponse.json(
+					{
+						success: false,
+						data: { missingNodeIds: ['action'] },
+						message: '먼저 테스트해야 하는 노드가 있습니다',
+						code: 'TEST_SAMPLE_MISSING',
+					},
+					{ status: 400 }
+				)
+			)
+		)
+		renderPage()
+
+		// 직접 실행 트리거는 확인 모달 없이 바로 테스트한다.
+		await user.click(screen.getByRole('button', { name: '노드 선택 trigger' }))
+		await user.click(screen.getByRole('button', { name: '테스트' }))
+		await user.click(await screen.findByRole('button', { name: '담당자에게 알리기 노드 열기' }))
+
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(within(panel).getByRole('heading', { name: '담당자에게 알리기' })).toBeInTheDocument()
 	})
 
 	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {

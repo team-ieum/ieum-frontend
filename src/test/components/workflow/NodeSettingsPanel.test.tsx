@@ -59,6 +59,9 @@ const createNode = (overrides: Partial<WorkflowNodeDto> = {}): WorkflowNodeDto =
 	...overrides,
 })
 
+// 노드 테스트 영역은 `NodeTestSection.test.tsx`에서 확인한다. 여기서는 필수 props만 채운다.
+const nodeTestProps = { workflowId: 'workflow-1', nodes: [], onNodeOpen: () => undefined }
+
 // 드롭다운 칸이 options·providers query와 통합 설정 링크를 쓰므로 QueryClient와 router를 함께 둔다.
 const renderWithProviders = (ui: ReactElement) => {
 	const queryClient = createTestQueryClient()
@@ -81,6 +84,7 @@ const Harness = ({
 	const [node, setNode] = useState(initialNode)
 	return (
 		<NodeSettingsPanel
+			{...nodeTestProps}
 			node={node}
 			onNodeChange={next => {
 				setNode(next)
@@ -122,7 +126,7 @@ describe('NodeSettingsPanel', () => {
 		expect(screen.getByRole('heading', { name: '요약 보내기' })).toBeInTheDocument()
 		const labels = screen.getAllByText(/^(채널|메시지|스레드)/, { selector: 'label' })
 		expect(labels.map(label => label.firstChild?.textContent)).toEqual(['채널', '메시지', '스레드'])
-		expect(screen.getByRole('status')).toHaveTextContent('필수 칸 2개가 비어 있어요')
+		expect(screen.getByText(/필수 칸 2개가 비어 있어요/)).toHaveAttribute('role', 'status')
 		expect(getFieldInput('채널')).toHaveAccessibleDescription(/필수 칸이 비어 있어요/)
 	})
 
@@ -149,7 +153,7 @@ describe('NodeSettingsPanel', () => {
 		const { onNodeChange } = renderPanel(createNode({ event: 'test.typed', config: {} }))
 
 		expect(getFieldInput('최대 개수')).toHaveAttribute('placeholder', '기본값: 20')
-		expect(screen.queryByRole('status')).not.toBeInTheDocument()
+		expect(screen.queryByText(/필수 칸 \d+개가 비어 있어요/)).not.toBeInTheDocument()
 		expect(onNodeChange).not.toHaveBeenCalled()
 	})
 
@@ -351,14 +355,14 @@ describe('NodeSettingsPanel', () => {
 
 			expect(getToolsSection()).toHaveTextContent('도구를 고르면 AI가 고른 도구를 써 가며 일해요.')
 			expect(getToolsSection()).not.toHaveTextContent('바뀌어요')
-			expect(screen.queryByRole('status')).not.toBeInTheDocument()
+			expect(screen.queryByText(/필수 칸 \d+개가 비어 있어요/)).not.toBeInTheDocument()
 		})
 
 		it('AI에게 맡길 수 없는 웹훅 칸은 비면 필수 경고를 하고 카드를 접어도 알린다', async () => {
 			const user = userEvent.setup()
 			renderPanel(createAiNode('ai.agent', [{ name: 'discord', config: {} }]))
 
-			expect(screen.getByRole('status')).toHaveTextContent('필수 칸 1개가 비어 있어요')
+			expect(screen.getByText(/필수 칸 1개가 비어 있어요/)).toHaveAttribute('role', 'status')
 			expect(getToolToggle(DISCORD_TITLE)).toHaveTextContent('필수 칸 비어 있음')
 
 			await user.click(getToolToggle(DISCORD_TITLE))
@@ -513,7 +517,7 @@ describe('NodeSettingsPanel', () => {
 			expect(lastNode().config.outputFields).toEqual([{ key: '', type: 'text' }])
 			expect(getKeyInput(1)).toHaveAttribute('aria-invalid', 'true')
 			expect(getKeyInput(1)).toHaveAccessibleDescription('이름을 입력하세요.')
-			expect(screen.getByRole('status')).toHaveTextContent('출력 칸 1곳을 고쳐야 실행할 수 있어요.')
+			expect(screen.getByText(/출력 칸 1곳을 고쳐야 실행할 수 있어요\./)).toHaveAttribute('role', 'status')
 		})
 
 		it('이름·타입·설명을 원소에 쓰고 비운 설명은 키를 뺀다', async () => {
@@ -526,7 +530,7 @@ describe('NodeSettingsPanel', () => {
 
 			expect(lastNode().config.outputFields).toEqual([{ key: 'urgent', type: 'boolean', description: '급한 문의인지' }])
 			expect(within(getOutputSection()).getByText('7/500')).toBeInTheDocument()
-			expect(screen.queryByRole('status')).not.toBeInTheDocument()
+			expect(screen.queryByText(/곳을 고쳐야 실행할 수 있어요/)).not.toBeInTheDocument()
 
 			await user.clear(screen.getByRole('textbox', { name: '1번째 출력 칸 설명' }))
 			expect(lastNode().config.outputFields).toEqual([{ key: 'urgent', type: 'boolean' }])
@@ -544,7 +548,7 @@ describe('NodeSettingsPanel', () => {
 			)
 
 			expect(getKeyInput(2)).toHaveAccessibleDescription(/민감정보/)
-			expect(screen.getByRole('status')).toHaveTextContent('출력 칸 1곳을')
+			expect(screen.getByText(/출력 칸 1곳을/)).toHaveAttribute('role', 'status')
 
 			await user.clear(getKeyInput(2))
 			await user.type(getKeyInput(2), 'summary')
@@ -557,7 +561,7 @@ describe('NodeSettingsPanel', () => {
 			await user.type(getKeyInput(2), '_2')
 			expect(getKeyInput(2)).not.toHaveAttribute('aria-invalid')
 			expect(within(getOutputSection()).queryByRole('alert')).not.toBeInTheDocument()
-			expect(screen.queryByRole('status')).not.toBeInTheDocument()
+			expect(screen.queryByText(/곳을 고쳐야 실행할 수 있어요/)).not.toBeInTheDocument()
 		})
 
 		it('타입이 비었거나 목록 밖이면 타입 드롭다운을 오류로 표시하고 고르면 지운다', async () => {
@@ -607,7 +611,7 @@ describe('NodeSettingsPanel', () => {
 		it('밖에서 출력 칸 값이 바뀌면 행을 다시 그린다', () => {
 			const node = createReasoningNode({ outputFields: [{ key: 'first', type: 'text' }] })
 			const { rerender } = renderWithProviders(
-				<NodeSettingsPanel node={node} onNodeChange={() => undefined} onClose={() => undefined} />
+				<NodeSettingsPanel {...nodeTestProps} node={node} onNodeChange={() => undefined} onClose={() => undefined} />
 			)
 			expect(getKeyInput(1)).toHaveValue('first')
 
@@ -617,7 +621,9 @@ describe('NodeSettingsPanel', () => {
 					{ key: 'score', type: 'number' },
 				],
 			})
-			rerender(<NodeSettingsPanel node={changed} onNodeChange={() => undefined} onClose={() => undefined} />)
+			rerender(
+				<NodeSettingsPanel {...nodeTestProps} node={changed} onNodeChange={() => undefined} onClose={() => undefined} />
+			)
 
 			expect(getKeyInput(1)).toHaveValue('from_chat')
 			expect(getKeyInput(2)).toHaveValue('score')
@@ -752,6 +758,7 @@ describe('NodeSettingsPanel', () => {
 		it('표시 이름이 빈 문자열이면 ID를, 목록에 없는 참조식 값은 그대로 보여 준다', () => {
 			const { unmount } = renderWithProviders(
 				<NodeSettingsPanel
+					{...nodeTestProps}
 					node={createNode({ config: { brand: 'slack', channel: 'C1', _names: { channel: '' } } })}
 					onNodeChange={vi.fn()}
 					onClose={vi.fn()}
@@ -940,7 +947,9 @@ describe('NodeSettingsPanel', () => {
 			const user = userEvent.setup()
 			mockOptions(() => optionsError(400, 'INVALID_INPUT'))
 			const onClose = vi.fn()
-			renderWithProviders(<NodeSettingsPanel node={createNode()} onNodeChange={vi.fn()} onClose={onClose} />)
+			renderWithProviders(
+				<NodeSettingsPanel {...nodeTestProps} node={createNode()} onNodeChange={vi.fn()} onClose={onClose} />
+			)
 
 			await user.click(getFieldInput('채널'))
 			await screen.findByRole('alert')
@@ -958,7 +967,9 @@ describe('NodeSettingsPanel', () => {
 			mockOptions(() => ({ items: channels }))
 			const onClose = vi.fn()
 			const onNodeChange = vi.fn()
-			renderWithProviders(<NodeSettingsPanel node={createNode()} onNodeChange={onNodeChange} onClose={onClose} />)
+			renderWithProviders(
+				<NodeSettingsPanel {...nodeTestProps} node={createNode()} onNodeChange={onNodeChange} onClose={onClose} />
+			)
 			const trigger = getFieldInput('채널')
 			trigger.focus()
 
@@ -1051,6 +1062,7 @@ describe('NodeSettingsPanel', () => {
 		const panelProps = { onNodeChange: vi.fn(), onClose: vi.fn() }
 		const { rerender } = renderWithProviders(
 			<NodeSettingsPanel
+				{...nodeTestProps}
 				node={createNode({ event: 'test.typed', config: { count: 1, headers: { A: '1' } } })}
 				{...panelProps}
 			/>
@@ -1059,6 +1071,7 @@ describe('NodeSettingsPanel', () => {
 
 		rerender(
 			<NodeSettingsPanel
+				{...nodeTestProps}
 				node={createNode({ event: 'test.typed', config: { count: '{{nodes.a.output.n}}', headers: { B: '2' } } })}
 				{...panelProps}
 			/>
@@ -1101,13 +1114,13 @@ describe('NodeSettingsPanel', () => {
 		const user = userEvent.setup()
 		mocks.entries = undefined
 		const { unmount } = renderWithProviders(
-			<NodeSettingsPanel node={createNode()} onNodeChange={vi.fn()} onClose={vi.fn()} />
+			<NodeSettingsPanel {...nodeTestProps} node={createNode()} onNodeChange={vi.fn()} onClose={vi.fn()} />
 		)
 		expect(screen.getByRole('status', { name: '설정 칸 불러오는 중' })).toHaveAttribute('aria-busy', 'true')
 		unmount()
 
 		mocks.isError = true
-		renderWithProviders(<NodeSettingsPanel node={createNode()} onNodeChange={vi.fn()} onClose={vi.fn()} />)
+		renderWithProviders(<NodeSettingsPanel {...nodeTestProps} node={createNode()} onNodeChange={vi.fn()} onClose={vi.fn()} />)
 		await user.click(screen.getByRole('button', { name: '다시 시도' }))
 		expect(mocks.refetch).toHaveBeenCalled()
 	})
@@ -1123,7 +1136,7 @@ describe('NodeSettingsPanel', () => {
 	it('닫기 버튼과 Escape로 닫는다', async () => {
 		const user = userEvent.setup()
 		const onClose = vi.fn()
-		renderWithProviders(<NodeSettingsPanel node={createNode()} onNodeChange={vi.fn()} onClose={onClose} />)
+		renderWithProviders(<NodeSettingsPanel {...nodeTestProps} node={createNode()} onNodeChange={vi.fn()} onClose={onClose} />)
 
 		await user.click(screen.getByRole('button', { name: '노드 설정 닫기' }))
 		await user.keyboard('{Escape}')

@@ -394,8 +394,11 @@ const WorkFlowPage = () => {
 					<NodeSettingsPanel
 						// 캔버스가 다시 마운트돼도 패널은 유지해 입력 포커스를 뺏지 않는다. 바뀐 값은 칸이 스스로 다시 맞춘다.
 						key={settingsNode.id}
+						workflowId={workflowId ?? ''}
 						node={settingsNode}
+						nodes={document?.nodes ?? []}
 						onNodeChange={handleNodeUpdate}
+						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						onClose={closeNodeSettings}
 					/>
 				) : null}

@@ -30,6 +30,11 @@ export const queryKeys = {
 	nodeCatalog: {
 		all: () => ['node-catalog'] as const,
 	},
+	nodeTestSamples: {
+		all: () => ['node-test-samples'] as const,
+		/** `workflows.detail` 무효화에 휩쓸리지 않도록 워크플로우 키 밖에 둔다. */
+		detail: (workflowId: string, nodeId: string) => [...queryKeys.nodeTestSamples.all(), workflowId, nodeId] as const,
+	},
 	nodeOptions: {
 		all: () => ['node-options'] as const,
 		list: (source: string, inputs: Record<string, string>) => [...queryKeys.nodeOptions.all(), source, inputs] as const,

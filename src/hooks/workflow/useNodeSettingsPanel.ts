@@ -83,6 +83,7 @@ export const useNodeSettingsPanel = ({ node, onNodeChange }: UseNodeSettingsPane
 
 	return {
 		status,
+		entry,
 		entryTitle: entry?.title,
 		fields,
 		aiTools,
