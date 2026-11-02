@@ -48,7 +48,7 @@ const WorkflowListCard = ({ workflow, onOpen, onDelete }: WorkflowListCardProps)
 							<TriggerPill trigger={workflow.trigger} />
 							{workflow.scheduleLabel ? (
 								<span
-									className='max-w-24 min-w-0 truncate typo-caption1_regular text-neutral-400'
+									className='max-w-36 min-w-0 truncate typo-caption1_regular text-neutral-400'
 									title={workflow.cronExpression ?? undefined}
 								>
 									{workflow.scheduleLabel}
