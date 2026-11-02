@@ -18,12 +18,14 @@ export interface ValidateCredentialResult {
 	valid: boolean
 }
 
-export interface ProviderModel {
+interface ProviderModel {
 	id: string
 	displayName: string
 	capabilities: string[]
 	maxOutputTokens: number
 	contextWindow: number
+	/** provider 기본 모델 여부(provider당 하나). AI 노드 model을 비우면 이 모델로 실행한다. */
+	default?: boolean
 }
 
 export interface ProviderInfo {

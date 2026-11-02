@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { NAV_ITEMS } from '@/constants/layout'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import { useCreateBlankWorkflow } from '@/hooks/workflow/useCreateBlankWorkflow'
 import { useWorkflowListQuery } from '@/hooks/workflow/queries/useWorkflowListQuery'
 import type { SidebarRecentWorkflowItem, SidebarViewModel } from '@/types/layout'
 import { formatRelativeTime } from '@/utils/formatRelativeTime'
@@ -28,8 +29,6 @@ export const useSidebarViewModel = ({ onSelect }: UseSidebarViewModelOptions = {
 				label: item.label,
 				path: item.path,
 				isActive: isPathActive(pathname, item.path),
-				dot: item.dot,
-				count: item.count,
 			})),
 		[pathname]
 	)
@@ -57,10 +56,11 @@ export const useSidebarViewModel = ({ onSelect }: UseSidebarViewModelOptions = {
 			})
 	}, [data, pathname])
 
+	const { createBlankWorkflow, isCreating } = useCreateBlankWorkflow()
+	// 모바일 사이드바는 onSelect로 닫히므로 생성에 실패하면 열어 둔 채 오류 모달을 보여 준다.
 	const onCreateCanvasClick = useCallback(() => {
-		navigate('/workflow/new')
-		onSelect?.('/workflow/new')
-	}, [navigate, onSelect])
+		void createBlankWorkflow(onSelect)
+	}, [createBlankWorkflow, onSelect])
 
 	const onRecentWorkflowClick = useCallback(
 		(workflow: SidebarRecentWorkflowItem) => {
@@ -75,6 +75,7 @@ export const useSidebarViewModel = ({ onSelect }: UseSidebarViewModelOptions = {
 		navItems,
 		recentWorkflows,
 		isRecentWorkflowsLoading: isLoading,
+		isCreatingCanvas: isCreating,
 		onCreateCanvasClick,
 		onRecentWorkflowClick,
 	}

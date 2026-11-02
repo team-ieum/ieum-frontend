@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { WorkflowEdgeType } from '@/types/workflow'
+import type { WorkflowNodeDto } from '@/types/workflowList'
 import { normalizeWorkflowCanvasDocument, toWorkflowEdgeDtos } from '@/utils/workflow/mapWorkflowCanvas'
 import {
 	inspectWorkflowDraft,
 	isSameWorkflowDraft,
+	removeLegacyWorkflowDrafts,
 	removeWorkflowDraft,
 	type WorkflowDraftData,
 	writeWorkflowDraft,
@@ -30,6 +32,11 @@ export const useWorkflowEditorViewModel = ({
 	serverDocument,
 }: UseWorkflowEditorViewModelOptions) => {
 	const [editorSession, setEditorSession] = useState<WorkflowEditorSession | null>(null)
+
+	// 키가 바뀌어 더는 읽지 않는 이전 버전 초안이 저장 용량을 차지하지 않게 편집 화면 진입 시 정리한다.
+	useEffect(() => {
+		removeLegacyWorkflowDrafts()
+	}, [])
 	const editorKey = workflowId && workflowVersion !== undefined ? `${workflowId}:${workflowVersion}` : ''
 
 	if (workflowId && workflowVersion !== undefined && serverDocument && editorSession?.key !== editorKey) {
@@ -116,10 +123,49 @@ export const useWorkflowEditorViewModel = ({
 		[commitDocument, document]
 	)
 
+	// 노드와 함께 만든 연결은 같은 커밋에 실어야 앞선 커밋이 이 렌더의 document를 덮어쓰며 노드를 잃지 않는다.
+	const handleNodeAdd = useCallback(
+		(node: WorkflowNodeDto, edges?: WorkflowEdgeType[]) => {
+			if (!document) return
+			commitDocument({
+				...document,
+				nodes: [...document.nodes, node],
+				edges: edges ? toWorkflowEdgeDtos(edges) : document.edges,
+			})
+		},
+		[commitDocument, document]
+	)
+
+	// 설정 폼 입력은 노드를 통째로 바꾸지만 캔버스는 다시 마운트하지 않아 입력 중인 칸의 포커스를 지킨다.
+	const handleNodeUpdate = useCallback(
+		(nextNode: WorkflowNodeDto) => {
+			if (!document) return
+			commitDocument({
+				...document,
+				nodes: document.nodes.map(node => (node.id === nextNode.id ? nextNode : node)),
+			})
+		},
+		[commitDocument, document]
+	)
+
 	const handleEdgesCommit = useCallback(
 		(edges: WorkflowEdgeType[]) => {
 			if (!document) return
 			commitDocument({ ...document, edges: toWorkflowEdgeDtos(edges) })
+		},
+		[commitDocument, document]
+	)
+
+	// 같은 삭제 이벤트에서 먼저 커밋된 연결 삭제가 이 렌더의 document에는 아직 없어, 연결은 캔버스가 넘긴 최신 목록으로 덮어쓴다.
+	const handleNodesRemove = useCallback(
+		(nodeIds: string[], edges: WorkflowEdgeType[]) => {
+			if (!document) return
+			const removedNodeIds = new Set(nodeIds)
+			commitDocument({
+				...document,
+				nodes: document.nodes.filter(node => !removedNodeIds.has(node.id)),
+				edges: toWorkflowEdgeDtos(edges),
+			})
 		},
 		[commitDocument, document]
 	)
@@ -145,7 +191,10 @@ export const useWorkflowEditorViewModel = ({
 		canvasKey: editorSession?.key === editorKey ? `${editorSession.key}:${editorSession.canvasRevision}` : null,
 		handleTitleChange,
 		handleNodePositionCommit,
+		handleNodeAdd,
+		handleNodeUpdate,
 		handleEdgesCommit,
+		handleNodesRemove,
 		handleCanvasUpdate,
 	}
 }

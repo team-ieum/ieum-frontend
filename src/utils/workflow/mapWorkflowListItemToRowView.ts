@@ -24,6 +24,7 @@ export const mapWorkflowListItemToRowView = (workflow: WorkflowListItem): Workfl
 		status: workflow.status,
 		statusBarClass: WORKFLOW_STATUS_META[workflow.status].barClass,
 		trigger: workflow.trigger,
+		cronExpression: workflow.cronExpression,
 		scheduleLabel: toScheduleLabel(workflow),
 	}
 }

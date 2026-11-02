@@ -4,6 +4,8 @@ import PatternBackground from '@/components/common/PatternBackground'
 const UserPage = () => {
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
+			{/* 디자인상 화면 제목은 두지 않고 보조 기술에만 페이지 제목을 제공한다. */}
+			<h1 className='sr-only'>계정 설정</h1>
 			<PatternBackground />
 
 			<div className='relative z-10 mx-auto flex min-h-[calc(100vh-var(--layout-header-height)-2.5rem)] w-full items-start justify-center pt-6 sm:pt-8 lg:min-h-[calc(100vh-var(--layout-header-height)-2rem)] lg:pt-4'>

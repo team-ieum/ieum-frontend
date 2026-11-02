@@ -1,5 +1,7 @@
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { DashboardExpandableListState, RunRow } from '@/types/dashboard'
+import type { IntegrationBrand } from '@/types/integration'
 import DashboardCard from './DashboardCard'
 import DashboardIcon from './DashboardIcon'
 import DashboardStatusBadge from './DashboardStatusBadge'
@@ -13,10 +15,16 @@ type DashboardRunTableProps = {
 
 type DashboardTriggerChipProps = {
 	kind: string
+	brand?: IntegrationBrand
 }
 
-const TriggerChip = ({ kind }: DashboardTriggerChipProps) => (
-	<span className='inline-flex items-center rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 typo-caption1_medium text-neutral-600'>
+const TriggerChip = ({ kind, brand }: DashboardTriggerChipProps) => (
+	<span className='inline-flex items-center gap-1 rounded-md border border-neutral-200 bg-neutral-50 px-2 py-0.5 typo-caption1_medium text-neutral-600'>
+		{brand ? (
+			<span aria-hidden='true' className='inline-flex size-3.5 [&_img]:size-full! [&_img]:object-contain'>
+				{getBrandConfig(brand).icon}
+			</span>
+		) : null}
 		{kind}
 	</span>
 )
@@ -25,7 +33,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 	const { visibleItems, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = runs
 
 	return (
-		<DashboardCard className='min-h-[319px] w-full' aria-busy={resource.isLoading || resource.isRefetching}>
+		<DashboardCard className='min-h-79.75 w-full' aria-busy={resource.isLoading || resource.isRefetching}>
 			<DashboardResourceStatus
 				{...resource}
 				loadingMessage='최근 실행 로그 불러오는 중'
@@ -43,7 +51,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 			) : null}
 
 			<div className='overflow-x-auto'>
-				<table className='w-full min-w-[720px] border-collapse'>
+				<table className='w-full min-w-180 border-collapse'>
 					<thead>
 						<tr className='bg-neutral-50'>
 							{TABLE_HEADERS.map(header => (
@@ -109,7 +117,7 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 										{run.time}
 									</td>
 									<td className='px-5 py-3.5 align-middle'>
-										<TriggerChip kind={run.trigger} />
+										<TriggerChip kind={run.trigger} brand={run.triggerBrand} />
 									</td>
 									<td className='px-5 py-3.5 align-middle typo-caption1_regular text-neutral-400'>
 										{run.when}

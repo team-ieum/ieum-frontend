@@ -13,12 +13,18 @@ export type WorkflowErrorCode =
 	| 'INVALID_CURSOR'
 	| 'WORKFLOW_HAS_NO_AI_NODE'
 	| 'CHAT_SESSION_NOT_FOUND'
+	| 'TEST_SAMPLE_MISSING'
+	| 'TEST_SAMPLE_NOT_FOUND'
+	| 'WEBHOOK_TOKEN_NOT_ISSUED'
 
 // --- API response types ---
 
 export type WorkflowNodeDto = {
 	id: string
+	/** 서버가 event로 계산해 응답에 채우는 값. 요청에 실어 보내도 서버는 무시합니다. */
 	type: string
+	/** 노드 정체성(카탈로그 항목 id, 예: `slack_bot.send_channel_message`). 생성·수정 요청에 필수입니다. */
+	event: string
 	label: string
 	description?: string
 	position?: {
@@ -29,6 +35,8 @@ export type WorkflowNodeDto = {
 }
 
 export type WorkflowEdgeDto = {
+	/** 서버 엣지 id. 레거시 정의는 null이고, 새 엣지는 생략하면 서버가 채웁니다. */
+	id?: string | null
 	source: string
 	target: string
 	conditionType?: string | null
@@ -50,7 +58,7 @@ export type WorkflowDto = {
 	updatedAt: string
 }
 
-export type WorkflowPageDto = {
+type WorkflowPageDto = {
 	content: WorkflowDto[]
 	size: number
 	hasNext: boolean
@@ -83,12 +91,19 @@ export type WorkflowCategoryId =
 	| 'ops'
 	| 'data'
 
+/** 연동 앱 이벤트 트리거. 정의는 `APP_EVENT_TRIGGERS`에 있다. */
+// prettier-ignore
+export type WorkflowAppTriggerId =
+	| 'gmailNewEmail'
+	| 'githubNewIssue'
+
 // prettier-ignore
 export type WorkflowTriggerType =
 	| 'schedule'
 	| 'webhook'
 	| 'event'
 	| 'manual'
+	| WorkflowAppTriggerId
 
 // prettier-ignore
 export type WorkflowStatus =
@@ -107,7 +122,7 @@ export type WorkflowViewMode =
 	| 'card'
 	| 'row'
 
-export type IsoDateString = string
+type IsoDateString = string
 
 export type WorkflowListFilters = {
 	services: WorkflowServiceId[]
@@ -118,7 +133,6 @@ export type WorkflowListFilters = {
 export type WorkflowListItem = {
 	id: string
 	name: string
-	tags: string[]
 	desc: string
 	services: WorkflowServiceId[]
 	category: WorkflowCategoryId
@@ -128,7 +142,6 @@ export type WorkflowListItem = {
 	nodeCount?: number
 	updatedAt?: IsoDateString
 	lastRun: IsoDateString
-	success: number
 }
 
 export type WorkflowListRowView = {
@@ -142,7 +155,8 @@ export type WorkflowListRowView = {
 	status: WorkflowStatus
 	statusBarClass: string
 	trigger: WorkflowTriggerType
-	/** 스케줄 트리거일 때 cron을 읽을 수 있게 바꾼 문구 */
+	cronExpression?: string | null
+	/** 스케줄 트리거일 때 cron을 읽을 수 있게 바꾼 문구. 해석할 수 없으면 cron 원문이다. */
 	scheduleLabel: string | null
 }
 
@@ -195,8 +209,6 @@ export type WorkflowListViewModel = {
 	activeFilterCount: number
 	totalCount: number
 	serviceCounts: Record<WorkflowServiceId, number>
-	categoryCounts: Record<WorkflowCategoryId, number>
-	statusCounts: Record<WorkflowStatus, number>
 	resource: AsyncResourceState
 	isFiltered: boolean
 	isRefetching: boolean

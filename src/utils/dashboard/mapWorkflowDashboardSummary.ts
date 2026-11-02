@@ -23,19 +23,19 @@ export const formatDashboardDuration = (seconds: number): string => {
 	return remainder > 0 ? `${minutes}m ${remainder}s` : `${minutes}m`
 }
 
-export const formatDashboardSuccessRate = (rate: number): string => {
+const formatDashboardSuccessRate = (rate: number): string => {
 	if (!Number.isFinite(rate)) return '–'
 	return `${toDisplayPercent(rate).toFixed(1)}%`
 }
 
-export const mapMetricsToHero = (metrics: WorkflowDashboardMetrics): DashboardHeroMetrics => ({
+const mapMetricsToHero = (metrics: WorkflowDashboardMetrics): DashboardHeroMetrics => ({
 	totalRuns: metrics.todayRuns,
 	changePercent: Math.round(toDisplayPercent(metrics.percentageChange)),
 	avgDuration: formatDashboardDuration(metrics.averageDurationSeconds),
 	successRate: formatDashboardSuccessRate(metrics.successRate),
 })
 
-export const mapHourlyCountsToExecutions = (hourlyCounts: Record<string, number>): HourlyExecution[] =>
+const mapHourlyCountsToExecutions = (hourlyCounts: Record<string, number>): HourlyExecution[] =>
 	Object.entries(hourlyCounts)
 		.map(([hour, count]) => ({
 			t: hour.padStart(2, '0'),
@@ -51,7 +51,7 @@ const mapWorkflowStatsToPills = (stats: WorkflowDashboardWorkflowStats): StatusP
 	}))
 }
 
-export const mapWorkflowStatsToSummary = (stats: WorkflowDashboardWorkflowStats): DashboardWorkflowSummary => ({
+const mapWorkflowStatsToSummary = (stats: WorkflowDashboardWorkflowStats): DashboardWorkflowSummary => ({
 	totalCount: stats.total,
 	pills: mapWorkflowStatsToPills(stats),
 })

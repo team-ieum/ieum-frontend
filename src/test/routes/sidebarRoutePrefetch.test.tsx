@@ -6,6 +6,7 @@ import {
 	createObservedFailureHandlers,
 	createObservedSuccessHandlers,
 	createPartialFailureHandlers,
+	createResourceHoldHandler,
 	type ApiMockResource,
 } from '@/mocks/apiScenarios'
 import { WORKFLOW_FIXTURE_ID } from '@/mocks/fixtures/workflows'
@@ -17,6 +18,8 @@ vi.mock('@/components/routing/RouteTransition', async () => {
 	const { Outlet } = await import('react-router')
 	return { RouteTransition: Outlet }
 })
+
+const DASHBOARD_RESOURCES: ApiMockResource[] = ['dashboardSummary', 'dashboardExecutions', 'dashboardErrors']
 
 const countRequests = (requestObserver: ReturnType<typeof vi.fn>, resource: ApiMockResource) =>
 	requestObserver.mock.calls.filter(([requestedResource]) => requestedResource === resource).length
@@ -136,7 +139,9 @@ describe('SideBar route data prefetch', () => {
 		expect(router.state.location.pathname).toBe('/main')
 		expect(screen.getByText('총 8개 워크플로우')).toBeInTheDocument()
 		expect(screen.getByText('외부 서비스 응답 지연')).toBeInTheDocument()
-		expect(screen.queryByText('불러오는 중…')).not.toBeInTheDocument()
+		expect(screen.queryByText('대시보드 요약 불러오는 중')).not.toBeInTheDocument()
+		expect(screen.queryByText('최근 실행 로그 불러오는 중')).not.toBeInTheDocument()
+		expect(screen.queryByText('오류 목록 불러오는 중')).not.toBeInTheDocument()
 		expect(countRequests(observeRequest, 'dashboardSummary')).toBe(1)
 		expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(1)
 		expect(countRequests(observeRequest, 'dashboardErrors')).toBe(1)
@@ -145,17 +150,27 @@ describe('SideBar route data prefetch', () => {
 	it('진행 중인 prefetch를 기다리지 않고 이동한 뒤 기존 loading UI를 표시한다', async () => {
 		const queryClient = createTestQueryClient()
 		const observeRequest = vi.fn()
-		server.use(...createObservedSuccessHandlers(observeRequest, 80))
+		const holdRequest = vi.fn()
+		let releaseDashboard!: () => void
+		const dashboardRelease = new Promise<void>(resolve => {
+			releaseDashboard = resolve
+		})
+		server.use(...createObservedSuccessHandlers(observeRequest))
+		// 고정 지연 대신 응답을 붙잡아, 부하와 관계없이 prefetch가 진행 중인 상태에서 이동한다.
+		server.use(...DASHBOARD_RESOURCES.map(resource => createResourceHoldHandler(resource, dashboardRelease, holdRequest)))
 		const { router } = renderAppRoute('/user', { queryClient })
 		const dashboard = screen.getByRole('link', { name: '대시보드' })
 
 		fireEvent.pointerEnter(dashboard)
-		await waitFor(() => expect(countRequests(observeRequest, 'dashboardSummary')).toBe(1))
+		await waitFor(() => expect(holdRequest).toHaveBeenCalledTimes(DASHBOARD_RESOURCES.length))
 		fireEvent.click(dashboard)
 
 		expect(router.state.location.pathname).toBe('/main')
 		expect(screen.getByRole('heading', { level: 1, name: '대시보드' })).toBeInTheDocument()
-		expect(screen.getAllByText('불러오는 중…').length).toBeGreaterThan(0)
+		expect(screen.getByText('대시보드 요약 불러오는 중')).toHaveAttribute('role', 'status')
+		expect(screen.getByText('최근 실행 로그 불러오는 중')).toHaveAttribute('role', 'status')
+		expect(screen.getByText('오류 목록 불러오는 중')).toHaveAttribute('role', 'status')
+		releaseDashboard()
 		expect(await screen.findByText('외부 서비스 응답 지연')).toBeInTheDocument()
 		expect(countRequests(observeRequest, 'dashboardSummary')).toBe(1)
 		expect(countRequests(observeRequest, 'dashboardExecutions')).toBe(1)

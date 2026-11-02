@@ -8,14 +8,14 @@ type WorkflowEmptyStateProps = {
 }
 
 const WorkflowEmptyState = ({ onReset, onCreate, isFiltered }: WorkflowEmptyStateProps): ReactElement => (
-	<div className='flex min-h-[360px] flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center'>
+	<div className='flex min-h-90 flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-white px-6 py-12 text-center'>
 		<div className='grid h-14 w-14 place-items-center rounded-2xl bg-main-light-blue text-main-deep-blue'>
 			<SearchX size={28} />
 		</div>
 		<h2 className='mt-4 typo-title3_semibold text-neutral-800'>
 			{isFiltered ? '조건에 맞는 워크플로우가 없어요' : '워크플로우가 아직 없어요'}
 		</h2>
-		<p className='mt-2 max-w-[360px] typo-body3_regular text-neutral-500'>
+		<p className='mt-2 max-w-90 typo-body3_regular text-neutral-500'>
 			{isFiltered ? '필터를 줄이거나 검색어를 바꿔보세요.' : '첫 워크플로우를 만들고 반복 작업을 자동화해보세요.'}
 			<br />새 워크플로우로 바로 시작할 수도 있습니다.
 		</p>

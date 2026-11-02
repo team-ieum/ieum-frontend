@@ -6,6 +6,7 @@ import {
 	createAllFailureHandlers,
 	createDelayedSuccessHandlers,
 	createEmptyHandlers,
+	createHeldSuccessHandlers,
 	createObservedSuccessHandlers,
 	createPartialFailureHandlers,
 	createResourceApiErrorHandler,
@@ -101,13 +102,15 @@ describe('/workflow/:workflowId route harness', () => {
 			await screen.findByDisplayValue('고객 문의 자동 분류')
 			await waitFor(() => expect(queryClient.isFetching()).toBe(0))
 			await act(async () => router.navigate('/user'))
-			server.use(...createDelayedSuccessHandlers(40))
+			const heldResponses = createHeldSuccessHandlers()
+			server.use(...heldResponses.handlers)
 			vi.setSystemTime(startedAt + 10_001)
 			await act(async () => router.navigate(detailPath))
 
 			expect(screen.getByDisplayValue('고객 문의 자동 분류')).toBeInTheDocument()
 			expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(1)
 			expect(queryClient.isFetching({ queryKey: queryKeys.providers.list() })).toBe(0)
+			heldResponses.release()
 			await waitFor(() =>
 				expect(queryClient.isFetching({ queryKey: queryKeys.workflows.detail(WORKFLOW_FIXTURE_ID) })).toBe(0)
 			)

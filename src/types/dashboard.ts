@@ -1,4 +1,5 @@
 import type { AsyncResourceState } from '@/types/asyncResource'
+import type { IntegrationBrand } from '@/types/integration'
 
 // --- Model (도메인) ---
 
@@ -11,10 +12,12 @@ export type RunRow = {
 	status: RunStatus
 	time: string
 	trigger: string
+	/** 앱 이벤트 트리거만 있다. 칩에 이 브랜드 로고를 함께 보여 준다. */
+	triggerBrand?: IntegrationBrand
 	when: string
 }
 
-export type ErrorSeverity = 'error' | 'warning'
+type ErrorSeverity = 'error' | 'warning'
 
 export type ErrorRow = {
 	id: string
@@ -30,7 +33,7 @@ export type HourlyExecution = {
 	count: number
 }
 
-export type PillTone = 'active' | 'inactive' | 'error' | 'running'
+type PillTone = 'active' | 'inactive' | 'error' | 'running'
 
 export type StatusPillItem = {
 	label: string
@@ -68,7 +71,7 @@ export type StatusBadgeConfig = {
 	pill: string
 }
 
-export type StatusPillSkin = {
+type StatusPillSkin = {
 	wrap: string
 	chip: string
 	num: string

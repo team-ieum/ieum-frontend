@@ -1,4 +1,4 @@
-import type { RouteObject } from 'react-router'
+import { Navigate, type RouteObject } from 'react-router'
 import { Layout } from '@/components/layout/Layout'
 import ProtectedRoute from '@/components/routing/ProtectedRoute'
 import { WorkflowEditorRoute } from '@/components/routing/WorkflowEditorRoute'
@@ -52,8 +52,9 @@ export const appRoutes: RouteObject[] = [
 								element: <WorkflowListPage />,
 							},
 							{
+								// 새 워크플로우는 생성 API로 id를 받은 뒤 편집 화면을 연다. 이전 주소로 들어오면 목록으로 보낸다.
 								path: 'workflow/new',
-								element: <WorkflowEditorRoute />,
+								element: <Navigate to='/workflow' replace />,
 							},
 							{
 								path: 'workflow/:workflowId',

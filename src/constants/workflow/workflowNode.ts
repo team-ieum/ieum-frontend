@@ -7,7 +7,7 @@ type WorkflowNodeMeta = {
 	toneClass: string
 }
 
-export const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
+const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
 	TRIGGER: {
 		role: 'trigger',
 		label: '시작 조건',
@@ -37,6 +37,18 @@ export const WORKFLOW_NODE_META: Record<string, WorkflowNodeMeta> = {
 		label: 'AI 작업',
 		iconKey: 'bot',
 		toneClass: '[--node-color:#6d5ce7] [--node-tint:#eeeafd]',
+	},
+	ACTION: {
+		role: 'action',
+		label: '앱 작업',
+		iconKey: 'app',
+		toneClass: '[--node-color:#b8407a] [--node-tint:#fbe6f0]',
+	},
+	APPROVAL: {
+		role: 'action',
+		label: '승인 요청',
+		iconKey: 'approval',
+		toneClass: '[--node-color:#b4532a] [--node-tint:#fbe9df]',
 	},
 }
 

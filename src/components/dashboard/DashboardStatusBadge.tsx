@@ -1,4 +1,4 @@
-import type { RunStatus, StatusBadgeConfig } from '../../types/dashboard'
+import type { RunStatus, StatusBadgeConfig } from '@/types/dashboard'
 import DashboardIcon from './DashboardIcon'
 
 type DashboardStatusBadgeProps = {

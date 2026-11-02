@@ -1,21 +1,17 @@
 import { ArrowRight, History, Rocket, Sparkles, Webhook, type LucideIcon } from 'lucide-react'
 import type { ReactElement } from 'react'
-import {
-	WORKFLOW_CATEGORY_META,
-	WORKFLOW_SERVICE_META,
-	WORKFLOW_STATUS_META,
-	WORKFLOW_TRIGGER_META,
-} from '@/constants/workflow/workflowList'
+import { WORKFLOW_SERVICE_META, WORKFLOW_STATUS_META, WORKFLOW_TRIGGER_META } from '@/constants/workflow/workflowList'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
+import { APP_EVENT_TRIGGERS, isAppEventTriggerId } from '@/constants/workflow/workflowTrigger'
 import type { IntegrationBrand } from '@/types/integration'
-import type { WorkflowCategoryId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
+import type { WorkflowAppTriggerId, WorkflowServiceId, WorkflowStatus, WorkflowTriggerType } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const SQUARE_SIZE_CLASS: Record<number, string> = {
-	7: 'w-[7px] h-[7px]',
+	7: 'w-1.75 h-1.75',
 	8: 'w-2 h-2',
 	16: 'w-4 h-4',
-	18: 'w-[18px] h-[18px]',
+	18: 'w-4.5 h-4.5',
 	24: 'w-6 h-6',
 	28: 'w-7 h-7',
 }
@@ -40,7 +36,7 @@ export const ServiceLogo = ({ id, size = 28, className }: ServiceLogoProps): Rea
 			title={service.name}
 			aria-label={service.name}
 		>
-			<span className='flex h-[85%] w-[85%] items-center justify-center [&_img]:!h-full [&_img]:!w-full [&_img]:object-contain'>
+			<span className='flex h-[85%] w-[85%] items-center justify-center [&_img]:h-full! [&_img]:w-full! [&_img]:object-contain'>
 				{brand.icon}
 			</span>
 		</span>
@@ -121,51 +117,34 @@ export const StatusBadge = ({ status, withDot = true }: StatusBadgeProps): React
 	)
 }
 
-type CategoryPillProps = {
-	category: WorkflowCategoryId
-	count?: number
-}
-
-export const CategoryPill = ({ category, count }: CategoryPillProps): ReactElement => {
-	const categoryMeta = WORKFLOW_CATEGORY_META[category]
-
-	return (
-		<span className='inline-flex h-7 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2.5 typo-caption1_medium text-neutral-600'>
-			<span className={cn('h-2 w-2 rounded-[3px]', categoryMeta.dotClass)} />
-			{categoryMeta.label}
-			{count != null && <span className='text-neutral-400'>{count}</span>}
-		</span>
-	)
-}
-
-const TRIGGER_ICON: Record<WorkflowTriggerType, LucideIcon> = {
+// 앱 이벤트 트리거는 아이콘 대신 APP_EVENT_TRIGGERS의 브랜드 로고를 쓴다.
+const TRIGGER_ICON: Record<Exclude<WorkflowTriggerType, WorkflowAppTriggerId>, LucideIcon> = {
 	schedule: History,
 	webhook: Webhook,
 	event: Sparkles,
 	manual: Rocket,
 }
 
+const TriggerIcon = ({ trigger }: { trigger: WorkflowTriggerType }): ReactElement => {
+	if (isAppEventTriggerId(trigger)) {
+		return (
+			<span aria-hidden='true' className='inline-flex size-3.5 [&_img]:size-full! [&_img]:object-contain'>
+				{getBrandConfig(APP_EVENT_TRIGGERS[trigger].brand).icon}
+			</span>
+		)
+	}
+
+	const Icon = TRIGGER_ICON[trigger]
+	return <Icon size={14} />
+}
+
 type TriggerPillProps = {
 	trigger: WorkflowTriggerType
 }
 
-export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => {
-	const Icon = TRIGGER_ICON[trigger]
-
-	return (
-		<span className='inline-flex items-center gap-1.5 typo-caption1_regular text-neutral-500'>
-			<Icon size={14} />
-			{WORKFLOW_TRIGGER_META[trigger].label}
-		</span>
-	)
-}
-
-type WorkflowTagChipProps = {
-	children: string
-}
-
-export const WorkflowTagChip = ({ children }: WorkflowTagChipProps): ReactElement => (
-	<span className='inline-flex h-6 items-center rounded-full bg-neutral-100 px-2 typo-caption1_regular text-neutral-600'>
-		#{children}
+export const TriggerPill = ({ trigger }: TriggerPillProps): ReactElement => (
+	<span className='inline-flex items-center gap-1.5 typo-caption1_regular text-neutral-500'>
+		<TriggerIcon trigger={trigger} />
+		{WORKFLOW_TRIGGER_META[trigger].label}
 	</span>
 )

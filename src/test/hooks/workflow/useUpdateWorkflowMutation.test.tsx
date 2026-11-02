@@ -55,12 +55,16 @@ describe('useUpdateWorkflowMutation', () => {
 		queryClient.clear()
 	})
 
-	it('수정에 성공하면 워크플로우 목록 캐시만 무효화한다', async () => {
+	it('수정에 성공하면 params와 무관하게 모든 워크플로우 목록 캐시만 무효화한다', async () => {
 		const queryClient = createTestQueryClient()
-		const listKey = queryKeys.workflows.list({ size: 20 })
-		const otherDetailKey = queryKeys.workflows.detail('workflow-b')
-		queryClient.setQueryData(listKey, workflowListResponse)
-		queryClient.setQueryData(otherDetailKey, workflowDetailResponse)
+		const listKeys = [
+			queryKeys.workflows.list(),
+			queryKeys.workflows.list({ size: 20 }),
+			queryKeys.workflows.list({ cursor: 'cursor-2', size: 50 }),
+		]
+		const otherKeys = [queryKeys.workflows.detail('workflow-b'), queryKeys.workflows.dashboardSummary()]
+		for (const key of listKeys) queryClient.setQueryData(key, workflowListResponse)
+		for (const key of otherKeys) queryClient.setQueryData(key, workflowDetailResponse)
 		mocks.update.mockResolvedValueOnce(updatedResponse)
 		const { result } = renderHook(() => useUpdateWorkflowMutation('workflow-a'), {
 			wrapper: createWrapper(queryClient),
@@ -70,8 +74,8 @@ describe('useUpdateWorkflowMutation', () => {
 			await result.current.mutateAsync(body)
 		})
 
-		expect(queryClient.getQueryState(listKey)?.isInvalidated).toBe(true)
-		expect(queryClient.getQueryState(otherDetailKey)?.isInvalidated).toBe(false)
+		for (const key of listKeys) expect(queryClient.getQueryState(key)?.isInvalidated).toBe(true)
+		for (const key of otherKeys) expect(queryClient.getQueryState(key)?.isInvalidated).toBe(false)
 		queryClient.clear()
 	})
 

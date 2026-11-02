@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { queryKeys } from '@/constants/queryKeys'
 import { credentialsQueryOptions, providersQueryOptions } from '@/hooks/aiCredentials/queries/aiCredentialsQueryOptions'
 import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
+import { integrationServiceWorkflowsQueryOptions } from '@/hooks/integration/queries/integrationServiceWorkflowsQueryOptions'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import {
 	workflowDashboardErrorsQueryOptions,
@@ -134,5 +135,15 @@ describe('query option factory', () => {
 		expect(cachedData?.pages).toHaveLength(2)
 		expect(queryClient.getQueryState(queryKeys.workflows.list({ size: 20 }))?.status).toBe('success')
 		queryClient.clear()
+	})
+
+	it('통합 서비스 workflow factory는 서비스별 key를 만들고 서비스가 없으면 요청하지 않는다', () => {
+		const options = integrationServiceWorkflowsQueryOptions('SLACK', 30)
+		const disabledOptions = integrationServiceWorkflowsQueryOptions(null)
+
+		expect(options.queryKey).toEqual(queryKeys.integrations.workflows('SLACK', { size: 30 }))
+		expect(options.enabled).toBe(true)
+		expect(disabledOptions.queryKey).toEqual(queryKeys.integrations.workflows('UNKNOWN', { size: 20 }))
+		expect(disabledOptions.enabled).toBe(false)
 	})
 })

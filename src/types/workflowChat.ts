@@ -1,14 +1,15 @@
 import type { KeyboardEvent, RefObject } from 'react'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from './workflowList'
 export type ChatMessage = { type: 'user'; body: string } | { type: 'assistant'; body: string; actions?: WorkflowChatAction[] }
 
-export interface WorkflowChatAction {
+interface WorkflowChatAction {
 	type: string
 	provider: string
 	label: string
 	oauthUrl: string
 }
 
-export interface WorkflowChatOption {
+interface WorkflowChatOption {
 	value: string
 	label: string
 	description: string
@@ -16,15 +17,15 @@ export interface WorkflowChatOption {
 
 export interface WorkflowChatRequest {
 	prompt: string
-	currentNodes?: unknown[]
-	currentEdges?: unknown[]
+	currentNodes?: WorkflowNodeDto[]
+	currentEdges?: WorkflowEdgeDto[]
 	sessionId?: string
 	credentialId?: string
 }
 
 export type WorkflowChatConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error'
 
-export type WorkflowChatStreamType = 'token' | 'stage' | 'done' | 'complete' | 'error'
+type WorkflowChatStreamType = 'token' | 'stage' | 'done' | 'complete' | 'error'
 
 export interface WorkflowChatStreamResponse {
 	type: WorkflowChatStreamType

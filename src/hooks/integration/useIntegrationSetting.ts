@@ -4,6 +4,7 @@ import type { WebhookConnectServiceId } from '@/constants/integration/webhookCre
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { IntegrationDetailResolution, IntegrationService, IntegrationTabId, IntegrationView } from '@/types/integration'
 import { useIntegrationConnect } from './useIntegrationConnect'
+import { useIntegrationDisconnect } from './useIntegrationDisconnect'
 import { useIntegrationOAuthReturn } from './useIntegrationOAuthReturn'
 import { useIntegrationSectionNavigation } from './useIntegrationSectionNavigation'
 import { useIntegrationServiceNavigation } from './useIntegrationServiceNavigation'
@@ -27,6 +28,8 @@ type UseIntegrationSettingResult = {
 	goList: () => void
 	handleTabChange: (tab: IntegrationTabId) => void
 	onConnect: (id: string) => void
+	onDisconnect: () => void
+	isDisconnecting: boolean
 	webhookConnectServiceId: WebhookConnectServiceId | null
 	closeWebhookConnect: () => void
 }
@@ -45,6 +48,10 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		isListView: navigation.isListView,
 		shouldReturnToList: navigation.hasServiceIdParam,
 		onReturnToList: navigation.goList,
+	})
+	const { disconnect, isDisconnecting } = useIntegrationDisconnect({
+		service: navigation.currentService,
+		onDisconnected: navigation.goList,
 	})
 
 	const onConnect = useCallback(
@@ -72,6 +79,8 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		goList: navigation.goList,
 		handleTabChange: sections.handleSectionChange,
 		onConnect,
+		onDisconnect: disconnect,
+		isDisconnecting,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	}

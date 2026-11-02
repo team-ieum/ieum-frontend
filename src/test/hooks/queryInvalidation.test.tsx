@@ -37,7 +37,7 @@ describe('mutation query invalidation', () => {
 		await waitFor(() => expect(result.current.query.isSuccess).toBe(true))
 
 		await act(async () => {
-			await result.current.mutation.mutateAsync({ name: '새 워크플로우' })
+			await result.current.mutation.mutateAsync({ name: '새 워크플로우', nodes: [], edges: [] })
 		})
 
 		await waitFor(() => expect(observeListRequest).toHaveBeenCalledTimes(2))

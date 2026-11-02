@@ -4,9 +4,12 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
 import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
+import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const MODEL_MENU_ID = 'workflow-chat-model-menu'
+/** 시작 안내 말풍선이 FAB 등장 spring을 기다리는 시간(초). */
+const START_HINT_DELAY_S = 0.18
 
 type ModelMenuItemProps = {
 	label: string
@@ -48,11 +51,11 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 			exit={{ opacity: 0, y: 6 }}
 			transition={{ duration: 0.2 }}
 		>
-			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none' style={{ background: '#e0f6ff' }}>
+			<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none bg-main-light-blue'>
 				<img src={symbolLogo} alt='이음' draggable={false} className='pointer-events-none w-4 h-4 object-contain' />
 			</span>
 			<div
-				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-[280px] flex-wrap'
+				className='rounded-[0_14px_14px_14px] px-4 py-3.5 flex items-center gap-2 max-w-70 flex-wrap'
 				style={{ background: '#F0F4FC' }}
 			>
 				<div className='flex items-center gap-1.5'>
@@ -80,12 +83,31 @@ const TypingIndicator = ({ stage }: TypingIndicatorProps): ReactElement => {
 
 type WorkflowChatProps = {
 	workflowId: string
-	currentNodes: unknown[]
-	currentEdges: unknown[]
+	currentNodes: WorkflowNodeDto[]
+	currentEdges: WorkflowEdgeDto[]
 	onCanvasUpdate?: (nodes: unknown[], edges: unknown[]) => void
+	/** 캔버스 오른쪽에 노드 설정 패널이 열려 있으면 채팅을 그 왼쪽으로 밀어 나란히 보여 준다. */
+	isBesideNodeSettings?: boolean
+	/** 새 워크플로우처럼 노드가 없을 때 닫힌 채팅 버튼 아래에 AI로 만들 수 있다는 말풍선을 띄운다. */
+	showsStartHint?: boolean
+	/** 넘기면 열림 상태를 호출자가 가진다. 없으면 채팅이 스스로 관리한다. */
+	isOpen?: boolean
+	onOpenChange?: (isOpen: boolean) => void
 }
 
-const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }: WorkflowChatProps) => {
+const WorkflowChat = ({
+	workflowId,
+	currentNodes,
+	currentEdges,
+	onCanvasUpdate,
+	isBesideNodeSettings = false,
+	showsStartHint = false,
+	isOpen: controlledIsOpen,
+	onOpenChange,
+}: WorkflowChatProps) => {
+	const reduceMotion = useReducedMotion()
+	// 설정 패널(right-3 + w-90)과 0.75rem 간격을 둔 위치다.
+	const rightClass = isBesideNodeSettings ? 'right-96' : 'right-4'
 	const {
 		isOpen,
 		openChat,
@@ -110,7 +132,14 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 		chatBodyRef,
 		messagesEndRef,
 		inputRef,
-	} = useWorkflowChatViewModel({ workflowId, currentNodes, currentEdges, onCanvasUpdate })
+	} = useWorkflowChatViewModel({
+		workflowId,
+		currentNodes,
+		currentEdges,
+		onCanvasUpdate,
+		isOpen: controlledIsOpen,
+		onOpenChange,
+	})
 
 	return (
 		<>
@@ -125,7 +154,10 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						transition={{ type: 'spring', stiffness: 300, damping: 22 }}
 						onClick={openChat}
 						aria-label='채팅 열기'
-						className='absolute top-4 right-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer'
+						className={cn(
+							'absolute top-4 w-12 h-12 rounded-full bg-main-deep-blue grid place-items-center cursor-pointer',
+							rightClass
+						)}
 						style={{ zIndex: 10, boxShadow: '0 8px 24px -4px rgba(41,83,124,.45), 0 4px 8px -2px rgba(16,24,40,.1)' }}
 					>
 						<img
@@ -137,6 +169,25 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 					</motion.button>
 				)}
 			</AnimatePresence>
+			{/* 이미 AI에 요청을 보낸 대화가 있으면 노드가 아직 없어도 다시 권하지 않는다.
+			    퇴장 애니메이션 없이 바로 숨겨, 채팅을 열면 패널 위에 말풍선이 남지 않게 한다. */}
+			{showsStartHint && !isOpen && messages.length === 0 ? (
+				<motion.div
+					role='note'
+					// FAB이 spring으로 커지는 동안 빈 자리를 가리키지 않도록 조금 늦게 나타난다.
+					initial={{ opacity: 0, y: reduceMotion ? 0 : -4 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ delay: START_HINT_DELAY_S, duration: 0.2 }}
+					className={cn(
+						'absolute top-19 z-10 max-w-60 rounded-xl break-keep bg-main-deep-blue px-3 py-2 text-xs leading-relaxed text-white shadow-[0_10px_24px_rgba(43,72,86,0.18)]',
+						rightClass
+					)}
+				>
+					{/* 원형 버튼(w-12) 가운데를 가리키는 말풍선 꼬리 */}
+					<span aria-hidden='true' className='absolute -top-1 right-[1.1875rem] size-2.5 rotate-45 bg-main-deep-blue' />
+					AI에게 원하는 자동화를 말하면 워크플로우를 만들어 드려요.
+				</motion.div>
+			) : null}
 
 			{/* 열린 상태 — 채팅 패널 */}
 			<AnimatePresence>
@@ -147,7 +198,10 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 						animate={{ x: 0, opacity: 1 }}
 						exit={{ x: 16, opacity: 0 }}
 						transition={{ type: 'spring', stiffness: 280, damping: 26 }}
-						className='absolute top-4 right-4 bottom-4 w-[380px] bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden'
+						className={cn(
+							'absolute top-4 bottom-4 w-95 bg-white rounded-2xl border border-neutral-200 flex flex-col overflow-hidden',
+							rightClass
+						)}
 						style={{
 							zIndex: 10,
 							boxShadow: '0 24px 48px -8px rgba(16,24,40,.18), 0 8px 16px -4px rgba(16,24,40,.1)',
@@ -195,10 +249,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 								{messages.map((msg, i) =>
 									msg.type === 'assistant' ? (
 										<div key={i} className='flex gap-2 items-start'>
-											<span
-												className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none'
-												style={{ background: '#e0f6ff' }}
-											>
+											<span className='w-7 h-7 rounded-lg shrink-0 grid place-items-center select-none bg-main-light-blue'>
 												<img
 													src={symbolLogo}
 													alt='이음'
@@ -206,7 +257,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 													className='pointer-events-none w-4 h-4 object-contain'
 												/>
 											</span>
-											<div className='flex flex-col gap-2 max-w-[280px]'>
+											<div className='flex flex-col gap-2 max-w-70'>
 												<div
 													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
 													style={{ background: '#F0F4FC' }}
@@ -228,7 +279,7 @@ const WorkflowChat = ({ workflowId, currentNodes, currentEdges, onCanvasUpdate }
 										</div>
 									) : (
 										<div key={i} className='flex justify-end'>
-											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-[280px] bg-main-blue whitespace-pre-wrap'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap'>
 												{msg.body}
 											</div>
 										</div>

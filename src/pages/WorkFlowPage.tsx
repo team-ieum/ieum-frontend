@@ -1,24 +1,33 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
+import NodeAddButton from '@/components/workflow/NodeAddButton'
+import NodeCatalogPalette from '@/components/workflow/NodeCatalogPalette'
+import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import WorkflowNode from '@/components/workflow/WorkflowNode'
+import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
+import WorkflowStartCard from '@/components/workflow/WorkflowStartCard'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
+import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
+import { useNodePalette, type NodePaletteState } from '@/hooks/workflow/useNodePalette'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
 import { useWorkflowSave } from '@/hooks/workflow/useWorkflowSave'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
 import type { ApiErrorCode } from '@/types/api'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
+import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
+import type { WorkflowNodeDto } from '@/types/workflowList'
 import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
 import {
@@ -55,12 +64,70 @@ type WorkflowCanvasProps = {
 	edges: WorkflowEdgeType[]
 	nodeStatus: Record<string, NodeExecutionStatus>
 	isTracking: boolean
+	/** 열린 팔레트와 그 목적. 닫혀 있으면 null. */
+	palette: NodePaletteState | null
+	onPaletteToggle: () => void
+	onPaletteOpen: (state: NodePaletteState, invoker: HTMLElement) => void
+	onPaletteClose: () => void
+	/** 팔레트가 닫힐 때 포커스를 돌려받을 '노드 추가' 버튼. */
+	paletteButtonRef: Ref<HTMLButtonElement>
+	/** 시작 카드는 채팅이 열려 있으면 숨긴다. */
+	isChatOpen: boolean
+	onStartWithAi: () => void
+	onNodeAdd: (node: WorkflowNodeDto, edges?: WorkflowEdgeType[]) => void
 	onNodePositionCommit: (nodeId: string, position: { x: number; y: number }) => void
 	onEdgesCommit: (edges: WorkflowEdgeType[]) => void
+	onNodesRemove: (nodeIds: string[], edges: WorkflowEdgeType[]) => void
+	/** 설정 패널이 열린 노드. 그 노드 카드에만 강조 테두리를 그린다. */
+	settingsNodeId?: string
+	onNodeSelect: (nodeId: string) => void
+	onPaneClick: () => void
 }
 
-const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCommit, onEdgesCommit }: WorkflowCanvasProps) => {
-	const editor = useWorkflowCanvasEditor({ initialNodes: nodes, initialEdges: edges, onNodePositionCommit, onEdgesCommit })
+const WorkflowCanvas = ({
+	nodes,
+	edges,
+	nodeStatus,
+	isTracking,
+	palette,
+	onPaletteToggle,
+	onPaletteOpen,
+	onPaletteClose,
+	paletteButtonRef,
+	isChatOpen,
+	onStartWithAi,
+	onNodeAdd,
+	onNodePositionCommit,
+	onEdgesCommit,
+	onNodesRemove,
+	settingsNodeId,
+	onNodeSelect,
+	onPaneClick,
+}: WorkflowCanvasProps) => {
+	// ref로 넘기는 값을 editor 객체에서 꺼내 두지 않으면 lint가 editor 전체를 ref로 보고 렌더 중 접근으로 판정한다.
+	const { setCanvasElement, ...editor } = useWorkflowCanvasEditor({
+		initialNodes: nodes,
+		initialEdges: edges,
+		onNodePositionCommit,
+		onEdgesCommit,
+		onNodeAdd,
+		onNodesRemove,
+	})
+
+	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
+		if (palette?.mode === 'next') editor.addNextCatalogNode(palette.sourceNodeId, entry)
+		else editor.addCatalogNode(entry)
+		onPaletteClose()
+	}
+	const nodeActions = useMemo(
+		() => ({
+			onAddNext: (nodeId: string, invoker: HTMLButtonElement) =>
+				onPaletteOpen({ mode: 'next', sourceNodeId: nodeId }, invoker),
+		}),
+		[onPaletteOpen]
+	)
+	const isCanvasEmpty = editor.nodes.length === 0
+
 	const nodePresentation = useMemo(() => new Map(nodes.map(node => [node.id, node])), [nodes])
 	const displayNodes = useMemo(
 		() =>
@@ -74,10 +141,11 @@ const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCo
 							nodeStatus[node.id] === 'running' && !isTracking
 								? 'interrupted'
 								: toWorkflowNodeStatus(nodeStatus[node.id]),
+						isSettingsOpen: node.id === settingsNodeId,
 					},
 				}
 			}),
-		[editor.nodes, nodePresentation, nodeStatus, isTracking]
+		[editor.nodes, nodePresentation, nodeStatus, isTracking, settingsNodeId]
 	)
 	const displayEdges = useMemo(
 		() =>
@@ -88,37 +156,77 @@ const WorkflowCanvas = ({ nodes, edges, nodeStatus, isTracking, onNodePositionCo
 		[editor.edges, nodeStatus, isTracking]
 	)
 
+	// React Flow는 노드에서 Enter·Space를 선택으로만 처리하고 onNodeClick을 부르지 않아 키보드로도 설정 패널을 열 수 있게 한다.
+	const handleCanvasKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return
+		const target = event.target
+		if (!(target instanceof HTMLElement) || !target.classList.contains('react-flow__node')) return
+		const nodeId = target.dataset.id
+		if (nodeId) onNodeSelect(nodeId)
+	}
+
 	return (
-		<ReactFlow
-			className={WORKFLOW_CANVAS_CLASS}
-			nodes={displayNodes}
-			edges={displayEdges}
-			nodeTypes={nodeTypes}
-			edgeTypes={edgeTypes}
-			onNodesChange={editor.onNodesChange}
-			onEdgesChange={editor.onEdgesChange}
-			onNodeDragStop={editor.onNodeDragStop}
-			onConnect={editor.onConnect}
-			onReconnect={editor.onReconnect}
-			onReconnectStart={editor.onReconnectStart}
-			onReconnectEnd={editor.onReconnectEnd}
-			isValidConnection={editor.isValidConnection}
-			nodesDraggable
-			nodesConnectable
-			edgesReconnectable
-			elementsSelectable
-			panOnDrag
-			deleteKeyCode={['Backspace', 'Delete']}
-			fitView
-			fitViewOptions={{ padding: 0.24, minZoom: 0.78, maxZoom: 1 }}
-			minZoom={0.5}
-			maxZoom={1.4}
-			proOptions={{ hideAttribution: true }}
-		>
-			<Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color='rgba(74, 101, 124, 0.18)' />
-			<Controls showInteractive={false} />
-			<MiniMap pannable zoomable nodeStrokeWidth={3} />
-		</ReactFlow>
+		<WorkflowNodeActionsContext.Provider value={nodeActions}>
+			<ReactFlow
+				ref={setCanvasElement}
+				onKeyDown={handleCanvasKeyDown}
+				onInit={editor.onInit}
+				className={WORKFLOW_CANVAS_CLASS}
+				nodes={displayNodes}
+				edges={displayEdges}
+				nodeTypes={nodeTypes}
+				edgeTypes={edgeTypes}
+				onNodesChange={editor.onNodesChange}
+				onEdgesChange={editor.onEdgesChange}
+				onNodeDragStop={editor.onNodeDragStop}
+				onNodeClick={(_event, node) => onNodeSelect(node.id)}
+				onPaneClick={onPaneClick}
+				onConnect={editor.onConnect}
+				onReconnect={editor.onReconnect}
+				onReconnectStart={editor.onReconnectStart}
+				onReconnectEnd={editor.onReconnectEnd}
+				isValidConnection={editor.isValidConnection}
+				nodesDraggable
+				nodesConnectable
+				edgesReconnectable
+				elementsSelectable
+				panOnDrag
+				deleteKeyCode={['Backspace', 'Delete']}
+				fitView
+				fitViewOptions={{ padding: 0.24, minZoom: 0.78, maxZoom: 1 }}
+				minZoom={0.5}
+				maxZoom={1.4}
+				proOptions={{ hideAttribution: true }}
+			>
+				<Background variant={BackgroundVariant.Dots} gap={22} size={1.5} color='rgba(74, 101, 124, 0.18)' />
+				<Controls showInteractive={false} />
+				<MiniMap pannable zoomable nodeStrokeWidth={3} />
+			</ReactFlow>
+			<NodeAddButton
+				isPaletteOpen={palette !== null}
+				isAllPaletteOpen={palette?.mode === 'all'}
+				onTogglePalette={onPaletteToggle}
+				buttonRef={paletteButtonRef}
+				showsEmptyHint={isCanvasEmpty}
+			/>
+			{isCanvasEmpty ? (
+				<WorkflowStartCard
+					// 팔레트·채팅이 열린 동안 숨기기만 해, 팔레트가 닫힐 때 '트리거 고르기' 버튼으로 포커스를 돌려줄 수 있게 한다.
+					isHidden={palette !== null || isChatOpen}
+					onPickTrigger={invoker => onPaletteOpen({ mode: 'trigger' }, invoker)}
+					onStartWithAi={onStartWithAi}
+				/>
+			) : null}
+			{palette ? (
+				<NodeCatalogPalette
+					// 목적이 바뀌면 고르던 앱 단계를 비우고 처음부터 보여 준다.
+					key={palette.mode === 'next' ? `next-${palette.sourceNodeId}` : palette.mode}
+					mode={palette.mode}
+					onSelect={handleCatalogSelect}
+					onClose={onPaletteClose}
+				/>
+			) : null}
+		</WorkflowNodeActionsContext.Provider>
 	)
 }
 
@@ -130,6 +238,19 @@ const WorkFlowPage = () => {
 	const { data: providersData } = useProvidersQuery()
 	const workflow = data?.data
 	const [technicalMode, setTechnicalMode] = useState(false)
+	// 팔레트는 열릴 때 패널로 포커스를 가져가므로 닫힐 때 연 버튼으로 돌려줘야 키보드 위치를 잃지 않는다.
+	const { palette, openPalette, closePalette, toggleAllPalette, addButtonRef } = useNodePalette(workflowId)
+	// 채팅 열림은 워크플로우마다 따로 둔다. 시작 카드의 'AI로 만들기'가 바깥에서 채팅을 연다.
+	const [chatOpenWorkflowId, setChatOpenWorkflowId] = useState<string | null>(null)
+	const isChatOpen = Boolean(workflowId) && chatOpenWorkflowId === workflowId
+	const setChatOpen = (open: boolean) => setChatOpenWorkflowId(open && workflowId ? workflowId : null)
+	const { data: catalogData } = useNodeCatalogQuery()
+	// 카탈로그를 받기 전에는 판정하지 않아 정상 노드가 '지원하지 않는 작업'으로 보이지 않게 한다.
+	const catalogEntries = useMemo(
+		() => (catalogData ? new Map(catalogData.data.entries.map(entry => [entry.id, entry])) : undefined),
+		[catalogData]
+	)
+	const [selectedNode, setSelectedNode] = useState<{ workflowId: string; nodeId: string } | null>(null)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -144,7 +265,10 @@ const WorkFlowPage = () => {
 		canvasKey,
 		handleTitleChange,
 		handleNodePositionCommit,
+		handleNodeAdd,
+		handleNodeUpdate,
 		handleEdgesCommit,
+		handleNodesRemove,
 		handleCanvasUpdate,
 	} = useWorkflowEditorViewModel({
 		workflowId: workflow?.id,
@@ -155,10 +279,23 @@ const WorkFlowPage = () => {
 	const canvas = useMemo(() => {
 		if (!document) return null
 		return {
-			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode),
+			nodes: toWorkflowCanvasNodes(document.nodes, modelNames, technicalMode, catalogEntries),
 			edges: toWorkflowCanvasEdges(document.edges),
 		}
-	}, [document, modelNames, technicalMode])
+	}, [document, modelNames, technicalMode, catalogEntries])
+
+	// 채팅이 캔버스를 바꿔 고른 노드가 사라지면 설정 패널도 함께 닫힌다.
+	const settingsNode =
+		selectedNode && selectedNode.workflowId === workflowId
+			? document?.nodes.find(node => node.id === selectedNode.nodeId)
+			: undefined
+	const closeNodeSettings = () => {
+		setSelectedNode(null)
+		// 설정 패널은 열릴 때 포커스를 가져가므로 닫힐 때 그 노드로 돌려줘 키보드 위치를 잃지 않게 한다.
+		if (settingsNode) {
+			window.document.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(settingsNode.id)}"]`)?.focus()
+		}
+	}
 
 	const openModal = useModalStore(state => state.open)
 	const openConfirm = useModalStore(state => state.openConfirm)
@@ -268,7 +405,7 @@ const WorkFlowPage = () => {
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
 			/>
-			<div className='relative flex-1'>
+			<div className='@container relative flex-1'>
 				{canvas && canvasKey ? (
 					<WorkflowCanvas
 						key={canvasKey}
@@ -276,15 +413,45 @@ const WorkFlowPage = () => {
 						edges={canvas.edges}
 						nodeStatus={nodeStatus}
 						isTracking={phase === 'running'}
+						palette={palette}
+						onPaletteToggle={toggleAllPalette}
+						onPaletteOpen={openPalette}
+						onPaletteClose={closePalette}
+						paletteButtonRef={addButtonRef}
+						isChatOpen={isChatOpen}
+						onStartWithAi={() => setChatOpen(true)}
+						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
+						onNodesRemove={handleNodesRemove}
+						settingsNodeId={settingsNode?.id}
+						onNodeSelect={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
+						onPaneClick={() => setSelectedNode(null)}
+					/>
+				) : null}
+				{settingsNode ? (
+					<NodeSettingsPanel
+						// 캔버스가 다시 마운트돼도 패널은 유지해 입력 포커스를 뺏지 않는다. 바뀐 값은 칸이 스스로 다시 맞춘다.
+						key={settingsNode.id}
+						workflowId={workflowId ?? ''}
+						node={settingsNode}
+						nodes={document?.nodes ?? []}
+						onNodeChange={handleNodeUpdate}
+						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
+						onClose={closeNodeSettings}
 					/>
 				) : null}
 				<WorkflowChat
+					// route가 페이지를 재사용하므로 워크플로우마다 다시 마운트해 이전 대화·응답 대기 상태를 넘기지 않는다.
+					key={workflowId}
 					workflowId={workflowId ?? ''}
 					currentNodes={document?.nodes ?? []}
 					currentEdges={document?.edges ?? []}
 					onCanvasUpdate={handleCanvasUpdate}
+					isBesideNodeSettings={Boolean(settingsNode)}
+					showsStartHint={document?.nodes.length === 0}
+					isOpen={isChatOpen}
+					onOpenChange={setChatOpen}
 				/>
 			</div>
 		</div>
