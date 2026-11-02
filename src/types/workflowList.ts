@@ -156,8 +156,8 @@ export type WorkflowListRowView = {
 	statusBarClass: string
 	trigger: WorkflowTriggerType
 	cronExpression?: string | null
-	/** 스케줄 트리거의 cron을 사람이 읽는 문장으로 바꾼 값. 해석할 수 없으면 cron 원문이다. */
-	scheduleLabel?: string
+	/** 스케줄 트리거일 때 cron을 읽을 수 있게 바꾼 문구. 해석할 수 없으면 cron 원문이다. */
+	scheduleLabel: string | null
 }
 
 export type WorkflowActiveFilter = {
