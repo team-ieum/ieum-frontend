@@ -4,33 +4,83 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Deploy, or pin frontend deployment Secrets before bootstrap
+        type: choice
+        required: true
+        default: deploy
+        options: [deploy, configure-frontend]
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: frontend_dev_server
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
-  NODE_VERSION: ${{ secrets.NODE_VERSION }}
-  IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
-  CONTAINER_NAME: ${{ secrets.CONTAINER_NAME }}
-  DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
-  FRONTEND_IP: ${{ secrets.FRONTEND_IP }}
-  ENV_DIR: ${{ secrets.FRONTEND_ENV_DIR }}
-  ENV_FILE: ${{ secrets.FRONTEND_ENV_FILE }}
+  NODE_VERSION: ${{ secrets.DEV_COM_NODE_VERSION }}
+  IMAGE_NAME: ${{ secrets.DEV_COM_IMAGE_NAME }}
 
 jobs:
   deploy:
+    # Covers bounded cross-repository lock waiting plus this job's build and deployment.
+    timeout-minutes: 360
     name: Deploy Dev to Self Hosted Server
     runs-on:
       group: ieum_dev_server
       labels: [self-hosted, linux, x64, ieum-frontend]
 
     steps:
+      - name: Establish deployment job budget
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PYBUDGET'
+          from datetime import datetime, timezone
+          import json
+          import os
+          import time
+          import urllib.request
+
+          try:
+              # A workflow attempt starts before this job, so queue/setup time reduces the budget too.
+              run_id, attempt = os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT']
+              endpoint = (os.environ['GITHUB_API_URL'].rstrip('/') + '/repos/' + os.environ['GITHUB_REPOSITORY']
+                  + '/actions/runs/' + run_id + '/attempts/' + attempt)
+              request = urllib.request.Request(endpoint, headers={
+                  'Authorization': 'Bearer ' + os.environ['GITHUB_TOKEN'],
+                  'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+              with urllib.request.urlopen(request, timeout=15) as response:
+                  raw = response.read(1024 * 1024 + 1)
+              if len(raw) > 1024 * 1024:
+                  raise ValueError()
+              data = json.loads(raw)
+              if str(data['id']) != run_id or str(data['run_attempt']) != attempt:
+                  raise ValueError()
+              started = datetime.fromisoformat(data['run_started_at'].replace('Z', '+00:00'))
+              now = time.time()
+              if started.tzinfo is None or started.timestamp() > now:
+                  raise ValueError()
+              # Leave two minutes before the runner's 360-minute job timeout.
+              deadline = int(started.timestamp()) + 360 * 60 - 120
+              if deadline - now < 9000:
+                  raise ValueError()
+              with open(os.environ['GITHUB_ENV'], 'a') as output:
+                  output.write('IEUM_BLUEGREEN_JOB_DEADLINE_EPOCH=' + str(deadline) + '\n')
+          except Exception:
+              # Never echo the request, token, response or environment.
+              raise SystemExit('Unable to establish sufficient deployment job time; retry in a fresh job') from None
+          PYBUDGET
+
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate frontend CI settings
+        run: python3 scripts/bluegreen/frontend_env.py validate-ci
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -46,12 +96,27 @@ jobs:
         run: npm run lint
 
       - name: Test
-        run: npm test -- --run --passWithNoTests
+        run: |
+          python3 -m unittest discover -s scripts/bluegreen -p 'test_*.py'
+          npm test -- --run --passWithNoTests
 
-      - name: Build frontend
-        run: npx vite build
+      - name: Build frontend from DEV Secrets
+        id: frontend_settings
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          IEUM_FRONTEND_SECRETS_JSON: ${{ toJSON(secrets) }}
+        run: |
+          set +x
+          set -euo pipefail
+          umask 077
+          settings_dir="$(mktemp -d "$RUNNER_TEMP/ieum-frontend-settings.XXXXXX")"
+          ready=false
+          trap 'if [[ "$ready" != true ]]; then python3 scripts/bluegreen/frontend_env.py cleanup "$settings_dir"; fi' EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          python3 scripts/bluegreen/frontend_env.py build "$settings_dir"
+          unset IEUM_FRONTEND_SECRETS_JSON
+          printf 'directory=%s\n' "$settings_dir" >> "$GITHUB_OUTPUT"
+          ready=true
 
       - name: Write nginx config
         run: |
@@ -67,6 +132,13 @@ jobs:
 
             location / {
               try_files $uri $uri/ /index.html;
+            }
+
+            # Every Vite asset must return 404 when absent so the host archive fallback runs.
+            location ^~ /assets/ {
+              expires 30d;
+              add_header Cache-Control "public, immutable";
+              try_files $uri =404;
             }
 
             location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
@@ -86,17 +158,6 @@ jobs:
           EXPOSE 80
           EOF
 
-      - name: Sync frontend env file to server
-        run: |
-          mkdir -p "$ENV_DIR"
-
-          tee "$ENV_FILE" > /dev/null <<EOF
-          VITE_API_URL=${{ secrets.VITE_API_URL }}
-          NODE_ENV=production
-          EOF
-
-          chmod 600 "$ENV_FILE"
-
       - name: Build Docker image
         run: |
           docker build \
@@ -104,22 +165,56 @@ jobs:
             -t "$IMAGE_NAME:${{ github.sha }}" \
             -t "$IMAGE_NAME:latest" .
 
-      - name: Restart frontend container
+      - name: Verify installed blue-green release
+        env:
+          CONTROLLER_SHA: ${{ vars.BLUEGREEN_CONTROLLER_SHA256 }}
+          HELPER_SHA: ${{ vars.BLUEGREEN_HELPER_SHA256 }}
         run: |
-          docker network inspect "$DOCKER_NETWORK" >/dev/null 2>&1 \
-            || docker network create --subnet 10.10.10.0/24 "$DOCKER_NETWORK"
+          set -euo pipefail
+          if [[ ! "$CONTROLLER_SHA" =~ ^[a-f0-9]{64}$ || ! "$HELPER_SHA" =~ ^[a-f0-9]{64}$ ]]; then
+            echo "::error::Configure the approved BLUEGREEN_CONTROLLER_SHA256 and BLUEGREEN_HELPER_SHA256 variables first"
+            exit 1
+          fi
+          if ! printf '%s  %s\n' \
+            "$CONTROLLER_SHA" /home/kwung/deploy/bluegreen/bluegreen.py \
+            "$HELPER_SHA" /usr/local/sbin/ieum-bluegreen-nginx | sha256sum -c - >/dev/null 2>&1; then
+            echo "::error::Installed blue-green controller/helper does not match the approved release"
+            exit 1
+          fi
 
-          docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
-
-          docker run -d \
-            --name "$CONTAINER_NAME" \
-            --restart unless-stopped \
-            --network "$DOCKER_NETWORK" \
-            --ip "$FRONTEND_IP" \
-            --env-file "$ENV_FILE" \
-            "$IMAGE_NAME:latest"
-
-      - name: Health check
+      - name: Configure frontend deployment settings
+        if: github.event_name == 'workflow_dispatch' && inputs.operation == 'configure-frontend'
+        env:
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
         run: |
-          sleep 3
-          curl -fsS "http://$FRONTEND_IP/" >/dev/null
+          set +x
+          set -euo pipefail
+          python3 scripts/bluegreen/frontend_env.py verify "$SETTINGS_DIR"
+          python3 /home/kwung/deploy/bluegreen/bluegreen.py --lock-timeout 30 configure-frontend \
+            --settings-file "$SETTINGS_DIR/frontend-deployment.json"
+
+      - name: Deploy the frontend build snapshot
+        if: github.event_name != 'workflow_dispatch' || inputs.operation == 'deploy'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
+        run: |
+          set +x
+          set -euo pipefail
+          python3 scripts/bluegreen/frontend_env.py verify "$SETTINGS_DIR"
+          python3 /home/kwung/deploy/bluegreen/bluegreen.py --lock-timeout 14400 deploy \
+            --job-deadline-epoch "$IEUM_BLUEGREEN_JOB_DEADLINE_EPOCH" \
+            --service frontend \
+            --image "$IMAGE_NAME:$IMAGE_TAG" \
+            --env-file "$SETTINGS_DIR/frontend.env" \
+            --frontend-deployment-file "$SETTINGS_DIR/frontend-deployment.json" \
+            --replace-env
+
+      - name: Remove private frontend settings
+        if: always()
+        env:
+          SETTINGS_DIR: ${{ steps.frontend_settings.outputs.directory }}
+        run: |
+          set +x
+          set -euo pipefail
+          python3 scripts/bluegreen/frontend_env.py cleanup "$SETTINGS_DIR"
