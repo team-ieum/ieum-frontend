@@ -124,7 +124,7 @@ export const WorkflowListPagination = ({
 		return (
 			<div role='status' className='mt-4 flex items-center justify-center gap-2 typo-body2_regular text-danger-700'>
 				<span>다음 워크플로우를 불러오지 못했습니다.</span>
-				<button type='button' onClick={retryNextPage} className='font-semibold underline underline-offset-2'>
+				<button type='button' onClick={retryNextPage} className='typo-body2_semibold underline underline-offset-2'>
 					다시 시도
 				</button>
 			</div>

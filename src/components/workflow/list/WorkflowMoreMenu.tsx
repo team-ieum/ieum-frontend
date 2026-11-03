@@ -73,7 +73,7 @@ export const WorkflowMoreMenu = ({ onDelete, className = '' }: WorkflowMoreMenuP
 							setOpen(false)
 							onDelete()
 						}}
-						className='flex w-full items-center gap-2 px-3 py-2 text-sm text-danger-600 hover:bg-danger-50'
+						className='flex w-full items-center gap-2 px-3 py-2 typo-body2_regular text-danger-600 hover:bg-danger-50'
 					>
 						<Trash2 size={14} />
 						삭제
