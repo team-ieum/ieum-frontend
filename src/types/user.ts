@@ -15,3 +15,8 @@ export type CurrentUserResponse = ApiResponse<CurrentUser>
 export interface UpdateCurrentUserBody {
 	name: string
 }
+
+export interface ChangePasswordBody {
+	currentPassword: string
+	newPassword: string
+}

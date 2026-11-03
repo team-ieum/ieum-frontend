@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import UserPage from './UserPage'
@@ -8,7 +9,9 @@ import UserPage from './UserPage'
 const renderUserPage = async () => {
 	render(
 		<QueryClientProvider client={createTestQueryClient()}>
-			<UserPage />
+			<MemoryRouter>
+				<UserPage />
+			</MemoryRouter>
 		</QueryClientProvider>
 	)
 	await screen.findByLabelText('닉네임')
@@ -26,7 +29,8 @@ describe('UserPage', () => {
 		expect(screen.getByLabelText('이메일')).toHaveValue('ieumsae@example.com')
 		expect(screen.queryByText('Google로 로그인')).not.toBeInTheDocument()
 		expect(screen.queryByText('로그인 및 보안')).not.toBeInTheDocument()
-		expect(screen.getByText('알림 설정')).toBeInTheDocument()
+		expect(screen.queryByText('알림 설정')).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '비밀번호 변경' })).toHaveAttribute('aria-expanded', 'false')
 		expect(screen.getByText('계정 삭제')).toBeInTheDocument()
 	})
 

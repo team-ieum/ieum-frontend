@@ -1,10 +1,13 @@
-import { Bell, Camera, ChevronDown, Trash2, UserRound } from 'lucide-react'
+import { Camera, ChevronDown, Trash2, UserRound, type LucideIcon } from 'lucide-react'
 import PatternBackground from '@/components/common/PatternBackground'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import PasswordChangeSection from '@/components/user/PasswordChangeSection'
 import { useCurrentUserQuery } from '@/hooks/user/queries/useCurrentUserQuery'
 import { useProfileNameForm } from '@/hooks/user/useProfileNameForm'
 import { PROFILE_NAME_RULE_MESSAGE } from '@/schemas/user'
 import { cn } from '@/utils/cn'
+
+const PROFILE_NAME_FORM_ID = 'profile-name-form'
 
 const UserPage = () => {
 	const { data: user, isPending, isError, refetch } = useCurrentUserQuery()
@@ -17,7 +20,7 @@ const UserPage = () => {
 			<PatternBackground />
 
 			<div className='relative z-10 mx-auto flex min-h-[calc(100vh-var(--layout-header-height)-2.5rem)] w-full items-start justify-center pt-6 sm:pt-8 lg:min-h-[calc(100vh-var(--layout-header-height)-2rem)] lg:pt-4'>
-				<form noValidate onSubmit={event => void nameForm.onSubmit(event)} className='w-full max-w-xl'>
+				<div className='w-full max-w-xl'>
 					<div className='relative z-10 mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-white bg-linear-to-b from-[#f4f8fb] to-[#e4ebf0] text-neutral-400 shadow-[0_12px_30px_-14px_rgba(41,83,124,.5)] sm:h-32 sm:w-32 lg:h-24 lg:w-24 lg:border-4'>
 						<UserRound className='h-16 w-16 sm:h-20 sm:w-20 lg:h-14 lg:w-14' strokeWidth={1.25} />
 						<button
@@ -39,7 +42,13 @@ const UserPage = () => {
 							) : isError ? (
 								<ProfileFieldsError retry={() => void refetch()} />
 							) : (
-								<div className='mt-5 flex flex-col gap-5 lg:mt-4'>
+								// 카드 아래 비밀번호 변경 form과 겹치지 않도록 닉네임 form은 입력 영역만 감싸고 저장 버튼은 form 속성으로 연결한다.
+								<form
+									id={PROFILE_NAME_FORM_ID}
+									noValidate
+									onSubmit={event => void nameForm.onSubmit(event)}
+									className='mt-5 flex flex-col gap-5 lg:mt-4'
+								>
 									<label className='grid gap-2'>
 										<span className='typo-body2_semibold text-neutral-700'>닉네임</span>
 										<input
@@ -76,12 +85,12 @@ const UserPage = () => {
 											className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
 										/>
 									</label>
-								</div>
+								</form>
 							)}
 						</div>
 
 						<div className='border-t border-neutral-200'>
-							<SettingRow icon={Bell} label='알림 설정' />
+							<PasswordChangeSection provider={user?.provider} />
 							<SettingRow icon={Trash2} label='계정 삭제' danger />
 						</div>
 					</div>
@@ -100,13 +109,14 @@ const UserPage = () => {
 						) : null}
 						<button
 							type='submit'
+							form={PROFILE_NAME_FORM_ID}
 							disabled={!user || !nameForm.isDirty || nameForm.isPending}
 							className='h-10 shrink-0 rounded-brand-sm bg-main-blue px-5 typo-button1_semibold text-white shadow-[0_8px_18px_-10px_rgba(0,123,167,.75)] transition-opacity disabled:cursor-default disabled:opacity-50 disabled:shadow-none'
 						>
 							{nameForm.isPending ? '저장 중...' : '변경사항 저장'}
 						</button>
 					</div>
-				</form>
+				</div>
 			</div>
 		</section>
 	)
@@ -144,7 +154,7 @@ const ProfileFieldsError = ({ retry }: { retry: () => void }) => (
 )
 
 type SettingRowProps = {
-	icon: typeof Bell
+	icon: LucideIcon
 	label: string
 	danger?: boolean
 }
