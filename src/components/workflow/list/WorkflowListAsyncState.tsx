@@ -3,8 +3,9 @@ import SkeletonPulse from '@/components/common/SkeletonPulse'
 import Spinner from '@/components/common/Spinner'
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { WorkflowViewMode } from '@/types/workflowList'
+import { cn } from '@/utils/cn'
 
-const skeletonClass = 'rounded bg-neutral-200'
+const SKELETON_CLASS = 'rounded bg-neutral-200'
 
 export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): ReactElement => {
 	if (view === 'row') {
@@ -23,7 +24,7 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 								className='grid h-18.25 grid-cols-[56px_2fr_1.5fr_1fr_80px_100px_56px] items-center gap-3 border-t border-neutral-200 px-4'
 							>
 								{Array.from({ length: 7 }, (_, cellIndex) => (
-									<SkeletonPulse key={cellIndex} className={`${skeletonClass} h-4 w-full`} />
+									<SkeletonPulse key={cellIndex} className={cn(SKELETON_CLASS, 'h-4 w-full')} />
 								))}
 							</div>
 						))}
@@ -41,11 +42,11 @@ export const WorkflowListSkeleton = ({ view }: { view: WorkflowViewMode }): Reac
 					aria-hidden='true'
 					className='flex min-h-37 flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4'
 				>
-					<SkeletonPulse className={`${skeletonClass} h-5 w-2/3`} />
-					<SkeletonPulse className={`${skeletonClass} mt-auto h-4 w-full`} />
+					<SkeletonPulse className={cn(SKELETON_CLASS, 'h-5 w-2/3')} />
+					<SkeletonPulse className={cn(SKELETON_CLASS, 'mt-auto h-4 w-full')} />
 					<div className='flex gap-3 border-t border-neutral-200 pt-3'>
-						<SkeletonPulse className={`${skeletonClass} h-4 w-24`} />
-						<SkeletonPulse className={`${skeletonClass} ml-auto h-5 w-16 rounded-full`} />
+						<SkeletonPulse className={cn(SKELETON_CLASS, 'h-4 w-24')} />
+						<SkeletonPulse className={cn(SKELETON_CLASS, 'ml-auto h-5 w-16 rounded-full')} />
 					</div>
 				</article>
 			))}
@@ -124,7 +125,7 @@ export const WorkflowListPagination = ({
 		return (
 			<div role='status' className='mt-4 flex items-center justify-center gap-2 typo-body2_regular text-danger-700'>
 				<span>다음 워크플로우를 불러오지 못했습니다.</span>
-				<button type='button' onClick={retryNextPage} className='font-semibold underline underline-offset-2'>
+				<button type='button' onClick={retryNextPage} className='typo-body2_semibold underline underline-offset-2'>
 					다시 시도
 				</button>
 			</div>
