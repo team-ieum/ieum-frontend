@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { Check, Eye, EyeOff, Key, RefreshCw, Trash2 } from 'lucide-react'
 import type { AiProvider, ApiKeyState } from '@/types/aiCredentials'
 import { cn } from '@/utils/cn'
-import { SectionLabel } from './SectionLabel'
+import SectionLabel from './SectionLabel'
 
 type ApiKeyEmptyProps = {
 	provider: AiProvider
@@ -28,7 +28,7 @@ const ApiKeyEmpty = ({ provider, hintId, onRegister, isPending }: ApiKeyEmptyPro
 						placeholder={`${provider.name} API Key를 입력하세요 (sk-… 형식)`}
 						aria-label={`${provider.name} API Key`}
 						aria-describedby={hintId}
-						className='min-w-0 flex-1 bg-transparent font-mono text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400'
+						className='min-w-0 flex-1 bg-transparent typo-mono-body3_regular text-neutral-900 outline-none placeholder:text-neutral-400'
 					/>
 				</label>
 				<button
@@ -68,15 +68,15 @@ type ApiKeyConnectedProps = {
 }
 
 const ApiKeyConnected = ({ state, onDelete, onReplace }: ApiKeyConnectedProps) => (
-	<div className='flex items-center gap-3 rounded-lg bg-[#E8F5EE] px-3 py-2.5'>
+	<div className='flex items-center gap-3 rounded-lg bg-success-100 px-3 py-2.5'>
 		<span className='grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/90'>
 			<Check size={14} className='text-node-green' />
 		</span>
-		<span className='truncate font-mono text-[13px] font-medium text-neutral-900 flex-1 min-w-0'>{state.keyHint}</span>
+		<span className='truncate typo-mono-body3_medium text-neutral-900 flex-1 min-w-0'>{state.keyHint}</span>
 		<button
 			type='button'
 			onClick={onReplace}
-			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-[#bfe2d2] bg-white px-2.5 text-neutral-600 shadow-xs hover:bg-neutral-50'
+			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-success-200 bg-white px-2.5 text-neutral-600 shadow-xs hover:bg-neutral-50'
 		>
 			<RefreshCw size={13} />
 			교체
@@ -84,7 +84,7 @@ const ApiKeyConnected = ({ state, onDelete, onReplace }: ApiKeyConnectedProps) =
 		<button
 			type='button'
 			onClick={onDelete}
-			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-[#bfe2d2] bg-white px-2.5 text-danger-600 shadow-xs hover:bg-danger-50'
+			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-success-200 bg-white px-2.5 text-danger-600 shadow-xs hover:bg-danger-50'
 		>
 			<Trash2 size={13} />
 			삭제
@@ -99,7 +99,7 @@ type ApiKeySectionProps = {
 	isPending?: boolean
 }
 
-export const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: ApiKeySectionProps) => {
+const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: ApiKeySectionProps) => {
 	const [replacing, setReplacing] = useState(false)
 	const apikey = provider.state.apikey
 	const isConnected = apikey?.status === 'connected' && !replacing
@@ -124,3 +124,5 @@ export const ApiKeySection = ({ provider, onRegister, onDelete, isPending }: Api
 		</div>
 	)
 }
+
+export default ApiKeySection

@@ -1,8 +1,8 @@
 import type { AiProvider } from '@/types/aiCredentials'
-import { MethodBadge } from './MethodBadge'
-import { StatusChip } from './StatusChip'
-import { ApiKeySection } from './ApiKeySection'
-import { OAuthSection } from './OAuthSection'
+import MethodBadge from './MethodBadge'
+import StatusChip from './StatusChip'
+import ApiKeySection from './ApiKeySection'
+import OAuthSection from './OAuthSection'
 
 const isProviderConnected = (p: AiProvider) => Object.values(p.state).some(s => s?.status === 'connected')
 
@@ -15,7 +15,7 @@ type ProviderCardProps = {
 	isPending?: boolean
 }
 
-export const ProviderCard = ({
+const ProviderCard = ({
 	provider,
 	onRegisterApiKey,
 	onDeleteApiKey,
@@ -70,3 +70,5 @@ export const ProviderCard = ({
 		</article>
 	)
 }
+
+export default ProviderCard

@@ -1,6 +1,6 @@
 import { ArrowLeftRight, ArrowRight, Link, Unlink, User } from 'lucide-react'
 import type { AiProvider, OAuthState } from '@/types/aiCredentials'
-import { SectionLabel } from './SectionLabel'
+import SectionLabel from './SectionLabel'
 
 type OAuthEmptyProps = {
 	provider: AiProvider
@@ -26,15 +26,15 @@ type OAuthConnectedProps = {
 }
 
 const OAuthConnected = ({ state, onDisconnect, onChange }: OAuthConnectedProps) => (
-	<div className='flex items-center gap-3 rounded-lg bg-[#E8F5EE] px-3 py-2.5'>
-		<span className='grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/90 text-[11px] font-bold text-main-deep-blue'>
+	<div className='flex items-center gap-3 rounded-lg bg-success-100 px-3 py-2.5'>
+		<span className='grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/90 typo-caption2_bold text-main-deep-blue'>
 			{state.account?.charAt(0).toUpperCase()}
 		</span>
 		<span className='typo-body2_semibold flex-1 min-w-0 truncate text-neutral-900'>{state.account}</span>
 		<button
 			type='button'
 			onClick={onChange}
-			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-[#bfe2d2] bg-white px-2.5 text-neutral-600 shadow-xs hover:bg-neutral-50'
+			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-success-200 bg-white px-2.5 text-neutral-600 shadow-xs hover:bg-neutral-50'
 		>
 			<ArrowLeftRight size={13} />
 			변경
@@ -42,7 +42,7 @@ const OAuthConnected = ({ state, onDisconnect, onChange }: OAuthConnectedProps) 
 		<button
 			type='button'
 			onClick={onDisconnect}
-			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-[#bfe2d2] bg-white px-2.5 text-danger-600 shadow-xs hover:bg-danger-50'
+			className='typo-caption1_semibold inline-flex h-7 items-center gap-1 rounded-md border border-success-200 bg-white px-2.5 text-danger-600 shadow-xs hover:bg-danger-50'
 		>
 			<Unlink size={13} />
 			연결 해제
@@ -56,7 +56,7 @@ type OAuthSectionProps = {
 	onDisconnect: () => void
 }
 
-export const OAuthSection = ({ provider, onConnect, onDisconnect }: OAuthSectionProps) => {
+const OAuthSection = ({ provider, onConnect, onDisconnect }: OAuthSectionProps) => {
 	const oauth = provider.state.oauth
 	const isConnected = oauth?.status === 'connected'
 
@@ -73,3 +73,5 @@ export const OAuthSection = ({ provider, onConnect, onDisconnect }: OAuthSection
 		</div>
 	)
 }
+
+export default OAuthSection

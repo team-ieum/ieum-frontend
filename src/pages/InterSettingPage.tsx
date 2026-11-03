@@ -16,7 +16,7 @@ import { cn } from '@/utils/cn'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MotionProps } from 'framer-motion'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { AiCredentialsSection } from '@/components/aiCredentials/AiCredentialsSection'
+import AiCredentialsSection from '@/components/aiCredentials/AiCredentialsSection'
 import WebhookCredentialConnectModalContainer from '@/components/integration/WebhookCredentialConnectModalContainer'
 
 type IntegrationViewAnimationDefinition = Parameters<NonNullable<MotionProps['onAnimationComplete']>>[0]
