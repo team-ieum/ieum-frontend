@@ -30,4 +30,5 @@ route 구성, 코드 분할, 전역 QueryClient처럼 앱 전체에 한 번만 �
 
 - 개발 모드 MSW worker와 측정 모드 초기화는 render 전에 끝나야 합니다. 초기화 순서를 바꾸지 마세요.
 - 개발·측정 전용 모듈은 빌드 시점에 값이 정해지는 조건(`import.meta.env.DEV`, `import.meta.env.MODE`, `import.meta.env.VITE_MEASUREMENT_MODE`) 안에서 dynamic import로 가져오세요. 조건 없이 dynamic import만 쓰면 Vite가 별도 chunk를 만들어 프로덕션 빌드 결과에 포함합니다.
-- 진입점의 import 구성을 바꾸면 `npm run build` 결과(`dist/assets`)에 MSW·mocks·measurement chunk가 생기지 않았는지 확인하세요. 측정 모듈은 `npm run build:measurement`에만 포함됩니다.
+- 측정 모드 여부는 `import.meta.env.VITE_MEASUREMENT_MODE === 'true'`로 판별하세요. `import.meta.env.MODE === 'measurement'`로 바꾸지 마세요. dev 배포는 `scripts/bluegreen/frontend_env.py`가 Secrets의 `VITE_*` 값(`DEV_COM_VITE_MEASUREMENT_MODE` 포함)을 넘겨 일반 `vite build`로 빌드하므로, `MODE`로 판별하면 배포 설정으로 측정 모드를 켤 수 없게 됩니다(`docs/operations/bluegreen-secrets.md`).
+- 진입점의 import 구성을 바꾸면 `VITE_MEASUREMENT_MODE` 없이 실행한 기본 `npm run build` 결과(`dist/assets`)에 MSW·mocks·measurement chunk가 생기지 않았는지 확인하세요. 측정용 산출물은 `npm run build:measurement`로 만들고, 배포 설정에서 `VITE_MEASUREMENT_MODE=true`를 넘긴 일반 빌드에도 측정 모듈이 포함될 수 있습니다.
