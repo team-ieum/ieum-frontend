@@ -1,7 +1,8 @@
 import { ChevronDown, TriangleAlert, UserX } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import Collapse from '@/components/common/Collapse'
-import { useWithdrawAccount } from '@/hooks/user/useWithdrawAccount'
+import { useWithdrawFormViewModel } from '@/hooks/user/useWithdrawFormViewModel'
+import type { UserPageViewModel } from '@/types/user'
 import { cn } from '@/utils/cn'
 
 const DELETED_DATA = [
@@ -11,43 +12,34 @@ const DELETED_DATA = [
 ] as const
 
 type WithdrawSectionProps = {
-	/** 펼치면 화면 높이를 넘지 않도록 페이지가 프로필 입력을 접으므로 열림 상태는 페이지가 갖는다. */
-	isOpen: boolean
-	onOpenChange: (open: boolean) => void
-	disabled: boolean
+	/** 펼치면 프로필 입력을 접어야 하므로 열림 상태는 페이지 ViewModel이 갖는다. */
+	section: UserPageViewModel['withdrawSection']
 }
 
-const WithdrawSection = ({ isOpen, onOpenChange, disabled }: WithdrawSectionProps) => {
+const WithdrawSection = ({ section }: WithdrawSectionProps) => {
 	const panelId = useId()
 	const agreeId = useId()
-	const withdrawal = useWithdrawAccount()
-
-	// 직접 닫거나 다른 메뉴를 펼쳐 닫히면 입력을 비워 다시 펼쳤을 때 이전 값이 남지 않게 한다.
-	const [wasOpen, setWasOpen] = useState(isOpen)
-	if (wasOpen !== isOpen) {
-		setWasOpen(isOpen)
-		if (!isOpen) withdrawal.reset()
-	}
+	const withdrawal = useWithdrawFormViewModel(section.isOpen)
 
 	return (
 		<div className='border-b border-neutral-200 last:border-b-0'>
 			<button
 				type='button'
-				aria-expanded={isOpen}
+				aria-expanded={section.isOpen}
 				aria-controls={panelId}
-				disabled={disabled}
-				onClick={() => onOpenChange(!isOpen)}
+				disabled={section.isToggleDisabled}
+				onClick={section.handleToggle}
 				className='flex min-h-16 w-full items-center gap-3 px-5 text-left disabled:cursor-default sm:px-8 lg:px-10'
 			>
 				<UserX size={19} className='text-danger-700' />
 				<span className='flex-1 typo-body2_semibold text-danger-700'>회원 탈퇴</span>
 				<ChevronDown
 					size={18}
-					className={cn('text-danger-500 transition-transform duration-300', isOpen && 'rotate-180')}
+					className={cn('text-danger-500 transition-transform duration-300', section.isOpen && 'rotate-180')}
 				/>
 			</button>
 
-			<Collapse open={isOpen} id={panelId}>
+			<Collapse open={section.isOpen} id={panelId}>
 				<div className='flex flex-col gap-4 px-5 pb-5 sm:px-8 lg:px-10'>
 					<div className='rounded-brand-sm border border-danger-200 bg-danger-50 px-4 py-3'>
 						<p className='m-0 flex items-center gap-1.5 typo-body3_semibold text-danger-700'>
@@ -69,8 +61,8 @@ const WithdrawSection = ({ isOpen, onOpenChange, disabled }: WithdrawSectionProp
 							id={agreeId}
 							type='checkbox'
 							checked={withdrawal.agreed}
-							onChange={event => withdrawal.onAgreedChange(event.target.checked)}
-							disabled={withdrawal.isPending}
+							onChange={event => withdrawal.handleAgreedChange(event.target.checked)}
+							disabled={withdrawal.isAgreeDisabled}
 							className='size-4 accent-danger-700'
 						/>
 						<span className='typo-body3_medium text-neutral-700'>
@@ -87,11 +79,11 @@ const WithdrawSection = ({ isOpen, onOpenChange, disabled }: WithdrawSectionProp
 					<div className='flex justify-end'>
 						<button
 							type='button'
-							onClick={() => void withdrawal.withdraw()}
-							disabled={!withdrawal.agreed || withdrawal.isPending}
+							onClick={withdrawal.handleWithdraw}
+							disabled={withdrawal.isWithdrawDisabled}
 							className='h-10 rounded-brand-sm bg-danger-700 px-5 typo-button1_semibold text-white transition-opacity disabled:cursor-default disabled:opacity-50'
 						>
-							{withdrawal.isPending ? '탈퇴 처리 중...' : '회원 탈퇴'}
+							{withdrawal.withdrawLabel}
 						</button>
 					</div>
 				</div>

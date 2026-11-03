@@ -3,10 +3,8 @@ import { useChangePasswordMutation } from '@/hooks/user/mutations/useChangePassw
 import { useSignOutToLogin } from '@/hooks/user/useSignOutToLogin'
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
 import { changePasswordSchema, type ChangePasswordValues } from '@/schemas/user'
+import type { ChangePasswordErrors, ChangePasswordField } from '@/types/user'
 import { isApiError } from '@/utils/ApiError'
-
-type ChangePasswordField = keyof ChangePasswordValues
-type ChangePasswordErrors = Partial<Record<ChangePasswordField, string>>
 
 const INITIAL_VALUES: ChangePasswordValues = { currentPassword: '', newPassword: '', newPasswordConfirm: '' }
 
@@ -37,7 +35,7 @@ export const useChangePasswordForm = () => {
 	const [errors, setErrors] = useState<ChangePasswordErrors>({})
 	const [formError, setFormError] = useState('')
 
-	const onChange = (field: ChangePasswordField) => (value: string) => {
+	const handleChange = (field: ChangePasswordField) => (value: string) => {
 		setValues(prev => ({ ...prev, [field]: value }))
 		setErrors(prev => ({ ...prev, [field]: undefined }))
 		setFormError('')
@@ -49,7 +47,7 @@ export const useChangePasswordForm = () => {
 		setFormError('')
 	}
 
-	const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		if (isPending) return
 
@@ -77,5 +75,5 @@ export const useChangePasswordForm = () => {
 		await signOutToLogin({ title: '비밀번호 변경 완료', message: '새 비밀번호로 다시 로그인해 주세요.' })
 	}
 
-	return { values, errors, formError, isPending, onChange, onSubmit, reset }
+	return { values, errors, formError, isPending, handleChange, handleSubmit, reset }
 }

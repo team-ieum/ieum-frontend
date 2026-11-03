@@ -1,86 +1,75 @@
 import { ChevronDown, KeyRound } from 'lucide-react'
-import { useId, useState } from 'react'
+import { useId } from 'react'
 import Collapse from '@/components/common/Collapse'
-import { useChangePasswordForm } from '@/hooks/user/useChangePasswordForm'
+import { usePasswordChangeFormViewModel } from '@/hooks/user/usePasswordChangeFormViewModel'
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
-import type { UserAuthProvider } from '@/types/user'
+import type { UserPageViewModel } from '@/types/user'
 import { cn } from '@/utils/cn'
 
 type PasswordChangeSectionProps = {
-	/** 조회 전이면 undefined다. 이메일 가입(LOCAL) 계정만 비밀번호를 바꿀 수 있다. */
-	provider: UserAuthProvider | undefined
-	/** 펼치면 화면 높이를 넘지 않도록 페이지가 프로필 입력을 접으므로 열림 상태는 페이지가 갖는다. */
-	isOpen: boolean
-	onOpenChange: (open: boolean) => void
+	/** 펼치면 프로필 입력을 접어야 하므로 열림 상태는 페이지 ViewModel이 갖는다. */
+	section: UserPageViewModel['passwordSection']
 }
 
-const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChangeSectionProps) => {
+const PasswordChangeSection = ({ section }: PasswordChangeSectionProps) => {
 	const panelId = useId()
 	const ruleId = useId()
-	const form = useChangePasswordForm()
-
-	// 직접 닫거나 다른 메뉴를 펼쳐 닫히면 입력을 비워 다시 펼쳤을 때 이전 값이 남지 않게 한다.
-	const [wasOpen, setWasOpen] = useState(isOpen)
-	if (wasOpen !== isOpen) {
-		setWasOpen(isOpen)
-		if (!isOpen) form.reset()
-	}
+	const form = usePasswordChangeFormViewModel(section.isOpen)
 
 	return (
 		<div className='border-b border-neutral-200 last:border-b-0'>
 			<button
 				type='button'
-				aria-expanded={isOpen}
+				aria-expanded={section.isOpen}
 				aria-controls={panelId}
-				disabled={!provider}
-				onClick={() => onOpenChange(!isOpen)}
+				disabled={section.isToggleDisabled}
+				onClick={section.handleToggle}
 				className='flex min-h-16 w-full items-center gap-3 px-5 text-left disabled:cursor-default sm:px-8 lg:px-10'
 			>
 				<KeyRound size={19} className='text-main-blue' />
 				<span className='flex-1 typo-body2_semibold text-neutral-700'>비밀번호 변경</span>
 				<ChevronDown
 					size={18}
-					className={cn('text-neutral-400 transition-transform duration-300', isOpen && 'rotate-180')}
+					className={cn('text-neutral-400 transition-transform duration-300', section.isOpen && 'rotate-180')}
 				/>
 			</button>
 
-			<Collapse open={isOpen} id={panelId}>
+			<Collapse open={section.isOpen} id={panelId}>
 				<div className='px-5 pb-5 sm:px-8 lg:px-10'>
-					{provider === 'LOCAL' ? (
-						<form noValidate onSubmit={event => void form.onSubmit(event)} className='flex flex-col gap-3'>
+					{section.canChangePassword ? (
+						<form noValidate onSubmit={form.handleSubmit} className='flex flex-col gap-3'>
 							<PasswordField
 								label='현재 비밀번호'
 								autoComplete='current-password'
 								value={form.values.currentPassword}
-								onChange={form.onChange('currentPassword')}
+								onChange={form.handleChange('currentPassword')}
 								error={form.errors.currentPassword}
-								disabled={form.isPending}
+								disabled={form.isInputDisabled}
 							/>
 							<div className='grid gap-3'>
 								<PasswordField
 									label='새 비밀번호'
 									autoComplete='new-password'
 									value={form.values.newPassword}
-									onChange={form.onChange('newPassword')}
+									onChange={form.handleChange('newPassword')}
 									error={form.errors.newPassword}
-									describedBy={form.errors.newPassword ? undefined : ruleId}
-									disabled={form.isPending}
+									describedBy={form.isRuleVisible ? ruleId : undefined}
+									disabled={form.isInputDisabled}
 								/>
 								<PasswordField
 									label='새 비밀번호 확인'
 									autoComplete='new-password'
 									value={form.values.newPasswordConfirm}
-									onChange={form.onChange('newPasswordConfirm')}
+									onChange={form.handleChange('newPasswordConfirm')}
 									error={form.errors.newPasswordConfirm}
-									disabled={form.isPending}
+									disabled={form.isInputDisabled}
 								/>
 							</div>
-							{/* 새 비밀번호 오류가 있으면 입력 아래 오류가 규칙을 대신 안내하므로 겹쳐 보이지 않게 숨긴다. */}
-							{form.errors.newPassword ? null : (
+							{form.isRuleVisible ? (
 								<p id={ruleId} className='m-0 typo-caption1_regular text-neutral-500'>
 									{PASSWORD_RULE_MESSAGE}
 								</p>
-							)}
+							) : null}
 
 							{form.formError ? (
 								<p role='alert' className='m-0 typo-caption1_medium text-danger-700'>
@@ -94,10 +83,10 @@ const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChang
 								</p>
 								<button
 									type='submit'
-									disabled={form.isPending}
+									disabled={form.isSubmitDisabled}
 									className='h-10 shrink-0 self-end rounded-brand-sm bg-main-blue px-5 typo-button1_semibold text-white transition-opacity disabled:cursor-default disabled:opacity-50 sm:self-auto'
 								>
-									{form.isPending ? '변경 중...' : '비밀번호 변경'}
+									{form.submitLabel}
 								</button>
 							</div>
 						</form>

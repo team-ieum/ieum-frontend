@@ -10,7 +10,7 @@ export const useWithdrawAccount = () => {
 	const [agreed, setAgreed] = useState(false)
 	const [error, setError] = useState('')
 
-	const onAgreedChange = (value: boolean) => {
+	const handleAgreedChange = (value: boolean) => {
 		setAgreed(value)
 		setError('')
 	}
@@ -20,7 +20,7 @@ export const useWithdrawAccount = () => {
 		setError('')
 	}
 
-	const withdraw = async () => {
+	const handleWithdraw = async () => {
 		if (!agreed || isPending) return
 
 		try {
@@ -41,5 +41,5 @@ export const useWithdrawAccount = () => {
 		})
 	}
 
-	return { agreed, error, isPending, onAgreedChange, reset, withdraw }
+	return { agreed, error, isPending, handleAgreedChange, reset, handleWithdraw }
 }

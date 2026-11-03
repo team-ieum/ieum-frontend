@@ -1,24 +1,17 @@
-import { Camera, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { Camera } from 'lucide-react'
 import Collapse from '@/components/common/Collapse'
+import DefaultProfileImage from '@/components/common/DefaultProfileImage'
 import PatternBackground from '@/components/common/PatternBackground'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import PasswordChangeSection from '@/components/user/PasswordChangeSection'
 import WithdrawSection from '@/components/user/WithdrawSection'
-import { useCurrentUserQuery } from '@/hooks/user/queries/useCurrentUserQuery'
-import { useProfileNameForm } from '@/hooks/user/useProfileNameForm'
-import { PROFILE_NAME_RULE_MESSAGE } from '@/schemas/user'
+import { useUserPageViewModel } from '@/hooks/user/useUserPageViewModel'
+import type { ProfileNameMessage as ProfileNameMessageState } from '@/types/user'
 import { cn } from '@/utils/cn'
 
-type AccountSection = 'password' | 'withdraw'
-
 const UserPage = () => {
-	const { data: user, isPending, isError, refetch } = useCurrentUserQuery()
-	const nameForm = useProfileNameForm(user?.name)
-	// 비밀번호 변경·회원 탈퇴는 한 번에 하나만 펼치고, 펼치면 카드가 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접는다.
-	const [openSection, setOpenSection] = useState<AccountSection | null>(null)
-	const isSectionOpen = openSection !== null
-	const toggleSection = (section: AccountSection) => (open: boolean) => setOpenSection(open ? section : null)
+	const viewModel = useUserPageViewModel()
+	const { nameField } = viewModel
 
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
@@ -28,8 +21,10 @@ const UserPage = () => {
 
 			<div className='relative z-10 mx-auto flex min-h-[calc(100vh-var(--layout-header-height)-2.5rem)] w-full items-start justify-center pt-6 sm:pt-8 lg:min-h-[calc(100vh-var(--layout-header-height)-2rem)] lg:pt-4'>
 				<div className='w-full max-w-xl'>
-					<div className='relative z-10 mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[5px] border-white bg-linear-to-b from-[#f4f8fb] to-[#e4ebf0] text-neutral-400 shadow-[0_12px_30px_-14px_rgba(41,83,124,.5)] sm:h-32 sm:w-32 lg:h-24 lg:w-24 lg:border-4'>
-						<UserRound className='h-16 w-16 sm:h-20 sm:w-20 lg:h-14 lg:w-14' strokeWidth={1.25} />
+					<DefaultProfileImage
+						className='z-10 mx-auto h-28 w-28 border-[5px] border-white shadow-[0_12px_30px_-14px_rgba(41,83,124,.5)] sm:h-32 sm:w-32 lg:h-24 lg:w-24 lg:border-4'
+						iconClassName='h-16 w-16 sm:h-20 sm:w-20 lg:h-14 lg:w-14'
+					>
 						<button
 							type='button'
 							disabled
@@ -38,32 +33,32 @@ const UserPage = () => {
 						>
 							<Camera className='h-4 w-4 lg:h-3.5 lg:w-3.5' />
 						</button>
-					</div>
+					</DefaultProfileImage>
 
 					<div
 						className={cn(
 							'overflow-hidden rounded-brand-md border border-white/90 bg-white shadow-[0_22px_50px_-28px_rgba(41,83,124,.55)] transition-[margin] duration-300',
-							isSectionOpen ? 'mt-4' : 'mt-6'
+							viewModel.isProfileCollapsed ? 'mt-4' : 'mt-6'
 						)}
 					>
 						<div
 							className={cn(
 								'px-5 transition-[padding] duration-300 sm:px-8 lg:px-10',
-								isSectionOpen ? 'pb-3 pt-5' : 'py-8 sm:py-9 lg:py-10'
+								viewModel.isProfileCollapsed ? 'pb-3 pt-5' : 'py-8 sm:py-9 lg:py-10'
 							)}
 						>
 							<h2 className='text-center typo-title1_bold text-neutral-800'>프로필 정보</h2>
 
-							{isPending ? (
+							{viewModel.profileResource.isLoading ? (
 								<ProfileFieldsSkeleton />
-							) : isError ? (
-								<ProfileFieldsError retry={() => void refetch()} />
+							) : viewModel.profileResource.isLoadingError ? (
+								<ProfileFieldsError retry={viewModel.profileResource.retry} />
 							) : (
 								// 처음 들어오면 닉네임·이메일을 모두 보이고, 메뉴를 펼치면 프로필 정보 제목만 남기고 접는다.
-								<Collapse open={!isSectionOpen}>
+								<Collapse open={!viewModel.isProfileCollapsed}>
 									<form
 										noValidate
-										onSubmit={event => void nameForm.onSubmit(event)}
+										onSubmit={nameField.handleSubmit}
 										className='mt-5 flex flex-col gap-5 lg:mt-4'
 									>
 										<div className='grid gap-2'>
@@ -73,31 +68,27 @@ const UserPage = () => {
 											<div className='flex gap-2'>
 												<input
 													id='profile-name'
-													aria-invalid={nameForm.error ? true : undefined}
+													aria-invalid={nameField.hasError ? true : undefined}
 													aria-describedby='profile-name-hint'
-													value={nameForm.name}
-													onChange={nameForm.onNameChange}
-													disabled={nameForm.isPending}
+													value={nameField.value}
+													onChange={event => nameField.handleChange(event.target.value)}
+													disabled={nameField.isInputDisabled}
 													className={cn(
 														'h-11 min-w-0 flex-1 rounded-brand-sm border bg-neutral-white px-4 typo-body1_regular text-neutral-800 outline-none transition-colors focus:border-main-blue disabled:bg-neutral-50 disabled:text-neutral-500 lg:h-10',
-														nameForm.error
+														nameField.hasError
 															? 'border-danger-500 focus:border-danger-500'
 															: 'border-neutral-300'
 													)}
 												/>
 												<button
 													type='submit'
-													disabled={!nameForm.isDirty || nameForm.isPending}
+													disabled={nameField.isSubmitDisabled}
 													className='h-11 shrink-0 rounded-brand-sm bg-main-blue px-4 typo-button1_semibold text-white transition-opacity disabled:cursor-default disabled:opacity-50 lg:h-10'
 												>
-													{nameForm.isPending ? '변경 중...' : '닉네임 변경'}
+													{nameField.submitLabel}
 												</button>
 											</div>
-											<ProfileNameMessage
-												id='profile-name-hint'
-												error={nameForm.error}
-												feedback={nameForm.feedback}
-											/>
+											<ProfileNameMessage id='profile-name-hint' message={nameField.message} />
 										</div>
 
 										<label className='grid content-start gap-2'>
@@ -105,7 +96,7 @@ const UserPage = () => {
 											<input
 												aria-label='이메일'
 												readOnly
-												value={user.email}
+												value={viewModel.email}
 												className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
 											/>
 										</label>
@@ -115,16 +106,8 @@ const UserPage = () => {
 						</div>
 
 						<div className='border-t border-neutral-200'>
-							<PasswordChangeSection
-								provider={user?.provider}
-								isOpen={openSection === 'password'}
-								onOpenChange={toggleSection('password')}
-							/>
-							<WithdrawSection
-								isOpen={openSection === 'withdraw'}
-								onOpenChange={toggleSection('withdraw')}
-								disabled={!user}
-							/>
+							<PasswordChangeSection section={viewModel.passwordSection} />
+							<WithdrawSection section={viewModel.withdrawSection} />
 						</div>
 					</div>
 				</div>
@@ -133,38 +116,17 @@ const UserPage = () => {
 	)
 }
 
-type ProfileNameMessageProps = {
-	id: string
-	error: string
-	feedback: ReturnType<typeof useProfileNameForm>['feedback']
+const MESSAGE_TONE_CLASS: Record<ProfileNameMessageState['tone'], string> = {
+	hint: 'typo-caption1_regular text-neutral-500',
+	error: 'typo-caption1_regular text-danger-700',
+	success: 'typo-caption1_medium text-main-blue',
 }
 
-/** 입력 아래 한 줄에 검증 오류, 저장 결과, 입력 규칙 순으로 하나만 보여 줘 카드 높이가 바뀌지 않게 한다. */
-const ProfileNameMessage = ({ id, error, feedback }: ProfileNameMessageProps) => {
-	if (error) {
-		return (
-			<span id={id} className='typo-caption1_regular text-danger-700'>
-				{error}
-			</span>
-		)
-	}
-	if (feedback) {
-		return (
-			<span
-				id={id}
-				role={feedback.type === 'error' ? 'alert' : 'status'}
-				className={cn('typo-caption1_medium', feedback.type === 'error' ? 'text-danger-700' : 'text-main-blue')}
-			>
-				{feedback.message}
-			</span>
-		)
-	}
-	return (
-		<span id={id} className='typo-caption1_regular text-neutral-500'>
-			{PROFILE_NAME_RULE_MESSAGE}
-		</span>
-	)
-}
+const ProfileNameMessage = ({ id, message }: { id: string; message: ProfileNameMessageState }) => (
+	<span id={id} role={message.role} className={MESSAGE_TONE_CLASS[message.tone]}>
+		{message.text}
+	</span>
+)
 
 /** 높이는 닉네임·이메일 입력 영역과 같아야 데이터 도착 후 카드 높이가 흔들리지 않는다. */
 const ProfileFieldsSkeleton = () => (

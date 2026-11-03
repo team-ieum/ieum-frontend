@@ -1,9 +1,9 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useUpdateCurrentUserMutation } from '@/hooks/user/mutations/useUpdateCurrentUserMutation'
 import { profileNameSchema } from '@/schemas/user'
 import { isApiError } from '@/utils/ApiError'
 
-type SaveFeedback = { type: 'success' | 'error'; message: string } | null
+export type ProfileNameSaveFeedback = { type: 'success' | 'error'; message: string } | null
 
 /** `savedName`은 서버의 현재 닉네임이다. 입력하지 않은 동안은 이 값을 그대로 보여 준다. */
 export const useProfileNameForm = (savedName: string | undefined) => {
@@ -11,18 +11,18 @@ export const useProfileNameForm = (savedName: string | undefined) => {
 	// null이면 아직 수정하지 않은 상태다. 저장에 성공하면 다시 null로 돌려 갱신된 서버 값을 따른다.
 	const [draft, setDraft] = useState<string | null>(null)
 	const [error, setError] = useState('')
-	const [feedback, setFeedback] = useState<SaveFeedback>(null)
+	const [feedback, setFeedback] = useState<ProfileNameSaveFeedback>(null)
 
 	const name = draft ?? savedName ?? ''
 	const isDirty = draft !== null && draft.trim() !== savedName
 
-	const onNameChange = (event: ChangeEvent<HTMLInputElement>) => {
-		setDraft(event.target.value)
+	const handleNameChange = (value: string) => {
+		setDraft(value)
 		setError('')
 		setFeedback(null)
 	}
 
-	const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault()
 		if (!isDirty || isPending) return
 
@@ -44,5 +44,5 @@ export const useProfileNameForm = (savedName: string | undefined) => {
 		}
 	}
 
-	return { name, error, feedback, isDirty, isPending, onNameChange, onSubmit }
+	return { name, error, feedback, isDirty, isPending, handleNameChange, handleSubmit }
 }
