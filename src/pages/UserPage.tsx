@@ -1,4 +1,6 @@
 import { Camera, ChevronDown, Trash2, UserRound, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
+import Collapse from '@/components/common/Collapse'
 import PatternBackground from '@/components/common/PatternBackground'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import PasswordChangeSection from '@/components/user/PasswordChangeSection'
@@ -12,6 +14,8 @@ const PROFILE_NAME_FORM_ID = 'profile-name-form'
 const UserPage = () => {
 	const { data: user, isPending, isError, refetch } = useCurrentUserQuery()
 	const nameForm = useProfileNameForm(user?.name)
+	// 비밀번호 변경을 펼치면 카드가 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접는다.
+	const [isPasswordOpen, setIsPasswordOpen] = useState(false)
 
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
@@ -34,7 +38,12 @@ const UserPage = () => {
 					</div>
 
 					<div className='mt-6 overflow-hidden rounded-brand-md border border-white/90 bg-white shadow-[0_22px_50px_-28px_rgba(41,83,124,.55)]'>
-						<div className='px-5 py-8 sm:px-8 sm:py-9 lg:px-10 lg:py-10'>
+						<div
+							className={cn(
+								'px-5 transition-[padding] duration-300 sm:px-8 lg:px-10',
+								isPasswordOpen ? 'py-6' : 'py-8 sm:py-9 lg:py-10'
+							)}
+						>
 							<h2 className='text-center typo-title1_bold text-neutral-800'>프로필 정보</h2>
 
 							{isPending ? (
@@ -42,60 +51,67 @@ const UserPage = () => {
 							) : isError ? (
 								<ProfileFieldsError retry={() => void refetch()} />
 							) : (
-								// 카드 아래 비밀번호 변경 form과 겹치지 않도록 닉네임 form은 입력 영역만 감싸고 저장 버튼은 form 속성으로 연결한다.
-								<form
-									id={PROFILE_NAME_FORM_ID}
-									noValidate
-									onSubmit={event => void nameForm.onSubmit(event)}
-									className='mt-5 flex flex-col gap-5 lg:mt-4'
-								>
-									<label className='grid gap-2'>
-										<span className='typo-body2_semibold text-neutral-700'>닉네임</span>
-										<input
-											aria-label='닉네임'
-											aria-invalid={nameForm.error ? true : undefined}
-											aria-describedby='profile-name-hint'
-											value={nameForm.name}
-											onChange={nameForm.onNameChange}
-											disabled={nameForm.isPending}
-											className={cn(
-												'h-11 w-full rounded-brand-sm border bg-neutral-white px-4 typo-body1_regular text-neutral-800 outline-none transition-colors focus:border-main-blue disabled:bg-neutral-50 disabled:text-neutral-500 lg:h-10',
-												nameForm.error
-													? 'border-danger-500 focus:border-danger-500'
-													: 'border-neutral-300'
-											)}
-										/>
-										<span
-											id='profile-name-hint'
-											className={cn(
-												'typo-caption1_regular',
-												nameForm.error ? 'text-danger-700' : 'text-neutral-500'
-											)}
-										>
-											{nameForm.error || PROFILE_NAME_RULE_MESSAGE}
-										</span>
-									</label>
+								<Collapse open={!isPasswordOpen}>
+									{/* 카드 아래 비밀번호 변경 form과 겹치지 않도록 닉네임 form은 입력 영역만 감싸고 저장 버튼은 form 속성으로 연결한다. */}
+									<form
+										id={PROFILE_NAME_FORM_ID}
+										noValidate
+										onSubmit={event => void nameForm.onSubmit(event)}
+										className='mt-5 flex flex-col gap-5 lg:mt-4'
+									>
+										<label className='grid gap-2'>
+											<span className='typo-body2_semibold text-neutral-700'>닉네임</span>
+											<input
+												aria-label='닉네임'
+												aria-invalid={nameForm.error ? true : undefined}
+												aria-describedby='profile-name-hint'
+												value={nameForm.name}
+												onChange={nameForm.onNameChange}
+												disabled={nameForm.isPending}
+												className={cn(
+													'h-11 w-full rounded-brand-sm border bg-neutral-white px-4 typo-body1_regular text-neutral-800 outline-none transition-colors focus:border-main-blue disabled:bg-neutral-50 disabled:text-neutral-500 lg:h-10',
+													nameForm.error
+														? 'border-danger-500 focus:border-danger-500'
+														: 'border-neutral-300'
+												)}
+											/>
+											<span
+												id='profile-name-hint'
+												className={cn(
+													'typo-caption1_regular',
+													nameForm.error ? 'text-danger-700' : 'text-neutral-500'
+												)}
+											>
+												{nameForm.error || PROFILE_NAME_RULE_MESSAGE}
+											</span>
+										</label>
 
-									<label className='grid content-start gap-2'>
-										<span className='typo-body2_semibold text-neutral-700'>이메일</span>
-										<input
-											aria-label='이메일'
-											readOnly
-											value={user.email}
-											className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
-										/>
-									</label>
-								</form>
+										<label className='grid content-start gap-2'>
+											<span className='typo-body2_semibold text-neutral-700'>이메일</span>
+											<input
+												aria-label='이메일'
+												readOnly
+												value={user.email}
+												className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
+											/>
+										</label>
+									</form>
+								</Collapse>
 							)}
 						</div>
 
 						<div className='border-t border-neutral-200'>
-							<PasswordChangeSection provider={user?.provider} />
+							<PasswordChangeSection
+								provider={user?.provider}
+								isOpen={isPasswordOpen}
+								onOpenChange={setIsPasswordOpen}
+							/>
 							<SettingRow icon={Trash2} label='계정 삭제' danger />
 						</div>
 					</div>
 
-					<div className='mt-4 flex items-center justify-end gap-3'>
+					{/* 저장 버튼은 닉네임 입력과 함께 접는다. 버튼 그림자가 잘리지 않도록 padding만큼 바깥 여백을 되돌린다. */}
+					<Collapse open={!isPasswordOpen} className='-mx-4 -mb-4 flex items-center justify-end gap-3 px-4 pt-4 pb-4'>
 						{nameForm.feedback ? (
 							<p
 								role={nameForm.feedback.type === 'error' ? 'alert' : 'status'}
@@ -115,7 +131,7 @@ const UserPage = () => {
 						>
 							{nameForm.isPending ? '저장 중...' : '변경사항 저장'}
 						</button>
-					</div>
+					</Collapse>
 				</div>
 			</div>
 		</section>

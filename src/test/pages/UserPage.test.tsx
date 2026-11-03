@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,7 @@ import { createPartialFailureHandlers } from '@/mocks/apiScenarios'
 import { currentUserResponse } from '@/mocks/fixtures/user'
 import { server } from '@/mocks/server'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { setReducedMotion } from '@/test/domEnvironment'
 import { renderAppRoute } from '@/test/renderAppRoute'
 
 vi.mock('@/components/routing/RouteTransition', async () => {
@@ -125,9 +126,23 @@ describe('UserPage 내 정보 조회', () => {
 			await userEvent.type(screen.getByLabelText('현재 비밀번호'), 'Password1!')
 
 			await userEvent.click(screen.getAllByRole('button', { name: '비밀번호 변경' })[0])
-			expect(screen.queryByLabelText('현재 비밀번호')).not.toBeInTheDocument()
+			// 접히는 애니메이션이 끝나야 패널이 DOM에서 빠진다.
+			await waitFor(() => expect(screen.queryByLabelText('현재 비밀번호')).not.toBeInTheDocument())
 			await userEvent.click(screen.getByRole('button', { name: '비밀번호 변경' }))
 			expect(screen.getByLabelText('현재 비밀번호')).toHaveValue('')
+		})
+
+		it('펼치면 화면 높이를 넘지 않도록 프로필 입력과 저장 버튼을 접고 닫으면 되돌린다', async () => {
+			// jsdom에서는 처음부터 펼쳐져 있던 영역의 접힘 애니메이션이 끝나지 않으므로 동작 줄이기로 바로 접는다.
+			setReducedMotion(true)
+			await openPasswordForm()
+
+			await waitFor(() => expect(screen.queryByLabelText('닉네임')).not.toBeInTheDocument())
+			expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
+
+			await userEvent.click(screen.getAllByRole('button', { name: '비밀번호 변경' })[0])
+			expect(await screen.findByLabelText('닉네임')).toHaveValue('이음새')
+			expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeInTheDocument()
 		})
 
 		it('성공하면 토큰을 지우고 로그인 화면으로 보내며 다시 로그인하라고 안내한다', async () => {
