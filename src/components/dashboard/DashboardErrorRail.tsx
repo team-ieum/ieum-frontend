@@ -100,7 +100,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 								</div>
 								<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
 									<div className='flex items-center gap-2'>
-										<span className='font-mono typo-caption2_medium text-neutral-400'>{error.code}</span>
+										<span className='typo-mono-caption2_medium text-neutral-400'>{error.code}</span>
 										<span className='ml-auto typo-caption1_regular text-neutral-400'>{error.when}</span>
 									</div>
 									<p className='typo-body2_semibold m-0 text-neutral-900'>{error.title}</p>
