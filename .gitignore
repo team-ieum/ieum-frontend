@@ -44,3 +44,6 @@ build
 .claude/settings.local.json
 .claude/worktrees/
 CLAUDE.local.md
+
+# Deployment configuration validation
+__pycache__/
