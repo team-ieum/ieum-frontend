@@ -1,12 +1,13 @@
 import { MoreHorizontal, Trash2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
+import { cn } from '@/utils/cn'
 
 type WorkflowMoreMenuProps = {
 	onDelete: () => void
 	className?: string
 }
 
-export const WorkflowMoreMenu = ({ onDelete, className = '' }: WorkflowMoreMenuProps) => {
+export const WorkflowMoreMenu = ({ onDelete, className }: WorkflowMoreMenuProps) => {
 	const [open, setOpen] = useState(false)
 	const menuId = useId()
 	const containerRef = useRef<HTMLDivElement>(null)
@@ -40,7 +41,7 @@ export const WorkflowMoreMenu = ({ onDelete, className = '' }: WorkflowMoreMenuP
 	}
 
 	return (
-		<div ref={containerRef} className={`relative ${className}`} onKeyDown={handleKeyDown} onBlur={handleBlur}>
+		<div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown} onBlur={handleBlur}>
 			<button
 				ref={triggerRef}
 				type='button'
