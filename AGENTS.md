@@ -12,18 +12,19 @@
 
 ## 주요 명령
 
-| 명령                              | 용도                                         |
-| --------------------------------- | -------------------------------------------- |
-| `npm run dev`                     | 개발 서버                                    |
-| `npx vitest run --dir src`        | 전체 테스트 1회 실행                         |
-| `npx vitest run --dir src <경로>` | 일부 테스트만 실행                           |
-| `npm run lint`                    | ESLint                                       |
-| `npm run build`                   | 타입 검사(`tsc -b --noEmit`)와 프로덕션 빌드 |
-| `npm run knip`                    | 사용하지 않는 파일·export·의존성 검사        |
+| 명령                                                               | 용도                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------ |
+| `npm run dev`                                                      | 개발 서버                                        |
+| `npx vitest run --dir src`                                         | `src`의 Vitest 테스트 전체 1회 실행              |
+| `npx vitest run --dir src <경로>`                                  | 일부 테스트만 실행                               |
+| `npm run lint`                                                     | ESLint                                           |
+| `npm run build`                                                    | 타입 검사(`tsc -b --noEmit`)와 프로덕션 빌드     |
+| `npm run knip`                                                     | 사용하지 않는 파일·export·의존성 검사            |
+| `python3 -m unittest discover -s scripts/bluegreen -p 'test_*.py'` | 배포 스크립트(`scripts/bluegreen`) Python 테스트 |
 
 - `npm test`는 TTY에서 watch 모드로 실행되니 1회 실행에는 `vitest run`을 쓰세요.
 - 로컬에서는 `--dir src`를 붙이세요. Claude Code 앱이 만든 worktree가 `.claude/worktrees`에 있으면, Vitest가 그 안의 테스트까지 수집합니다(설정에 include/exclude가 없음). 그러면 React가 중복 로드되어 상관없는 테스트가 실패합니다. CI는 저장소를 새로 checkout해 이 폴더가 없으므로 `--dir` 없이 실행합니다. ESLint는 `eslint.config.js`에서 이 폴더를 제외하므로 `npm run lint`는 그대로 쓰면 됩니다.
-- CI(`.github/workflows/`)는 dev·main push 때 `npm run lint`, `npm test -- --run --passWithNoTests`, 빌드 순서로 실행합니다. dev 빌드는 `npx vite build`라 타입 검사를 하지 않고, main 빌드만 `npm run build`(tsc 포함)입니다. 타입 오류는 로컬 `npm run build`로 확인하세요.
+- CI(`.github/workflows/`)는 dev·main push 때 `npm run lint`, 테스트, 빌드 순서로 실행합니다. dev CI의 테스트 단계는 `scripts/bluegreen`의 Python 테스트와 `npm test -- --run --passWithNoTests`를 함께 실행하므로, 배포 스크립트를 고치면 Python 테스트도 로컬에서 실행하세요. dev 빌드는 `npx vite build`라 타입 검사를 하지 않고, main 빌드만 `npm run build`(tsc 포함)입니다. 타입 오류는 로컬 `npm run build`로 확인하세요.
 - pre-commit 훅은 `lint-staged`(eslint --fix, prettier)만 실행하고 테스트와 타입 검사는 하지 않습니다.
 
 ## 세부 규칙 문서
@@ -140,3 +141,4 @@
 - 테스트 또는 빌드가 성공하면 최종 응답에 실행한 명령과 성공 여부만 간단히 요약하고 출력 원문은 제시하지 마세요.
 - 테스트 또는 빌드가 실패하거나 외부 서비스, 인증 정보, 실행 환경 문제로 완료할 수 없으면 코드를 임의로 변경하지 말고 실행 명령과 오류 출력 전체 원문을 최종 응답에 제시하세요.
 - 실패 출력이 응답 길이 제한을 초과하면 원문을 파일로 저장해 제공하고 최종 응답에 실행 명령과 파일 위치를 알리세요.
+- 실패 출력을 응답이나 파일로 제공할 때는 토큰, 인증 정보, 개인정보를 `***`처럼 가리세요. 진단에 필요한 오류 메시지와 위치는 그대로 남깁니다.

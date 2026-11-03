@@ -46,13 +46,13 @@ paths:
 - `router.state`나 query cache 상태가 아니라 화면(DOM, `aria-busy`)을 기준으로 기다리세요. React Router는 상태를 먼저 바꾸고 render는 `startTransition`으로 나중에 합니다.
 - jsdom에서 `*ByRole`의 접근 이름 계산은 비쌉니다. 반복문 안에서 `findByRole`을 계속 기다리지 말고, 바뀌는 텍스트로 먼저 기다린 뒤 role 단언은 한 번만 하세요.
 - 시간 의존 로직은 `vi.useFakeTimers()`와 `act(() => vi.advanceTimersByTime(n))`로 제어하고 `afterEach`에서 `vi.useRealTimers()`로 복원하세요. 타이머 뒤에 Promise가 이어지면 `await act(async () => vi.advanceTimersByTimeAsync(n))`를 쓰세요.
-- fake timers 구간에서는 `userEvent` 대신 `fireEvent`로 상호작용하세요(`src/test/routes/workflowExecutionRoute.test.tsx` 참고). `userEvent`는 내부에서 실제 타이머로 지연을 기다리므로 fake timers와 함께 쓰면 진행이 멈출 수 있습니다.
+- fake timers 구간에서 상호작용하려면 `userEvent.setup({ advanceTimers: vi.advanceTimersByTime })`로 만든 `user`를 쓰세요. `advanceTimers` 없이 만든 `userEvent`는 내부 지연을 실제 타이머로 기다려 fake timers 구간에서 진행이 멈춥니다.
 
 ## 쿼리와 상호작용
 
 - 요소는 `getByRole(role, { name })`을 먼저 쓰세요. 그다음은 `getByLabelText`, `getByText` 순입니다. `getByTestId`는 다른 방법이 없을 때만 씁니다.
 - 영역 안의 요소는 `within(container)`로 범위를 좁히세요. 부재 확인은 `queryBy*`로 하세요.
-- 컴포넌트 상호작용은 `const user = userEvent.setup()` 후 `await user.click(...)`을 쓰세요. `fireEvent`는 `pointerEnter` 같은 저수준 이벤트, route 테스트의 단순 이동, fake timers 구간에만 씁니다.
+- 컴포넌트 상호작용은 `const user = userEvent.setup()` 후 `await user.click(...)`을 쓰세요. `fireEvent`는 `pointerEnter` 같은 저수준 이벤트나 route 테스트의 단순 이동처럼 `userEvent`로 표현하기 어려운 경우에만 씁니다.
 - focus 이동은 `toHaveFocus()`로 검증하세요.
 
 ## mock과 전역 상태 복원
