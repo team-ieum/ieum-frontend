@@ -41,12 +41,8 @@ export const deactivateWorkflow = async (id: string): Promise<ApiResponse<Workfl
 	return response.data
 }
 
-export const executeWorkflow = async (
-	id: string,
-	body?: ExecuteWorkflowRequest,
-	signal?: AbortSignal
-): Promise<ApiResponse<WorkflowExecutionDto>> => {
-	const response = await api.post(`/api/v1/workflows/${id}/execute`, body, { signal })
+export const executeWorkflow = async (id: string, body?: ExecuteWorkflowRequest): Promise<ApiResponse<WorkflowExecutionDto>> => {
+	const response = await api.post(`/api/v1/workflows/${id}/execute`, body)
 	return response.data
 }
 
