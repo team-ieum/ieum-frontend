@@ -1,25 +1,25 @@
 # Frontend DEV Secrets와 Blue/Green 설정
 
-이 문서는 2026-11-01 v17 앱 네트워크 분리·공용 데이터망과 DEV*COM* 명명 규칙을 반영한다. 이번 수정에서 GitHub 설정·서버·배포·커밋·push는 수행하지 않았다.
+이 문서는 2026-11-01 v17 앱 네트워크 분리·공용 데이터망과 DEV_COM_ 명명 규칙을 반영한다. 이번 수정에서 GitHub 설정·서버·배포·커밋·push는 수행하지 않았다.
 
 ## 이름 규칙
 
-Frontend 저장소의 `DEV_` Secrets를 선택하고 접두사를 한 번 제거한다. 공통 설정의 COM\_도 한 번 제거한다. 예: DEV_COM_VITE_API_URL → VITE_API_URL.
+Frontend 저장소의 `DEV_` Secrets를 선택하고 접두사를 한 번 제거한다. 공통 설정의 COM_도 한 번 제거한다. 예: DEV_COM_VITE_API_URL → VITE_API_URL.
 
-| GitHub Secret                       | 사용처                                                               |
-| ----------------------------------- | -------------------------------------------------------------------- |
-| `DEV_COM_NODE_VERSION`              | setup-node용 CI 설정. 컨테이너 환경에는 복사하지 않음                |
-| `DEV_COM_IMAGE_NAME`                | Docker 이미지 이름. 컨테이너 환경에는 복사하지 않음                  |
-| `DEV_COM_VITE_API_URL`              | 필수 앱 설정 `VITE_API_URL`. 빌드와 배포 snapshot에 동일 값 사용     |
-| `DEV_COM_VITE_MEASUREMENT_MODE`     | 선택 앱 설정 `VITE_MEASUREMENT_MODE`                                 |
-| `DEV_COM_VITE_MEASUREMENT_DELAY_MS` | 선택 앱 설정 `VITE_MEASUREMENT_DELAY_MS`                             |
-| `DEV_COM_VITE_NEW_OPTION`           | 신규 앱 설정 `VITE_NEW_OPTION`. workflow 개별 매핑 수정 불필요       |
-| `DEV_NEW_RUNTIME_OPTION`            | 신규 컨테이너 설정 `NEW_RUNTIME_OPTION`. Vite 빌드에는 전달하지 않음 |
+| GitHub Secret | 사용처 |
+|---|---|
+| `DEV_COM_NODE_VERSION` | setup-node용 CI 설정. 컨테이너 환경에는 복사하지 않음 |
+| `DEV_COM_IMAGE_NAME` | Docker 이미지 이름. 컨테이너 환경에는 복사하지 않음 |
+| `DEV_COM_VITE_API_URL` | 필수 앱 설정 `VITE_API_URL`. 빌드와 배포 snapshot에 동일 값 사용 |
+| `DEV_COM_VITE_MEASUREMENT_MODE` | 선택 앱 설정 `VITE_MEASUREMENT_MODE` |
+| `DEV_COM_VITE_MEASUREMENT_DELAY_MS` | 선택 앱 설정 `VITE_MEASUREMENT_DELAY_MS` |
+| `DEV_COM_VITE_NEW_OPTION` | 신규 앱 설정 `VITE_NEW_OPTION`. workflow 개별 매핑 수정 불필요 |
+| `DEV_NEW_RUNTIME_OPTION` | 신규 컨테이너 설정 `NEW_RUNTIME_OPTION`. Vite 빌드에는 전달하지 않음 |
 
 기존 Frontend 앱 설정 이름은 그대로 사용하며 별도 앱 별칭 변환은 없다. 접두사 없는 예전
-NODE*VERSION·IMAGE_NAME·VITE_API_URL이나 서버 원본 `.env`로 fallback하지 않는다.
-`MAIN*`, `DEVELOPMENT*`, `DEVX*`도 선택하지 않는다. 이전에 `DEV*BACKEND*_`이름을 만들었다면
-이 저장소에서는`BACKEND\__`라는 확장 키가 되므로 `DEV\_` + 실제 앱 변수명으로 정리한다.
+NODE_VERSION·IMAGE_NAME·VITE_API_URL이나 서버 원본 `.env`로 fallback하지 않는다.
+`MAIN_`, `DEVELOPMENT_`, `DEVX_`도 선택하지 않는다. 이전에 `DEV_BACKEND_*` 이름을 만들었다면
+이 저장소에서는 `BACKEND_*`라는 확장 키가 되므로 `DEV_` + 실제 앱 변수명으로 정리한다.
 GitHub 등록값을 자동 복사·변경·삭제하지 않았다. Main/AWS workflow는 변경하지 않았다.
 
 `VITE_*`는 앱에서 참조하면 **브라우저 JavaScript에 포함될 수 있는 공개 설정**이다.
@@ -47,42 +47,42 @@ Backend·Agent만 ieum_net_data에도 연결
 ### Frontend 저장소에 등록할 필수 Secrets: 24개
 
 아래는 배포 계획의 예시다. 실제 서버의 현재 값·주소 가용성 확인 결과가 아니다. 기존 접두사 없는
-Secrets는 Legacy workflow가 계속 사용하므로 유지한다. 예전 DEV*VITE_API_URL 같은 새 접두사별칭과
-DEV_COM_VITE_API_URL을 동시에 등록하면 중복으로 거부한다. 기존 앱 DEV* 표기는 호환 입력으로 읽지만 CI의
-NODE*VERSION·IMAGE_NAME은 DEV_COM* 이름만 읽는다. Backend·Agent 앱 Secrets 이름을 이번 변경에서 일괄 바꾸지 않는다.
+Secrets는 Legacy workflow가 계속 사용하므로 유지한다. 예전 DEV_VITE_API_URL 같은 새 접두사별칭과
+DEV_COM_VITE_API_URL을 동시에 등록하면 중복으로 거부한다. 기존 앱 DEV_ 표기는 호환 입력으로 읽지만 CI의
+NODE_VERSION·IMAGE_NAME은 DEV_COM_ 이름만 읽는다. Backend·Agent 앱 Secrets 이름을 이번 변경에서 일괄 바꾸지 않는다.
 
-| 공통 Secret                        | 값 / 예시                 |
-| ---------------------------------- | ------------------------- |
-| DEV_COM_NODE_VERSION               | 기존 Node 버전            |
-| DEV_COM_IMAGE_NAME                 | 기존 frontend 이미지 이름 |
-| DEV_COM_VITE_API_URL               | 기존 DEV 도메인           |
-| DEV_COM_DATA_DOCKER_NETWORK        | ieum_net_data             |
-| DEV_COM_DATA_DOCKER_NETWORK_SUBNET | 10.30.10.0/24             |
-| DEV_COM_POSTGRES_CONTAINER_NAME    | ieum-postgres             |
-| DEV_COM_REDIS_CONTAINER_NAME       | ieum-redis                |
-| DEV_COM_MONGO_CONTAINER_NAME       | ieum-mongo                |
+| 공통 Secret | 값 / 예시 |
+|---|---|
+| DEV_COM_NODE_VERSION | 기존 Node 버전 |
+| DEV_COM_IMAGE_NAME | 기존 frontend 이미지 이름 |
+| DEV_COM_VITE_API_URL | 기존 DEV 도메인 |
+| DEV_COM_DATA_DOCKER_NETWORK | ieum_net_data |
+| DEV_COM_DATA_DOCKER_NETWORK_SUBNET | 10.30.10.0/24 |
+| DEV_COM_POSTGRES_CONTAINER_NAME | ieum-postgres |
+| DEV_COM_REDIS_CONTAINER_NAME | ieum-redis |
+| DEV_COM_MONGO_CONTAINER_NAME | ieum-mongo |
 
-| Blue Secret                    | 값 / 예시                                              |
-| ------------------------------ | ------------------------------------------------------ |
-| DEV_BLUE_DOCKER_NETWORK        | ieum_net_blue                                          |
-| DEV_BLUE_DOCKER_NETWORK_SUBNET | 10.20.10.0/24                                          |
-| DEV_BLUE_CONTAINER_NAME        | ieum-blue-frontend                                     |
-| DEV_BLUE_FRONTEND_IP           | 10.20.10.20                                            |
-| DEV_BLUE_BACKEND_IP            | 10.20.10.21                                            |
-| DEV_BLUE_AGENT_IP              | 10.20.10.24                                            |
-| DEV_BLUE_FRONTEND_ENV_DIR      | /home/kwung/deploy/bluegreen/runtime/blue              |
-| DEV_BLUE_FRONTEND_ENV_FILE     | /home/kwung/deploy/bluegreen/runtime/blue/frontend.env |
+| Blue Secret | 값 / 예시 |
+|---|---|
+| DEV_BLUE_DOCKER_NETWORK | ieum_net_blue |
+| DEV_BLUE_DOCKER_NETWORK_SUBNET | 10.20.10.0/24 |
+| DEV_BLUE_CONTAINER_NAME | ieum-blue-frontend |
+| DEV_BLUE_FRONTEND_IP | 10.20.10.20 |
+| DEV_BLUE_BACKEND_IP | 10.20.10.21 |
+| DEV_BLUE_AGENT_IP | 10.20.10.24 |
+| DEV_BLUE_FRONTEND_ENV_DIR | /home/kwung/deploy/bluegreen/runtime/blue |
+| DEV_BLUE_FRONTEND_ENV_FILE | /home/kwung/deploy/bluegreen/runtime/blue/frontend.env |
 
-| Green Secret                    | 값 / 예시                                               |
-| ------------------------------- | ------------------------------------------------------- |
-| DEV_GREEN_DOCKER_NETWORK        | ieum_net_green                                          |
-| DEV_GREEN_DOCKER_NETWORK_SUBNET | 10.10.10.0/24                                           |
-| DEV_GREEN_CONTAINER_NAME        | ieum-green-frontend                                     |
-| DEV_GREEN_FRONTEND_IP           | 10.10.10.30                                             |
-| DEV_GREEN_BACKEND_IP            | 10.10.10.31                                             |
-| DEV_GREEN_AGENT_IP              | 10.10.10.34                                             |
-| DEV_GREEN_FRONTEND_ENV_DIR      | /home/kwung/deploy/bluegreen/runtime/green              |
-| DEV_GREEN_FRONTEND_ENV_FILE     | /home/kwung/deploy/bluegreen/runtime/green/frontend.env |
+| Green Secret | 값 / 예시 |
+|---|---|
+| DEV_GREEN_DOCKER_NETWORK | ieum_net_green |
+| DEV_GREEN_DOCKER_NETWORK_SUBNET | 10.10.10.0/24 |
+| DEV_GREEN_CONTAINER_NAME | ieum-green-frontend |
+| DEV_GREEN_FRONTEND_IP | 10.10.10.30 |
+| DEV_GREEN_BACKEND_IP | 10.10.10.31 |
+| DEV_GREEN_AGENT_IP | 10.10.10.34 |
+| DEV_GREEN_FRONTEND_ENV_DIR | /home/kwung/deploy/bluegreen/runtime/green |
+| DEV_GREEN_FRONTEND_ENV_FILE | /home/kwung/deploy/bluegreen/runtime/green/frontend.env |
 
 이전 DEV_COM_DOCKER_NETWORK·DEV_COM_DOCKER_NETWORK_SUBNET의 단일 앱 망 항목은 사용하지 않는다.
 각 색상의 망·서브넷 두 개와 공통 데이터망·서브넷으로 대체한다. Blue·Green 이름은 요청된 두 이름으로
@@ -128,7 +128,7 @@ DEV_AGENT_TEST_MONGODB_URL에 호스트에서 접근 가능한 별도 테스트 
 
 최초 이전에는 점검 시간이 필요할 수 있다. 같은 pin의 재등록은 허용하지만 이름·IP·서브넷·network·경로·
 데이터 컨테이너 이름을 바꾸면 자동 채택하지 않는다. schema 1은 기존 점검·recover용으로 읽을 수 있지만 새
-prepare/deploy는 schema 2를 요구한다. app DEV*COM_VITE*\* 변경은 새 빌드·배포에서 계속 허용한다.
+prepare/deploy는 schema 2를 요구한다. app DEV_COM_VITE_* 변경은 새 빌드·배포에서 계속 허용한다.
 Backend·Agent workflow는 이 공통 root pin을 읽으므로 그 저장소에 프론트의 topology Secrets를 복제하지 않는다.
 
 ## 한 번 만든 설정으로 빌드와 배포
