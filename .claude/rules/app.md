@@ -2,9 +2,10 @@
 paths:
     - 'src/app/**/*.{ts,tsx}'
     - 'src/main.tsx'
+    - 'src/App.tsx'
 ---
 
-# 앱 조립 (app, main.tsx)
+# 앱 조립 (app, App.tsx, main.tsx)
 
 route 구성, 코드 분할, 전역 QueryClient처럼 앱 전체에 한 번만 적용되는 설정을 둡니다. 화면 로직이나 도메인 데이터 변환은 두지 마세요.
 
@@ -25,6 +26,12 @@ route 구성, 코드 분할, 전역 QueryClient처럼 앱 전체에 한 번만 �
 
 - 전역 `defaultOptions`에는 모든 query에 공통으로 맞는 값만 둡니다(`refetchOnWindowFocus: false`, `retry: 3`).
 - 전역 `staleTime`을 추가하지 마세요. 데이터별 `staleTime`은 query option factory에서 `QUERY_STALE_TIME_MS`로 정합니다(`docs/ux-02-query-cache-policy.md`).
+
+## 최상위 컴포넌트 (`src/App.tsx`)
+
+- 앱 전역 provider를 한 곳에서 구성합니다: `QueryClientProvider`(`createAppQueryClient()`), `RouterProvider`(`createBrowserRouter(appRoutes)`), `MotionConfig reducedMotion='user'`, 전역 `Modal`. 이 파일은 View 계층 규칙(react-query import 금지)의 대상이 아닙니다.
+- 전역 provider나 전역 UI를 추가할 때만 이 파일을 수정하세요. 화면별 로직이나 상태는 두지 마세요.
+- 전역 `Modal`은 여기서 한 번만 렌더합니다. 다른 곳에 `Modal`을 또 렌더하지 마세요.
 
 ## 진입점 (`src/main.tsx`)
 

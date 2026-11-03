@@ -71,7 +71,7 @@ paths:
 
 - `src/constants/<domain>/<topic>.ts`에 두고, 이름은 UPPER_SNAKE_CASE입니다. 예외는 `queryKeys`뿐입니다.
 - 닫힌 union(값이 모두 정해진 union)의 매핑 테이블은 `Record<Union, Meta>`로 타입을 붙여 누락을 컴파일 단계에서 잡으세요.
-- `| (string & {})`로 열린 union은 서버가 모르는 값을 보낼 수 있습니다. 이 경우 알려진 값만 매핑하고(`Record<string, Meta>` 또는 `Partial<Record<KnownValue, Meta>>`), 조회하는 곳에서 `?? fallback`으로 모르는 값을 처리하세요(`mapWorkflowDashboardExecution.ts`의 `TRIGGER_LABELS`). 이 저장소는 `noUncheckedIndexedAccess`가 꺼져 있어 없는 키 조회를 타입 검사가 잡지 못합니다.
+- `| (string & {})`로 열린 union은 서버가 모르는 값을 보낼 수 있습니다. 이 경우 알려진 값만 매핑하고(`Record<string, Meta>` 또는 `Partial<Record<KnownValue, Meta>>`), 조회하는 곳에서 `?? fallback`으로 모르는 값을 처리하세요(`constants/integration/integrationProviders.ts`의 `OAUTH_PROVIDER_BRAND`와 `utils/integration/mapOAuthConnectionToIntegrationService.ts`의 조회). 이 저장소는 `noUncheckedIndexedAccess`가 꺼져 있어 없는 키 조회를 타입 검사가 잡지 못합니다.
 - 리터럴 타입을 보존해야 하는 값에는 `as const`를 붙이세요.
 - `localStorage` 키는 `src/constants/key.ts`에 모으세요.
 - 상수와 밀접한 타입가드·조회 함수(`isOAuthConnectServiceId`)는 상수 옆에 둘 수 있습니다.
@@ -79,6 +79,7 @@ paths:
 ## 유틸 (`src/utils`)
 
 - 입력만으로 결과가 정해지는 순수 함수를 둡니다. React 훅, API 호출, 전역 상태 변경을 넣지 마세요.
+- 예외: `AxiosInstance.ts`(공통 HTTP 인스턴스와 인증 인터셉터, store 갱신·인증 화면 이동 포함)와 `*Storage.ts`(브라우저 저장소 접근, 예: `workflow/workflowDraftStorage.ts`)는 순수 함수 규칙에서 제외합니다. 이 파일들을 수정할 때 부수효과를 다른 계층으로 옮기는 리팩터링을 하지 마세요.
 - `src/utils/<domain>/<verbNoun>.ts`에 두고, 파일명은 주 함수 이름과 같게 하세요. 접두어는 `map*`, `format*`, `select*`, `get*`, `resolve*`, `is*` 등 동작을 드러내는 동사를 씁니다.
 - 여러 도메인에서 쓰는 범용 함수만 `src/utils/` 루트에 둡니다(`cn.ts`, `formatRelativeTime.ts`).
 - 오류 판별은 `ApiError` 클래스와 `isApiError()`(`@/utils/ApiError`)를 쓰세요.

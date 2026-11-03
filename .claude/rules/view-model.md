@@ -40,7 +40,7 @@ src/hooks/<domain>/
 - 조회 훅은 factory를 감싸기만 합니다: `export const useXQuery = (...) => useQuery(xQueryOptions(...))`
 - `staleTime`은 `src/constants/queryCache.ts`의 `QUERY_STALE_TIME_MS.<data>`를 쓰세요. 새 데이터 종류를 추가하면 상수와 `docs/ux-02-query-cache-policy.md`의 표를 함께 갱신하세요.
 - API 응답 envelope(`ApiResponse<T>`)을 꺼내는 변환을 여러 사용처가 공유하면 factory의 `select`에 한 번만 두세요. 사용처마다 `select`를 따로 쓰지 마세요.
-- 특정 오류를 값으로 바꿔야 하면(예: 샘플 없음 404 → `null`) `select`가 아니라 factory의 `queryFn`에서 처리하세요(`nodeTestSampleQueryOptions` 참고).
+- 특정 오류를 값으로 바꿔야 하면(예: 오류 code `TEST_SAMPLE_NOT_FOUND` → `null`. HTTP status가 아니라 `isApiError(error) && error.code`로 판별) `select`가 아니라 factory의 `queryFn`에서 처리하세요(`nodeTestSampleQueryOptions` 참고).
 - cursor 페이지네이션은 cursor를 query key에 넣지 말고 `pageParam`으로 다루세요(`initialPageParam: undefined as string | undefined`).
 - 전역 `staleTime`, `keepPreviousData: true`, `isInitialLoading`을 쓰지 마세요.
 - 조건부 조회는 `enabled`로 막으세요. 값이 없을 때 임의의 기본값으로 요청하지 마세요.

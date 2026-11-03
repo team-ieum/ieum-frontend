@@ -8,7 +8,7 @@
 - React 19 + Vite 7 SPA, TypeScript 5(strict), Tailwind CSS 4, TanStack Query 5, Zustand 5, Axios, Zod 4
 - React Compiler(`babel-plugin-react-compiler`)가 켜져 있습니다.
 - 테스트: Vitest 4 + Testing Library + MSW 2
-- 계층 구조는 MVVM입니다. View(`src/components`, `src/pages`), ViewModel(`src/hooks`), Model(`src/api`, `src/types`, `src/schemas`, `src/stores`)로 나뉩니다. route 구성, 코드 분할, 전역 QueryClient 같은 앱 조립 코드는 `src/app`과 `src/main.tsx`에 있습니다.
+- 계층 구조는 MVVM입니다. View(`src/components`, `src/pages`), ViewModel(`src/hooks`), Model(`src/api`, `src/types`, `src/schemas`, `src/stores`)로 나뉩니다. route 구성, 코드 분할, 전역 QueryClient 같은 앱 조립 코드는 `src/app`, `src/App.tsx`, `src/main.tsx`에 있습니다.
 
 ## 주요 명령
 
@@ -22,7 +22,7 @@
 | `npm run knip`                    | 사용하지 않는 파일·export·의존성 검사        |
 
 - `npm test`는 TTY에서 watch 모드로 실행되니 1회 실행에는 `vitest run`을 쓰세요.
-- 로컬에서는 `--dir src`를 붙이세요. Claude Code 앱이 만든 worktree가 `.claude/worktrees`에 있으면, Vitest가 그 안의 테스트까지 수집합니다(설정에 include/exclude가 없음). 그러면 React가 중복 로드되어 상관없는 테스트가 실패합니다. CI는 저장소를 새로 checkout해 이 폴더가 없으므로 `--dir` 없이 실행합니다.
+- 로컬에서는 `--dir src`를 붙이세요. Claude Code 앱이 만든 worktree가 `.claude/worktrees`에 있으면, Vitest가 그 안의 테스트까지 수집합니다(설정에 include/exclude가 없음). 그러면 React가 중복 로드되어 상관없는 테스트가 실패합니다. CI는 저장소를 새로 checkout해 이 폴더가 없으므로 `--dir` 없이 실행합니다. ESLint는 `eslint.config.js`에서 이 폴더를 제외하므로 `npm run lint`는 그대로 쓰면 됩니다.
 - CI(`.github/workflows/`)는 dev·main push 때 `npm run lint`, `npm test -- --run --passWithNoTests`, 빌드 순서로 실행합니다. dev 빌드는 `npx vite build`라 타입 검사를 하지 않고, main 빌드만 `npm run build`(tsc 포함)입니다. 타입 오류는 로컬 `npm run build`로 확인하세요.
 - pre-commit 훅은 `lint-staged`(eslint --fix, prettier)만 실행하고 테스트와 타입 검사는 하지 않습니다.
 
@@ -37,7 +37,7 @@
 | `.claude/rules/view-model.md` | `src/hooks/**`                                                                                    |
 | `.claude/rules/model.md`      | `src/api`, `src/types`, `src/schemas`, `src/stores`, `src/constants`, `src/utils`, `src/services` |
 | `.claude/rules/testing.md`    | `src/test/**`, `src/mocks/**`, `*.test.ts(x)`                                                     |
-| `.claude/rules/app.md`        | `src/app/**`, `src/main.tsx`                                                                      |
+| `.claude/rules/app.md`        | `src/app/**`, `src/App.tsx`, `src/main.tsx`                                                       |
 
 다음 팀 문서도 해당 작업 전에 먼저 읽으세요.
 

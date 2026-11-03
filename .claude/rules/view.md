@@ -2,15 +2,19 @@
 paths:
     - 'src/components/**/*.{ts,tsx}'
     - 'src/pages/**/*.{ts,tsx}'
-    - 'src/App.tsx'
 ---
 
 # View 계층 (components, pages)
 
-새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 아래 폴더는 이 규칙과 다른 옛 방식이 남아 있으니 새 코드의 참고 기준으로 삼지 마세요.
+새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 다만 기준 폴더에도 이 규칙과 다른 파일이 있고, 그 밖의 폴더에는 옛 방식이 더 많이 남아 있습니다. 아래 파일과 폴더는 비슷한 컴포넌트를 만들 때 복제하지 말고 이 문서의 규칙을 따르세요.
 
+- 기준 폴더 안의 예외
+    - `integration/IntegrationServiceWorkflowList.tsx`: 컴포넌트에서 query 직접 호출, 컴포넌트 안 데이터 변환
+    - `dashboard/DashboardStatusPill.tsx`, `dashboard/DashboardStatusBadge.tsx`: 템플릿 리터럴 클래스 조합, `text-xl font-bold` 같은 원시 글자 스타일
 - `src/components/aiCredentials/`: named export, hex 색상
+- `common/ErrorPageView.tsx`: hex 색상(`bg-[#f4fbfe]`). `LAYOUT_CLASS` 상수 맵 구조는 참고해도 됩니다.
 - workflow 편집기(`src/components/workflow/`, `src/pages/WorkFlowPage.tsx`), `common/Header`, `common/SideBar`: hex 색상, `text-sm` 같은 원시 글자 크기, 인라인 style, 컴포넌트에서 query 직접 호출
+- `src/components/auth/`, `src/components/landing/`: 대부분 `typo-*`를 쓰지만 일부 파일에 원시 글자 크기와 hex 색상이 남아 있습니다.
 
 ## 컴포넌트 선언
 
@@ -23,7 +27,7 @@ paths:
 ## props
 
 - `type XxxProps = { ... }`로 선언하세요. 이름은 컴포넌트 이름 + `Props`입니다. `interface`는 쓰지 않습니다.
-- 매개변수 자리에서 구조분해하고, 기본값도 그 자리에 두세요(`({ size = 'md', isOpen = false }: SpinnerProps)`).
+- 매개변수 자리에서 구조분해하고, 기본값도 그 자리에 두세요(`({ size = 'md', label = '로딩 중' }: SpinnerProps)`).
 - `children`은 `children: ReactNode`로 Props에 직접 선언하세요.
 - 의미가 이름만으로 드러나지 않는 prop에는 한국어 JSDoc(`/** ... */`)을 다세요.
 

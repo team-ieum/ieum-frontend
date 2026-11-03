@@ -1,6 +1,6 @@
 # 공통 코드 스타일
 
-모든 코드에 적용합니다. 경로별 세부 규칙은 같은 폴더의 `view.md`, `view-model.md`, `model.md`, `testing.md`를 따르세요.
+모든 코드에 적용합니다. 경로별 세부 규칙은 같은 폴더의 `view.md`, `view-model.md`, `model.md`, `testing.md`, `app.md`를 따르세요.
 기존 코드에 아래 규칙과 다른 예외가 있어도 현재 작업 범위 밖이면 고치지 마세요. 새로 쓰는 코드는 이 규칙을 따릅니다.
 
 ## 포맷과 린트
@@ -31,7 +31,8 @@
 | 컴포넌트 파일·컴포넌트 | PascalCase, 도메인 접두어            | `DashboardCard.tsx`, `WorkflowListCard.tsx` |
 | 페이지                 | PascalCase + `Page`                  | `MainPage.tsx`                              |
 | 훅                     | `use` + camelCase, 파일명 = 훅 이름  | `useWorkflowListViewModel.ts`               |
-| 컴포넌트가 아닌 모듈   | camelCase, 파일명 = 주 export 이름   | `mapWorkflowCanvas.ts`, `queryKeys.ts`      |
+| 함수 모듈              | camelCase, 파일명 = 주 함수 이름     | `mapWorkflowDtoToListItem.ts`               |
+| 상수·클래스·모션 모듈  | camelCase, 파일명 = 주제 이름        | `queryCache.ts`, `routeTransitionMotion.ts` |
 | 모듈 수준 상수         | UPPER_SNAKE_CASE                     | `QUERY_STALE_TIME_MS`, `LAYOUT_CLASS`       |
 | boolean                | `is`/`has`/`can` 접두어              | `isLoading`, `hasNextPage`, `canSave`       |
 | 이벤트 핸들러          | 정의는 `handleX`, props 이름은 `onX` | `handleSubmit`, `onSubmit`                  |

@@ -10,7 +10,7 @@ paths:
 ## 실행
 
 - 1회 실행은 `npx vitest run --dir src [경로]`를 쓰세요. `--dir src`를 빼면 `.claude/worktrees` 같은 다른 작업 사본의 테스트까지 수집되어 React 중복 로드로 무관한 테스트가 실패합니다.
-- CI Test 단계에는 `VITE_API_URL`이 없습니다. 환경 변수에 의존하는 코드를 테스트할 때는 `vi.stubEnv`로 값을 넣고, 로컬에서도 `VITE_API_URL= npx vitest run --dir src <경로>`로 확인하세요.
+- CI Test 단계에는 `VITE_API_URL`이 없어 값이 `undefined`이고, 로컬은 `.env` 값이 들어갑니다. 환경 변수에 의존하는 코드를 테스트할 때는 `vi.stubEnv`로 값을 고정해 로컬과 CI 결과를 맞추세요. `VITE_API_URL=`로 실행하면 값이 `undefined`가 아니라 빈 문자열이 되어 CI 조건을 재현하지 못합니다.
 
 ## 위치와 이름
 
@@ -34,7 +34,8 @@ paths:
 - `src/mocks/server.ts`가 기본 성공 응답을 전역으로 등록합니다. `src/test/setup.ts`가 `onUnhandledRequest: 'error'`로 서버를 띄우므로 등록되지 않은 요청은 테스트를 실패시킵니다. 새 API를 추가하면 기본 handler도 함께 추가하세요.
 - 테스트별 응답은 `server.use(...)`로 덮어쓰세요. 핸들러는 setup에서 자동으로 리셋됩니다.
 - 경로는 baseURL과 관계없이 매칭되도록 `http.get('*/api/v1/...')`처럼 `*` 와일드카드로 시작하세요.
-- 응답 데이터는 `src/mocks/fixtures/`의 fixture를, 지연·빈 결과·실패 시나리오는 `src/mocks/apiScenarios.ts`의 factory(`createHeldSuccessHandlers`, `createEmptyHandlers`, `createPartialFailureHandlers`, `createResourceApiErrorHandler` 등)를 먼저 찾아 쓰세요.
+- 응답 데이터는 `src/mocks/fixtures/`의 fixture를, 응답 보류·빈 결과·실패 시나리오는 `src/mocks/apiScenarios.ts`의 factory(`createHeldSuccessHandlers`, `createEmptyHandlers`, `createPartialFailureHandlers`, `createResourceApiErrorHandler` 등)를 먼저 찾아 쓰세요.
+- `createDelayedSuccessHandlers(delayMs)`는 고정 지연 handler입니다. loading 화면이 보이는지 확인할 때만 쓰고, 응답 순서나 타이밍을 맞추는 데는 쓰지 마세요.
 - 요청 횟수와 내용은 handler 안의 `vi.fn()` observer로 확인하세요.
 
 ## 비동기와 대기
@@ -44,13 +45,14 @@ paths:
 - 독립적인 응답이 여러 개면 각각을 기다리세요. 하나만 기다리고 나머지를 `getBy*`로 확인하면 응답 순서에 따라 간헐적으로 실패합니다.
 - `router.state`나 query cache 상태가 아니라 화면(DOM, `aria-busy`)을 기준으로 기다리세요. React Router는 상태를 먼저 바꾸고 render는 `startTransition`으로 나중에 합니다.
 - jsdom에서 `*ByRole`의 접근 이름 계산은 비쌉니다. 반복문 안에서 `findByRole`을 계속 기다리지 말고, 바뀌는 텍스트로 먼저 기다린 뒤 role 단언은 한 번만 하세요.
-- 시간 의존 로직은 `vi.useFakeTimers()`와 `act(() => vi.advanceTimersByTime(n))`로 제어하고 `afterEach`에서 `vi.useRealTimers()`로 복원하세요. fake timers와 `userEvent`를 함께 쓰지 마세요.
+- 시간 의존 로직은 `vi.useFakeTimers()`와 `act(() => vi.advanceTimersByTime(n))`로 제어하고 `afterEach`에서 `vi.useRealTimers()`로 복원하세요. 타이머 뒤에 Promise가 이어지면 `await act(async () => vi.advanceTimersByTimeAsync(n))`를 쓰세요.
+- fake timers 구간에서는 `userEvent` 대신 `fireEvent`로 상호작용하세요(`src/test/routes/workflowExecutionRoute.test.tsx` 참고). `userEvent`는 내부에서 실제 타이머로 지연을 기다리므로 fake timers와 함께 쓰면 진행이 멈출 수 있습니다.
 
 ## 쿼리와 상호작용
 
 - 요소는 `getByRole(role, { name })`을 먼저 쓰세요. 그다음은 `getByLabelText`, `getByText` 순입니다. `getByTestId`는 다른 방법이 없을 때만 씁니다.
 - 영역 안의 요소는 `within(container)`로 범위를 좁히세요. 부재 확인은 `queryBy*`로 하세요.
-- 컴포넌트 상호작용은 `const user = userEvent.setup()` 후 `await user.click(...)`을 쓰세요. `fireEvent`는 `pointerEnter` 같은 저수준 이벤트나 route 테스트의 단순 이동에만 씁니다.
+- 컴포넌트 상호작용은 `const user = userEvent.setup()` 후 `await user.click(...)`을 쓰세요. `fireEvent`는 `pointerEnter` 같은 저수준 이벤트, route 테스트의 단순 이동, fake timers 구간에만 씁니다.
 - focus 이동은 `toHaveFocus()`로 검증하세요.
 
 ## mock과 전역 상태 복원
