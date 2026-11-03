@@ -44,7 +44,7 @@ const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChang
 			</button>
 
 			<Collapse open={isOpen} id={panelId}>
-				<div className='px-5 pb-6 sm:px-8 lg:px-10'>
+				<div className='px-5 pb-5 sm:px-8 lg:px-10'>
 					{provider === 'LOCAL' ? (
 						<form noValidate onSubmit={event => void form.onSubmit(event)} className='flex flex-col gap-3'>
 							<PasswordField
@@ -55,7 +55,7 @@ const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChang
 								error={form.errors.currentPassword}
 								disabled={form.isPending}
 							/>
-							<div className='grid gap-3 sm:grid-cols-2'>
+							<div className='grid gap-3'>
 								<PasswordField
 									label='새 비밀번호'
 									autoComplete='new-password'

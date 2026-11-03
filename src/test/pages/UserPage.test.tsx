@@ -37,7 +37,7 @@ describe('UserPage 내 정보 조회', () => {
 		expect(await screen.findByLabelText('닉네임')).toHaveValue('이음새')
 	})
 
-	it('닉네임을 바꾸면 저장 버튼이 켜지고 저장 응답으로 화면을 갱신한다', async () => {
+	it('닉네임을 바꾸면 닉네임 변경 버튼이 켜지고 응답으로 화면을 갱신한다', async () => {
 		const requestBodies: unknown[] = []
 		server.use(
 			http.patch('*/api/v1/users/me', async ({ request }) => {
@@ -48,7 +48,7 @@ describe('UserPage 내 정보 조회', () => {
 		)
 		renderAppRoute('/user')
 		const nameInput = await screen.findByLabelText('닉네임')
-		const saveButton = screen.getByRole('button', { name: '변경사항 저장' })
+		const saveButton = screen.getByRole('button', { name: '닉네임 변경' })
 		expect(saveButton).toBeDisabled()
 
 		await userEvent.clear(nameInput)
@@ -56,10 +56,10 @@ describe('UserPage 내 정보 조회', () => {
 		expect(saveButton).toBeEnabled()
 		await userEvent.click(saveButton)
 
-		expect(await screen.findByText('변경사항을 저장했어요.')).toHaveAttribute('role', 'status')
+		expect(await screen.findByText('닉네임을 변경했어요.')).toHaveAttribute('role', 'status')
 		expect(requestBodies).toEqual([{ name: '새 닉네임' }])
 		expect(nameInput).toHaveValue('새 닉네임')
-		expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: '닉네임 변경' })).toBeDisabled()
 	})
 
 	it('2~20자를 벗어나면 요청하지 않고 입력 아래에 오류를 표시한다', async () => {
@@ -75,7 +75,7 @@ describe('UserPage 내 정보 조회', () => {
 
 		await userEvent.clear(nameInput)
 		await userEvent.type(nameInput, '가')
-		await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
+		await userEvent.click(screen.getByRole('button', { name: '닉네임 변경' }))
 
 		expect(nameInput).toHaveAttribute('aria-invalid', 'true')
 		expect(nameInput).toHaveAccessibleDescription('2~20자로 입력해 주세요.')
@@ -96,11 +96,11 @@ describe('UserPage 내 정보 조회', () => {
 
 		await userEvent.clear(nameInput)
 		await userEvent.type(nameInput, '새 닉네임')
-		await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
+		await userEvent.click(screen.getByRole('button', { name: '닉네임 변경' }))
 
 		expect(await screen.findByRole('alert')).toHaveTextContent('사용할 수 없는 닉네임입니다.')
 		expect(nameInput).toHaveValue('새 닉네임')
-		expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeEnabled()
+		expect(screen.getByRole('button', { name: '닉네임 변경' })).toBeEnabled()
 	})
 
 	describe('비밀번호 변경', () => {
@@ -132,17 +132,16 @@ describe('UserPage 내 정보 조회', () => {
 			expect(screen.getByLabelText('현재 비밀번호')).toHaveValue('')
 		})
 
-		it('펼치면 화면 높이를 넘지 않도록 프로필 입력과 저장 버튼을 접고 닫으면 되돌린다', async () => {
+		it('펼치면 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접고 닫으면 되돌린다', async () => {
 			// jsdom에서는 처음부터 펼쳐져 있던 영역의 접힘 애니메이션이 끝나지 않으므로 동작 줄이기로 바로 접는다.
 			setReducedMotion(true)
 			await openPasswordForm()
 
 			await waitFor(() => expect(screen.queryByLabelText('닉네임')).not.toBeInTheDocument())
-			expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
 
 			await userEvent.click(screen.getAllByRole('button', { name: '비밀번호 변경' })[0])
 			expect(await screen.findByLabelText('닉네임')).toHaveValue('이음새')
-			expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeInTheDocument()
+			expect(screen.getByRole('button', { name: '닉네임 변경' })).toBeInTheDocument()
 		})
 
 		it('성공하면 토큰을 지우고 로그인 화면으로 보내며 다시 로그인하라고 안내한다', async () => {

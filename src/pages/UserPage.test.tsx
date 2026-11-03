@@ -38,8 +38,8 @@ describe('UserPage', () => {
 		await renderUserPage()
 
 		expect(screen.getByRole('button', { name: '프로필 이미지 변경' })).toBeDisabled()
-		// 닉네임을 바꾸기 전에는 저장할 내용이 없다.
-		expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeDisabled()
+		// 닉네임을 바꾸기 전에는 변경할 내용이 없다.
+		expect(screen.getByRole('button', { name: '닉네임 변경' })).toBeDisabled()
 		expect(screen.getByLabelText('닉네임')).not.toHaveAttribute('readonly')
 		expect(screen.getByLabelText('이메일')).toHaveAttribute('readonly')
 	})
@@ -47,8 +47,7 @@ describe('UserPage', () => {
 	it('입력 폼을 세로로 배치하고 카드 너비를 제한한다', async () => {
 		await renderUserPage()
 
-		const nicknameField = screen.getByLabelText('닉네임').closest('label')
-		const form = nicknameField?.parentElement
+		const form = screen.getByLabelText('닉네임').closest('form')
 		const cardContainer = screen.getByRole('heading', { level: 2, name: '프로필 정보' }).parentElement?.parentElement
 			?.parentElement
 
@@ -56,16 +55,14 @@ describe('UserPage', () => {
 		expect(cardContainer).toHaveClass('max-w-xl')
 	})
 
-	it('저장 버튼을 카드 바깥 오른쪽에 배치한다', async () => {
+	it('닉네임 변경 버튼을 닉네임 입력과 같은 줄에 둔다', async () => {
 		await renderUserPage()
 
-		const heading = screen.getByRole('heading', { level: 2, name: '프로필 정보' })
-		const card = heading.parentElement?.parentElement
-		const saveButton = screen.getByRole('button', { name: '변경사항 저장' })
-		const buttonArea = saveButton.parentElement
+		const nameInput = screen.getByLabelText('닉네임')
+		const changeButton = screen.getByRole('button', { name: '닉네임 변경' })
 
-		expect(card).not.toContainElement(saveButton)
-		expect(buttonArea).toHaveClass('justify-end')
-		expect(buttonArea?.previousElementSibling).toBe(card)
+		expect(changeButton.parentElement).toBe(nameInput.parentElement)
+		expect(changeButton.previousElementSibling).toBe(nameInput)
+		expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
 	})
 })
