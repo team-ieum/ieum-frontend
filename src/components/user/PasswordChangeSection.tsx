@@ -1,5 +1,5 @@
 import { ChevronDown, KeyRound } from 'lucide-react'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import Collapse from '@/components/common/Collapse'
 import { useChangePasswordForm } from '@/hooks/user/useChangePasswordForm'
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
@@ -19,10 +19,11 @@ const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChang
 	const ruleId = useId()
 	const form = useChangePasswordForm()
 
-	const toggle = () => {
-		// 닫으면 입력한 비밀번호가 화면에 남지 않도록 비운다.
-		if (isOpen) form.reset()
-		onOpenChange(!isOpen)
+	// 직접 닫거나 다른 메뉴를 펼쳐 닫히면 입력을 비워 다시 펼쳤을 때 이전 값이 남지 않게 한다.
+	const [wasOpen, setWasOpen] = useState(isOpen)
+	if (wasOpen !== isOpen) {
+		setWasOpen(isOpen)
+		if (!isOpen) form.reset()
 	}
 
 	return (
@@ -32,7 +33,7 @@ const PasswordChangeSection = ({ provider, isOpen, onOpenChange }: PasswordChang
 				aria-expanded={isOpen}
 				aria-controls={panelId}
 				disabled={!provider}
-				onClick={toggle}
+				onClick={() => onOpenChange(!isOpen)}
 				className='flex min-h-16 w-full items-center gap-3 px-5 text-left disabled:cursor-default sm:px-8 lg:px-10'
 			>
 				<KeyRound size={19} className='text-main-blue' />

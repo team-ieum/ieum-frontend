@@ -132,16 +132,32 @@ describe('UserPage 내 정보 조회', () => {
 			expect(screen.getByLabelText('현재 비밀번호')).toHaveValue('')
 		})
 
-		it('펼치면 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접고 닫으면 되돌린다', async () => {
+		it('처음에는 닉네임·이메일을 모두 보이고 펼치면 프로필 정보 제목만 남기고 접었다가 닫으면 되돌린다', async () => {
 			// jsdom에서는 처음부터 펼쳐져 있던 영역의 접힘 애니메이션이 끝나지 않으므로 동작 줄이기로 바로 접는다.
 			setReducedMotion(true)
-			await openPasswordForm()
+			renderAppRoute('/user')
+			expect(await screen.findByLabelText('닉네임')).toHaveValue('이음새')
+			expect(screen.getByLabelText('이메일')).toHaveValue('ieumsae@example.com')
 
+			await userEvent.click(screen.getByRole('button', { name: '비밀번호 변경' }))
 			await waitFor(() => expect(screen.queryByLabelText('닉네임')).not.toBeInTheDocument())
+			expect(screen.queryByLabelText('이메일')).not.toBeInTheDocument()
+			expect(screen.getByRole('heading', { level: 2, name: '프로필 정보' })).toBeInTheDocument()
 
 			await userEvent.click(screen.getAllByRole('button', { name: '비밀번호 변경' })[0])
 			expect(await screen.findByLabelText('닉네임')).toHaveValue('이음새')
-			expect(screen.getByRole('button', { name: '닉네임 변경' })).toBeInTheDocument()
+			expect(screen.getByLabelText('이메일')).toHaveValue('ieumsae@example.com')
+		})
+
+		it('회원 탈퇴를 펼쳐도 프로필 정보 제목만 남기고 닉네임·이메일을 접는다', async () => {
+			setReducedMotion(true)
+			renderAppRoute('/user')
+			await screen.findByLabelText('닉네임')
+
+			await userEvent.click(screen.getByRole('button', { name: '회원 탈퇴' }))
+			await waitFor(() => expect(screen.queryByLabelText('닉네임')).not.toBeInTheDocument())
+			expect(screen.queryByLabelText('이메일')).not.toBeInTheDocument()
+			expect(screen.getByRole('heading', { level: 2, name: '프로필 정보' })).toBeInTheDocument()
 		})
 
 		it('성공하면 토큰을 지우고 로그인 화면으로 보내며 다시 로그인하라고 안내한다', async () => {
@@ -228,6 +244,79 @@ describe('UserPage 내 정보 조회', () => {
 
 			expect(screen.getByText('소셜 로그인으로 가입한 계정은 비밀번호를 변경할 수 없어요.')).toBeInTheDocument()
 			expect(screen.queryByLabelText('현재 비밀번호')).not.toBeInTheDocument()
+		})
+	})
+
+	describe('회원 탈퇴', () => {
+		const openWithdrawPanel = async () => {
+			renderAppRoute('/user')
+			await screen.findByLabelText('닉네임')
+			await userEvent.click(screen.getByRole('button', { name: '회원 탈퇴' }))
+		}
+
+		const getWithdrawButton = () => {
+			const buttons = screen.getAllByRole('button', { name: '회원 탈퇴' })
+			// 첫 번째는 메뉴를 펼치는 버튼이다.
+			return buttons[buttons.length - 1]
+		}
+
+		it('계정 삭제 대신 회원 탈퇴 메뉴를 펼치고 동의해야 탈퇴 버튼이 켜진다', async () => {
+			await openWithdrawPanel()
+
+			expect(screen.queryByText('계정 삭제')).not.toBeInTheDocument()
+			expect(screen.getByText('탈퇴하면 계정과 아래 데이터가 즉시 영구 삭제되며 복구할 수 없어요.')).toBeInTheDocument()
+			expect(getWithdrawButton()).toBeDisabled()
+
+			await userEvent.click(screen.getByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.'))
+			expect(getWithdrawButton()).toBeEnabled()
+		})
+
+		it('비밀번호 변경과 동시에 펼치지 않고 다른 메뉴로 바꾸면 동의를 비운다', async () => {
+			setReducedMotion(true)
+			await openWithdrawPanel()
+			await userEvent.click(screen.getByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.'))
+
+			await userEvent.click(screen.getByRole('button', { name: '비밀번호 변경' }))
+			await waitFor(() =>
+				expect(screen.queryByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.')).not.toBeInTheDocument()
+			)
+			expect(screen.getAllByRole('button', { name: '회원 탈퇴' })).toHaveLength(1)
+			expect(screen.getByLabelText('현재 비밀번호')).toBeInTheDocument()
+
+			await userEvent.click(screen.getByRole('button', { name: '회원 탈퇴' }))
+			expect(screen.getByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.')).not.toBeChecked()
+		})
+
+		it('탈퇴에 성공하면 토큰을 지우고 로그인 화면으로 보내며 탈퇴 완료를 안내한다', async () => {
+			const onDelete = vi.fn()
+			server.use(
+				http.delete('*/api/v1/users/me', () => {
+					onDelete()
+					return HttpResponse.json({ success: true, data: {}, message: 'success', code: 'SUCCESS' })
+				})
+			)
+			await openWithdrawPanel()
+
+			await userEvent.click(screen.getByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.'))
+			await userEvent.click(getWithdrawButton())
+
+			expect(await screen.findByRole('heading', { name: '회원 탈퇴 완료' })).toBeInTheDocument()
+			expect(screen.queryByText('로그인 필요')).not.toBeInTheDocument()
+			expect(onDelete).toHaveBeenCalledTimes(1)
+			expect(useAuthStore.getState().accessToken).toBeNull()
+			expect(localStorage.getItem('refreshToken')).toBeNull()
+		})
+
+		it('탈퇴에 실패하면 계정이 남아 있다고 안내하고 로그인 상태를 유지한다', async () => {
+			server.use(http.delete('*/api/v1/users/me', () => new HttpResponse(null, { status: 500 })))
+			await openWithdrawPanel()
+
+			await userEvent.click(screen.getByLabelText('안내를 모두 확인했으며 데이터 삭제에 동의합니다.'))
+			await userEvent.click(getWithdrawButton())
+
+			expect(await screen.findByRole('alert')).toHaveTextContent('계정은 그대로 남아 있으니')
+			expect(useAuthStore.getState().accessToken).not.toBeNull()
+			expect(getWithdrawButton()).toBeEnabled()
 		})
 	})
 })

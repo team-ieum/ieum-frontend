@@ -1,19 +1,24 @@
-import { Camera, ChevronDown, Trash2, UserRound, type LucideIcon } from 'lucide-react'
+import { Camera, UserRound } from 'lucide-react'
 import { useState } from 'react'
 import Collapse from '@/components/common/Collapse'
 import PatternBackground from '@/components/common/PatternBackground'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import PasswordChangeSection from '@/components/user/PasswordChangeSection'
+import WithdrawSection from '@/components/user/WithdrawSection'
 import { useCurrentUserQuery } from '@/hooks/user/queries/useCurrentUserQuery'
 import { useProfileNameForm } from '@/hooks/user/useProfileNameForm'
 import { PROFILE_NAME_RULE_MESSAGE } from '@/schemas/user'
 import { cn } from '@/utils/cn'
 
+type AccountSection = 'password' | 'withdraw'
+
 const UserPage = () => {
 	const { data: user, isPending, isError, refetch } = useCurrentUserQuery()
 	const nameForm = useProfileNameForm(user?.name)
-	// 비밀번호 변경을 펼치면 카드가 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접는다.
-	const [isPasswordOpen, setIsPasswordOpen] = useState(false)
+	// 비밀번호 변경·회원 탈퇴는 한 번에 하나만 펼치고, 펼치면 카드가 화면 높이를 넘지 않도록 닉네임·이메일 입력을 접는다.
+	const [openSection, setOpenSection] = useState<AccountSection | null>(null)
+	const isSectionOpen = openSection !== null
+	const toggleSection = (section: AccountSection) => (open: boolean) => setOpenSection(open ? section : null)
 
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
@@ -38,13 +43,13 @@ const UserPage = () => {
 					<div
 						className={cn(
 							'overflow-hidden rounded-brand-md border border-white/90 bg-white shadow-[0_22px_50px_-28px_rgba(41,83,124,.55)] transition-[margin] duration-300',
-							isPasswordOpen ? 'mt-4' : 'mt-6'
+							isSectionOpen ? 'mt-4' : 'mt-6'
 						)}
 					>
 						<div
 							className={cn(
 								'px-5 transition-[padding] duration-300 sm:px-8 lg:px-10',
-								isPasswordOpen ? 'pb-3 pt-5' : 'py-8 sm:py-9 lg:py-10'
+								isSectionOpen ? 'pb-3 pt-5' : 'py-8 sm:py-9 lg:py-10'
 							)}
 						>
 							<h2 className='text-center typo-title1_bold text-neutral-800'>프로필 정보</h2>
@@ -54,7 +59,8 @@ const UserPage = () => {
 							) : isError ? (
 								<ProfileFieldsError retry={() => void refetch()} />
 							) : (
-								<Collapse open={!isPasswordOpen}>
+								// 처음 들어오면 닉네임·이메일을 모두 보이고, 메뉴를 펼치면 프로필 정보 제목만 남기고 접는다.
+								<Collapse open={!isSectionOpen}>
 									<form
 										noValidate
 										onSubmit={event => void nameForm.onSubmit(event)}
@@ -111,10 +117,14 @@ const UserPage = () => {
 						<div className='border-t border-neutral-200'>
 							<PasswordChangeSection
 								provider={user?.provider}
-								isOpen={isPasswordOpen}
-								onOpenChange={setIsPasswordOpen}
+								isOpen={openSection === 'password'}
+								onOpenChange={toggleSection('password')}
 							/>
-							<SettingRow icon={Trash2} label='계정 삭제' danger />
+							<WithdrawSection
+								isOpen={openSection === 'withdraw'}
+								onOpenChange={toggleSection('withdraw')}
+								disabled={!user}
+							/>
 						</div>
 					</div>
 				</div>
@@ -184,20 +194,6 @@ const ProfileFieldsError = ({ retry }: { retry: () => void }) => (
 		>
 			다시 시도
 		</button>
-	</div>
-)
-
-type SettingRowProps = {
-	icon: LucideIcon
-	label: string
-	danger?: boolean
-}
-
-const SettingRow = ({ icon: Icon, label, danger = false }: SettingRowProps) => (
-	<div className='flex min-h-16 items-center gap-3 border-b border-neutral-200 px-5 last:border-b-0 sm:px-8 lg:px-10'>
-		<Icon size={19} className={danger ? 'text-danger-700' : 'text-main-blue'} />
-		<span className={`flex-1 typo-body2_semibold ${danger ? 'text-danger-700' : 'text-neutral-700'}`}>{label}</span>
-		<ChevronDown size={18} className={danger ? 'text-danger-500' : 'text-neutral-400'} />
 	</div>
 )
 

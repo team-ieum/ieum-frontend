@@ -1,12 +1,8 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
 import { useChangePasswordMutation } from '@/hooks/user/mutations/useChangePasswordMutation'
+import { useSignOutToLogin } from '@/hooks/user/useSignOutToLogin'
 import { PASSWORD_RULE_MESSAGE } from '@/schemas/auth'
 import { changePasswordSchema, type ChangePasswordValues } from '@/schemas/user'
-import { useAuthMode } from '@/stores/useAuthMode'
-import { useAuthStore } from '@/stores/useAuthStore'
-import { useModalStore } from '@/stores/useModalStore'
 import { isApiError } from '@/utils/ApiError'
 
 type ChangePasswordField = keyof ChangePasswordValues
@@ -35,8 +31,7 @@ const toSubmitError = (error: unknown): { field?: ChangePasswordField; message: 
 }
 
 export const useChangePasswordForm = () => {
-	const queryClient = useQueryClient()
-	const navigate = useNavigate()
+	const signOutToLogin = useSignOutToLogin()
 	const { mutateAsync, isPending } = useChangePasswordMutation()
 	const [values, setValues] = useState(INITIAL_VALUES)
 	const [errors, setErrors] = useState<ChangePasswordErrors>({})
@@ -78,12 +73,8 @@ export const useChangePasswordForm = () => {
 			return
 		}
 
-		// 서버가 모든 기기의 세션을 끊었으므로 남은 토큰과 이전 계정의 cache를 지우고 로그인 화면으로 보낸다.
-		await navigate('/auth', { replace: true })
-		useAuthStore.getState().clearAuth()
-		useAuthMode.getState().toLogin()
-		queryClient.clear()
-		useModalStore.getState().open('비밀번호 변경 완료', '새 비밀번호로 다시 로그인해 주세요.')
+		// 서버가 모든 기기의 세션을 끊었으므로 다시 로그인하게 한다.
+		await signOutToLogin({ title: '비밀번호 변경 완료', message: '새 비밀번호로 다시 로그인해 주세요.' })
 	}
 
 	return { values, errors, formError, isPending, onChange, onSubmit, reset }

@@ -31,7 +31,8 @@ describe('UserPage', () => {
 		expect(screen.queryByText('로그인 및 보안')).not.toBeInTheDocument()
 		expect(screen.queryByText('알림 설정')).not.toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '비밀번호 변경' })).toHaveAttribute('aria-expanded', 'false')
-		expect(screen.getByText('계정 삭제')).toBeInTheDocument()
+		expect(screen.queryByText('계정 삭제')).not.toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '회원 탈퇴' })).toHaveAttribute('aria-expanded', 'false')
 	})
 
 	it('기능이 연결되지 않은 컨트롤과 바꿀 수 없는 이메일을 비활성 상태로 표시한다', async () => {

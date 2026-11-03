@@ -17,3 +17,9 @@ export const changePassword = async (body: ChangePasswordBody): Promise<ApiRespo
 	const response = await api.patch('/api/v1/users/me/password', body)
 	return response.data
 }
+
+/** 계정과 모든 사용자 데이터를 즉시 영구 삭제한다. 성공하면 호출한 쪽에서 토큰을 버리고 로그인 화면으로 보낸다. */
+export const deleteCurrentUser = async (): Promise<ApiResponse<Record<string, never>>> => {
+	const response = await api.delete('/api/v1/users/me')
+	return response.data
+}
