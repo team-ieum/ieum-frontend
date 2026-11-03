@@ -70,7 +70,9 @@ paths:
 ## 상수 (`src/constants`)
 
 - `src/constants/<domain>/<topic>.ts`에 두고, 이름은 UPPER_SNAKE_CASE입니다. 예외는 `queryKeys`뿐입니다.
-- union 값별 매핑 테이블은 `Record<Union, Meta>`로 타입을 붙여 누락을 컴파일 단계에서 잡으세요. 리터럴 타입을 보존해야 하는 값에는 `as const`를 붙이세요.
+- 닫힌 union(값이 모두 정해진 union)의 매핑 테이블은 `Record<Union, Meta>`로 타입을 붙여 누락을 컴파일 단계에서 잡으세요.
+- `| (string & {})`로 열린 union은 서버가 모르는 값을 보낼 수 있습니다. 이 경우 알려진 값만 매핑하고(`Record<string, Meta>` 또는 `Partial<Record<KnownValue, Meta>>`), 조회하는 곳에서 `?? fallback`으로 모르는 값을 처리하세요(`mapWorkflowDashboardExecution.ts`의 `TRIGGER_LABELS`). 이 저장소는 `noUncheckedIndexedAccess`가 꺼져 있어 없는 키 조회를 타입 검사가 잡지 못합니다.
+- 리터럴 타입을 보존해야 하는 값에는 `as const`를 붙이세요.
 - `localStorage` 키는 `src/constants/key.ts`에 모으세요.
 - 상수와 밀접한 타입가드·조회 함수(`isOAuthConnectServiceId`)는 상수 옆에 둘 수 있습니다.
 

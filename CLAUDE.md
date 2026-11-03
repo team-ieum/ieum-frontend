@@ -22,7 +22,7 @@
 | `npm run knip`                    | 사용하지 않는 파일·export·의존성 검사        |
 
 - `npm test`는 TTY에서 watch 모드로 실행되니 1회 실행에는 `vitest run`을 쓰세요.
-- `--dir src`를 꼭 붙이세요. Vitest는 `.claude/worktrees` 같은 다른 작업 사본까지 수집합니다. 그러면 React가 중복 로드되어 상관없는 테스트가 실패합니다.
+- 로컬에서는 `--dir src`를 붙이세요. Claude Code 앱이 만든 worktree가 `.claude/worktrees`에 있으면, Vitest가 그 안의 테스트까지 수집합니다(설정에 include/exclude가 없음). 그러면 React가 중복 로드되어 상관없는 테스트가 실패합니다. CI는 저장소를 새로 checkout해 이 폴더가 없으므로 `--dir` 없이 실행합니다.
 - CI(`.github/workflows/`)는 dev·main push 때 `npm run lint`, `npm test -- --run --passWithNoTests`, 빌드 순서로 실행합니다. dev 빌드는 `npx vite build`라 타입 검사를 하지 않고, main 빌드만 `npm run build`(tsc 포함)입니다. 타입 오류는 로컬 `npm run build`로 확인하세요.
 - pre-commit 훅은 `lint-staged`(eslint --fix, prettier)만 실행하고 테스트와 타입 검사는 하지 않습니다.
 

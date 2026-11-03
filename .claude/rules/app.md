@@ -18,8 +18,8 @@ route 구성, 코드 분할, 전역 QueryClient처럼 앱 전체에 한 번만 �
 
 - 분리 chunk는 번들 측정 근거가 있을 때만 추가하세요(`docs/perf-01-bundle-font-baseline.md`). 근거 없이 page를 lazy로 바꾸지 마세요.
 - lazy 컴포넌트는 `React.lazy`를 직접 쓰지 말고 `createPreloadableLazy`로 만들고, `LazyX` 컴포넌트와 `preloadX` 함수를 함께 export하세요.
-- 미리 받기는 이동 의도(hover, focus)나 mount 직후에 `preloadX()`로 호출하세요. 사이드바 메뉴의 미리 받기는 `sidebarRouteChunkPreload.ts`의 매핑에 추가합니다.
-- lazy 컴포넌트는 `Suspense`로 감싸고, chunk 로드 실패는 `ChunkLoadErrorBoundary`로 처리하세요.
+- 사이드바 메뉴의 미리 받기는 `sidebarRouteChunkPreload.ts`의 매핑에 추가합니다.
+- lazy 컴포넌트를 렌더하고 미리 받기를 호출하는 쪽의 규칙은 `view.md`의 "lazy 컴포넌트 사용"을 따르세요.
 
 ## 전역 QueryClient (`createAppQueryClient.ts`)
 
@@ -29,4 +29,5 @@ route 구성, 코드 분할, 전역 QueryClient처럼 앱 전체에 한 번만 �
 ## 진입점 (`src/main.tsx`)
 
 - 개발 모드 MSW worker와 측정 모드 초기화는 render 전에 끝나야 합니다. 초기화 순서를 바꾸지 마세요.
-- 개발·측정 전용 모듈은 dynamic import로만 가져와 프로덕션 번들에 들어가지 않게 하세요.
+- 개발·측정 전용 모듈은 빌드 시점에 값이 정해지는 조건(`import.meta.env.DEV`, `import.meta.env.MODE`, `import.meta.env.VITE_MEASUREMENT_MODE`) 안에서 dynamic import로 가져오세요. 조건 없이 dynamic import만 쓰면 Vite가 별도 chunk를 만들어 프로덕션 빌드 결과에 포함합니다.
+- 진입점의 import 구성을 바꾸면 `npm run build` 결과(`dist/assets`)에 MSW·mocks·measurement chunk가 생기지 않았는지 확인하세요. 측정 모듈은 `npm run build:measurement`에만 포함됩니다.

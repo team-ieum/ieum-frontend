@@ -37,7 +37,7 @@
 | 이벤트 핸들러          | 정의는 `handleX`, props 이름은 `onX` | `handleSubmit`, `onSubmit`                  |
 
 - DOM 속성과 같은 의미의 boolean prop(`disabled`, `required`, `open`)은 DOM 이름을 그대로 써도 됩니다.
-- 함수는 `export const fn = (...) =>` 화살표 함수로 선언하세요.
+- 함수는 화살표 함수로 선언하세요. 다른 모듈에서 쓰는 함수만 `export const fn = (...) =>`로 내보내고, 파일 안에서만 쓰는 헬퍼는 `const fn = (...) =>`로 두어 export하지 마세요.
 
 ## 계층 의존 방향
 

@@ -17,7 +17,7 @@ paths:
 - 화살표 함수로 선언하고 파일 끝에서 `export default X`로 내보내세요. pages는 `src/app/routes.tsx`의 default import와 `src/app/lazyModules.ts`의 `createPreloadableLazy`(`React.lazy`)에 맞춰 반드시 default export입니다.
 - named export로 통일된 기존 폴더(`aiCredentials`)에 파일을 추가할 때는 같은 폴더 안의 import 형태를 맞추기 위해 기존 방식을 따르세요.
 - 파일 하나에 export하는 컴포넌트는 하나입니다. 그 파일에서만 쓰는 작은 보조 컴포넌트는 export하지 않고 같은 파일에 둘 수 있습니다.
-- 한 화면 영역의 비동기 상태 컴포넌트 묶음은 `XxxAsyncState.tsx`에 named export로 모읍니다(`XxxSkeleton`, `XxxError`, `XxxRefreshFeedback`, `XxxResourceStatus`). 예: `src/components/dashboard/DashboardAsyncState.tsx`
+- 예외: 한 화면 영역의 비동기 상태 컴포넌트 묶음은 `XxxAsyncState.tsx` 한 파일에 default export 없이 named export로 모읍니다(`XxxSkeleton`, `XxxError`, `XxxRefreshFeedback`, `XxxResourceStatus`). 가져오는 쪽은 `import { XxxSkeleton } from '@/components/<domain>/XxxAsyncState'`처럼 씁니다. 예: `src/components/dashboard/DashboardAsyncState.tsx`
 - 폴더는 도메인별입니다(`common`, `auth`, `dashboard`, `integration`, `aiCredentials`, `layout`, `routing`, `workflow/list`, `workflow/settings` 등).
 
 ## props
@@ -34,6 +34,14 @@ paths:
 - 메뉴 열림, hover, 입력 중 값처럼 그 컴포넌트에만 필요한 UI 상태는 `useState`로 둘 수 있습니다.
 - 페이지는 조립만 합니다. ViewModel 훅을 호출해 loading·error·empty·success로 분기하고 도메인 컴포넌트에 props를 넘깁니다. 예: `src/pages/MainPage.tsx`
 - 알림·확인 모달은 직접 렌더하지 말고 ViewModel 훅에서 `useModalStore`의 `open(title, message)` 또는 `openConfirm({ ... })`로 여세요. 전역 `Modal`은 `App.tsx`에서 한 번만 렌더합니다.
+
+## lazy 컴포넌트 사용
+
+분리 chunk의 정의와 추가 기준은 `app.md`가 다룹니다. 여기서는 `src/app/lazyModules.ts`의 `LazyX`, `preloadX`를 쓰는 쪽의 규칙을 다룹니다.
+
+- `LazyX`는 `Suspense`로 감싸고, 그 바깥을 `ChunkLoadErrorBoundary`로 감싸 chunk 로드 실패를 처리하세요(`src/pages/MainPage.tsx`, `src/components/routing/WorkflowEditorRoute.tsx` 참고).
+- `Suspense` fallback은 최종 레이아웃과 같은 크기의 skeleton이나 영역으로 두세요.
+- `preloadX()`는 그 화면으로 이어지는 컨트롤의 이동 의도(`onPointerEnter`, `onFocus`)나 mount 직후에 호출하세요. 렌더 중에는 호출하지 마세요.
 
 ## 공통 컴포넌트
 
@@ -70,7 +78,8 @@ paths:
 - 클릭 동작은 `<button>`이나 `<a>`에 두세요. `div`에 `onClick`을 붙이지 마세요(배경 클릭으로 닫기처럼 키보드 대안이 따로 있는 경우는 예외).
 - label, 설명, 오류 메시지 연결 id는 `useId()`로 만들고 `aria-labelledby`, `aria-describedby`로 연결하세요.
 - 비동기 영역은 skeleton 가이드를 따르세요. loading 영역에 `aria-busy`를 붙이고, skeleton은 `role='status'`와 구체적인 `aria-label`(예: `'워크플로우 상세 불러오는 중'`)을 답니다. 오류 안내는 `role='alert'`입니다.
-- 비활성 상태에서도 focus를 유지해야 하면 `disabled` 대신 `aria-disabled`를 쓰고 `aria-disabled:` variant로 스타일을 주세요.
+- 비활성 컨트롤은 기본적으로 native `disabled`를 쓰세요. 비활성 상태에서도 focus를 유지해야 할 때만 `aria-disabled`를 쓰고 `aria-disabled:` variant로 스타일을 주세요. 그 이유는 주석으로 남깁니다.
+- `aria-disabled`는 클릭과 키보드 동작을 막지 않습니다. 이를 쓰면 핸들러나 ViewModel 명령에서 비활성 조건을 확인해 실행을 거부하세요(예: `AiOutputFieldsSection`의 `handleAdd`에서 `if (!canAdd) return`).
 - 상호작용 요소에는 `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue` 계열의 focus 표시를 주세요.
 - 패널·팔레트처럼 다른 요소를 덮는 UI는 가려진 요소가 Tab 순서에 남지 않게 하고(`inert` 등), 닫힐 때 연 버튼으로 focus를 되돌리세요.
 - Escape로 닫는 요소는 처리 후 `event.stopPropagation()`으로 바깥 요소가 같은 키를 다시 처리하지 않게 하세요.
