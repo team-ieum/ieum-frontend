@@ -1,7 +1,11 @@
 import { Bell, Camera, ChevronDown, Trash2, UserRound } from 'lucide-react'
 import PatternBackground from '@/components/common/PatternBackground'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
+import { useCurrentUserQuery } from '@/hooks/user/queries/useCurrentUserQuery'
 
 const UserPage = () => {
+	const { data: user, isPending, isError, refetch } = useCurrentUserQuery()
+
 	return (
 		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
 			{/* 디자인상 화면 제목은 두지 않고 보조 기술에만 페이지 제목을 제공한다. */}
@@ -26,28 +30,34 @@ const UserPage = () => {
 						<div className='px-5 py-8 sm:px-8 sm:py-9 lg:px-10 lg:py-10'>
 							<h2 className='text-center typo-title1_bold text-neutral-800'>프로필 정보</h2>
 
-							<div className='mt-5 flex flex-col gap-5 lg:mt-4'>
-								<label className='grid gap-2'>
-									<span className='typo-body2_semibold text-neutral-700'>닉네임</span>
-									<input
-										aria-label='닉네임'
-										readOnly
-										value='이음새'
-										className='h-11 w-full rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body1_regular text-neutral-800 outline-none lg:h-10'
-									/>
-									<span className='typo-caption1_regular text-neutral-500'>2~20자로 입력해 주세요.</span>
-								</label>
+							{isPending ? (
+								<ProfileFieldsSkeleton />
+							) : isError ? (
+								<ProfileFieldsError retry={() => void refetch()} />
+							) : (
+								<div className='mt-5 flex flex-col gap-5 lg:mt-4'>
+									<label className='grid gap-2'>
+										<span className='typo-body2_semibold text-neutral-700'>닉네임</span>
+										<input
+											aria-label='닉네임'
+											readOnly
+											value={user.name}
+											className='h-11 w-full rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body1_regular text-neutral-800 outline-none lg:h-10'
+										/>
+										<span className='typo-caption1_regular text-neutral-500'>2~20자로 입력해 주세요.</span>
+									</label>
 
-								<label className='grid content-start gap-2'>
-									<span className='typo-body2_semibold text-neutral-700'>이메일</span>
-									<input
-										aria-label='이메일'
-										readOnly
-										value='ieumsae@example.com'
-										className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
-									/>
-								</label>
-							</div>
+									<label className='grid content-start gap-2'>
+										<span className='typo-body2_semibold text-neutral-700'>이메일</span>
+										<input
+											aria-label='이메일'
+											readOnly
+											value={user.email}
+											className='h-11 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-4 typo-body1_regular text-neutral-500 outline-none lg:h-10'
+										/>
+									</label>
+								</div>
+							)}
 						</div>
 
 						<div className='border-t border-neutral-200'>
@@ -70,6 +80,37 @@ const UserPage = () => {
 		</section>
 	)
 }
+
+/** 높이는 닉네임·이메일 입력 영역과 같아야 데이터 도착 후 카드 높이가 흔들리지 않는다. */
+const ProfileFieldsSkeleton = () => (
+	<div role='status' aria-label='프로필 정보 불러오는 중' className='mt-5 flex flex-col gap-5 lg:mt-4'>
+		<div className='grid gap-2'>
+			<SkeletonPulse className='h-5 w-12 rounded bg-neutral-200' />
+			<SkeletonPulse className='h-11 rounded-brand-sm bg-neutral-200 lg:h-10' />
+			<SkeletonPulse className='h-4 w-32 rounded bg-neutral-200' />
+		</div>
+		<div className='grid gap-2'>
+			<SkeletonPulse className='h-5 w-12 rounded bg-neutral-200' />
+			<SkeletonPulse className='h-11 rounded-brand-sm bg-neutral-200 lg:h-10' />
+		</div>
+	</div>
+)
+
+const ProfileFieldsError = ({ retry }: { retry: () => void }) => (
+	<div
+		role='alert'
+		className='mt-5 flex min-h-41 flex-col items-center justify-center rounded-brand-md border border-danger-200 bg-danger-50 px-6 text-center lg:mt-4'
+	>
+		<p className='m-0 typo-body2_semibold text-danger-700'>프로필 정보를 불러오지 못했습니다.</p>
+		<button
+			type='button'
+			onClick={retry}
+			className='mt-4 rounded-brand-sm border border-danger-300 bg-neutral-white px-4 py-2 typo-body3_semibold text-danger-700'
+		>
+			다시 시도
+		</button>
+	</div>
+)
 
 type SettingRowProps = {
 	icon: typeof Bell
