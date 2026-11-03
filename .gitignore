@@ -39,3 +39,8 @@ build
 *.tsbuildinfo
 
 .serena
+
+# Claude Code 개인 설정과 작업 사본 (.claude/rules는 팀 공용으로 커밋)
+.claude/settings.local.json
+.claude/worktrees/
+CLAUDE.local.md
