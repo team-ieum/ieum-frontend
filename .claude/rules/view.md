@@ -6,12 +6,8 @@ paths:
 
 # View 계층 (components, pages)
 
-새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 다만 기준 폴더에도 이 규칙과 다른 파일이 있고, 그 밖의 폴더에는 옛 방식이 더 많이 남아 있습니다. 아래 파일과 폴더는 비슷한 컴포넌트를 만들 때 복제하지 말고 이 문서의 규칙을 따르세요.
+새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 다만 그 밖의 폴더에는 옛 방식이 남아 있습니다. 아래 파일과 폴더는 비슷한 컴포넌트를 만들 때 복제하지 말고 이 문서의 규칙을 따르세요.
 
-- 기준 폴더 안의 예외
-    - `integration/IntegrationServiceWorkflowList.tsx`: 컴포넌트에서 query 직접 호출, 컴포넌트 안 데이터 변환
-    - `dashboard/DashboardStatusPill.tsx`, `dashboard/DashboardStatusBadge.tsx`: 템플릿 리터럴 클래스 조합, `text-xl font-bold` 같은 원시 글자 스타일
-- `src/components/aiCredentials/`: named export, hex 색상
 - `common/ErrorPageView.tsx`: hex 색상(`bg-[#f4fbfe]`). `LAYOUT_CLASS` 상수 맵 구조는 참고해도 됩니다.
 - workflow 편집기(`src/components/workflow/`, `src/pages/WorkFlowPage.tsx`), `common/Header`, `common/SideBar`: hex 색상, `text-sm` 같은 원시 글자 크기, 인라인 style, 컴포넌트에서 query 직접 호출
 - `src/components/auth/`, `src/components/landing/`: 대부분 `typo-*`를 쓰지만 일부 파일에 원시 글자 크기와 hex 색상이 남아 있습니다.
@@ -19,7 +15,6 @@ paths:
 ## 컴포넌트 선언
 
 - 화살표 함수로 선언하고 파일 끝에서 `export default X`로 내보내세요. pages는 `src/app/routes.tsx`의 default import와 `src/app/lazyModules.ts`의 `createPreloadableLazy`(`React.lazy`)에 맞춰 반드시 default export입니다.
-- named export로 통일된 기존 폴더(`aiCredentials`)에 파일을 추가할 때는 같은 폴더 안의 import 형태를 맞추기 위해 기존 방식을 따르세요.
 - 파일 하나에 export하는 컴포넌트는 하나입니다. 그 파일에서만 쓰는 작은 보조 컴포넌트는 export하지 않고 같은 파일에 둘 수 있습니다.
 - 예외: 한 화면 영역의 비동기 상태 컴포넌트 묶음은 `XxxAsyncState.tsx` 한 파일에 default export 없이 named export로 모읍니다(`XxxSkeleton`, `XxxError`, `XxxRefreshFeedback`, `XxxResourceStatus`). 가져오는 쪽은 `import { XxxSkeleton } from '@/components/<domain>/XxxAsyncState'`처럼 씁니다. 예: `src/components/dashboard/DashboardAsyncState.tsx`
 - 폴더는 도메인별입니다(`common`, `auth`, `dashboard`, `integration`, `aiCredentials`, `layout`, `routing`, `workflow/list`, `workflow/settings` 등).
@@ -66,6 +61,7 @@ paths:
 - variant별 클래스는 모듈 수준 상수 맵으로 두세요(`const LAYOUT_CLASS: Record<ErrorPageLayout, string> = { ... }`, `common/ErrorPageView.tsx`). 여러 컴포넌트가 공유하는 클래스 묶음은 별도 `*ClassNames.ts` 파일의 상수로 둡니다(예: `workflow/settings/settingsFieldClassNames.ts`).
 - 색상, radius, 브레이크포인트는 `src/styles/tokens.css`의 토큰 유틸리티를 쓰세요(`bg-main-blue`, `text-main-deep-blue`, `border-neutral-200`, `text-danger-500`, `rounded-brand-md`). 새 코드에 `[#hex]` 임의 색상이나 Tailwind 기본 팔레트(`red-500`, `amber-*`)를 쓰지 마세요. 필요한 색이 토큰에 없으면 `tokens.css`에 토큰을 추가하세요.
 - 글자 스타일은 `src/styles/typography.css`의 `typo-<스케일>_<굵기>` 유틸리티를 쓰세요(`typo-title2_bold`, `typo-body2_regular`, `typo-caption1_semibold`). `text-sm font-semibold`나 `text-[13px]` 조합을 새로 쓰지 마세요.
+- `typo-*`는 `font` 단축 속성이라 같은 요소의 `font-mono`(`font-family`), `leading-*`(`line-height`), `tabular-nums`(`font-variant-numeric`)를 덮어씁니다. 키·코드 값처럼 mono 글꼴이 필요하면 `typo-mono-<스케일>_<굵기>`(`typo-mono-body3_medium`)를 쓰고, 필요한 크기가 없으면 `typography.css`에 추가하세요. 숫자 폭 고정은 `typo-*`가 없는 안쪽 요소에 `tabular-nums`를 두세요.
 - CSS 변수는 Tailwind v4 축약형으로 참조하세요(`h-(--layout-header-height)`). `bg-[var(--x)]` 형태는 쓰지 않습니다.
 - 인라인 `style`은 런타임에 계산되는 값(브랜드 색 주입, CSS 변수 주입, 계산된 크기)에만 쓰세요.
 

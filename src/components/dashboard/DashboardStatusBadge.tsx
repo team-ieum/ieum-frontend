@@ -1,4 +1,5 @@
 import type { RunStatus, StatusBadgeConfig } from '@/types/dashboard'
+import { cn } from '@/utils/cn'
 import DashboardIcon from './DashboardIcon'
 
 type DashboardStatusBadgeProps = {
@@ -27,7 +28,7 @@ const DashboardStatusBadge = ({ status }: DashboardStatusBadgeProps) => {
 	const config = STATUS_MAP[status]
 	return (
 		<span
-			className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 typo-caption1_semibold ${config.pill}`}
+			className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 typo-caption1_semibold', config.pill)}
 		>
 			<DashboardIcon name={config.icon} size={12} fill={status === 'error' ? 1 : 0} />
 			{config.label}

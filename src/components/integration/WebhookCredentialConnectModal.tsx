@@ -151,7 +151,7 @@ const Field = ({ inputRef, label, hint, value, onChange, placeholder, required, 
 				{label}
 				{/* 필수 여부는 input의 required로 전달하므로 시각 표식은 읽지 않는다. */}
 				{required ? (
-					<span className='text-red-500' aria-hidden>
+					<span className='text-danger-600' aria-hidden>
 						{' '}
 						*
 					</span>
@@ -167,8 +167,8 @@ const Field = ({ inputRef, label, hint, value, onChange, placeholder, required, 
 				required={required}
 				aria-describedby={hintId}
 				className={cn(
-					'h-10 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-3 text-[13px] text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-main-blue focus:bg-white focus:ring-1 focus:ring-main-blue/20',
-					mono && 'font-mono text-[12px]'
+					'h-10 w-full rounded-brand-sm border border-neutral-200 bg-neutral-50 px-3 text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-main-blue focus:bg-white focus:ring-1 focus:ring-main-blue/20',
+					mono ? 'typo-mono-caption1_regular' : 'typo-body3_regular'
 				)}
 			/>
 			<p id={hintId} className='typo-caption1_regular m-0 mt-1 text-neutral-500'>

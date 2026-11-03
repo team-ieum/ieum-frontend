@@ -69,7 +69,7 @@ const IntegrationConnectedDetail = ({
 							{service.scopes.map(scope => (
 								<li
 									key={scope}
-									className='rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 font-mono typo-caption1_medium text-neutral-600'
+									className='rounded-md border border-neutral-200 bg-neutral-50 px-2.5 py-1 typo-mono-caption1_medium text-neutral-600'
 								>
 									{scope}
 								</li>
