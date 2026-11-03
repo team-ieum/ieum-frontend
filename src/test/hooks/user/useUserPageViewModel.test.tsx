@@ -66,6 +66,26 @@ describe('useUserPageViewModel', () => {
 		expect(result.current.nameField.value).toBe('새 닉네임')
 	})
 
+	it('서버 오류 문구가 비어 있으면 대체 문구로 실패를 알린다', async () => {
+		server.use(
+			http.patch('*/api/v1/users/me', () =>
+				HttpResponse.json({ success: false, data: null, message: '', code: 'INVALID_INPUT' }, { status: 400 })
+			)
+		)
+		const { result } = await renderViewModel()
+
+		act(() => result.current.nameField.handleChange('새 닉네임'))
+		act(() => result.current.nameField.handleSubmit({ preventDefault: () => {} } as never))
+
+		await waitFor(() =>
+			expect(result.current.nameField.message).toEqual({
+				text: '닉네임을 변경하지 못했어요. 잠시 후 다시 시도해 주세요.',
+				tone: 'error',
+				role: 'alert',
+			})
+		)
+	})
+
 	it('소셜 로그인 계정은 비밀번호를 바꿀 수 없다고 알린다', async () => {
 		server.use(
 			http.get('*/api/v1/users/me', () =>

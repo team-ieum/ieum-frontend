@@ -39,7 +39,10 @@ export const useProfileNameForm = (savedName: string | undefined) => {
 		} catch (saveError) {
 			setFeedback({
 				type: 'error',
-				message: isApiError(saveError) ? saveError.message : '닉네임을 변경하지 못했어요. 잠시 후 다시 시도해 주세요.',
+				message:
+					isApiError(saveError) && saveError.message
+						? saveError.message
+						: '닉네임을 변경하지 못했어요. 잠시 후 다시 시도해 주세요.',
 			})
 		}
 	}
