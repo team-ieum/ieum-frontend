@@ -11,3 +11,7 @@ export interface CurrentUser {
 }
 
 export type CurrentUserResponse = ApiResponse<CurrentUser>
+
+export interface UpdateCurrentUserBody {
+	name: string
+}
