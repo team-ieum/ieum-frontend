@@ -67,14 +67,45 @@
 	--typography-button1_semibold: 600 0.875rem / 1.4 var(--font-family-pretendard); /* 14/140 */
 	--typography-button1_medium: 500 0.875rem / 1.4 var(--font-family-pretendard); /* 14/140 */
 
+	/* Mono — 키·코드 값 표시용. `typo-*`의 font 단축 속성이 `font-mono`를 덮으므로 글꼴까지 포함한 스케일을 따로 둔다. */
+	--typography-mono-body3_medium: 500 0.8125rem / 1.5 var(--font-mono); /* 13/150 */
+	--typography-mono-body3_regular: 400 0.8125rem / 1.5 var(--font-mono); /* 13/150 */
+	--typography-mono-caption1_medium: 500 0.75rem / 1.5 var(--font-mono); /* 12/150 */
+	--typography-mono-caption1_regular: 400 0.75rem / 1.5 var(--font-mono); /* 12/150 */
+	--typography-mono-caption2_medium: 500 0.6875rem / 1.6 var(--font-mono); /* 11/160 */
+
 	/* Logo — `font-pretendard` maps to Pretendard; `font-logo_regular` to RixInooAriDuri */
 	--font-logo_regular: 'RixInooAriDuri', var(--font-family-pretendard);
 	--typography-logo_regular: 400 1rem / 1.2 var(--font-logo_regular);
+	--typography-logo1_regular: 400 3.25rem / 1.2 var(--font-logo_regular); /* 52/120 */
+	--typography-logo2_regular: 400 3rem / 1.2 var(--font-logo_regular); /* 48/120 */
+	--typography-logo3_regular: 400 2.25rem / 1.2 var(--font-logo_regular); /* 36/120 */
+	--typography-logo4_regular: 400 1.5rem / 1.2 var(--font-logo_regular); /* 24/120 */
+	--typography-logo5_regular: 400 1.25rem / 1.2 var(--font-logo_regular); /* 20/120 */
+	--typography-logo6_regular: 400 1.125rem / 1.2 var(--font-logo_regular); /* 18/120 */
 }
 
 /* Typography utilities — use as `typo-title3_bold`, etc. */
 @utility typo-logo_regular {
 	font: var(--typography-logo_regular);
+}
+@utility typo-logo1_regular {
+	font: var(--typography-logo1_regular);
+}
+@utility typo-logo2_regular {
+	font: var(--typography-logo2_regular);
+}
+@utility typo-logo3_regular {
+	font: var(--typography-logo3_regular);
+}
+@utility typo-logo4_regular {
+	font: var(--typography-logo4_regular);
+}
+@utility typo-logo5_regular {
+	font: var(--typography-logo5_regular);
+}
+@utility typo-logo6_regular {
+	font: var(--typography-logo6_regular);
 }
 
 @utility typo-display1_bold {
@@ -240,4 +271,20 @@
 }
 @utility typo-button1_medium {
 	font: var(--typography-button1_medium);
+}
+
+@utility typo-mono-body3_medium {
+	font: var(--typography-mono-body3_medium);
+}
+@utility typo-mono-body3_regular {
+	font: var(--typography-mono-body3_regular);
+}
+@utility typo-mono-caption1_medium {
+	font: var(--typography-mono-caption1_medium);
+}
+@utility typo-mono-caption1_regular {
+	font: var(--typography-mono-caption1_regular);
+}
+@utility typo-mono-caption2_medium {
+	font: var(--typography-mono-caption2_medium);
 }

@@ -39,7 +39,10 @@ const ChartTooltip = ({ active, payload, label }: DashboardChartTooltipProps) =>
 const MiniStat = ({ label, value }: DashboardMiniStatProps) => (
 	<div className='flex flex-col gap-0.5'>
 		<span className='typo-caption1_medium text-main-light-blue'>{label}</span>
-		<span className='typo-title2_bold tabular-nums text-neutral-white'>{value}</span>
+		{/* typo-*의 font 단축 속성이 font-variant-numeric을 초기화하므로 tabular-nums는 안쪽 요소에 둔다. */}
+		<span className='typo-title2_bold text-neutral-white'>
+			<span className='tabular-nums'>{value}</span>
+		</span>
 	</div>
 )
 
@@ -55,8 +58,8 @@ const DashboardHeroSection = ({ hero, hourlyExecutions, resource }: DashboardHer
 			) : null}
 			<div className='flex flex-col gap-4 lg:border-r lg:border-main-blue lg:pr-8'>
 				<span className='typo-caption1_semibold tracking-wide text-main-light-blue'>오늘 총 실행</span>
-				<div className='typo-display3_bold leading-none text-neutral-white tabular-nums'>
-					{hero.totalRuns.toLocaleString()}
+				<div className='typo-display3_bold text-neutral-white'>
+					<span className='tabular-nums'>{hero.totalRuns.toLocaleString()}</span>
 					<span className='typo-title2_medium ml-2 text-main-light-blue'>회</span>
 				</div>
 				<div className='flex flex-wrap items-center gap-2'>
@@ -85,10 +88,7 @@ const DashboardHeroSection = ({ hero, hourlyExecutions, resource }: DashboardHer
 						실시간
 					</span>
 				</div>
-				<div
-					className='min-h-50 w-full overflow-visible text-main-light-blue [&_.recharts-cartesian-axis-tick-value]:fill-current [&_.recharts-cartesian-axis-tick-value]:text-[11px] [&_.recharts-cartesian-grid_line]:stroke-main-blue [&_.recharts-area-curve]:stroke-main-light-blue'
-					style={{ fontFamily: 'inherit' }}
-				>
+				<div className='min-h-50 w-full overflow-visible text-main-light-blue [&_.recharts-cartesian-axis-tick-value]:fill-current [&_.recharts-cartesian-axis-tick-value]:typo-caption2_regular [&_.recharts-cartesian-grid_line]:stroke-main-blue [&_.recharts-area-curve]:stroke-main-light-blue'>
 					<ResponsiveContainer width='100%' height={200}>
 						<AreaChart data={hourlyExecutions} margin={{ top: 12, right: 16, left: 8, bottom: 0 }}>
 							<defs>

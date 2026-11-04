@@ -65,7 +65,7 @@ export const ServiceChain = ({ services, size = 28, max = 4, showArrow = true }:
 			{overflowCount > 0 && (
 				<span
 					className={cn(
-						'grid shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-100 text-[11px] font-bold text-neutral-500',
+						'grid shrink-0 place-items-center rounded-lg border border-neutral-200 bg-neutral-100 typo-caption2_bold text-neutral-500',
 						SQUARE_SIZE_CLASS[size]
 					)}
 				>

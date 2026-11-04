@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { ApiKeySection } from '@/components/aiCredentials/ApiKeySection'
+import ApiKeySection from '@/components/aiCredentials/ApiKeySection'
 import type { AiProvider } from '@/types/aiCredentials'
 
 const provider = {

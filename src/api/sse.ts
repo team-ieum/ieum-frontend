@@ -5,18 +5,8 @@ import { parseDataLines } from '@/utils/sseClient'
 
 type SseHandlers = {
 	onEvent: (data: string) => void
-	onOpen?: () => void
 	onError?: (error: unknown) => void
 	onDone?: () => void
-}
-
-export class SseHttpError extends Error {
-	readonly status: number
-	constructor(status: number) {
-		super(`SSE 연결 실패 (status: ${status})`)
-		this.name = 'SseHttpError'
-		this.status = status
-	}
 }
 
 type SseOptions = {
@@ -25,8 +15,7 @@ type SseOptions = {
 	signal?: AbortSignal
 } & SseHandlers
 
-export const subscribeSSE = async ({ url, token, signal, onEvent, onOpen, onError, onDone }: SseOptions): Promise<void> => {
-	let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+export const subscribeSSE = async ({ url, token, signal, onEvent, onError, onDone }: SseOptions): Promise<void> => {
 	try {
 		const response = await fetch(url, {
 			method: 'GET',
@@ -37,12 +26,11 @@ export const subscribeSSE = async ({ url, token, signal, onEvent, onOpen, onErro
 			signal,
 		})
 
-		if (!response.ok) throw new SseHttpError(response.status)
-		if (!response.body) throw new Error('SSE 응답 스트림이 없어요.')
-		if (signal?.aborted) return
-		onOpen?.()
+		if (!response.ok || !response.body) {
+			throw new Error(`SSE 연결 실패 (status: ${response.status})`)
+		}
 
-		reader = response.body.getReader()
+		const reader = response.body.getReader()
 		const decoder = new TextDecoder()
 		let buffer = ''
 
@@ -72,17 +60,7 @@ export const subscribeSSE = async ({ url, token, signal, onEvent, onOpen, onErro
 
 		onDone?.()
 	} catch (error) {
-		if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) return
+		if (error instanceof DOMException && error.name === 'AbortError') return
 		onError?.(error)
-	} finally {
-		if (reader) {
-			try {
-				await reader.cancel()
-			} catch {
-				// Network abort may already have cancelled the underlying response body.
-			} finally {
-				reader.releaseLock()
-			}
-		}
 	}
 }

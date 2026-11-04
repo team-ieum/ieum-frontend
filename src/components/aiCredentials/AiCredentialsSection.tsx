@@ -2,10 +2,10 @@ import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
 import { useAiCredentials } from '@/hooks/aiCredentials/useAiCredentials'
 import IntegrationSectionHeading from '@/components/integration/IntegrationSectionHeading'
 import { cn } from '@/utils/cn'
-import { ProviderCard } from './ProviderCard'
+import ProviderCard from './ProviderCard'
 import { AiCredentialsError, AiCredentialsRefreshFeedback, AiCredentialsSkeleton } from './AiCredentialsAsyncState'
 
-export const AiCredentialsSection = () => {
+const AiCredentialsSection = () => {
 	const { providers, registerApiKey, deleteApiKey, isPending, providersResource, credentialsResource } = useAiCredentials()
 	const isBusy =
 		providersResource.isLoading ||
@@ -53,3 +53,5 @@ export const AiCredentialsSection = () => {
 		</div>
 	)
 }
+
+export default AiCredentialsSection

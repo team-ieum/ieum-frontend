@@ -106,14 +106,14 @@ const DashboardRunTable = ({ runs }: DashboardRunTableProps) => {
 									key={run.id}
 									className='border-b border-neutral-100 transition-colors last:border-b-0 hover:bg-neutral-50/80'
 								>
-									<td className='px-5 py-3.5 align-middle font-mono typo-body3_medium text-neutral-600'>
+									<td className='px-5 py-3.5 align-middle typo-mono-body3_medium text-neutral-600'>
 										{run.displayId}
 									</td>
 									<td className='px-5 py-3.5 align-middle typo-body2_regular text-neutral-900'>{run.name}</td>
 									<td className='px-5 py-3.5 align-middle'>
 										<DashboardStatusBadge status={run.status} />
 									</td>
-									<td className='px-5 py-3.5 align-middle font-mono typo-body3_medium text-neutral-600'>
+									<td className='px-5 py-3.5 align-middle typo-mono-body3_medium text-neutral-600'>
 										{run.time}
 									</td>
 									<td className='px-5 py-3.5 align-middle'>

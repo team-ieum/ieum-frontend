@@ -22,7 +22,7 @@ const WorkflowActiveFilters = ({ filters, onRemove }: WorkflowActiveFiltersProps
 					key={`${filter.kind}-${filter.id}`}
 					type='button'
 					onClick={() => onRemove(filter)}
-					className='inline-flex h-8 items-center gap-1.5 rounded-full border border-[#cde9f4] bg-main-light-blue px-2.5 typo-caption1_medium text-main-deep-blue transition-colors hover:bg-white'
+					className='inline-flex h-8 items-center gap-1.5 rounded-full border border-line-blue bg-main-light-blue px-2.5 typo-caption1_medium text-main-deep-blue transition-colors hover:bg-white'
 				>
 					{filter.serviceId && <ServiceLogo id={filter.serviceId} size={16} />}
 					{filter.status && <StatusDot status={filter.status} size={7} />}
