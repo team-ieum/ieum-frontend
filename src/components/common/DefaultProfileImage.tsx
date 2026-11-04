@@ -14,7 +14,7 @@ type DefaultProfileImageProps = {
 const DefaultProfileImage = ({ className, iconClassName, children }: DefaultProfileImageProps) => (
 	<div
 		className={cn(
-			'relative flex items-center justify-center rounded-full bg-linear-to-b from-[#f4f8fb] to-[#e4ebf0] text-neutral-400',
+			'relative flex items-center justify-center rounded-full bg-linear-to-b from-neutral-50 to-main-gray/10 text-neutral-400',
 			className
 		)}
 	>
