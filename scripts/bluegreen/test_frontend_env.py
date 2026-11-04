@@ -46,6 +46,15 @@ def records(content):
     return dict(line.split('=', 1) for line in content.decode().splitlines())
 
 
+def python_subprocess_environment(environment):
+    # setup-python의 공유 라이브러리 경로만 보존하고 자격 증명과 Python 설정은 상속하지 않습니다.
+    selected = {}
+    if value := os.environ.get('LD_LIBRARY_PATH'):
+        selected['LD_LIBRARY_PATH'] = value
+    selected.update(environment)
+    return selected
+
+
 CONTROLLER_LITERAL = '/home/kwung/deploy/bluegreen/bluegreen.py'
 BUILDER_LITERAL = 'scripts/bluegreen/frontend_env.py'
 
@@ -65,7 +74,7 @@ def rewrite_workflow_shell(code, controller, controllers, builders):
 
 
 def run_workflow_shell(script, *, cwd, env, timeout=6):
-    process = subprocess.Popen(['bash', '-c', script], cwd=cwd, env=env,
+    process = subprocess.Popen(['bash', '-c', script], cwd=cwd, env=python_subprocess_environment(env),
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True)
     try:
         stdout, stderr = process.communicate(timeout=timeout)
@@ -325,7 +334,8 @@ class PrivateFileTest(unittest.TestCase):
         result = subprocess.run([sys.executable, '-c',
             'import importlib.util,sys; s=importlib.util.spec_from_file_location("x",sys.argv[1]);'
             'm=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.write_candidate(sys.argv[2],sys.argv[3])',
-            str(SCRIPT), str(fifo), payload()], capture_output=True, timeout=3)
+            str(SCRIPT), str(fifo), payload()], env=python_subprocess_environment({'PATH': os.defpath}),
+            capture_output=True, timeout=3)
         self.assertNotEqual(result.returncode, 0)
 
 
@@ -530,9 +540,51 @@ class WorkflowTest(unittest.TestCase):
     def test_shell_timeout_kills_the_whole_private_process_group(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(os, 'killpg', wraps=os.killpg) as kill:
             with self.assertRaises(subprocess.TimeoutExpired):
-                run_workflow_shell('sleep 60', cwd=directory, env=dict(os.environ), timeout=0.05)
+                run_workflow_shell('sleep 60', cwd=directory, env={'PATH': os.defpath}, timeout=0.05)
             self.assertEqual(kill.call_count, 1)
             self.assertEqual(kill.call_args.args[1], signal.SIGKILL)
+
+    def test_shell_preserves_only_the_python_loader_path_from_ambient_environment(self):
+        loader = os.environ.get('LD_LIBRARY_PATH', str(Path(sys.executable).parent))
+        blocked = ('LD_PRELOAD', 'PYTHONPATH', 'PYTHONHOME', 'GITHUB_TOKEN', frontend.SECRETS_VARIABLE)
+        script = shlex.quote(sys.executable) + ' -c ' + shlex.quote(
+            'import json,os; print(json.dumps({k:os.environ.get(k) for k in ' + repr(('LD_LIBRARY_PATH',) + blocked) + '}))')
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ,
+                {'LD_LIBRARY_PATH': loader, **{key: SECRET for key in blocked}}):
+            result = run_workflow_shell(script, cwd=directory, env={'PATH': os.defpath})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        values = json.loads(result.stdout)
+        self.assertEqual(values.pop('LD_LIBRARY_PATH'), loader)
+        self.assertTrue(all(value is None for value in values.values()))
+
+    def test_missing_loader_path_does_not_add_ambient_values(self):
+        with patch.dict(os.environ, {'GITHUB_TOKEN': SECRET}, clear=True):
+            self.assertEqual(python_subprocess_environment({'PATH': os.defpath}), {'PATH': os.defpath})
+
+    def test_image_public_files_are_readable_without_relaxing_private_settings(self):
+        dockerfile = self.source.split("cat > Dockerfile.ci <<'EOF'", 1)[1].split('          EOF', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            public = root / 'html'; public.mkdir(mode=0o700)
+            assets = public / 'assets'; assets.mkdir(mode=0o700)
+            files = [public / 'index.html', assets / 'app.js']
+            private = root / 'frontend.env'; private.write_text(SECRET); private.chmod(0o600)
+            for path in files:
+                path.write_text('public output'); path.chmod(0o600)
+            for line in dockerfile.splitlines():
+                if line.strip().startswith('RUN chmod '):
+                    command = shlex.split(line.strip()[4:])
+                    self.assertEqual(command[-1], '/usr/share/nginx/html')
+                    subprocess.run([*command[:-1], str(public)], check=True, capture_output=True)
+            for path in files:
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode) & 0o444, 0o444)
+            for path in (public, assets):
+                self.assertEqual(stat.S_IMODE(path.stat().st_mode) & 0o555, 0o555)
+            self.assertEqual(stat.S_IMODE(private.stat().st_mode), 0o600)
+        build = self.source.index('      - name: Build Docker image\n')
+        smoke = self.source.index('      - name: Check frontend HTTP responses in the built image\n')
+        self.assertLess(build, smoke)
+        self.assertLess(smoke, self.source.index('      - name: Verify installed blue-green release\n'))
 
     def test_success_build_and_deploy_share_snapshot_and_cleanup_without_logging_values(self):
         result = self.invoke()
