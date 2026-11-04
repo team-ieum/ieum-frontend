@@ -45,6 +45,10 @@
 	--color-success-100: #e8f5ee;
 	--color-success-200: #bfe2d2;
 
+	/* 인증 화면 물결 그림(AuthWavePanel)의 뒤·앞 물결 */
+	--color-auth-wave-back: #9db0d9;
+	--color-auth-wave-front: #2f88ba;
+
 	/* 라운딩(utility: rounded-*로 사용) */
 	--radius-brand-sm: 0.5rem; /* 8px */
 	--radius-brand-md: 1rem; /* 16px */
