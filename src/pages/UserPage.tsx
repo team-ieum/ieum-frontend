@@ -14,7 +14,7 @@ const UserPage = () => {
 	const { nameField } = viewModel
 
 	return (
-		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-[#f4fbfe] px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
+		<section className='relative -mx-6 -my-6 min-h-[calc(100vh-var(--layout-header-height))] overflow-hidden bg-main-light-blue/40 px-4 py-5 sm:px-6 lg:px-8 lg:py-4'>
 			{/* 디자인상 화면 제목은 두지 않고 보조 기술에만 페이지 제목을 제공한다. */}
 			<h1 className='sr-only'>계정 설정</h1>
 			<PatternBackground />

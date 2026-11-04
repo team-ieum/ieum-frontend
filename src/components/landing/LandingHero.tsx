@@ -3,7 +3,7 @@ import symbolNoLine from '@/assets/symbolNoLine.png'
 import { ArrowRight, Play, Sparkles, Workflow, Zap } from 'lucide-react'
 
 const LandingHero = () => (
-	<section className='relative overflow-hidden bg-linear-to-b from-[#eaf7fe] via-neutral-white to-neutral-white'>
+	<section className='relative overflow-hidden bg-linear-to-b from-main-light-blue via-neutral-white to-neutral-white'>
 		<div
 			className='pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-main-light-blue/60 blur-3xl'
 			aria-hidden
@@ -15,12 +15,12 @@ const LandingHero = () => (
 
 		<div className='mx-auto grid max-w-6xl gap-12 px-5 py-16 lg:grid-cols-2 lg:items-center lg:gap-8 lg:px-8 lg:py-24'>
 			<div className='flex flex-col gap-6'>
-				<span className='inline-flex w-fit items-center gap-2 rounded-full border border-[#cde9f4] bg-white/80 px-3 py-1 typo-caption1_semibold text-main-deep-blue'>
+				<span className='inline-flex w-fit items-center gap-2 rounded-full border border-line-blue bg-white/80 px-3 py-1 typo-caption1_semibold text-main-deep-blue'>
 					<Sparkles size={14} className='text-main-blue' />
 					워크플로우 자동화 플랫폼
 				</span>
 
-				<h1 className='m-0 font-logo_regular text-4xl leading-tight text-main-deep-blue sm:text-5xl lg:text-[3.25rem]'>
+				<h1 className='m-0 typo-logo3_regular text-main-deep-blue sm:typo-logo2_regular lg:typo-logo1_regular'>
 					반복 업무는
 					<br />
 					IEUM에 맡기고
@@ -63,7 +63,7 @@ const LandingHero = () => (
 			</div>
 
 			<div className='relative mx-auto w-full max-w-md lg:max-w-none'>
-				<div className='overflow-hidden rounded-2xl border border-[#cde9f4] bg-neutral-white shadow-[0_24px_48px_-12px_rgba(41,83,124,0.18)]'>
+				<div className='overflow-hidden rounded-2xl border border-line-blue bg-neutral-white shadow-[0_24px_48px_-12px_rgba(41,83,124,0.18)]'>
 					<div className='flex items-center gap-2 border-b border-neutral-100 bg-main-light-blue/50 px-4 py-3'>
 						<span className='h-2.5 w-2.5 rounded-full bg-danger-400' />
 						<span className='h-2.5 w-2.5 rounded-full bg-node-yellow' />

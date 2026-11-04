@@ -3,11 +3,11 @@ import symbol from '@/assets/symbol.png'
 import { ArrowRight } from 'lucide-react'
 
 const LandingNav = () => (
-	<header className='sticky top-0 z-50 border-b border-[#cde9f4]/80 bg-neutral-white/80 backdrop-blur-md'>
+	<header className='sticky top-0 z-50 border-b border-line-blue/80 bg-neutral-white/80 backdrop-blur-md'>
 		<div className='mx-auto flex h-16 max-w-6xl items-center gap-6 px-5 lg:px-8'>
 			<Link to='/' className='inline-flex items-center gap-2.5'>
 				<img src={symbol} alt='' className='h-8 w-8' />
-				<span className='font-logo_regular text-2xl text-main-deep-blue'>IEUM</span>
+				<span className='typo-logo4_regular text-main-deep-blue'>IEUM</span>
 			</Link>
 
 			<nav className='hidden items-center gap-8 md:flex'>

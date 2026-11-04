@@ -9,10 +9,10 @@ const AuthWavePanel = () => {
 	const reduceMotion = useReducedMotion()
 
 	return (
-		<div className='relative hidden h-full min-h-175 w-full overflow-hidden bg-[#d8ecf5] lg:block lg:basis-1/2'>
+		<div className='relative hidden h-full min-h-175 w-full overflow-hidden bg-line-blue lg:block lg:basis-1/2'>
 			<div className='absolute inset-0 flex items-center justify-center flex-col pb-8 gap-3'>
 				<img src={symbolNoLine} alt='IEUM 로고' className='w-16 object-contain' />
-				<p className='font-logo_regular text-5xl text-main-deep-blue'>IEUM</p>
+				<p className='typo-logo2_regular text-main-deep-blue'>IEUM</p>
 			</div>
 
 			{/* back wave (slow drift) */}
@@ -24,7 +24,7 @@ const AuthWavePanel = () => {
 				>
 					<svg viewBox='0 0 1040 200' className='h-full w-full' preserveAspectRatio='none'>
 						<motion.path
-							fill='#9db0d9'
+							className='fill-auth-wave-back'
 							fillOpacity={0.85}
 							initial={{ d: wave2xA }}
 							animate={{ d: reduceMotion ? wave2xA : [wave2xA, wave2xB, wave2xA] }}
@@ -43,7 +43,7 @@ const AuthWavePanel = () => {
 				>
 					<svg viewBox='0 0 1040 200' className='h-full w-full' preserveAspectRatio='none'>
 						<motion.path
-							fill='#2f88ba'
+							className='fill-auth-wave-front'
 							fillOpacity={0.65}
 							initial={{ d: wave2xB }}
 							animate={{ d: reduceMotion ? wave2xB : [wave2xB, wave2xA, wave2xB] }}
