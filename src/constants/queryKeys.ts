@@ -11,6 +11,10 @@ export const queryKeys = {
 		dashboardErrors: (size: number) => [...queryKeys.workflows.all(), 'dashboard', 'errors', { size }] as const,
 		detail: (id: string) => [...queryKeys.workflows.all(), 'detail', id] as const,
 	},
+	users: {
+		all: () => ['users'] as const,
+		me: () => [...queryKeys.users.all(), 'me'] as const,
+	},
 	credentials: {
 		all: () => ['credentials'] as const,
 		list: () => [...queryKeys.credentials.all(), 'list'] as const,

@@ -2,12 +2,8 @@ import type { Ref } from 'react'
 import { useNavigate } from 'react-router'
 import logoSymbol from '@/assets/symbol.png'
 import { Bell, ChevronRight, Menu, Search } from 'lucide-react'
+import DefaultProfileImage from '@/components/common/DefaultProfileImage'
 import { SIDEBAR_ELEMENT_ID } from '@/constants/layout'
-
-type HeaderUser = {
-	name: string
-	initial?: string
-}
 
 type HeaderProps = {
 	onMenuClick: () => void
@@ -16,7 +12,6 @@ type HeaderProps = {
 	/** 모바일 사이드바가 열린 동안 배경 조작을 막는다. */
 	inert?: boolean
 	crumb?: string
-	user?: HeaderUser
 	notificationCount?: number
 	onNotifications?: () => void
 }
@@ -27,12 +22,10 @@ export const Header = ({
 	isSidebarOpen = false,
 	inert = false,
 	crumb = '대시보드',
-	user = { name: '관리자', initial: '관' },
 	notificationCount = 0,
 	onNotifications,
 }: HeaderProps) => {
 	const navigate = useNavigate()
-	const initial = user.initial ?? user.name.slice(0, 1)
 	const hasNotifications = notificationCount > 0
 
 	return (
@@ -104,9 +97,12 @@ export const Header = ({
 					)}
 				</button>
 
-				{/* 유저 아바타 */}
-				<div className='flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-main-deep-blue text-[13px] font-bold text-white shadow-[0_0_0_2px_var(--color-sub-blue)]'>
-					{initial}
+				{/* 유저 아바타: 프로필 이미지 등록 기능이 생기기 전까지 기본 이미지로 고정한다. */}
+				<div role='img' aria-label='프로필 이미지'>
+					<DefaultProfileImage
+						className='h-9 w-9 border-2 border-white shadow-[0_0_0_2px_var(--color-sub-blue)]'
+						iconClassName='h-5 w-5'
+					/>
 				</div>
 			</div>
 		</header>
