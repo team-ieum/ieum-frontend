@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { cn } from '@/utils/cn'
 
 type CollapseProps = {
 	open: boolean
@@ -19,9 +20,8 @@ const Collapse = ({ open, children, id, className }: CollapseProps) => {
 			{open ? (
 				<motion.div
 					id={id}
-					className={className}
 					// 펼치는 동안 내용이 잘려 보이도록 감싸는 요소의 높이만 바꾼다.
-					style={{ overflow: 'hidden' }}
+					className={cn('overflow-hidden', className)}
 					initial={{ height: 0, opacity: 0 }}
 					animate={{ height: 'auto', opacity: 1 }}
 					exit={{ height: 0, opacity: 0 }}
