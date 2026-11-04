@@ -6,11 +6,9 @@ paths:
 
 # View 계층 (components, pages)
 
-새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 다만 그 밖의 폴더에는 옛 방식이 남아 있습니다. 아래 파일과 폴더는 비슷한 컴포넌트를 만들 때 복제하지 말고 이 문서의 규칙을 따르세요.
+새 코드를 쓸 때 참고할 기준 폴더는 `src/components/dashboard/`와 `src/components/integration/`입니다. 다만 아래 영역에는 옛 방식이 남아 있습니다. 비슷한 컴포넌트를 만들 때 복제하지 말고 이 문서의 규칙을 따르세요.
 
-- `common/ErrorPageView.tsx`: hex 색상(`bg-[#f4fbfe]`). `LAYOUT_CLASS` 상수 맵 구조는 참고해도 됩니다.
-- workflow 편집기(`src/components/workflow/`, `src/pages/WorkFlowPage.tsx`), `common/Header`, `common/SideBar`: hex 색상, `text-sm` 같은 원시 글자 크기, 인라인 style, 컴포넌트에서 query 직접 호출
-- `src/components/auth/`, `src/components/landing/`: 대부분 `typo-*`를 쓰지만 일부 파일에 원시 글자 크기와 hex 색상이 남아 있습니다.
+- workflow 편집기(`src/components/workflow/`, `src/pages/WorkFlowPage.tsx`): hex 색상, `text-sm` 같은 원시 글자 크기, 인라인 style, 컴포넌트에서 query 직접 호출
 
 ## 컴포넌트 선언
 

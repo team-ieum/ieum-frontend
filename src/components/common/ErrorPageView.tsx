@@ -27,7 +27,7 @@ const ErrorPageView = ({
 			aria-labelledby={titleId}
 			aria-describedby={description ? descriptionId : undefined}
 			className={cn(
-				'relative flex items-center justify-center overflow-hidden bg-[#f4fbfe] px-6 py-12',
+				'relative flex items-center justify-center overflow-hidden bg-main-light-blue/40 px-6 py-12',
 				LAYOUT_CLASS[layout]
 			)}
 		>

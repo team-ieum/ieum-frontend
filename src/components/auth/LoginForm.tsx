@@ -33,13 +33,10 @@ const LoginForm = () => {
 			<AuthSubmitButton label='로그인' />
 
 			<div className='space-y-6 pt-6'>
-				<div className='relative'>
-					<div className='absolute inset-0 flex items-center'>
-						<span className='w-full border-t border-main-blue' />
-					</div>
-					<div className='relative flex justify-center'>
-						<span className='bg-[#f0f9ff] px-2 typo-caption1_bold text-main-deep-blue'>또는</span>
-					</div>
+				<div className='flex items-center gap-2'>
+					<span className='flex-1 border-t border-main-blue' />
+					<span className='typo-caption1_bold text-main-deep-blue'>또는</span>
+					<span className='flex-1 border-t border-main-blue' />
 				</div>
 
 				<div className='flex justify-center'>
