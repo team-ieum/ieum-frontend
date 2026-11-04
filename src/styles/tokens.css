@@ -40,6 +40,9 @@
 	--color-danger-500: #eb6f70;
 	--color-danger-600: #f64c4c;
 	--color-danger-700: #ec2d30;
+	/* 800·900은 흰 글자를 올리는 버튼 배경용입니다(흰 글자 대비 4.5:1 이상). */
+	--color-danger-800: #dc2626;
+	--color-danger-900: #b91c1c;
 
 	/* 연결됨·성공 상태의 배경(100)과 테두리(200) */
 	--color-success-100: #e8f5ee;
