@@ -1,9 +1,12 @@
-import { useEffect, useId, useRef, type SyntheticEvent } from 'react'
+import { motion } from 'framer-motion'
+import { useEffect, useId, useRef, type ChangeEvent, type MouseEvent, type SyntheticEvent } from 'react'
 import NodeChoiceSelect, { type NodeChoice } from '@/components/workflow/settings/NodeChoiceSelect'
 import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
 import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
+import NodeReferenceList from '@/components/workflow/settings/NodeReferenceList'
 import NodeReferencePicker from '@/components/workflow/settings/NodeReferencePicker'
-import { INPUT_CLASS, TEXTAREA_CLASS } from '@/components/workflow/settings/settingsFieldClassNames'
+import { DROPDOWN_POPUP_CLASS, INPUT_CLASS, TEXTAREA_CLASS } from '@/components/workflow/settings/settingsFieldClassNames'
+import { useNodeReferenceAutocomplete } from '@/hooks/workflow/useNodeReferenceAutocomplete'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { NodeReferenceSource } from '@/types/nodeReference'
@@ -89,16 +92,62 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 		if (selectionStart !== null && selectionEnd !== null) selectionRef.current = { start: selectionStart, end: selectionEnd }
 	}
 
-	const handleReferenceInsert = (expression: string) => {
-		const caret = insertReference(expression, selectionRef.current ?? undefined)
+	const insertAt = (expression: string, selection: TextSelection | undefined) => {
+		const caret = insertReference(expression, selection)
 		if (caret !== undefined) pendingCaretRef.current = caret
 	}
+
+	const handleReferenceInsert = (expression: string) => insertAt(expression, selectionRef.current ?? undefined)
+
+	// 커서 위치에 넣는 칸에서만 `{{` 자동완성을 연다. 값 방식 칸은 참조식 방식으로 바꾼 뒤에 쓴다.
+	const autocomplete = useNodeReferenceAutocomplete({
+		groups: references && pickerTarget === 'caret' ? references.groups : undefined,
+		onChoose: insertAt,
+	})
+	const autocompleteListId = `${inputId}-reference-list`
+	const autocompleteOptionId = (index: number) => `${inputId}-reference-option-${index}`
+	const autocompletePopupRef = useRef<HTMLDivElement>(null)
+	const activeAutocompleteOptionId =
+		autocomplete.isOpen && autocomplete.optionCount > 0 ? autocompleteOptionId(autocomplete.activeIndex) : undefined
+
+	// aria-activedescendant 방식이라 브라우저가 강조 행으로 스크롤해 주지 않고, 아래쪽 칸에서 열면 팝업이
+	// 패널 스크롤 영역 밖에 생길 수 있다. 열릴 때 팝업을, 강조가 바뀔 때 강조 행을 보이게 한다.
+	// jsdom에는 scrollIntoView가 없어 있을 때만 부른다.
+	useEffect(() => {
+		const popup = autocompletePopupRef.current
+		if (!autocomplete.isOpen || !popup) return
+		const activeOption = activeAutocompleteOptionId ? popup.querySelector(`#${CSS.escape(activeAutocompleteOptionId)}`) : null
+		;(activeOption ?? popup).scrollIntoView?.({ block: 'nearest' })
+	}, [autocomplete.isOpen, activeAutocompleteOptionId])
+
+	const handleTextChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		changeText(event.target.value)
+		autocomplete.handleCaretChange(event.target.value, event.target.selectionStart)
+	}
+
+	const handleSelect = (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		rememberSelection(event)
+		autocomplete.handleCaretChange(event.currentTarget.value, event.currentTarget.selectionStart)
+	}
+
+	// 목록을 눌러도 입력 칸 포커스를 유지해, blur로 목록이 먼저 닫혀 행 click이 사라지지 않게 한다.
+	const keepInputFocus = (event: MouseEvent<HTMLDivElement>) => event.preventDefault()
+
 	const inputProps = {
 		id: inputId,
 		'aria-describedby': describedBy || undefined,
 		'aria-invalid': error ? true : undefined,
 	}
-	const textInputProps = { ...inputProps, ref: setTextInput, onSelect: rememberSelection }
+	const textInputProps = {
+		...inputProps,
+		ref: setTextInput,
+		onSelect: handleSelect,
+		onKeyDown: autocomplete.handleKeyDown,
+		onBlur: autocomplete.close,
+		'aria-autocomplete': references && pickerTarget === 'caret' ? ('list' as const) : undefined,
+		'aria-controls': autocomplete.isOpen ? autocompleteListId : undefined,
+		'aria-activedescendant': activeAutocompleteOptionId,
+	}
 
 	const renderWidget = () => {
 		if (!isFieldEditable(field)) {
@@ -137,14 +186,9 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 				placeholder: REFERENCE_PLACEHOLDER,
 			}
 			return field.type === 'text' ? (
-				<textarea {...referenceProps} onChange={event => changeText(event.target.value)} className={TEXTAREA_CLASS} />
+				<textarea {...referenceProps} onChange={handleTextChange} className={TEXTAREA_CLASS} />
 			) : (
-				<input
-					{...referenceProps}
-					type='text'
-					onChange={event => changeText(event.target.value)}
-					className={INPUT_CLASS}
-				/>
+				<input {...referenceProps} type='text' onChange={handleTextChange} className={INPUT_CLASS} />
 			)
 		}
 
@@ -181,7 +225,7 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 				<textarea
 					{...textInputProps}
 					value={draft}
-					onChange={event => changeText(event.target.value)}
+					onChange={handleTextChange}
 					placeholder={field.list ? '한 줄에 하나씩 입력해 주세요' : getPlaceholder(field)}
 					className={cn(TEXTAREA_CLASS, field.type === 'json' && 'font-mono text-xs')}
 				/>
@@ -196,7 +240,7 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 				type={isDatetimeInput ? 'datetime-local' : 'text'}
 				inputMode={field.type === 'integer' || field.type === 'number' ? 'decimal' : undefined}
 				value={isDatetimeInput ? draft.slice(0, 16) : draft}
-				onChange={event => changeText(event.target.value)}
+				onChange={handleTextChange}
 				placeholder={field.type === 'cron' ? '0 9 * * 1-5' : getPlaceholder(field)}
 				className={INPUT_CLASS}
 			/>
@@ -243,7 +287,37 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 					{field.description}
 				</p>
 			) : null}
-			{renderWidget()}
+			<div className='relative'>
+				{renderWidget()}
+				{autocomplete.isOpen && references ? (
+					<motion.div
+						ref={autocompletePopupRef}
+						initial={{ opacity: 0, y: -4 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ duration: 0.15 }}
+						onMouseDown={keepInputFocus}
+						className={DROPDOWN_POPUP_CLASS}
+					>
+						<NodeReferenceList
+							id={autocompleteListId}
+							title={field.title}
+							groups={autocomplete.groups}
+							activeIndex={autocomplete.activeIndex}
+							optionId={autocompleteOptionId}
+							emptyMessage={
+								autocomplete.hasNoMatch
+									? '입력한 내용과 맞는 출력이 없어요. 노드 이름이나 출력 이름으로 찾아보세요.'
+									: undefined
+							}
+							onChoose={autocomplete.choose}
+							onActiveChange={autocomplete.setActiveIndex}
+						/>
+					</motion.div>
+				) : null}
+				<span aria-live='polite' className='sr-only'>
+					{autocomplete.isOpen ? `출력 참조 후보 ${autocomplete.optionCount}개` : ''}
+				</span>
+			</div>
 			{field.optionsSource && !isOptionsCombobox && mode === 'fixed' ? (
 				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>
 					{name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접 입력해 주세요.

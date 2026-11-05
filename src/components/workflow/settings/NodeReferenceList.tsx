@@ -15,6 +15,8 @@ type NodeReferenceListProps = {
 	optionId: (index: number) => string
 	onChoose: (option: NodeReferenceOption) => void
 	onActiveChange: (index: number) => void
+	/** 후보 그룹이 없을 때 보여 줄 안내. 없으면 앞에 연결된 노드가 없다고 안내한다. */
+	emptyMessage?: string
 }
 
 const SAMPLE_SKELETON_COUNT = 2
@@ -44,15 +46,24 @@ const GroupStatus = ({ group }: { group: NodeReferenceGroup }) => {
 
 /**
  * 조상 노드별로 묶은 출력 참조 후보 listbox. 포커스는 여는 쪽(피커 버튼, 입력 칸)에 두고 강조 행만 받는다.
- * 조상이 없으면 listbox 대신 안내를 보여 준다.
+ * 보여 줄 그룹이 없으면 listbox 대신 안내(`emptyMessage`)를 보여 준다.
  */
-const NodeReferenceList = ({ id, title, groups, activeIndex, optionId, onChoose, onActiveChange }: NodeReferenceListProps) => {
+const NodeReferenceList = ({
+	id,
+	title,
+	groups,
+	activeIndex,
+	optionId,
+	onChoose,
+	onActiveChange,
+	emptyMessage = '앞에 연결된 노드가 없어요. 노드를 연결하면 그 노드의 출력을 넣을 수 있어요.',
+}: NodeReferenceListProps) => {
 	const headerIdPrefix = useId()
 
 	if (groups.length === 0) {
 		return (
 			<p id={id} className='m-0 px-2.5 py-2 typo-caption1_regular text-neutral-500'>
-				앞에 연결된 노드가 없어요. 노드를 연결하면 그 노드의 출력을 넣을 수 있어요.
+				{emptyMessage}
 			</p>
 		)
 	}
