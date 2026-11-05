@@ -48,6 +48,10 @@
 	--color-success-100: #e8f5ee;
 	--color-success-200: #bfe2d2;
 
+	/* 저장은 되지만 확인이 필요한 경고의 배경(100)과 글자(700) */
+	--color-warning-100: #fff1d6;
+	--color-warning-700: #9a6700;
+
 	/* 인증 화면 물결 그림(AuthWavePanel)의 뒤·앞 물결 */
 	--color-auth-wave-back: #9db0d9;
 	--color-auth-wave-front: #2f88ba;

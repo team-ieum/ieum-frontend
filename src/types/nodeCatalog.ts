@@ -24,7 +24,7 @@ type NodeCatalogChoice = {
 }
 
 /** 카탈로그 칸 정의. `required`·`ref`·`list`·`dynamic`은 기본값(false·true·false·false)이면 응답에서 빠진다. */
-type NodeCatalogField = {
+export type NodeCatalogField = {
 	key: string
 	title: string
 	type: NodeCatalogFieldType

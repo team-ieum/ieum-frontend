@@ -60,7 +60,7 @@ const createNode = (overrides: Partial<WorkflowNodeDto> = {}): WorkflowNodeDto =
 })
 
 // 노드 테스트 영역은 `NodeTestSection.test.tsx`에서 확인한다. 여기서는 필수 props만 채운다.
-const nodeTestProps = { workflowId: 'workflow-1', nodes: [], onNodeOpen: () => undefined }
+const nodeTestProps = { workflowId: 'workflow-1', nodes: [], edges: [], onNodeOpen: () => undefined }
 
 // 드롭다운 칸이 options·providers query와 통합 설정 링크를 쓰므로 QueryClient와 router를 함께 둔다.
 const renderWithProviders = (ui: ReactElement) => {
@@ -1141,5 +1141,94 @@ describe('NodeSettingsPanel', () => {
 		await user.click(screen.getByRole('button', { name: '노드 설정 닫기' }))
 		await user.keyboard('{Escape}')
 		expect(onClose).toHaveBeenCalledTimes(2)
+	})
+
+	describe('출력 참조 경고', () => {
+		const aiNode: WorkflowNodeDto = {
+			id: 'ai',
+			type: 'AI',
+			event: 'ai.reasoning',
+			label: 'AI 요약',
+			config: { outputFields: [{ key: 'summary', type: 'text' }] },
+		}
+		const laterNode = createNode({ id: 'later', event: 'gmail.new_email', label: '뒤 노드', config: {} })
+		const edges = [
+			{ source: 'ai', target: 'node-1' },
+			{ source: 'node-1', target: 'later' },
+		]
+
+		it('없는 출력과 앞에 연결되지 않은 노드를 가리키면 칸과 패널에 경고하지만 입력은 그대로 저장한다', async () => {
+			const user = userEvent.setup()
+			const onNodeChange = vi.fn()
+			const node = createNode({
+				config: { brand: 'slack', text: '{{nodes.ai.output.title}} {{nodes.later.output.subject}}' },
+			})
+			renderWithProviders(
+				<NodeSettingsPanel
+					{...nodeTestProps}
+					node={node}
+					nodes={[aiNode, node, laterNode]}
+					edges={edges}
+					onNodeChange={onNodeChange}
+					onClose={() => undefined}
+				/>
+			)
+
+			expect(
+				screen.getByText('참조 2곳을 확인해 주세요. 없거나 앞에 연결되지 않은 노드·출력을 가리키고 있어요. 저장은 돼요.')
+			).toHaveAttribute('role', 'status')
+			expect(getFieldInput('메시지')).toHaveAccessibleDescription(
+				"'AI 요약' 노드에 없는 출력(title)을 가리켜요. 외 1곳 참조를 확인해 주세요."
+			)
+
+			await user.type(getFieldInput('메시지'), '!')
+			expect(onNodeChange).toHaveBeenCalled()
+		})
+
+		it('알려진 출력을 가리키면 경고하지 않는다', () => {
+			const node = createNode({ config: { brand: 'slack', text: '{{nodes.ai.output.summary}}' } })
+			renderWithProviders(
+				<NodeSettingsPanel
+					{...nodeTestProps}
+					node={node}
+					nodes={[aiNode, node]}
+					edges={edges}
+					onNodeChange={vi.fn()}
+					onClose={() => undefined}
+				/>
+			)
+
+			expect(screen.queryByText(/참조를 확인해 주세요/)).not.toBeInTheDocument()
+		})
+
+		it('출력 칸 이름을 바꾸면 그 출력을 참조하던 아래 노드를 알리고 열 수 있게 한다', async () => {
+			const user = userEvent.setup()
+			const onNodeOpen = vi.fn()
+			const referrer = createNode({ config: { brand: 'slack', text: '{{nodes.ai.output.summary}}' } })
+			const Wrapper = () => {
+				const [node, setNode] = useState(aiNode)
+				return (
+					<NodeSettingsPanel
+						{...nodeTestProps}
+						node={node}
+						nodes={[node, referrer]}
+						edges={edges}
+						onNodeChange={setNode}
+						onNodeOpen={onNodeOpen}
+						onClose={() => undefined}
+					/>
+				)
+			}
+			renderWithProviders(<Wrapper />)
+			expect(screen.queryByText(/없는 출력을 참조하는 노드가 있어요/)).not.toBeInTheDocument()
+
+			const keyInput = screen.getByDisplayValue('summary')
+			await user.clear(keyInput)
+			await user.type(keyInput, 'brief')
+
+			expect(screen.getByText(/이 노드에 없는 출력을 참조하는 노드가 있어요/)).toBeInTheDocument()
+			await user.click(screen.getByRole('button', { name: "'요약 보내기' 열기" }))
+			expect(onNodeOpen).toHaveBeenCalledWith('node-1')
+		})
 	})
 })

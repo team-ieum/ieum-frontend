@@ -2,17 +2,19 @@ import { ChevronDown, X } from 'lucide-react'
 import { useId, useState } from 'react'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import type { NodeAiTool } from '@/hooks/workflow/useNodeAiTools'
+import type { NodeReferenceSource } from '@/types/nodeReference'
 import { cn } from '@/utils/cn'
 
 type AiToolCardProps = {
 	tool: NodeAiTool
 	/** 처음 그릴 때 칸을 펼칠지. 방금 추가한 도구만 펼친다. */
 	defaultOpen: boolean
+	references?: NodeReferenceSource
 	onRemove: () => void
 }
 
 /** 고른 도구 하나의 이름·빼기 버튼과, 펼치면 보이는 도구 칸 목록. */
-const AiToolCard = ({ tool, defaultOpen, onRemove }: AiToolCardProps) => {
+const AiToolCard = ({ tool, defaultOpen, references, onRemove }: AiToolCardProps) => {
 	const [isOpen, setIsOpen] = useState(defaultOpen)
 	const bodyId = useId()
 	const displayTitle = tool.title || '이름 없는 도구'
@@ -36,6 +38,7 @@ const AiToolCard = ({ tool, defaultOpen, onRemove }: AiToolCardProps) => {
 				name={name}
 				options={options}
 				emptyHint={emptyHint}
+				references={references}
 				onChange={(next, nextName) => tool.changeField(field, next, nextName)}
 			/>
 		))

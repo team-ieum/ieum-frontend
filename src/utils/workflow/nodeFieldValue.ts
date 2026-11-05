@@ -38,6 +38,26 @@ const isPlainTextField = (field: NodeCatalogInputField) =>
 export const hasReferenceMode = (field: NodeCatalogInputField) =>
 	canUseReference(field) && isFieldEditable(field) && !isPlainTextField(field)
 
+/**
+ * 출력 참조 피커로 고른 참조식을 칸에 넣는 방식.
+ * - `none`: 피커를 쓰지 않는 칸(참조식 금지, object, 목록 공급원 드롭다운, 값 방식의 dict)
+ * - `caret`: 입력 중 문자열의 커서 위치에 넣는다(참조식 방식, 문자열, json, 문자열 목록). 빈 json 칸은 넣는 쪽이 `replace`처럼 다룬다.
+ * - `replace`: 참조식 방식으로 바꾸고 값 전체를 참조식으로 둔다(선택·boolean·숫자·날짜 등 값 방식 칸)
+ */
+export type ReferencePickerTarget = 'none' | 'caret' | 'replace'
+
+export const getReferencePickerTarget = (
+	field: NodeCatalogInputField,
+	mode: NodeFieldMode,
+	isOptionsCombobox: boolean
+): ReferencePickerTarget => {
+	if (!canUseReference(field) || !isFieldEditable(field) || isOptionsCombobox) return 'none'
+	if (mode === 'reference' || isPlainTextField(field)) return 'caret'
+	if (field.type === 'dict') return 'none'
+	const isStringList = field.list === true && !field.choices && (field.type === 'string' || field.type === 'text')
+	return field.type === 'json' || isStringList ? 'caret' : 'replace'
+}
+
 /** 키 없음·`null`·빈 문자열·빈 배열·빈 객체를 비운 값으로 본다. */
 export const isEmptyFieldValue = (value: unknown) => {
 	if (value === undefined || value === null) return true
