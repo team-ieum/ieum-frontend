@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Check, ChevronDown } from 'lucide-react'
+import { DROPDOWN_OPTION_CLASS, DROPDOWN_POPUP_CLASS } from '@/components/workflow/settings/settingsFieldClassNames'
 import type { SettingsDropdownState } from '@/hooks/workflow/useSettingsDropdown'
 import { cn } from '@/utils/cn'
 
@@ -172,7 +173,7 @@ const SettingsDropdown = ({
 					animate={{ opacity: 1, y: 0 }}
 					transition={{ duration: 0.15 }}
 					onMouseDown={keepTriggerFocus}
-					className='absolute inset-x-0 top-[calc(100%+6px)] z-20 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
+					className={DROPDOWN_POPUP_CLASS}
 				>
 					<ul
 						ref={listboxRef}
@@ -192,7 +193,7 @@ const SettingsDropdown = ({
 									onClick={() => choose(rowIndex)}
 									onMouseEnter={() => state.setActiveIndex(rowIndex)}
 									className={cn(
-										'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 typo-body3_regular transition-colors',
+										DROPDOWN_OPTION_CLASS,
 										row.isCurrent
 											? 'bg-main-light-blue text-main-deep-blue'
 											: cn('text-neutral-700', isActive && 'bg-neutral-50'),

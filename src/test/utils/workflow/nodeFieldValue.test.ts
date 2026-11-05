@@ -4,6 +4,7 @@ import {
 	formatFieldDraft,
 	getInitialFieldMode,
 	getMissingRequiredFields,
+	getReferencePickerTarget,
 	hasReferenceMode,
 	isEmptyFieldValue,
 	parseFieldInput,
@@ -125,5 +126,26 @@ describe('nodeFieldValue', () => {
 		const node = { id: 'n', type: 'ACTION', event: 'x', label: 'x', config: { c: 'filled', tools: [] } }
 
 		expect(getMissingRequiredFields(entry, node).map(item => item.key)).toEqual(['a'])
+	})
+
+	describe('getReferencePickerTarget', () => {
+		const choices = [{ id: 'a', name: 'A' }]
+
+		it.each([
+			['참조식 금지 칸', field({ ref: false }), 'fixed', false, 'none'],
+			['object 칸', field({ type: 'object' }), 'fixed', false, 'none'],
+			['목록 공급원 드롭다운', field({ optionsSource: 'slack.channels' }), 'fixed', true, 'none'],
+			['값 방식 dict', field({ type: 'dict' }), 'fixed', false, 'none'],
+			['문자열', field({ type: 'string' }), 'fixed', false, 'caret'],
+			['json', field({ type: 'json' }), 'fixed', false, 'caret'],
+			['문자열 목록', field({ type: 'string', list: true }), 'fixed', false, 'caret'],
+			['참조식 방식 정수', field({ type: 'integer' }), 'reference', false, 'caret'],
+			['값 방식 정수', field({ type: 'integer' }), 'fixed', false, 'replace'],
+			['값 방식 선택', field({ type: 'string', choices }), 'fixed', false, 'replace'],
+			['값 방식 boolean', field({ type: 'boolean' }), 'fixed', false, 'replace'],
+			['값 방식 날짜', field({ type: 'datetime' }), 'fixed', false, 'replace'],
+		] as const)('%s 칸은 %s 방식에서 피커 동작이 %s이다', (_, target, mode, isOptionsCombobox, expected) => {
+			expect(getReferencePickerTarget(target, mode, isOptionsCombobox)).toBe(expected)
+		})
 	})
 })

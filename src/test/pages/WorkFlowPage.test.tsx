@@ -877,6 +877,23 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByTestId('chat-beside-settings')).toHaveTextContent('false')
 	})
 
+	it('설정 패널의 출력 참조 피커에 편집 문서의 엣지로 계산한 앞 노드를 보여 준다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		await user.click(within(panel).getByRole('combobox', { name: '출력 참조 넣기(프롬프트)' }))
+
+		const listbox = within(panel).getByRole('listbox', { name: '프롬프트 참조 후보' })
+		expect(
+			within(listbox)
+				.getAllByRole('group')
+				.map(group => group.firstChild?.textContent)
+		).toEqual(['문의가 도착하면 · 직접 실행할 때'])
+	})
+
 	it('설정 패널을 Escape로 닫으면 그 노드로 포커스를 돌려주고 Enter로 다시 열며 다른 노드를 누르면 그 노드 설정으로 바꾼다', async () => {
 		const user = userEvent.setup()
 		mocks.catalogEntries = nodeCatalogEntriesFixture

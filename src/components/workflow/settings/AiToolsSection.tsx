@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import AiToolAddSelect from '@/components/workflow/settings/AiToolAddSelect'
 import AiToolCard from '@/components/workflow/settings/AiToolCard'
 import type { NodeAiTools } from '@/hooks/workflow/useNodeAiTools'
+import type { NodeReferenceSource } from '@/types/nodeReference'
 import { cn } from '@/utils/cn'
 
 const ADD_TRIGGER_CLASS = cn(
@@ -11,6 +12,8 @@ const ADD_TRIGGER_CLASS = cn(
 
 type AiToolsSectionProps = {
 	aiTools: NodeAiTools
+	/** 도구 칸에도 출력 참조 피커와 참조 경고를 쓴다. */
+	references?: NodeReferenceSource
 }
 
 const BLOCKED_BY_OUTPUT_FIELDS = '출력 칸을 모두 지우면 도구를 고를 수 있어요.'
@@ -26,7 +29,7 @@ const getToolsNotice = (isAgent: boolean, hasTools: boolean) => {
  * 도구 유무에 따라 노드가 AI 에이전트와 도구 없는 AI 사이에서 바뀐다는 점을 함께 안내한다.
  * 출력 칸이 있으면 도구를 고르지 못하게 하고, 이미 도구를 쓰는 AI에 남은 출력 칸은 지우도록 알린다.
  */
-const AiToolsSection = ({ aiTools }: AiToolsSectionProps) => {
+const AiToolsSection = ({ aiTools, references }: AiToolsSectionProps) => {
 	const { toolsField, isAgent, tools, addableTools, outputFieldsConflict, addTool, removeTool, clearOutputFields } = aiTools
 	const titleId = useId()
 	// 방금 추가한 도구 카드만 펼친 채로 그린다.
@@ -79,6 +82,7 @@ const AiToolsSection = ({ aiTools }: AiToolsSectionProps) => {
 							key={key}
 							tool={tool}
 							defaultOpen={tool.toolKey === addedToolKey}
+							references={references}
 							onRemove={() => removeTool(tool.index)}
 						/>
 					))}
