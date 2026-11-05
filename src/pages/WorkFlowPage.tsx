@@ -436,6 +436,7 @@ const WorkFlowPage = () => {
 						workflowId={workflowId ?? ''}
 						node={settingsNode}
 						nodes={document?.nodes ?? []}
+						edges={document?.edges ?? []}
 						onNodeChange={handleNodeUpdate}
 						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						onClose={closeNodeSettings}

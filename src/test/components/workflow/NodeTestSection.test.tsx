@@ -330,6 +330,7 @@ describe('NodeSettingsPanel 노드 테스트 영역', () => {
 				workflowId={WORKFLOW_ID}
 				node={{ id: 'legacy-1', type: 'ACTION', event: 'legacy.unknown', label: '옛 노드', config: {} }}
 				nodes={[]}
+				edges={[]}
 				onNodeChange={vi.fn()}
 				onNodeOpen={vi.fn()}
 				onClose={vi.fn()}

@@ -7,3 +7,10 @@ export const INPUT_CLASS = cn(
 	'aria-invalid:border-[#d4664a]'
 )
 export const TEXTAREA_CLASS = cn(INPUT_CLASS, 'min-h-20 resize-y leading-relaxed')
+
+/** 설정 패널 선택 목록 팝업(채팅 'AI 모델' 메뉴 모양). 칸 아래에 띄운다. */
+export const DROPDOWN_POPUP_CLASS =
+	'absolute inset-x-0 top-[calc(100%+6px)] z-20 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
+/** 선택 목록의 한 행. 강조·현재 값 배경은 사용처가 덧붙인다. */
+export const DROPDOWN_OPTION_CLASS =
+	'flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 typo-body3_regular transition-colors motion-reduce:transition-none'
