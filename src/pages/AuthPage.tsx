@@ -31,7 +31,7 @@ const AuthPage = () => {
 					layout
 					transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
 					className={cn(
-						'w-full max-w-5xl overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-[#f0f9ff] shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]',
+						'w-full max-w-5xl overflow-hidden rounded-brand-lg lg:flex lg:flex-row bg-main-light-blue/50 shadow-[0_0_16px_color-mix(in_srgb,var(--color-main-deep-blue)_25%,transparent)]',
 						isVerification ? 'min-h-0 lg:min-h-175' : 'min-h-175'
 					)}
 				>

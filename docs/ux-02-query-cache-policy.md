@@ -29,6 +29,7 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 | AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
 | AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
 | Node test sample     |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.             |
+| Current user         |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                        |
 
 전역 QueryClient에는 `staleTime`을 추가하지 않는다. 정책 값은 `src/constants/queryCache.ts`에서 관리하고 각 option factory가 참조한다.
 

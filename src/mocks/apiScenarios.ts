@@ -21,6 +21,7 @@ import {
 	webhookCredentialsResponse,
 } from '@/mocks/fixtures/integrations'
 import { emptyNodeCatalogResponse, nodeCatalogResponse } from '@/mocks/fixtures/nodeCatalog'
+import { currentUserResponse } from '@/mocks/fixtures/user'
 import {
 	emptyWorkflowDetailResponse,
 	emptyWorkflowListResponse,
@@ -39,6 +40,7 @@ export type ApiMockResource =
 	| 'providers'
 	| 'credentials'
 	| 'nodeCatalog'
+	| 'currentUser'
 
 type EndpointDefinition = {
 	resource: ApiMockResource
@@ -109,6 +111,13 @@ const endpointDefinitions: EndpointDefinition[] = [
 		path: '/api/v1/nodes/catalog',
 		successBody: nodeCatalogResponse,
 		emptyBody: emptyNodeCatalogResponse,
+	},
+	{
+		resource: 'currentUser',
+		path: '/api/v1/users/me',
+		successBody: currentUserResponse,
+		// 로그인 사용자 정보는 비어 있는 상태가 없어 성공 응답을 그대로 쓴다.
+		emptyBody: currentUserResponse,
 	},
 ]
 

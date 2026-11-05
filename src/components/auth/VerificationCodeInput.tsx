@@ -27,7 +27,7 @@ const VerificationCodeInput = ({ value, onChange, error, disabled }: Verificatio
 				onChange={event => onChange(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
 				aria-invalid={Boolean(error)}
 				aria-describedby={error ? `${id}-error` : undefined}
-				className='min-h-12.5 w-full rounded-brand-md bg-main-light-blue px-4 py-3 text-center text-xl tracking-[0.4em] text-main-deep-blue outline-none focus-visible:ring-2 focus-visible:ring-main-blue disabled:opacity-60'
+				className='min-h-12.5 w-full rounded-brand-md bg-main-light-blue px-4 py-3 text-center typo-title2_regular tracking-[0.4em] text-main-deep-blue outline-none focus-visible:ring-2 focus-visible:ring-main-blue disabled:opacity-60'
 			/>
 			{error && (
 				<p id={`${id}-error`} role='alert' className='typo-caption1_regular text-danger-700'>

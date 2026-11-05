@@ -6,7 +6,7 @@ const LandingFooter = () => (
 		<div className='mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-5 sm:flex-row lg:px-8'>
 			<div className='flex items-center gap-2'>
 				<img src={symbol} alt='' className='h-6 w-6' />
-				<span className='font-logo_regular text-lg text-main-deep-blue'>IEUM</span>
+				<span className='typo-logo6_regular text-main-deep-blue'>IEUM</span>
 				<span className='typo-caption1_regular text-neutral-400'>beta · v0.0.1</span>
 			</div>
 			<div className='flex flex-wrap items-center justify-center gap-6 typo-caption1_medium text-neutral-500'>

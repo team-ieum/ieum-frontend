@@ -8,11 +8,11 @@ type SkeletonPulseProps = {
 	tone?: 'brand' | 'neutral'
 }
 
-const highlightByTone = {
-	brand: 'linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 6%) 28%, rgb(255 255 255 / 10%) 50%, rgb(255 255 255 / 6%) 72%, transparent 100%)',
+const HIGHLIGHT_CLASS_BY_TONE: Record<NonNullable<SkeletonPulseProps['tone']>, string> = {
+	brand: 'bg-[linear-gradient(90deg,transparent_0%,rgb(255_255_255/6%)_28%,rgb(255_255_255/10%)_50%,rgb(255_255_255/6%)_72%,transparent_100%)]',
 	neutral:
-		'linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 14%) 28%, rgb(255 255 255 / 24%) 50%, rgb(255 255 255 / 14%) 72%, transparent 100%)',
-} as const
+		'bg-[linear-gradient(90deg,transparent_0%,rgb(255_255_255/14%)_28%,rgb(255_255_255/24%)_50%,rgb(255_255_255/14%)_72%,transparent_100%)]',
+}
 
 const SkeletonPulse = ({ as: Component = 'div', className, tone = 'neutral' }: SkeletonPulseProps): ReactElement => {
 	const reduceMotion = useReducedMotion()
@@ -22,8 +22,7 @@ const SkeletonPulse = ({ as: Component = 'div', className, tone = 'neutral' }: S
 			{!reduceMotion && (
 				<motion.span
 					data-skeleton-highlight
-					className='pointer-events-none absolute inset-y-0 -left-1/2 w-1/2'
-					style={{ background: highlightByTone[tone] }}
+					className={cn('pointer-events-none absolute inset-y-0 -left-1/2 w-1/2', HIGHLIGHT_CLASS_BY_TONE[tone])}
 					initial={{ x: '0%' }}
 					animate={{ x: '300%' }}
 					transition={{ duration: 1.35, ease: [0.4, 0, 0.2, 1], repeat: Infinity, repeatDelay: 0.35 }}

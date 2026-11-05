@@ -73,6 +73,7 @@
 	--typography-mono-caption1_medium: 500 0.75rem / 1.5 var(--font-mono); /* 12/150 */
 	--typography-mono-caption1_regular: 400 0.75rem / 1.5 var(--font-mono); /* 12/150 */
 	--typography-mono-caption2_medium: 500 0.6875rem / 1.6 var(--font-mono); /* 11/160 */
+	--typography-mono-caption2_semibold: 600 0.6875rem / 1.6 var(--font-mono); /* 11/160 */
 
 	/* Logo — `font-pretendard` maps to Pretendard; `font-logo_regular` to RixInooAriDuri */
 	--font-logo_regular: 'RixInooAriDuri', var(--font-family-pretendard);
@@ -287,4 +288,7 @@
 }
 @utility typo-mono-caption2_medium {
 	font: var(--typography-mono-caption2_medium);
+}
+@utility typo-mono-caption2_semibold {
+	font: var(--typography-mono-caption2_semibold);
 }
