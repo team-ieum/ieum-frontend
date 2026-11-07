@@ -108,6 +108,18 @@ describe('NodeSettingsField 참조 자동완성', () => {
 		expect(textarea).toHaveValue('{{nodes.http.output.status}} 끝')
 	})
 
+	it('닫힌 참조식 안쪽에서 고르면 그 참조식 전체를 바꿔 뒤 경로가 남지 않는다', async () => {
+		const user = userEvent.setup()
+		const textarea = renderField(textField, '{{nodes.http.output.body}} 끝')
+		await user.click(textarea)
+		textarea.setSelectionRange('{{nodes.http'.length, '{{nodes.http'.length)
+		fireEvent.keyUp(textarea, { key: 'ArrowLeft' })
+
+		await user.keyboard('{Enter}')
+
+		expect(textarea).toHaveValue('{{nodes.http.output.status}} 끝')
+	})
+
 	it('한글 조합 중 Enter는 후보를 고르지 않는다', async () => {
 		const user = userEvent.setup()
 		const textarea = renderField()

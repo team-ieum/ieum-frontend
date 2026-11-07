@@ -67,6 +67,22 @@ describe('nodeReference', () => {
 			expect(findReferenceQuery('{{st}} 끝', 4)).toEqual({ start: 0, end: 6, query: 'st' })
 		})
 
+		it('커서가 닫힌 참조식 안쪽이면 닫는 }}까지 바꿀 범위에 넣는다', () => {
+			expect(findReferenceQuery('{{nodes.a.output.x}} 끝', 9)).toEqual({ start: 0, end: 20, query: 'nodes.a' })
+		})
+
+		it.each([
+			['닫는 괄호가 없는 뒤 글자', '{{hello', 2, 2],
+			['공백 뒤의 }}', '{{ab cd}}', 4, 4],
+			['뒤에 이어지는 다음 참조식', '{{a{{b}}', 3, 3],
+		])('%s는 바꿀 범위에 넣지 않는다', (_, text, caret, end) => {
+			expect(findReferenceQuery(text, caret)?.end).toBe(end)
+		})
+
+		it('앞 참조식을 고칠 때 공백 뒤의 다음 참조식까지 범위를 넓히지 않는다', () => {
+			expect(findReferenceQuery('{{a.b}} {{c}}', 3)?.end).toBe(7)
+		})
+
 		it.each([
 			['공백으로 끝난 질의', '{{nodes a', 9],
 			['닫힌 참조식 뒤', '{{nodes.a.output.x}}', 20],

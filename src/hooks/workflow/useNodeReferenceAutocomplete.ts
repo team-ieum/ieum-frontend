@@ -6,7 +6,7 @@ import { findReferenceQuery, type ReferenceQuery } from '@/utils/workflow/nodeRe
 type UseNodeReferenceAutocompleteOptions = {
 	/** 참조 후보 그룹. 없으면 자동완성을 열지 않는다. */
 	groups: NodeReferenceGroup[] | undefined
-	/** 고른 참조식과 바꿀 범위(`{{질의`, 뒤 `}}` 포함)를 넘긴다. 칸에 넣는 일은 받는 쪽이 맡는다. */
+	/** 고른 참조식과 바꿀 범위(`{{질의`, 닫힌 참조식이면 `}}`까지)를 넘긴다. 칸에 넣는 일은 받는 쪽이 맡는다. */
 	onChoose: (expression: string, range: ReferenceQuery) => void
 }
 
