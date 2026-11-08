@@ -3,6 +3,7 @@ import { useId, useState } from 'react'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import type { NodeAiTool } from '@/hooks/workflow/useNodeAiTools'
 import type { NodeReferenceSource } from '@/types/nodeReference'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
 
 type AiToolCardProps = {
@@ -10,11 +11,22 @@ type AiToolCardProps = {
 	/** 처음 그릴 때 칸을 펼칠지. 방금 추가한 도구만 펼친다. */
 	defaultOpen: boolean
 	references?: NodeReferenceSource
+	/** 칸 path별 서버 검사 오류. 도구 칸 path(`config.tools.<i>.config.<칸>`)로 찾는다. */
+	validationErrorsByPath?: ReadonlyMap<string, WorkflowValidationErrorDto[]>
+	/** 이 도구 칸들에 붙은 서버 검사 오류 수. 카드를 접어 두어도 머리에서 알린다. */
+	validationErrorCount?: number
 	onRemove: () => void
 }
 
 /** 고른 도구 하나의 이름·빼기 버튼과, 펼치면 보이는 도구 칸 목록. */
-const AiToolCard = ({ tool, defaultOpen, references, onRemove }: AiToolCardProps) => {
+const AiToolCard = ({
+	tool,
+	defaultOpen,
+	references,
+	validationErrorsByPath,
+	validationErrorCount = 0,
+	onRemove,
+}: AiToolCardProps) => {
 	const [isOpen, setIsOpen] = useState(defaultOpen)
 	const bodyId = useId()
 	const displayTitle = tool.title || '이름 없는 도구'
@@ -39,6 +51,7 @@ const AiToolCard = ({ tool, defaultOpen, references, onRemove }: AiToolCardProps
 				options={options}
 				emptyHint={emptyHint}
 				references={references}
+				validationErrors={validationErrorsByPath?.get(field.path)}
 				onChange={(next, nextName) => tool.changeField(field, next, nextName)}
 			/>
 		))
@@ -63,6 +76,11 @@ const AiToolCard = ({ tool, defaultOpen, references, onRemove }: AiToolCardProps
 						<span className='truncate text-[0.8rem] font-bold text-[#27273b]'>{displayTitle}</span>
 						{tool.appTitle ? <span className='truncate text-[0.7rem] text-neutral-500'>{tool.appTitle}</span> : null}
 					</span>
+					{validationErrorCount > 0 ? (
+						<span className='shrink-0 typo-caption2_semibold text-danger-900'>
+							검사 문제 {validationErrorCount}건
+						</span>
+					) : null}
 					{tool.missingRequiredCount > 0 ? (
 						<span className='shrink-0 text-[0.7rem] font-semibold text-[#9a6700]'>필수 칸 비어 있음</span>
 					) : null}

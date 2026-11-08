@@ -12,6 +12,7 @@ import { server } from '@/mocks/server'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { NodeOption } from '@/types/nodeOptions'
 import type { WorkflowNodeDto } from '@/types/workflowList'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 
 const mocks = vi.hoisted(() => ({
@@ -1229,6 +1230,136 @@ describe('NodeSettingsPanel', () => {
 			expect(screen.getByText(/이 노드에 없는 출력을 참조하는 노드가 있어요/)).toBeInTheDocument()
 			await user.click(screen.getByRole('button', { name: "'요약 보내기' 열기" }))
 			expect(onNodeOpen).toHaveBeenCalledWith('node-1')
+		})
+	})
+
+	describe('서버 검사 오류', () => {
+		const createValidationError = (field: string | null, message: string): WorkflowValidationErrorDto => ({
+			nodeId: 'node-1',
+			field,
+			code: 'REQUIRED',
+			message,
+		})
+
+		// 저장된 버전을 따로 주지 않으면 지금 노드를 저장본으로 본다.
+		const renderWithValidationErrors = (
+			node: WorkflowNodeDto,
+			validationErrors: WorkflowValidationErrorDto[],
+			validatedNode: WorkflowNodeDto = node
+		) =>
+			renderWithProviders(
+				<NodeSettingsPanel
+					{...nodeTestProps}
+					node={node}
+					onNodeChange={vi.fn()}
+					onClose={() => undefined}
+					validationErrors={validationErrors}
+					validatedNode={validatedNode}
+				/>
+			)
+
+		const createAgentNode = (tools: unknown[]) =>
+			createNode({
+				type: 'AI',
+				event: 'ai.agent',
+				config: { agentType: 'react', tools, llmProvider: 'CLAUDE', prompt: '요약해줘' },
+			})
+		const SLACK_TOOL_NAME = 'builtin:slack_send_channel_message'
+		const SLACK_TOOL_TOGGLE = /^Slack 채널에 메시지 보내기(?!.*도구 빼기$)/
+
+		const getUnmatchedSection = () => screen.getByRole('region', { name: '이 노드의 서버 검사 문제' })
+
+		it('칸 path에 맞는 오류는 그 칸 아래에 서버 문구로 보여 주고 클라이언트 필수 경고와 함께 설명으로 연결한다', () => {
+			renderWithValidationErrors(createNode(), [
+				createValidationError('config.channel', '메시지를 보낼 채널을 골라 주세요.'),
+			])
+
+			const channel = getFieldInput('채널')
+			expect(channel).toHaveAccessibleDescription(/필수 칸이 비어 있어요/)
+			expect(channel).toHaveAccessibleDescription(/메시지를 보낼 채널을 골라 주세요\./)
+			expect(screen.queryByRole('region', { name: '이 노드의 서버 검사 문제' })).not.toBeInTheDocument()
+		})
+
+		it('목록 칸의 하위 경로 오류는 그 목록 칸 아래에 붙인다', () => {
+			renderWithValidationErrors(createNode({ event: 'test.typed', config: { tools: [{}, {}] } }), [
+				createValidationError('config.tools.1.name', '도구 이름을 입력해 주세요.'),
+			])
+
+			// 읽기 전용 object 목록 칸은 입력 요소가 없어 라벨이 속한 칸 영역으로 확인한다.
+			const fieldContainer = screen.getByText(/^도구/, { selector: 'label' }).closest('div')?.parentElement
+			expect(fieldContainer).toHaveTextContent('도구 이름을 입력해 주세요.')
+			expect(screen.queryByRole('region', { name: '이 노드의 서버 검사 문제' })).not.toBeInTheDocument()
+		})
+
+		it('field가 없거나 그리는 칸에 맞지 않는 오류는 패널 위쪽에 모아 보여 준다', () => {
+			renderWithValidationErrors(createNode(), [
+				createValidationError(null, '다음 노드와 연결되지 않았어요.'),
+				createValidationError('config.removedField', '없어진 칸 오류'),
+			])
+
+			const section = getUnmatchedSection()
+			expect(section).toHaveTextContent('이 노드의 서버 검사 문제 2건')
+			expect(within(section).getByText('다음 노드와 연결되지 않았어요.')).toBeInTheDocument()
+			expect(within(section).getByText('없어진 칸 오류')).toBeInTheDocument()
+		})
+
+		it('카탈로그 밖 노드는 그리는 칸이 없어 모든 오류를 패널 위쪽에 보여 준다', () => {
+			renderWithValidationErrors(createNode({ event: 'unknown.event' }), [
+				createValidationError('config.channel', '채널 오류'),
+			])
+
+			expect(within(getUnmatchedSection()).getByText('채널 오류')).toBeInTheDocument()
+		})
+
+		it('AI 도구 칸 오류는 접힌 도구 카드에 개수를 알리고, 펼치면 그 칸 아래에 보여 주며 도구 칸 자체 오류는 섹션에 둔다', async () => {
+			const user = userEvent.setup()
+			renderWithValidationErrors(createAgentNode([{ name: SLACK_TOOL_NAME, config: {} }]), [
+				createValidationError('config.tools.0.config.text', '보낼 메시지를 입력해 주세요.'),
+				createValidationError('config.tools', '도구 안 참조식이 앞 노드를 가리키지 않아요.'),
+			])
+
+			const section = screen.getByRole('region', { name: '도구' })
+			expect(within(section).getByText('도구 안 참조식이 앞 노드를 가리키지 않아요.')).toBeInTheDocument()
+			const toggle = within(section).getByRole('button', { name: SLACK_TOOL_TOGGLE })
+			expect(toggle).toHaveTextContent('검사 문제 1건')
+
+			await user.click(toggle)
+			expect(getFieldInput('메시지')).toHaveAccessibleDescription(/보낼 메시지를 입력해 주세요\./)
+		})
+		it('저장 뒤 같은 자리에 다른 도구가 오면 그 도구 칸에 붙이지 않고 도구 섹션에 보여 준다', () => {
+			renderWithValidationErrors(
+				createAgentNode([{ name: SLACK_TOOL_NAME, config: {} }]),
+				[createValidationError('config.tools.0.config.text', '저장된 0번 도구 오류')],
+				createAgentNode([{ name: 'discord', config: {} }])
+			)
+
+			const section = screen.getByRole('region', { name: '도구' })
+			expect(within(section).getByText('저장된 0번 도구 오류')).toBeInTheDocument()
+			expect(within(section).getByRole('button', { name: SLACK_TOOL_TOGGLE })).not.toHaveTextContent('검사 문제')
+		})
+
+		it('설정이 저장된 버전과 다르면 서버 검사 결과가 저장된 버전 기준이라고 패널에서 알린다', () => {
+			const validatedNode = createNode()
+			const { rerender } = renderWithValidationErrors(
+				validatedNode,
+				[createValidationError('config.channel', '채널 오류')],
+				validatedNode
+			)
+			expect(screen.queryByText(/저장된 버전 기준이에요/)).not.toBeInTheDocument()
+
+			rerender(
+				<NodeSettingsPanel
+					{...nodeTestProps}
+					node={createNode({ config: { brand: 'slack', text: '고친 메시지' } })}
+					onNodeChange={vi.fn()}
+					onClose={() => undefined}
+					validationErrors={[createValidationError('config.channel', '채널 오류')]}
+					validatedNode={validatedNode}
+				/>
+			)
+			expect(
+				screen.getByText('서버 검사 결과는 저장된 버전 기준이에요. 고친 내용은 저장하면 다시 검사해요.')
+			).toBeInTheDocument()
 		})
 	})
 })

@@ -53,7 +53,7 @@ const MainPage = () => {
 				</div>
 				<div className='flex w-full flex-col gap-4'>
 					<DashboardRunTable runs={viewModel.runs} />
-					<DashboardErrorRail errors={viewModel.errors} />
+					<DashboardErrorRail errors={viewModel.errors} onOpenWorkflowProblems={viewModel.handleOpenWorkflowProblems} />
 				</div>
 			</div>
 		</section>

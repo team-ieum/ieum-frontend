@@ -10,9 +10,9 @@ import {
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
 	getNodeTestErrorMessage,
-	isSameTestedDefinition,
 	requiresRunConfirm,
 } from '@/utils/workflow/nodeTest'
+import { isSameNodeDefinition } from '@/utils/workflow/isSameNodeDefinition'
 
 type UseNodeTestOptions = {
 	workflowId: string
@@ -78,7 +78,7 @@ export const useNodeTest = ({ workflowId, node, entry, nodes }: UseNodeTestOptio
 		isSampleError: !testedResult && sampleQuery.isError,
 		retrySample: () => void sampleQuery.refetch(),
 		/** 마지막으로 받은 결과 뒤에 노드 설정을 바꿨으면 true. 서버에서 불러온 샘플은 기준 설정을 알 수 없어 false다. */
-		isOutdated: Boolean(lastRun && !isSameTestedDefinition(lastRun.node, node)),
+		isOutdated: Boolean(lastRun && !isSameNodeDefinition(lastRun.node, node)),
 		missingNodes,
 		errorMessage: mutation.isError && missingNodes.length === 0 ? getNodeTestErrorMessage(mutation.error) : undefined,
 	}

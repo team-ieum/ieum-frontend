@@ -7,12 +7,15 @@ import AiToolsSection from '@/components/workflow/settings/AiToolsSection'
 import NodeSettingsField from '@/components/workflow/settings/NodeSettingsField'
 import NodeTestSection from '@/components/workflow/settings/NodeTestSection'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
+import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import { useNodeSettingsPanel } from '@/hooks/workflow/useNodeSettingsPanel'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
 
 const SKELETON_FIELD_COUNT = 3
+const NO_VALIDATION_ERRORS: WorkflowValidationErrorDto[] = []
 
 const FieldsSkeleton = () => (
 	<div role='status' aria-label='설정 칸 불러오는 중' aria-busy='true' className='flex flex-col gap-4 p-4'>
@@ -33,6 +36,10 @@ type NodeSettingsPanelProps = {
 	/** 편집 문서의 엣지. 참조할 수 있는 조상 노드를 계산한다. */
 	edges: WorkflowEdgeDto[]
 	onNodeChange: (node: WorkflowNodeDto) => void
+	/** 이 노드의 서버 검사 오류(저장된 버전 기준). 칸에 붙지 않는 오류는 패널 위쪽에 모아 보여 준다. */
+	validationErrors?: WorkflowValidationErrorDto[]
+	/** 검사 결과를 낸 저장 버전의 이 노드. 그 뒤에 추가한 노드면 없다. */
+	validatedNode?: WorkflowNodeDto
 	/** 다른 노드의 설정 패널로 바꾼다. */
 	onNodeOpen: (nodeId: string) => void
 	onClose: () => void
@@ -43,7 +50,17 @@ type NodeSettingsPanelProps = {
  * 노드는 `event`가 같은 카탈로그 항목으로만 열며, 항목이 없는 노드는 원본을 바꾸지 않도록 읽기 전용으로 보여 준다.
  * 마운트할 때 패널로 포커스를 옮기므로 다른 노드를 열 때만 `key`를 바꿔 다시 마운트한다.
  */
-const NodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeChange, onNodeOpen, onClose }: NodeSettingsPanelProps) => {
+const NodeSettingsPanel = ({
+	workflowId,
+	node,
+	nodes,
+	edges,
+	onNodeChange,
+	validationErrors = NO_VALIDATION_ERRORS,
+	validatedNode,
+	onNodeOpen,
+	onClose,
+}: NodeSettingsPanelProps) => {
 	const {
 		status,
 		entry,
@@ -56,10 +73,22 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeChange, onNod
 		references,
 		referenceIssueCount,
 		brokenReferrers,
+		validationErrorsByPath,
+		unmatchedValidationErrors,
+		toolValidationErrorCounts,
+		isValidationBasedOnSavedVersion,
 		changeField,
 		retry,
 		isRetrying,
-	} = useNodeSettingsPanel({ workflowId, node, nodes, edges, onNodeChange })
+	} = useNodeSettingsPanel({
+		workflowId,
+		node,
+		nodes,
+		edges,
+		onNodeChange,
+		validationErrors,
+		validatedNode,
+	})
 	const panelRef = useRef<HTMLElement>(null)
 	const reduceMotion = useReducedMotion()
 	const meta = getWorkflowNodeMeta(node.type)
@@ -157,11 +186,24 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeChange, onNod
 						name={name}
 						options={options}
 						references={references}
+						validationErrors={validationErrorsByPath.get(field.path)}
 						onChange={(next, nextName) => changeField(field, next, nextName)}
 					/>
 				))}
-				{aiTools ? <AiToolsSection aiTools={aiTools} references={references} /> : null}
-				{outputFields ? <AiOutputFieldsSection outputFields={outputFields} /> : null}
+				{aiTools ? (
+					<AiToolsSection
+						aiTools={aiTools}
+						references={references}
+						validationErrorsByPath={validationErrorsByPath}
+						toolValidationErrorCounts={toolValidationErrorCounts}
+					/>
+				) : null}
+				{outputFields ? (
+					<AiOutputFieldsSection
+						outputFields={outputFields}
+						validationErrors={validationErrorsByPath.get(outputFields.field.path)}
+					/>
+				) : null}
 			</div>
 		)
 	}
@@ -203,7 +245,28 @@ const NodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeChange, onNod
 					<X size={16} aria-hidden='true' />
 				</button>
 			</header>
-			<div className='min-h-0 flex-1 overflow-y-auto'>{renderBody()}</div>
+			<div className='min-h-0 flex-1 overflow-y-auto'>
+				{isValidationBasedOnSavedVersion ? (
+					<p
+						role='status'
+						className='mx-4 mt-4 mb-0 rounded-lg bg-neutral-100 px-3 py-2 typo-caption1_semibold text-neutral-600'
+					>
+						서버 검사 결과는 저장된 버전 기준이에요. 고친 내용은 저장하면 다시 검사해요.
+					</p>
+				) : null}
+				{unmatchedValidationErrors.length > 0 ? (
+					<section
+						aria-label='이 노드의 서버 검사 문제'
+						className='mx-4 mt-4 flex flex-col gap-1.5 rounded-lg border border-danger-300 bg-danger-100 px-3 py-2'
+					>
+						<p className='m-0 typo-caption1_bold text-danger-900'>
+							이 노드의 서버 검사 문제 {unmatchedValidationErrors.length}건
+						</p>
+						<WorkflowValidationIssueList errors={unmatchedValidationErrors} />
+					</section>
+				) : null}
+				{renderBody()}
+			</div>
 			{status === 'ready' || status === 'outsideCatalog' ? (
 				<NodeTestSection workflowId={workflowId} node={node} entry={entry} nodes={nodes} onNodeOpen={onNodeOpen} />
 			) : null}

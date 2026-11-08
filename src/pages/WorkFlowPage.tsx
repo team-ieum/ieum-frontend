@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref } from 'react'
+import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import NodeAddButton from '@/components/workflow/NodeAddButton'
@@ -11,23 +11,24 @@ import WorkflowNode from '@/components/workflow/WorkflowNode'
 import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
 import WorkflowStartCard from '@/components/workflow/WorkflowStartCard'
 import WorkflowToolbar from '@/components/workflow/WorkflowToolbar'
+import WorkflowValidationBanner from '@/components/workflow/WorkflowValidationBanner'
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
-import { useToggleWorkflowMutation } from '@/hooks/workflow/mutations/useToggleWorkflowMutation'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import { useNodePalette, type NodePaletteState } from '@/hooks/workflow/useNodePalette'
-import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
+import { useWorkflowExecuteCommand } from '@/hooks/workflow/useWorkflowExecuteCommand'
+import { useWorkflowActivation } from '@/hooks/workflow/useWorkflowActivation'
 import { useWorkflowSave } from '@/hooks/workflow/useWorkflowSave'
-import { useExecutionStore } from '@/stores/useExecutionStore'
-import { useModalStore } from '@/stores/useModalStore'
+import { useWorkflowValidation } from '@/hooks/workflow/useWorkflowValidation'
 import type { ApiErrorCode } from '@/types/api'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { NodeExecutionStatus } from '@/types/workflowExecution'
 import type { WorkflowNodeDto } from '@/types/workflowList'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { isApiError } from '@/utils/ApiError'
 import { cn } from '@/utils/cn'
 import {
@@ -41,6 +42,7 @@ import type { WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const nodeTypes = { workflowNode: WorkflowNode }
 const edgeTypes = { animated: AnimatedEdge }
+const EMPTY_VALIDATION_ERRORS: WorkflowValidationErrorDto[] = []
 const workflowNotFoundCodes: ReadonlySet<ApiErrorCode> = new Set<ApiErrorCode>([
 	'WORKFLOW_NOT_FOUND',
 	'WORKFLOW_DEFINITION_NOT_FOUND',
@@ -64,6 +66,8 @@ type WorkflowCanvasProps = {
 	edges: WorkflowEdgeType[]
 	nodeStatus: Record<string, NodeExecutionStatus>
 	isTracking: boolean
+	/** 저장된 버전 기준 노드별 서버 검사 오류. 노드 카드에 개수 배지를 붙인다. */
+	validationErrorsByNodeId: ReadonlyMap<string, WorkflowValidationErrorDto[]>
 	/** 열린 팔레트와 그 목적. 닫혀 있으면 null. */
 	palette: NodePaletteState | null
 	onPaletteToggle: () => void
@@ -89,6 +93,7 @@ const WorkflowCanvas = ({
 	edges,
 	nodeStatus,
 	isTracking,
+	validationErrorsByNodeId,
 	palette,
 	onPaletteToggle,
 	onPaletteOpen,
@@ -142,10 +147,11 @@ const WorkflowCanvas = ({
 								? 'interrupted'
 								: toWorkflowNodeStatus(nodeStatus[node.id]),
 						isSettingsOpen: node.id === settingsNodeId,
+						validationErrorCount: validationErrorsByNodeId.get(node.id)?.length ?? 0,
 					},
 				}
 			}),
-		[editor.nodes, nodePresentation, nodeStatus, isTracking, settingsNodeId]
+		[editor.nodes, nodePresentation, nodeStatus, isTracking, settingsNodeId, validationErrorsByNodeId]
 	)
 	const displayEdges = useMemo(
 		() =>
@@ -297,74 +303,23 @@ const WorkFlowPage = () => {
 		}
 	}
 
-	const openModal = useModalStore(state => state.open)
-	const openConfirm = useModalStore(state => state.openConfirm)
-	const toggleMutation = useToggleWorkflowMutation(workflowId ?? '')
-	const { execute, phase, isExecuting, canExecute, nodeStatus, requestId } = useWorkflowExecution(workflowId ?? '')
 	const { handleSave, isSaving, canSave } = useWorkflowSave({
 		workflowId: workflowId ?? '',
 		description: workflow?.description,
 		document,
 		hasUnsavedChanges,
 	})
-	const currentWorkflowId = useRef(workflowId)
-	const executionVisitId = useRef(0)
-
-	const handleExecute = () => {
-		if (!canExecute) return
-		if (phase === 'interrupted') {
-			const selectedWorkflowId = workflowId
-			const selectedVisitId = executionVisitId.current
-			openConfirm({
-				title: '다시 실행할까요?',
-				message: '이전 실행이 서버에서 계속되고 있을 수 있어요. 새로 실행하면 작업이 중복될 수 있습니다.',
-				confirmText: '새로 실행',
-				onConfirm: () => {
-					const current = useExecutionStore.getState().executions[selectedWorkflowId ?? '']
-					if (
-						currentWorkflowId.current !== selectedWorkflowId ||
-						executionVisitId.current !== selectedVisitId ||
-						current?.requestId !== requestId ||
-						current.phase !== 'interrupted'
-					)
-						return
-					void execute().catch(() => undefined)
-				},
-			})
-			return
-		}
-		void execute().catch(() => undefined)
-	}
-
-	const [localActive, setLocalActive] = useState<{ workflowId: string; requestId: number; value: boolean } | null>(null)
-	if (localActive && localActive.workflowId !== workflowId) setLocalActive(null)
-	const active = localActive && localActive.workflowId === workflowId ? localActive.value : workflow?.active
-	const toggleRequestId = useRef(0)
-
-	useLayoutEffect(() => {
-		executionVisitId.current += 1
-		toggleRequestId.current += 1
-		currentWorkflowId.current = workflowId
-		return () => {
-			if (currentWorkflowId.current === workflowId) currentWorkflowId.current = undefined
-		}
-	}, [workflowId])
-
-	const handleToggleActive = async () => {
-		if (!workflowId) return
-		const requestId = ++toggleRequestId.current
-		const next = !(active ?? false)
-		setLocalActive({ workflowId, requestId, value: next })
-		try {
-			await toggleMutation.mutateAsync(next)
-		} catch (error) {
-			if (currentWorkflowId.current === workflowId && toggleRequestId.current === requestId) {
-				openModal('오류', isApiError(error) ? error.message : '상태 변경에 실패했어요. 다시 시도해주세요.')
-			}
-		} finally {
-			setLocalActive(current => (current?.workflowId === workflowId && current.requestId === requestId ? null : current))
-		}
-	}
+	const validation = useWorkflowValidation({ workflowId, hasUnsavedChanges, serverNodes: serverDocument?.nodes })
+	const { active, handleToggleActive } = useWorkflowActivation({
+		workflowId,
+		serverActive: workflow?.active,
+		revalidate: validation.revalidate,
+	})
+	// 정적 검사에 걸린 실행(400)은 실행 중 화면으로 넘어가지 않고 검사 오류로 보여 준다. 그 밖의 실행 오류는 지금처럼 조용히 둔다.
+	const { phase, isExecuting, canExecute, nodeStatus, handleExecute } = useWorkflowExecuteCommand({
+		workflowId,
+		onExecutionError: validation.applyExecutionError,
+	})
 
 	if (!workflow && workflowQuery.isEnabled && workflowQuery.isPending) {
 		return <WorkflowDetailSkeleton />
@@ -404,6 +359,8 @@ const WorkFlowPage = () => {
 				isRefreshing={workflowQuery.isRefetching}
 				isRefreshError={workflowQuery.isRefetchError}
 				onRetryRefresh={() => void workflowQuery.refetch()}
+				validationStatus={validation.statusView}
+				onRetryValidation={validation.handleRevalidate}
 			/>
 			<div className='@container relative flex-1'>
 				{canvas && canvasKey ? (
@@ -413,6 +370,7 @@ const WorkFlowPage = () => {
 						edges={canvas.edges}
 						nodeStatus={nodeStatus}
 						isTracking={phase === 'running'}
+						validationErrorsByNodeId={validation.errorsByNodeId}
 						palette={palette}
 						onPaletteToggle={toggleAllPalette}
 						onPaletteOpen={openPalette}
@@ -429,6 +387,7 @@ const WorkFlowPage = () => {
 						onPaneClick={() => setSelectedNode(null)}
 					/>
 				) : null}
+				<WorkflowValidationBanner errors={validation.globalErrors} />
 				{settingsNode ? (
 					<NodeSettingsPanel
 						// 캔버스가 다시 마운트돼도 패널은 유지해 입력 포커스를 뺏지 않는다. 바뀐 값은 칸이 스스로 다시 맞춘다.
@@ -438,6 +397,8 @@ const WorkFlowPage = () => {
 						nodes={document?.nodes ?? []}
 						edges={document?.edges ?? []}
 						onNodeChange={handleNodeUpdate}
+						validationErrors={validation.errorsByNodeId.get(settingsNode.id) ?? EMPTY_VALIDATION_ERRORS}
+						validatedNode={validation.validatedNodes?.find(node => node.id === settingsNode.id)}
 						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						onClose={closeNodeSettings}
 					/>

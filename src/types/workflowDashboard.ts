@@ -53,8 +53,10 @@ export interface WorkflowDashboardErrorDto {
 	executionId: string
 	workflowId: string
 	workflowName: string
-	failedNodeId: string
-	failedNodeType: WorkflowFailedNodeType
+	/** 노드가 하나도 실행되기 전에 거부된 실행(예: 정적 검증 실패)이면 null이다. */
+	failedNodeId: string | null
+	/** `failedNodeId`와 함께 null이 된다. */
+	failedNodeType: WorkflowFailedNodeType | null
 	errorMessage: string
 	startedAt: string
 	finishedAt: string | null

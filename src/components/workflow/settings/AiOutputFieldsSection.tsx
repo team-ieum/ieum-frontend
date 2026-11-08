@@ -4,6 +4,8 @@ import AiOutputFieldRow from '@/components/workflow/settings/AiOutputFieldRow'
 import type { NodeAiOutputFields } from '@/hooks/workflow/useNodeAiOutputFields'
 import { cn } from '@/utils/cn'
 import { MAX_AI_OUTPUT_FIELDS } from '@/utils/workflow/aiOutputFields'
+import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 
 const ERROR_CLASS = 'm-0 text-[0.72rem] font-semibold text-[#a84c36]'
 const BUTTON_CLASS = cn(
@@ -16,13 +18,15 @@ const createRowIds = (start: number, count: number) => Array.from({ length: coun
 
 type AiOutputFieldsSectionProps = {
 	outputFields: NodeAiOutputFields
+	/** 출력 칸(과 각 행)에 붙은 서버 검사 오류. */
+	validationErrors?: WorkflowValidationErrorDto[]
 }
 
 /**
  * AI 노드 출력 칸 목록 편집기. 칸마다 이름·타입·설명을 편집하고 규칙에 어긋나면 그 칸 아래에 알린다.
  * 저장된 값이 목록이 아니면 행으로 고칠 수 없어 비우기만 제공한다.
  */
-const AiOutputFieldsSection = ({ outputFields }: AiOutputFieldsSectionProps) => {
+const AiOutputFieldsSection = ({ outputFields, validationErrors = [] }: AiOutputFieldsSectionProps) => {
 	const { field, labels, value, rows, validation, canAdd, addRow, changeRow, removeRow, clear } = outputFields
 	const titleId = useId()
 	const limitId = useId()
@@ -63,6 +67,7 @@ const AiOutputFieldsSection = ({ outputFields }: AiOutputFieldsSectionProps) => 
 				{field.title}
 			</h3>
 			{field.description ? <p className='m-0 text-xs leading-snug text-neutral-500'>{field.description}</p> : null}
+			<WorkflowValidationIssueList errors={validationErrors} />
 			{validation.listError ? (
 				<p role='alert' className={ERROR_CLASS}>
 					{validation.listError}

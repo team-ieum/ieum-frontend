@@ -7,9 +7,11 @@ import { DashboardRefreshFeedback, DashboardResourceStatus } from './DashboardAs
 
 type DashboardErrorRailProps = {
 	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
+	/** 검증 실패(`kind === 'validation'`) 행의 "문제 보기"를 누르면 그 행의 workflowId로 호출한다. */
+	onOpenWorkflowProblems: (workflowId: string) => void
 }
 
-const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
+const DashboardErrorRail = ({ errors, onOpenWorkflowProblems }: DashboardErrorRailProps) => {
 	const { visibleItems, errorCount, hasMore, isExpanded, resource, footerLabel, handleFooterClick } = errors
 
 	return (
@@ -74,6 +76,7 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 					visibleItems.map((error, index) => {
 						const isErrorSeverity = error.severity === 'error'
 						const iconName = isErrorSeverity ? 'cancel' : 'warning'
+						const isValidationError = error.kind === 'validation'
 
 						return (
 							<li
@@ -101,10 +104,25 @@ const DashboardErrorRail = ({ errors }: DashboardErrorRailProps) => {
 								<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
 									<div className='flex items-center gap-2'>
 										<span className='typo-mono-caption2_medium text-neutral-400'>{error.code}</span>
+										{isValidationError ? (
+											<span className='rounded-full border border-danger-300 bg-danger-100 px-2 py-0.5 typo-caption2_semibold text-danger-700'>
+												설정 오류
+											</span>
+										) : null}
 										<span className='ml-auto typo-caption1_regular text-neutral-400'>{error.when}</span>
 									</div>
 									<p className='typo-body2_semibold m-0 text-neutral-900'>{error.title}</p>
 									<p className='typo-caption1_regular m-0 text-neutral-400'>{error.flow}</p>
+									{isValidationError ? (
+										<button
+											type='button'
+											aria-label={`${error.flow} 문제 보기`}
+											onClick={() => onOpenWorkflowProblems(error.workflowId)}
+											className='mt-1.5 self-start rounded-brand-sm border border-danger-300 bg-neutral-white px-3 py-1 typo-caption1_semibold text-danger-700 transition-colors hover:bg-danger-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue motion-reduce:transition-none'
+										>
+											문제 보기
+										</button>
+									) : null}
 								</div>
 							</li>
 						)

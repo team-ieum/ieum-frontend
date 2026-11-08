@@ -5,6 +5,7 @@ import { useNodeAiOutputFields } from '@/hooks/workflow/useNodeAiOutputFields'
 import { useNodeAiTools } from '@/hooks/workflow/useNodeAiTools'
 import { useNodeReferenceCandidates } from '@/hooks/workflow/useNodeReferenceCandidates'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { findNodeReferenceIssues, findNodesReferencingMissingOutputs } from '@/utils/workflow/findNodeReferenceIssues'
 import { collectNodeReferences } from '@/utils/workflow/nodeReference'
@@ -12,6 +13,9 @@ import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
 import { AI_MODELS_SOURCE, getDefaultModelName, getOptionsInputsState, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 import { getAtPath } from '@/utils/workflow/objectPath'
 import { getFieldName, updateNodeField } from '@/utils/workflow/updateNodeField'
+import { matchValidationErrorsToPaths } from '@/utils/workflow/matchValidationErrorsToPaths'
+import { readAiToolNames } from '@/utils/workflow/aiTools'
+import { isSameNodeDefinition } from '@/utils/workflow/isSameNodeDefinition'
 
 /**
  * 설정 패널 본문 상태.
@@ -31,6 +35,10 @@ type UseNodeSettingsPanelOptions = {
 	edges: WorkflowEdgeDto[]
 	/** 칸을 바꾼 새 노드를 넘긴다. 편집 문서에 반영하는 일은 호출자가 맡는다. */
 	onNodeChange: (node: WorkflowNodeDto) => void
+	/** 이 노드의 서버 검사 오류(저장된 버전 기준). */
+	validationErrors: WorkflowValidationErrorDto[]
+	/** 검사 결과를 낸 저장 버전의 이 노드. 그 뒤에 추가한 노드면 없다. 검사 오류의 도구 index가 지금 도구와 같은지 가린다. */
+	validatedNode?: WorkflowNodeDto
 }
 
 /**
@@ -39,8 +47,17 @@ type UseNodeSettingsPanelOptions = {
  * AI 노드는 도구 카드(`aiTools`)도 함께 만들며, 필수 칸 개수에는 도구 안 필수 칸도 센다.
  * 출력 칸을 선언할 수 있는 AI 노드는 출력 칸 편집기(`outputFields`)와 고쳐야 할 출력 칸 수를 함께 만든다.
  * 칸에 넣을 출력 참조 후보(`references`)와, 이 노드 config·아래 노드의 깨진 참조도 함께 계산한다.
+ * 서버 검사 오류는 그리는 칸 path에 붙이고(`validationErrorsByPath`), 어느 칸에도 붙지 않는 오류는 따로 모은다.
  */
-export const useNodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeChange }: UseNodeSettingsPanelOptions) => {
+export const useNodeSettingsPanel = ({
+	workflowId,
+	node,
+	nodes,
+	edges,
+	onNodeChange,
+	validationErrors,
+	validatedNode,
+}: UseNodeSettingsPanelOptions) => {
 	const catalogQuery = useNodeCatalogQuery()
 	const entry = catalogQuery.data?.data.entries.find(item => item.id === node.event)
 	const modelField = entry?.inputFields.find(field => field.optionsSource === AI_MODELS_SOURCE)
@@ -93,6 +110,27 @@ export const useNodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeCha
 			options: getFieldOptions(field),
 		}))
 
+	// 검사 오류의 도구 index는 검사한 저장 버전 기준이라, 그 뒤 도구를 빼거나 바꿔 같은 index에 다른 도구가 오면
+	// 그 도구 칸에 붙이지 않고 도구 섹션(`config.tools`)으로 보낸다.
+	const validatedToolNames = validatedNode ? readAiToolNames(validatedNode) : []
+	const matchableTools = aiTools?.tools.filter(tool => validatedToolNames[tool.index] === tool.toolKey) ?? []
+	// 카탈로그를 받기 전·카탈로그 밖 노드는 그리는 칸이 없어 모든 오류가 패널 상단으로 간다.
+	const renderedPaths =
+		status === 'ready'
+			? [
+					...fields.map(item => item.field.path),
+					...(aiTools ? [aiTools.toolsField.path] : []),
+					...matchableTools.flatMap(tool => tool.fields.map(item => item.field.path)),
+					...(outputFields ? [outputFields.field.path] : []),
+				]
+			: []
+	const matchedValidationErrors = matchValidationErrorsToPaths(validationErrors, renderedPaths)
+	// 도구 카드는 접혀 있으면 칸 아래 오류가 보이지 않아 카드 머리에 개수를 알린다. 원소 순서는 `aiTools.tools`와 같다.
+	const toolValidationErrorCounts =
+		aiTools?.tools.map(tool =>
+			tool.fields.reduce((sum, { field }) => sum + (matchedValidationErrors.byPath.get(field.path)?.length ?? 0), 0)
+		) ?? []
+
 	const changeField = (field: NodeCatalogInputField, value: unknown, name?: string) => {
 		if (entry) onNodeChange(updateNodeField(node, entry, field, value, name))
 	}
@@ -109,6 +147,12 @@ export const useNodeSettingsPanel = ({ workflowId, node, nodes, edges, onNodeCha
 		references: { groups, context },
 		referenceIssueCount,
 		brokenReferrers,
+		validationErrorsByPath: matchedValidationErrors.byPath,
+		unmatchedValidationErrors: matchedValidationErrors.unmatched,
+		toolValidationErrorCounts,
+		/** 서버 검사 오류가 있고 이 노드 설정이 검사한 버전과 달라, 오류가 지금 입력과 맞지 않을 수 있는지. */
+		isValidationBasedOnSavedVersion:
+			validationErrors.length > 0 && validatedNode !== undefined && !isSameNodeDefinition(validatedNode, node),
 		changeField,
 		retry: () => void catalogQuery.refetch(),
 		isRetrying: catalogQuery.isFetching,
