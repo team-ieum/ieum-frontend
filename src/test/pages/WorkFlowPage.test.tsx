@@ -1265,7 +1265,7 @@ describe('WorkFlowPage', () => {
 			{ nodeId: 'ai', field: null, code: 'ORPHAN_NODE', message: 'AI 노드가 다음 노드와 연결되지 않았어요.' },
 			{ nodeId: null, field: null, code: 'TRIGGER_COUNT', message: '트리거는 하나만 둘 수 있어요.' },
 		]
-		const queryBanner = () => screen.queryByRole('region', { name: '워크플로우 검사 오류' })
+		const queryBanner = () => screen.queryByRole('alert', { name: '워크플로우 검사 오류' })
 
 		it('화면을 열면 저장된 버전을 검사해 노드별 개수와 문제 수를 보여 주고 전체 오류만 배너에 둔다', async () => {
 			const onRequest = vi.fn()

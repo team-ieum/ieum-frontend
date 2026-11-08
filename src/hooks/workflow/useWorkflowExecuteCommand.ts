@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useWorkflowExecution } from '@/hooks/workflow/useWorkflowExecution'
-import { useExecutionStore } from '@/stores/useExecutionStore'
+import { useExecutionStore, type WorkflowExecutionPhase } from '@/stores/useExecutionStore'
 import { useModalStore } from '@/stores/useModalStore'
+import type { NodeExecutionStatus } from '@/types/workflowExecution'
 
 type UseWorkflowExecuteCommandOptions = {
 	workflowId: string | undefined
@@ -9,12 +10,23 @@ type UseWorkflowExecuteCommandOptions = {
 	onExecutionError: (workflowId: string, error: unknown) => void
 }
 
+type UseWorkflowExecuteCommandResult = {
+	phase: WorkflowExecutionPhase | 'idle'
+	isExecuting: boolean
+	canExecute: boolean
+	nodeStatus: Record<string, NodeExecutionStatus>
+	handleExecute: () => void
+}
+
 /**
  * 편집 화면의 수동 실행 명령과 실행 상태를 제공한다.
  * 중단된 실행을 다시 실행할 때는 확인 창을 띄우고, 확인 사이에 화면·실행이 바뀌었으면 실행하지 않는다.
  * 실행 요청 오류는 화면에 직접 알리지 않고 `onExecutionError`로만 넘긴다.
  */
-export const useWorkflowExecuteCommand = ({ workflowId, onExecutionError }: UseWorkflowExecuteCommandOptions) => {
+export const useWorkflowExecuteCommand = ({
+	workflowId,
+	onExecutionError,
+}: UseWorkflowExecuteCommandOptions): UseWorkflowExecuteCommandResult => {
 	const openConfirm = useModalStore(state => state.openConfirm)
 	const { execute, phase, isExecuting, canExecute, nodeStatus, requestId } = useWorkflowExecution(workflowId ?? '')
 	const currentWorkflowId = useRef(workflowId)
