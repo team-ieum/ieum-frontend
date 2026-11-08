@@ -12,6 +12,17 @@ const REFERENCE_PATTERN = /\{\{\s*nodes\.([^.{}\s]+)\.output\.([^{}\s]+?)\s*\}\}
 
 export type TextSelection = { start: number; end: number }
 
+/** 커서 앞에서 쓰는 중인 참조식. `start`~`end`가 고른 참조식으로 바꿀 범위다. */
+export type ReferenceQuery = TextSelection & {
+	/** `{{` 뒤에 입력한 문자열 */
+	query: string
+}
+
+// 공백이나 중괄호가 나오면 참조식 입력이 끝난 것으로 본다.
+const OPEN_REFERENCE_PATTERN = /\{\{([^{}\s]*)$/
+// 닫는 `}}`까지 공백·중괄호가 없으면 같은 참조식의 나머지로 본다. 닫히지 않은 뒤 글자나 다음 참조식은 잡지 않는다.
+const REFERENCE_TAIL_PATTERN = /^[^{}\s]*\}\}/
+
 export const isReferenceableNodeId = (nodeId: string) => NODE_ID_PATTERN.test(nodeId)
 
 export const isReferenceablePathSegment = (segment: string) => PATH_SEGMENT_PATTERN.test(segment)
@@ -40,4 +51,15 @@ export const insertTextAtSelection = (text: string, selection: TextSelection, in
 	const start = Math.min(Math.max(selection.start, 0), text.length)
 	const end = Math.min(Math.max(selection.end, start), text.length)
 	return { text: text.slice(0, start) + insert + text.slice(end), caret: start + insert.length }
+}
+
+/**
+ * 커서 바로 앞이 `{{` + 공백·중괄호 없는 문자열이면 쓰는 중인 참조식 범위를 돌려준다. 아니면 `null`이다.
+ * 커서가 닫힌 참조식 안쪽이면 닫는 `}}`까지 범위에 포함해, 고른 참조식이 그 참조식 전체를 대신하게 한다.
+ */
+export const findReferenceQuery = (text: string, caret: number): ReferenceQuery | null => {
+	const match = OPEN_REFERENCE_PATTERN.exec(text.slice(0, caret))
+	if (!match) return null
+	const tail = REFERENCE_TAIL_PATTERN.exec(text.slice(caret))
+	return { start: match.index, end: caret + (tail?.[0].length ?? 0), query: match[1] }
 }

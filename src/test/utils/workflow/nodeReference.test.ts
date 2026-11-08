@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
 	collectNodeReferences,
+	findReferenceQuery,
 	formatNodeReference,
 	insertTextAtSelection,
 	isReferenceableNodeId,
@@ -51,5 +52,43 @@ describe('nodeReference', () => {
 	it('선택 영역을 넣을 글자로 바꾸고 커서를 넣은 글자 뒤에 둔다', () => {
 		expect(insertTextAtSelection('안녕하세요', { start: 2, end: 4 }, '{{x}}')).toEqual({ text: '안녕{{x}}요', caret: 7 })
 		expect(insertTextAtSelection('abc', { start: 10, end: 12 }, 'd')).toEqual({ text: 'abcd', caret: 4 })
+	})
+
+	describe('findReferenceQuery', () => {
+		it.each([
+			['안녕 {{', 5, { start: 3, end: 5, query: '' }],
+			['안녕 {{nodes.a', 12, { start: 3, end: 12, query: 'nodes.a' }],
+			['{{a}} {{sum', 11, { start: 6, end: 11, query: 'sum' }],
+		])('커서 앞이 {{로 시작하는 질의면 범위와 질의를 돌려준다: %s', (text, caret, expected) => {
+			expect(findReferenceQuery(text, caret)).toEqual(expected)
+		})
+
+		it('커서 바로 뒤의 }}를 바꿀 범위에 넣는다', () => {
+			expect(findReferenceQuery('{{st}} 끝', 4)).toEqual({ start: 0, end: 6, query: 'st' })
+		})
+
+		it('커서가 닫힌 참조식 안쪽이면 닫는 }}까지 바꿀 범위에 넣는다', () => {
+			expect(findReferenceQuery('{{nodes.a.output.x}} 끝', 9)).toEqual({ start: 0, end: 20, query: 'nodes.a' })
+		})
+
+		it.each([
+			['닫는 괄호가 없는 뒤 글자', '{{hello', 2, 2],
+			['공백 뒤의 }}', '{{ab cd}}', 4, 4],
+			['뒤에 이어지는 다음 참조식', '{{a{{b}}', 3, 3],
+		])('%s는 바꿀 범위에 넣지 않는다', (_, text, caret, end) => {
+			expect(findReferenceQuery(text, caret)?.end).toBe(end)
+		})
+
+		it('앞 참조식을 고칠 때 공백 뒤의 다음 참조식까지 범위를 넓히지 않는다', () => {
+			expect(findReferenceQuery('{{a.b}} {{c}}', 3)?.end).toBe(7)
+		})
+
+		it.each([
+			['공백으로 끝난 질의', '{{nodes a', 9],
+			['닫힌 참조식 뒤', '{{nodes.a.output.x}}', 20],
+			['중괄호가 하나뿐', '{a', 2],
+		])('%s에서는 질의가 없다', (_, text, caret) => {
+			expect(findReferenceQuery(text, caret)).toBeNull()
+		})
 	})
 })
