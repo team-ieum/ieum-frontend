@@ -39,6 +39,11 @@ export const queryKeys = {
 		/** `workflows.detail` 무효화에 휩쓸리지 않도록 워크플로우 키 밖에 둔다. */
 		detail: (workflowId: string, nodeId: string) => [...queryKeys.nodeTestSamples.all(), workflowId, nodeId] as const,
 	},
+	workflowValidations: {
+		all: () => ['workflow-validations'] as const,
+		/** 생성·삭제 때의 `workflows.all()` 무효화가 검사 POST를 다시 보내지 않도록 워크플로우 키 밖에 둔다. */
+		detail: (workflowId: string) => [...queryKeys.workflowValidations.all(), workflowId] as const,
+	},
 	nodeOptions: {
 		all: () => ['node-options'] as const,
 		list: (source: string, inputs: Record<string, string>) => [...queryKeys.nodeOptions.all(), source, inputs] as const,

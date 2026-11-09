@@ -192,4 +192,19 @@ describe('WorkflowNode', () => {
 
 		expect(screen.getByText('표시할 기술 정보가 없어요')).toBeInTheDocument()
 	})
+
+	it('서버 검사 오류가 있으면 빨간 배지로 개수를 보여 주고 클라이언트 필수 배지와 함께 둔다', () => {
+		const props = createProps(false)
+		render(<WorkflowNode {...props} data={{ ...props.data, validationErrorCount: 2, missingRequiredCount: 1 }} />)
+
+		expect(screen.getByText('검사 문제 2건')).toBeInTheDocument()
+		expect(screen.getByText('필수 입력 1개 비어 있음')).toBeInTheDocument()
+	})
+
+	it('서버 검사 오류가 없으면 검사 배지를 그리지 않는다', () => {
+		const props = createProps(false)
+		render(<WorkflowNode {...props} data={{ ...props.data, validationErrorCount: 0 }} />)
+
+		expect(screen.queryByText(/검사 문제/)).not.toBeInTheDocument()
+	})
 })

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useNavigate } from 'react-router'
 import { useWorkflowDashboardErrorsQuery } from '@/hooks/dashboard/queries/useWorkflowDashboardErrorsQuery'
 import { useWorkflowDashboardExecutionsQuery } from '@/hooks/dashboard/queries/useWorkflowDashboardExecutionsQuery'
 import { useWorkflowDashboardSummaryQuery } from '@/hooks/dashboard/queries/useWorkflowDashboardSummaryQuery'
@@ -21,6 +22,7 @@ const EMPTY_WORKFLOW: DashboardViewModel['workflow'] = {
 }
 
 export const useDashboardViewModel = (): DashboardViewModel => {
+	const navigate = useNavigate()
 	const summaryQuery = useWorkflowDashboardSummaryQuery()
 	const executionsQuery = useWorkflowDashboardExecutionsQuery()
 	const errorsQuery = useWorkflowDashboardErrorsQuery()
@@ -77,5 +79,6 @@ export const useDashboardViewModel = (): DashboardViewModel => {
 			footerLabel: errorsSection.footerLabel,
 			handleFooterClick: errorsSection.handleFooterClick,
 		},
+		handleOpenWorkflowProblems: workflowId => navigate(`/workflow/${workflowId}`),
 	}
 }

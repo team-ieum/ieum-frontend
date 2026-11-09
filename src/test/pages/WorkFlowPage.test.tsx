@@ -7,10 +7,13 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { NODE_TEST_PATH } from '@/mocks/nodeTestHandlers'
+import { createWorkflowValidateHandler, createWorkflowValidateProviderErrorHandler } from '@/mocks/workflowValidationHandlers'
 import { server } from '@/mocks/server'
 import WorkFlowPage from '@/pages/WorkFlowPage'
 import { useExecutionStore } from '@/stores/useExecutionStore'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
+import { ApiError } from '@/utils/ApiError'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { getWorkflowDraftKey } from '@/utils/workflow/workflowDraftStorage'
 
@@ -51,6 +54,7 @@ vi.mock('@xyflow/react', async () => {
 			modelName?: string
 			status: string
 			isSettingsOpen?: boolean
+			validationErrorCount?: number
 		}
 	}
 	type CanvasEdge = { id: string; source: string; target: string }
@@ -137,6 +141,7 @@ vi.mock('@xyflow/react', async () => {
 						<NextNodeButton nodeId={node.id} />
 						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
 						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
+						<span data-testid={`validation-${node.id}`}>{node.data.validationErrorCount ?? 0}</span>
 						{node.data.technicalMode ? (
 							node.data.technicalDetails.length > 0 ? (
 								node.data.technicalDetails.map(detail => (
@@ -1188,8 +1193,9 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByRole('textbox', { name: '워크플로우 제목' })).toHaveValue('두 번째 워크플로우')
 		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
 
+		// 켤 때는 서버 검사를 먼저 기다린 뒤 토글 요청을 보낸다.
 		toggleActive()
-		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
+		await waitFor(() => expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true'))
 
 		await act(async () => first.reject(new Error('이전 workflow 실패')))
 		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'true')
@@ -1251,5 +1257,112 @@ describe('WorkFlowPage', () => {
 		mocks.workflowOneActive = false
 		await act(async () => second.resolve())
 		expect(getActiveSwitch()).toHaveAttribute('aria-checked', 'false')
+	})
+
+	describe('서버 정적 검사', () => {
+		const pageErrors: WorkflowValidationErrorDto[] = [
+			{ nodeId: 'action', field: 'config.url', code: 'REQUIRED', message: '요청 주소를 입력해 주세요.' },
+			{ nodeId: 'ai', field: null, code: 'ORPHAN_NODE', message: 'AI 노드가 다음 노드와 연결되지 않았어요.' },
+			{ nodeId: null, field: null, code: 'TRIGGER_COUNT', message: '트리거는 하나만 둘 수 있어요.' },
+		]
+		const queryBanner = () => screen.queryByRole('alert', { name: '워크플로우 검사 오류' })
+
+		it('화면을 열면 저장된 버전을 검사해 노드별 개수와 문제 수를 보여 주고 전체 오류만 배너에 둔다', async () => {
+			const onRequest = vi.fn()
+			server.use(createWorkflowValidateHandler(pageErrors, onRequest))
+			renderPage()
+
+			expect(await screen.findByText('문제 3건')).toBeInTheDocument()
+			expect(onRequest).toHaveBeenCalledWith('workflow-1')
+			expect(screen.getByTestId('validation-action')).toHaveTextContent('1')
+			expect(screen.getByTestId('validation-ai')).toHaveTextContent('1')
+			expect(screen.getByTestId('validation-trigger')).toHaveTextContent('0')
+			const banner = queryBanner() as HTMLElement
+			expect(within(banner).getByText('트리거는 하나만 둘 수 있어요.')).toBeInTheDocument()
+			expect(within(banner).queryByText('요청 주소를 입력해 주세요.')).not.toBeInTheDocument()
+		})
+
+		it('노드에 속한 오류만 있으면 배너를 그리지 않는다', async () => {
+			server.use(createWorkflowValidateHandler(pageErrors.slice(0, 2)))
+			renderPage()
+
+			expect(await screen.findByText('문제 2건')).toBeInTheDocument()
+			expect(queryBanner()).not.toBeInTheDocument()
+		})
+
+		it('편집해 저장하지 않은 변경이 생겨도 결과를 유지하고 저장된 버전 기준임을 알린다', async () => {
+			const user = userEvent.setup()
+			server.use(createWorkflowValidateHandler(pageErrors))
+			renderPage()
+			await screen.findByText('문제 3건')
+
+			await user.type(screen.getByRole('textbox', { name: '워크플로우 제목' }), '!')
+
+			expect(screen.getByText(/저장된 버전 기준/)).toBeInTheDocument()
+			expect(screen.getByTestId('validation-action')).toHaveTextContent('1')
+			expect(queryBanner()).toBeInTheDocument()
+		})
+
+		it('다시 검사가 502로 실패하면 기존 표시를 지우지 않고 지금은 검사할 수 없다고 알린다', async () => {
+			const user = userEvent.setup()
+			server.use(createWorkflowValidateHandler(pageErrors))
+			renderPage()
+			await screen.findByText('문제 3건')
+
+			server.use(createWorkflowValidateProviderErrorHandler())
+			await user.click(screen.getByRole('button', { name: '다시 검사' }))
+
+			expect(await screen.findByText('지금은 검사할 수 없어요')).toBeInTheDocument()
+			expect(screen.getByTestId('validation-action')).toHaveTextContent('1')
+			expect(queryBanner()).toBeInTheDocument()
+		})
+
+		it('수동 실행이 정적 검사로 거부되면 검사 오류로 표시하고 칩에 서버 문구를 보여 준다', async () => {
+			const user = userEvent.setup()
+			renderPage()
+			await screen.findByText('문제 없음')
+			mocks.execute.mockRejectedValueOnce(
+				new ApiError('WORKFLOW_VALIDATION_FAILED', '검증 실패 1건: 요청 주소를 입력해 주세요.', {
+					data: { errors: [pageErrors[0]] },
+					status: 400,
+				})
+			)
+
+			await user.click(screen.getByRole('button', { name: 'Deploy' }))
+
+			expect(await screen.findByText('검증 실패 1건: 요청 주소를 입력해 주세요.')).toBeInTheDocument()
+			expect(screen.getByTestId('validation-action')).toHaveTextContent('1')
+			expect(screen.getByTestId('status-action')).toHaveTextContent('idle')
+		})
+
+		it('검증 실패가 아닌 실행 오류는 지금처럼 화면에 알리지 않는다', async () => {
+			const user = userEvent.setup()
+			renderPage()
+			await screen.findByText('문제 없음')
+			mocks.execute.mockRejectedValueOnce(new ApiError('WORKFLOW_NOT_ACTIVE', '활성화되지 않았습니다.', { status: 400 }))
+
+			await user.click(screen.getByRole('button', { name: 'Deploy' }))
+
+			await waitFor(() => expect(mocks.execute).toHaveBeenCalled())
+			expect(screen.getByText('문제 없음')).toBeInTheDocument()
+			expect(screen.queryByText('활성화되지 않았습니다.')).not.toBeInTheDocument()
+		})
+
+		it('꺼진 워크플로우를 켤 때 검사에서 문제가 나오면 확인 창을 띄우고 확인해야 켠다', async () => {
+			mocks.workflowOneActive = false
+			server.use(createWorkflowValidateHandler(pageErrors))
+			renderPage()
+			await screen.findByText('문제 3건')
+
+			toggleActive()
+
+			await waitFor(() => expect(mocks.openConfirm).toHaveBeenCalledOnce())
+			const options = mocks.openConfirm.mock.calls[0][0] as { message: string; onConfirm: () => void }
+			expect(options.message).toBe('서버 검사에서 문제 3건을 찾았어요. 이대로 켜면 실행될 때마다 실패해요.')
+			expect(mocks.toggle).not.toHaveBeenCalled()
+
+			act(() => options.onConfirm())
+			await waitFor(() => expect(mocks.toggle).toHaveBeenCalledExactlyOnceWith(true))
+		})
 	})
 })

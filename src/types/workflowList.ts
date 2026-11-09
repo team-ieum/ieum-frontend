@@ -16,6 +16,10 @@ export type WorkflowErrorCode =
 	| 'TEST_SAMPLE_MISSING'
 	| 'TEST_SAMPLE_NOT_FOUND'
 	| 'WEBHOOK_TOKEN_NOT_ISSUED'
+	/** 수동 실행 전 정적 검사에 실패했다. `data.errors`에 검사 오류 목록이 온다. */
+	| 'WORKFLOW_VALIDATION_FAILED'
+	/** 검사 서버 등 외부 제공자 오류(502). `data`는 없다. */
+	| 'PROVIDER_ERROR'
 
 // --- API response types ---
 

@@ -108,3 +108,24 @@ export const emptyDashboardErrorsResponse = {
 		content: [],
 	},
 } satisfies WorkflowDashboardErrorsResponse
+
+/** 실행 실패 1건과, 노드 실행 전 정적 검증에서 거부된 실행 1건을 함께 담은 오류 목록 */
+export const dashboardErrorsWithValidationFailureResponse = {
+	...dashboardErrorsResponse,
+	data: {
+		...dashboardErrorsResponse.data,
+		content: [
+			{
+				executionId: '55555555-5555-4555-8555-555555555555',
+				workflowId: WORKFLOW_FIXTURE_ID,
+				workflowName: '고객 문의 자동 분류',
+				failedNodeId: null,
+				failedNodeType: null,
+				errorMessage: '검증 실패 2건: 메시지를 보낼 채널을 골라 주세요.',
+				startedAt: '2026-08-26T09:25:00Z',
+				finishedAt: '2026-08-26T09:25:00Z',
+			},
+			...dashboardErrorsResponse.data.content,
+		],
+	},
+} satisfies WorkflowDashboardErrorsResponse

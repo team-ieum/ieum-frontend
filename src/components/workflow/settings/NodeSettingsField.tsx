@@ -5,11 +5,13 @@ import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
 import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
 import NodeReferenceList from '@/components/workflow/settings/NodeReferenceList'
 import NodeReferencePicker from '@/components/workflow/settings/NodeReferencePicker'
+import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
 import { DROPDOWN_POPUP_CLASS, INPUT_CLASS, TEXTAREA_CLASS } from '@/components/workflow/settings/settingsFieldClassNames'
 import { useNodeReferenceAutocomplete } from '@/hooks/workflow/useNodeReferenceAutocomplete'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { NodeReferenceSource } from '@/types/nodeReference'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
 import {
 	formatFieldDraft,
@@ -41,6 +43,8 @@ type NodeSettingsFieldProps = {
 	emptyHint?: string
 	/** 출력 참조 후보와 참조 검사 문맥. 없으면 참조 피커와 참조 경고를 보여 주지 않는다. */
 	references?: NodeReferenceSource
+	/** 이 칸(과 그 아래 경로)에 붙은 서버 검사 오류. 저장된 버전 기준이다. */
+	validationErrors?: WorkflowValidationErrorDto[]
 	onChange: (value: unknown, name?: string) => void
 }
 
@@ -50,11 +54,21 @@ const getPlaceholder = (field: NodeCatalogInputField) => {
 }
 
 /** 카탈로그 칸 하나를 type에 맞는 위젯으로 보여 주고 바뀐 값을 저장할 모양으로 넘긴다. */
-const NodeSettingsField = ({ field, value, name, options, emptyHint, references, onChange }: NodeSettingsFieldProps) => {
+const NodeSettingsField = ({
+	field,
+	value,
+	name,
+	options,
+	emptyHint,
+	references,
+	validationErrors = [],
+	onChange,
+}: NodeSettingsFieldProps) => {
 	const inputId = useId()
 	const descriptionId = `${inputId}-description`
 	const messageId = `${inputId}-message`
 	const referenceWarningId = `${inputId}-reference-warning`
+	const validationErrorsId = `${inputId}-validation-errors`
 	const isOptionsCombobox = Boolean(options && isOptionsComboboxField(field))
 	const { mode, changeMode, draft, changeText, changeValue, error, pickerTarget, insertReference, referenceWarning } =
 		useNodeSettingsField({ field, value, onChange, isOptionsCombobox, referenceContext: references?.context })
@@ -63,6 +77,7 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 		field.description ? descriptionId : null,
 		error || isMissing ? messageId : null,
 		referenceWarning ? referenceWarningId : null,
+		validationErrors.length > 0 ? validationErrorsId : null,
 	]
 		.filter(Boolean)
 		.join(' ')
@@ -339,6 +354,7 @@ const NodeSettingsField = ({ field, value, name, options, emptyHint, references,
 					{referenceWarning}
 				</p>
 			) : null}
+			<WorkflowValidationIssueList id={validationErrorsId} errors={validationErrors} />
 		</div>
 	)
 }

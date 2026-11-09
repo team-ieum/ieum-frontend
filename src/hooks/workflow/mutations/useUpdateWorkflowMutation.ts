@@ -12,6 +12,8 @@ export const useUpdateWorkflowMutation = (workflowId: string) => {
 		onSuccess: res => {
 			queryClient.setQueryData(queryKeys.workflows.detail(workflowId), res)
 			void queryClient.invalidateQueries({ queryKey: queryKeys.workflows.lists() })
+			// 서버 검사는 저장된 버전만 보므로 저장 직후 다시 검사한다.
+			void queryClient.invalidateQueries({ queryKey: queryKeys.workflowValidations.detail(workflowId) })
 		},
 	})
 }

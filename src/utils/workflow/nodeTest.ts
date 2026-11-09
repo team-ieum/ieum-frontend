@@ -1,5 +1,4 @@
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
-import type { WorkflowNodeDto } from '@/types/workflowList'
 import { isApiError } from '@/utils/ApiError'
 
 /** 수신 대기 테스트(토큰 발급·저장·sample 폴링)가 필요해 아직 테스트를 지원하지 않는 event */
@@ -47,18 +46,6 @@ export const getNodeTestErrorMessage = (error: unknown): string => {
 	if ((code === 'INVALID_INPUT' || code === 'INVALID_WORKFLOW') && error.message) return error.message
 	return DEFAULT_ERROR_MESSAGE
 }
-
-/** 객체 키를 정렬해 직렬화한다. `_names`처럼 지웠다 다시 넣은 키는 순서만 바뀌므로 값이 같으면 같은 문자열이 된다. */
-const stableStringify = (value: unknown): string =>
-	JSON.stringify(value, (_key, item: unknown) =>
-		item && typeof item === 'object' && !Array.isArray(item)
-			? Object.fromEntries(Object.entries(item).sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)))
-			: item
-	)
-
-/** 테스트 결과에 영향을 주는 노드 정의(event·config)가 같은지. 위치·라벨이나 config 키 순서만 바뀐 노드는 같다고 본다. */
-export const isSameTestedDefinition = (left: WorkflowNodeDto, right: WorkflowNodeDto) =>
-	left.event === right.event && stableStringify(left.config) === stableStringify(right.config)
 
 /**
  * 오프셋 없는 서버 LocalDateTime(`2026-11-02T10:05:00`)을 `11월 2일 10:05`로 보여 준다.

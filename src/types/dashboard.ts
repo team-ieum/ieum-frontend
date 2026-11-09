@@ -19,8 +19,14 @@ export type RunRow = {
 
 type ErrorSeverity = 'error' | 'warning'
 
+/** `validation`은 실행 전 정적 검증에서 거부된 실행이고, 그 밖의 실패는 `execution`이다. */
+type ErrorRowKind = 'execution' | 'validation'
+
 export type ErrorRow = {
+	/** 실행 단위로 고유한 executionId */
 	id: string
+	kind: ErrorRowKind
+	workflowId: string
 	code: string
 	severity: ErrorSeverity
 	title: string
@@ -90,4 +96,6 @@ export type DashboardViewModel = {
 	workflow: DashboardWorkflowSummary
 	runs: DashboardExpandableListState<RunRow>
 	errors: DashboardExpandableListState<ErrorRow> & { errorCount: number }
+	/** 검증 실패 오류의 워크플로우 편집 화면으로 이동한다. 편집 화면이 열릴 때 검증을 다시 실행한다. */
+	handleOpenWorkflowProblems: (workflowId: string) => void
 }

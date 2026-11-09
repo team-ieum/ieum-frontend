@@ -33,6 +33,8 @@ type WorkflowNodeData = {
 	missingRequiredCount: number
 	/** 설정 패널이 이 노드를 편집 중인지 여부. 캔버스 표시 단계에서만 채운다. */
 	isSettingsOpen?: boolean
+	/** 저장된 버전 기준 서버 검사 오류 수. 캔버스 표시 단계에서만 채운다. */
+	validationErrorCount?: number
 	status: WorkflowNodeStatus
 	technicalMode: boolean
 }

@@ -1,8 +1,10 @@
 import { ArrowLeft, Code2, HardDrive, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import WorkflowValidationStatusChip from '@/components/workflow/WorkflowValidationStatusChip'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
 import type { WorkflowStatus } from '@/types/workflowList'
+import type { WorkflowValidationStatusView } from '@/types/workflowValidation'
 
 type ActiveToggleProps = {
 	active: boolean
@@ -89,6 +91,9 @@ type WorkflowToolbarProps = {
 	isRefreshing?: boolean
 	isRefreshError?: boolean
 	onRetryRefresh?: () => void
+	/** 서버 검사 상태 칩. null이면 그리지 않는다. */
+	validationStatus?: WorkflowValidationStatusView | null
+	onRetryValidation?: () => void
 }
 
 const WorkflowToolbar = ({
@@ -112,6 +117,8 @@ const WorkflowToolbar = ({
 	isRefreshing = false,
 	isRefreshError = false,
 	onRetryRefresh,
+	validationStatus = null,
+	onRetryValidation,
 }: WorkflowToolbarProps) => {
 	const { handleBack } = useWorkflowToolbar()
 	const statusMeta = WORKFLOW_STATUS_META[status]
@@ -160,6 +167,10 @@ const WorkflowToolbar = ({
 					</span>
 				)}
 			</div>
+
+			{validationStatus && onRetryValidation ? (
+				<WorkflowValidationStatusChip status={validationStatus} onRetry={onRetryValidation} />
+			) : null}
 
 			{hasUnsavedChanges && isDraftPersisted ? (
 				<span className='inline-flex shrink-0 items-center gap-1 text-xs text-neutral-400'>

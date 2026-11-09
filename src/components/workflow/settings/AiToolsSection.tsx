@@ -1,8 +1,10 @@
 import { useId, useState } from 'react'
 import AiToolAddSelect from '@/components/workflow/settings/AiToolAddSelect'
 import AiToolCard from '@/components/workflow/settings/AiToolCard'
+import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
 import type { NodeAiTools } from '@/hooks/workflow/useNodeAiTools'
 import type { NodeReferenceSource } from '@/types/nodeReference'
+import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
 
 const ADD_TRIGGER_CLASS = cn(
@@ -14,6 +16,10 @@ type AiToolsSectionProps = {
 	aiTools: NodeAiTools
 	/** 도구 칸에도 출력 참조 피커와 참조 경고를 쓴다. */
 	references?: NodeReferenceSource
+	/** 칸 path별 서버 검사 오류. 도구 칸 자체(`config.tools`)에 붙은 오류는 섹션 위에 보여 준다. */
+	validationErrorsByPath?: ReadonlyMap<string, WorkflowValidationErrorDto[]>
+	/** 도구별 서버 검사 오류 수. 원소 순서는 `aiTools.tools`와 같다. */
+	toolValidationErrorCounts?: number[]
 }
 
 const BLOCKED_BY_OUTPUT_FIELDS = '출력 칸을 모두 지우면 도구를 고를 수 있어요.'
@@ -29,7 +35,7 @@ const getToolsNotice = (isAgent: boolean, hasTools: boolean) => {
  * 도구 유무에 따라 노드가 AI 에이전트와 도구 없는 AI 사이에서 바뀐다는 점을 함께 안내한다.
  * 출력 칸이 있으면 도구를 고르지 못하게 하고, 이미 도구를 쓰는 AI에 남은 출력 칸은 지우도록 알린다.
  */
-const AiToolsSection = ({ aiTools, references }: AiToolsSectionProps) => {
+const AiToolsSection = ({ aiTools, references, validationErrorsByPath, toolValidationErrorCounts }: AiToolsSectionProps) => {
 	const { toolsField, isAgent, tools, addableTools, outputFieldsConflict, addTool, removeTool, clearOutputFields } = aiTools
 	const titleId = useId()
 	// 방금 추가한 도구 카드만 펼친 채로 그린다.
@@ -57,6 +63,7 @@ const AiToolsSection = ({ aiTools, references }: AiToolsSectionProps) => {
 			<p className='m-0 rounded-lg bg-neutral-50 px-2.5 py-2 text-[0.7rem] leading-relaxed text-neutral-600'>
 				{getToolsNotice(isAgent, tools.length > 0)}
 			</p>
+			<WorkflowValidationIssueList errors={validationErrorsByPath?.get(toolsField.path) ?? []} />
 			{outputFieldsConflict === 'agentHasFields' ? (
 				<div
 					role='alert'
@@ -83,6 +90,8 @@ const AiToolsSection = ({ aiTools, references }: AiToolsSectionProps) => {
 							tool={tool}
 							defaultOpen={tool.toolKey === addedToolKey}
 							references={references}
+							validationErrorsByPath={validationErrorsByPath}
+							validationErrorCount={toolValidationErrorCounts?.[tool.index]}
 							onRemove={() => removeTool(tool.index)}
 						/>
 					))}

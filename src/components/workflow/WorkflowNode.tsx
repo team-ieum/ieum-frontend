@@ -202,6 +202,13 @@ const WorkflowNode = ({ id, data, selected }: NodeProps<WorkflowNodeType>) => {
 					<p className='m-0 min-h-[1.95rem] text-[0.68rem] leading-[1.45] text-[#6d6b7c]'>{data.description}</p>
 				)}
 
+				{data.validationErrorCount ? (
+					<span className='inline-flex w-fit items-center gap-1 rounded-full bg-danger-100 px-[0.55rem] py-[0.2rem] typo-caption3_bold text-danger-900'>
+						<CircleAlert size={11} aria-hidden='true' />
+						검사 문제 {data.validationErrorCount}건
+					</span>
+				) : null}
+
 				{data.missingRequiredCount > 0 ? (
 					<span className='inline-flex w-fit items-center gap-1 rounded-full bg-[#fff1d6] px-[0.55rem] py-[0.2rem] text-[0.62rem] font-bold text-[#9a6700]'>
 						<CircleAlert size={11} aria-hidden='true' />

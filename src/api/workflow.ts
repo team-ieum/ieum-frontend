@@ -1,6 +1,7 @@
 import { api } from '@/utils/AxiosInstance'
 import type { WorkflowDto, WorkflowListResponse } from '@/types/workflowList'
 import type { ApiResponse } from '@/types/api'
+import type { ValidateWorkflowResponse } from '@/types/workflowValidation'
 import type {
 	CreateWorkflowRequest,
 	CreateWorkflowResponse,
@@ -43,6 +44,12 @@ export const deactivateWorkflow = async (id: string): Promise<ApiResponse<Workfl
 
 export const executeWorkflow = async (id: string, body?: ExecuteWorkflowRequest): Promise<ApiResponse<WorkflowExecutionDto>> => {
 	const response = await api.post(`/api/v1/workflows/${id}/execute`, body)
+	return response.data
+}
+
+/** 서버에 저장된 최신 버전을 정적 검사한다. 편집 중인 미저장 변경은 검사하지 않는다. */
+export const validateWorkflow = async (id: string): Promise<ValidateWorkflowResponse> => {
+	const response = await api.post(`/api/v1/workflows/${id}/validate`)
 	return response.data
 }
 
