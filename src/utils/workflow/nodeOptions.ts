@@ -51,6 +51,14 @@ export const getOptionsInputsState = (
 	return { status: 'ready', inputs }
 }
 
+/** 부모 칸이 막혀 목록을 부를 수 없을 때 칸 아래에 보여 줄 이유. 막히지 않았으면 null이다. */
+export const getOptionsBlockedMessage = (inputsState: NodeOptionsInputsState) => {
+	if (inputsState.status !== 'blocked') return null
+	return inputsState.reason === 'reference'
+		? `'${inputsState.parentTitle}' 칸이 참조식이라 목록에서 고를 수 없어요.`
+		: `'${inputsState.parentTitle}' 칸을 먼저 채우면 목록에서 고를 수 있어요.`
+}
+
 /** 드롭다운 칸이 목록을 부르는 데 필요한 정보. */
 export type NodeFieldOptions = {
 	source: string

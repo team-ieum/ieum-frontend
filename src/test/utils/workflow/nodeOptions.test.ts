@@ -8,6 +8,7 @@ import type { ApiErrorCode } from '@/types/api'
 import {
 	getDefaultModelName,
 	getNodeOptionsErrorNotice,
+	getOptionsBlockedMessage,
 	getOptionsInputsState,
 	isOptionsComboboxField,
 	isRetryableNodeOptionsError,
@@ -73,6 +74,18 @@ describe('isOptionsComboboxField', () => {
 		expect(isOptionsComboboxField(eventField)).toBe(true)
 		expect(isOptionsComboboxField({ ...eventField, list: true })).toBe(false)
 		expect(isOptionsComboboxField({ ...eventField, optionsSource: undefined })).toBe(false)
+	})
+})
+
+describe('getOptionsBlockedMessage', () => {
+	it('부모 칸이 비었는지 참조식인지에 따라 이유를 알리고, 준비됐으면 null이다', () => {
+		expect(getOptionsBlockedMessage({ status: 'blocked', reason: 'empty', parentTitle: '캘린더' })).toBe(
+			"'캘린더' 칸을 먼저 채우면 목록에서 고를 수 있어요."
+		)
+		expect(getOptionsBlockedMessage({ status: 'blocked', reason: 'reference', parentTitle: '캘린더' })).toBe(
+			"'캘린더' 칸이 참조식이라 목록에서 고를 수 없어요."
+		)
+		expect(getOptionsBlockedMessage({ status: 'ready', inputs: {} })).toBeNull()
 	})
 })
 

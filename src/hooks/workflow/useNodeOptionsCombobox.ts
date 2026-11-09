@@ -54,3 +54,5 @@ export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect
 		choose,
 	}
 }
+
+export type NodeOptionsComboboxState = ReturnType<typeof useNodeOptionsCombobox>
