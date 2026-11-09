@@ -1,6 +1,7 @@
 import { ArrowLeft, Code2, HardDrive, History, Loader2, Rocket, Save, Share2 } from 'lucide-react'
 import { useRef } from 'react'
 import { WORKFLOW_STATUS_META } from '@/constants/workflow/workflowList'
+import WorkflowToolbarTitle from '@/components/workflow/WorkflowToolbarTitle'
 import WorkflowValidationStatusChip from '@/components/workflow/WorkflowValidationStatusChip'
 import { useWorkflowToolbar } from '@/hooks/workflow/useWorkflowToolbar'
 import type { WorkflowStatus } from '@/types/workflowList'
@@ -138,15 +139,9 @@ const WorkflowToolbar = ({
 				<ArrowLeft size={18} />
 			</button>
 
-			<div className='flex items-center gap-2.5'>
+			<div className='flex min-w-0 items-center gap-2.5'>
 				<div className='flex min-w-0 items-center gap-1.5'>
-					<input
-						value={title}
-						onChange={e => onTitleChange(e.target.value)}
-						aria-label='워크플로우 제목'
-						className='min-w-0 rounded-md bg-transparent px-2 py-1 text-xl font-bold tracking-wide text-main-deep-blue outline-none transition-colors hover:bg-neutral-100 focus:bg-neutral-100'
-						style={{ fontFamily: 'var(--font-sans)' }}
-					/>
+					<WorkflowToolbarTitle title={title} onTitleChange={onTitleChange} />
 					{hasUnsavedChanges ? (
 						<span
 							role='status'
@@ -169,7 +164,10 @@ const WorkflowToolbar = ({
 			</div>
 
 			{validationStatus && onRetryValidation ? (
-				<WorkflowValidationStatusChip status={validationStatus} onRetry={onRetryValidation} />
+				// 자리가 모자라면 칩 대신 제목이 줄어들어 흐르도록 칩은 줄이지 않는다.
+				<div className='flex shrink-0'>
+					<WorkflowValidationStatusChip status={validationStatus} onRetry={onRetryValidation} />
+				</div>
 			) : null}
 
 			{hasUnsavedChanges && isDraftPersisted ? (
