@@ -8,6 +8,7 @@ import {
 import { oauthConnectionsQueryOptions } from '@/hooks/oauthConnections/queries/oauthConnectionsQueryOptions'
 import { webhookCredentialsQueryOptions } from '@/hooks/webhookCredentials/queries/webhookCredentialsQueryOptions'
 import { nodeTestSampleQueryOptions } from '@/hooks/workflow/queries/nodeTestSampleQueryOptions'
+import { webhookTokenStatusQueryOptions } from '@/hooks/workflow/queries/webhookTokenQueryOptions'
 import { workflowDetailQueryOptions } from '@/hooks/workflow/queries/workflowDetailQueryOptions'
 import { workflowListQueryOptions } from '@/hooks/workflow/queries/workflowListQueryOptions'
 import { createObservedSuccessHandlers } from '@/mocks/apiScenarios'
@@ -30,6 +31,7 @@ describe('query cache policy', () => {
 		['providers', providersQueryOptions().staleTime, 5 * 60_000],
 		['credentials', credentialsQueryOptions().staleTime, 10_000],
 		['node test sample', nodeTestSampleQueryOptions('workflow-id', 'node-id').staleTime, 10_000],
+		['webhook token status', webhookTokenStatusQueryOptions('workflow-id').staleTime, 60_000],
 	])('%s staleTime을 확정 정책값으로 유지한다', (_name, staleTime, expectedStaleTime) => {
 		expect(staleTime).toBe(expectedStaleTime)
 	})

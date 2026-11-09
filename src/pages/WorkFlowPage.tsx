@@ -400,6 +400,8 @@ const WorkFlowPage = () => {
 						validationErrors={validation.errorsByNodeId.get(settingsNode.id) ?? EMPTY_VALIDATION_ERRORS}
 						validatedNode={validation.validatedNodes?.find(node => node.id === settingsNode.id)}
 						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
+						savedNode={serverDocument?.nodes.find(node => node.id === settingsNode.id)}
+						isWorkflowActive={Boolean(active)}
 						onClose={closeNodeSettings}
 					/>
 				) : null}

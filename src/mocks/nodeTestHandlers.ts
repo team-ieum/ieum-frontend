@@ -23,22 +23,51 @@ type NodeTestHandlersOptions = {
 	 * 단위 테스트 서버는 테스트 사이에 상태가 새지 않도록 끄고, 필요한 응답은 테스트에서 `server.use`로 정한다.
 	 */
 	remembersSamples?: boolean
+	/** `remembersSamples`일 때 `webhook.catch` 수신 대기 뒤 요청을 받은 것처럼 샘플을 남기기까지의 시간 */
+	webhookReceiveDelayMs?: number
 }
 
-/** 노드 테스트(POST test)와 최신 샘플(GET sample) mock. 테스트는 항상 SUCCESS로 응답한다. */
-export const createNodeTestHandlers = ({ delayMs, remembersSamples = false }: NodeTestHandlersOptions = {}): HttpHandler[] => {
+const WEBHOOK_CATCH_EVENT = 'webhook.catch'
+const LISTEN_DURATION_MS = 5 * 60_000
+
+/**
+ * 노드 테스트(POST test)와 최신 샘플(GET sample) mock.
+ * 테스트는 SUCCESS로 응답하고, `webhook.catch`만 서버처럼 실행하지 않고 `LISTENING`으로 응답한다.
+ */
+export const createNodeTestHandlers = ({
+	delayMs,
+	remembersSamples = false,
+	webhookReceiveDelayMs = 8_000,
+}: NodeTestHandlersOptions = {}): HttpHandler[] => {
 	const samples = new Map<string, NodeTestResult>()
 
 	return [
 		http.post(NODE_TEST_PATH, async ({ request, params }) => {
 			const body = (await request.json().catch(() => ({}))) as NodeTestRequest
 			if (delayMs) await delay(delayMs)
+			const sampleKey = `${params.workflowId}:${params.nodeId}`
+			if (body.node?.event === WEBHOOK_CATCH_EVENT) {
+				if (remembersSamples) {
+					setTimeout(() => {
+						samples.set(sampleKey, {
+							status: 'SUCCESS',
+							output: { body: { orderId: 'ORD-1', amount: 12000 }, query: {} },
+							testedAt: toLocalDateTime(new Date()),
+						})
+					}, webhookReceiveDelayMs)
+				}
+				const listening: NodeTestResult = {
+					status: 'LISTENING',
+					expiresAt: toLocalDateTime(new Date(Date.now() + LISTEN_DURATION_MS)),
+				}
+				return HttpResponse.json({ success: true, data: listening, message: 'OK', code: 'OK' })
+			}
 			const result: NodeTestResult = {
 				status: 'SUCCESS',
 				output: { ok: true, event: body.node?.event ?? 'unknown' },
 				testedAt: toLocalDateTime(new Date()),
 			}
-			if (remembersSamples) samples.set(`${params.workflowId}:${params.nodeId}`, result)
+			if (remembersSamples) samples.set(sampleKey, result)
 			return HttpResponse.json({ success: true, data: result, message: 'OK', code: 'OK' })
 		}),
 		http.get(NODE_SAMPLE_PATH, async ({ params }) => {

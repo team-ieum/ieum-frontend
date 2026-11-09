@@ -7,6 +7,7 @@ import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { NODE_TEST_PATH } from '@/mocks/nodeTestHandlers'
+import { WEBHOOK_TOKEN_PATH } from '@/mocks/webhookTokenHandlers'
 import { createWorkflowValidateHandler, createWorkflowValidateProviderErrorHandler } from '@/mocks/workflowValidationHandlers'
 import { server } from '@/mocks/server'
 import WorkFlowPage from '@/pages/WorkFlowPage'
@@ -28,6 +29,8 @@ const mocks = vi.hoisted(() => ({
 	/** 첫 번째 워크플로를 노드·연결선 없이 내려 빈 캔버스를 만든다. */
 	workflowOneEmpty: false,
 	catalogEntries: undefined as NodeCatalogEntry[] | undefined,
+	/** 첫 번째 워크플로의 트리거를 수신 웹훅(`webhook.catch`)으로 내린다. */
+	workflowOneWebhookTrigger: false,
 }))
 
 vi.mock('@xyflow/react', async () => {
@@ -225,7 +228,7 @@ vi.mock('@/hooks/workflow/queries/useWorkflowQuery', () => ({
 										{
 											id: 'trigger',
 											type: 'TRIGGER',
-											event: 'manual.run',
+											event: mocks.workflowOneWebhookTrigger ? 'webhook.catch' : 'manual.run',
 											label: '문의가 도착하면',
 											description: '새 문의가 들어오면 시작해요',
 											config: { brand: 'webhook' },
@@ -423,6 +426,7 @@ describe('WorkFlowPage', () => {
 		mocks.workflowTwoActive = false
 		mocks.workflowOneEmpty = false
 		mocks.catalogEntries = undefined
+		mocks.workflowOneWebhookTrigger = false
 	})
 
 	it('조회한 노드와 연결선을 편집 가능한 캔버스로 표시한다', () => {
@@ -953,6 +957,59 @@ describe('WorkFlowPage', () => {
 
 		const panel = screen.getByRole('complementary', { name: '노드 설정' })
 		expect(within(panel).getByRole('heading', { name: '담당자에게 알리기' })).toBeInTheDocument()
+	})
+
+	it('웹훅 수신 노드는 저장본과 같을 때만 테스트할 수 있고, 켜진 워크플로우면 실제 실행된다고 알린다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		mocks.workflowOneWebhookTrigger = true
+		server.use(
+			http.get(WEBHOOK_TOKEN_PATH, () =>
+				HttpResponse.json({
+					success: true,
+					data: { issued: true, issuedAt: '2026-11-09T05:00:00Z' },
+					message: 'OK',
+					code: 'OK',
+				})
+			)
+		)
+		const { unmount } = renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 trigger' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		await within(panel).findByText(/주소는 만들 때만 보여 줘요/)
+		expect(within(panel).getByRole('button', { name: '테스트' })).toBeEnabled()
+		expect(within(panel).getByText('워크플로우가 켜져 있어서 테스트로 받은 요청도 실제로 실행돼요.')).toBeInTheDocument()
+		unmount()
+
+		// 저장하지 않은 초안으로 노드 설정이 바뀐 채 다시 들어온다.
+		localStorage.setItem(
+			getWorkflowDraftKey('workflow-1'),
+			JSON.stringify({
+				schemaVersion: 2,
+				workflowVersion: 1,
+				updatedAt: new Date().toISOString(),
+				title: '고객 문의 분류',
+				nodes: [
+					{
+						id: 'trigger',
+						type: 'TRIGGER',
+						event: 'webhook.catch',
+						label: '문의가 도착하면',
+						config: { brand: 'webhook', includeRaw: true },
+					},
+				],
+				edges: [],
+			})
+		)
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 trigger' }))
+		const draftPanel = screen.getByRole('complementary', { name: '노드 설정' })
+		expect(
+			within(draftPanel).getByText('저장한 뒤 테스트할 수 있어요. 받은 요청은 저장된 설정으로 처리돼요.')
+		).toBeInTheDocument()
+		expect(within(draftPanel).getByRole('button', { name: '테스트' })).toBeDisabled()
 	})
 
 	it('카탈로그를 받은 뒤에만 카탈로그 밖 노드의 event를 기술 정보에 보여 준다', () => {
