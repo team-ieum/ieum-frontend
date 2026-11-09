@@ -20,31 +20,49 @@ const renderTitle = (title = '아주 긴 워크플로우 제목') => {
 describe('WorkflowToolbarTitle', () => {
 	afterEach(() => vi.restoreAllMocks())
 
-	it('제목이 자리보다 길면 편집 중이 아닐 때 흐르고, 편집을 시작하면 멈춘다', async () => {
+	it('제목이 자리보다 길면 마우스를 올린 동안에만 흐른다', async () => {
+		stubWidths({ text: 400, container: 200 })
+		const user = userEvent.setup()
+		const { container } = renderTitle()
+
+		expect(container).not.toHaveAttribute('data-marquee')
+
+		await user.hover(container)
+		expect(container).toHaveAttribute('data-marquee', 'true')
+
+		await user.unhover(container)
+		expect(container).not.toHaveAttribute('data-marquee')
+	})
+
+	it('마우스를 올린 채 편집을 시작하면 흐르기를 멈춘다', async () => {
 		stubWidths({ text: 400, container: 200 })
 		const user = userEvent.setup()
 		const { input, container } = renderTitle()
-
+		await user.hover(container)
 		expect(container).toHaveAttribute('data-marquee', 'true')
 
 		await user.click(input)
-		expect(container).not.toHaveAttribute('data-marquee')
 
-		await user.tab()
-		expect(container).toHaveAttribute('data-marquee', 'true')
+		expect(container).not.toHaveAttribute('data-marquee')
 	})
 
-	it('제목이 자리에 모두 들어가면 흐르지 않는다', () => {
+	it('제목이 자리에 모두 들어가면 마우스를 올려도 흐르지 않는다', async () => {
 		stubWidths({ text: 200, container: 200 })
+		const user = userEvent.setup()
 		const { container } = renderTitle()
 
+		await user.hover(container)
+
 		expect(container).not.toHaveAttribute('data-marquee')
 	})
 
-	it('움직임 줄이기 설정이면 제목이 잘려도 흐르지 않는다', () => {
+	it('움직임 줄이기 설정이면 제목이 잘려도 마우스를 올려 흐르지 않는다', async () => {
 		setReducedMotion(true)
 		stubWidths({ text: 400, container: 200 })
+		const user = userEvent.setup()
 		const { container } = renderTitle()
+
+		await user.hover(container)
 
 		expect(container).not.toHaveAttribute('data-marquee')
 	})
