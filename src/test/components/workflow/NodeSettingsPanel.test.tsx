@@ -101,7 +101,7 @@ const getFieldInput = (title: string) =>
 	screen.getByLabelText(new RegExp(`^${title}`), { selector: 'input, textarea, select, button' })
 
 /** 설정 드롭다운을 열고 `{title} 목록`에서 항목을 고른다. */
-const chooseFromDropdown = async (user: ReturnType<typeof userEvent.setup>, title: string, optionName: string) => {
+const chooseFromDropdown = async (user: ReturnType<typeof userEvent.setup>, title: string, optionName: string | RegExp) => {
 	await user.click(getFieldInput(title))
 	const listbox = await screen.findByRole('listbox', { name: `${title} 목록` })
 	await user.click(within(listbox).getByRole('option', { name: optionName }))
@@ -1056,6 +1056,217 @@ describe('NodeSettingsPanel', () => {
 			await user.keyboard('{Enter}')
 
 			expect(lastNode().config).toEqual({ brand: 'slack', channel: 'C2', _names: { channel: '#random' } })
+		})
+	})
+
+	describe('목록 칸 드롭다운', () => {
+		const LABELS_TITLE = '보낸 뒤 붙일 라벨'
+		const labels: NodeOption[] = [
+			{ id: 'IMPORTANT', name: '중요' },
+			{ id: 'Label_12', name: '고객' },
+		]
+
+		// 실제 카탈로그에서 목록이면서 options가 있는 칸은 gmail.send_email의 label_ids뿐이라 그 모양을 그대로 둔다.
+		const gmailEntry: NodeCatalogEntry = {
+			...typedEntry,
+			id: 'gmail.send_email',
+			fixed: { type: 'ACTION', event: 'gmail.send_email', config: {} },
+			inputFields: [
+				{ key: 'subject', title: '제목', type: 'string', required: true, path: 'config.subject' },
+				{
+					key: 'label_ids',
+					title: LABELS_TITLE,
+					type: 'string',
+					list: true,
+					ref: false,
+					optionsSource: 'google.gmail_labels',
+					path: 'config.label_ids',
+				},
+			],
+		}
+
+		const createGmailNode = (config: Record<string, unknown> = {}) =>
+			createNode({ event: 'gmail.send_email', config: { subject: '안녕', ...config } })
+
+		/** options 요청을 기록하고 `respond` 결과를 한 페이지로 돌려준다. */
+		const mockLabels = (respond: (url: URL) => { items: NodeOption[]; nextCursor?: string | null } | Response) => {
+			const requests: URL[] = []
+			server.use(
+				http.get('*/api/v1/integrations/:app/options/:resource', ({ request }) => {
+					const url = new URL(request.url)
+					requests.push(url)
+					const result = respond(url)
+					return result instanceof Response
+						? result
+						: HttpResponse.json({ success: true, message: 'OK', code: 'OK', data: result })
+				})
+			)
+			return requests
+		}
+
+		const getChips = () => within(screen.getByRole('list', { name: `고른 ${LABELS_TITLE}` })).getAllByRole('listitem')
+
+		beforeEach(() => {
+			mocks.entries = [...nodeCatalogEntriesFixture, gmailEntry]
+		})
+
+		it('목록에서 하나씩 고르면 id를 이어 붙이고 _names에 id별 이름을 저장하며 칩으로 보여 준다', async () => {
+			const user = userEvent.setup()
+			const requests = mockLabels(() => ({ items: labels, nextCursor: null }))
+			const { lastNode } = renderPanel(createGmailNode())
+
+			expect(screen.queryByRole('textbox', { name: new RegExp(`^${LABELS_TITLE}`) })).not.toBeInTheDocument()
+			await chooseFromDropdown(user, LABELS_TITLE, /^중요/)
+			expect(lastNode().config).toEqual({
+				subject: '안녕',
+				label_ids: ['IMPORTANT'],
+				_names: { label_ids: { IMPORTANT: '중요' } },
+			})
+			await chooseFromDropdown(user, LABELS_TITLE, /^고객/)
+
+			expect(lastNode().config).toEqual({
+				subject: '안녕',
+				label_ids: ['IMPORTANT', 'Label_12'],
+				_names: { label_ids: { IMPORTANT: '중요', Label_12: '고객' } },
+			})
+			expect(getChips().map(chip => chip.textContent)).toEqual(['중요IMPORTANT', '고객Label_12'])
+			expect(requests[0].pathname).toMatch(/\/api\/v1\/integrations\/google\/options\/gmail_labels$/)
+			expect(requests.every(url => !url.searchParams.has('q'))).toBe(true)
+		})
+
+		it('이미 고른 항목은 고르면 빠진다고 보조기술에 알리고, 다시 고르면 뺀다', async () => {
+			const user = userEvent.setup()
+			mockLabels(() => ({ items: labels }))
+			const { lastNode } = renderPanel(
+				createGmailNode({
+					label_ids: ['IMPORTANT', 'Label_12'],
+					_names: { label_ids: { IMPORTANT: '중요', Label_12: '고객' } },
+				})
+			)
+
+			await chooseFromDropdown(user, LABELS_TITLE, '중요 IMPORTANT, 선택됨, 고르면 빼요')
+
+			expect(lastNode().config).toEqual({
+				subject: '안녕',
+				label_ids: ['Label_12'],
+				_names: { label_ids: { Label_12: '고객' } },
+			})
+		})
+
+		it('칩의 빼기 버튼으로 빼면 이름도 지우고, 마지막 항목을 빼면 값과 _names를 모두 지운다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(
+				createGmailNode({
+					label_ids: ['IMPORTANT', 'Label_12'],
+					_names: { label_ids: { IMPORTANT: '중요', Label_12: '고객' }, other: '유지' },
+				})
+			)
+
+			await user.click(screen.getByRole('button', { name: '중요 빼기' }))
+			expect(lastNode().config).toEqual({
+				subject: '안녕',
+				label_ids: ['Label_12'],
+				_names: { label_ids: { Label_12: '고객' }, other: '유지' },
+			})
+			// 누른 버튼이 칩과 함께 사라져도 포커스가 추가 드롭다운에 남는다.
+			expect(getFieldInput(LABELS_TITLE)).toHaveFocus()
+
+			await user.click(screen.getByRole('button', { name: '고객 빼기' }))
+
+			expect(lastNode().config).toEqual({ subject: '안녕', _names: { other: '유지' } })
+			expect(screen.queryByRole('list', { name: `고른 ${LABELS_TITLE}` })).not.toBeInTheDocument()
+		})
+
+		it('고르지 않은 항목은 선택됨을 알리지 않는다', async () => {
+			const user = userEvent.setup()
+			mockLabels(() => ({ items: labels }))
+			renderPanel(createGmailNode({ label_ids: ['IMPORTANT'], _names: { label_ids: { IMPORTANT: '중요' } } }))
+
+			await user.click(getFieldInput(LABELS_TITLE))
+			const listbox = await screen.findByRole('listbox', { name: `${LABELS_TITLE} 목록` })
+
+			expect(
+				within(listbox)
+					.getAllByRole('option')
+					.map(option => option.getAttribute('aria-label'))
+			).toEqual(['중요 IMPORTANT, 선택됨, 고르면 빼요', null])
+		})
+
+		it('참조식을 허용하는 목록 칸은 칩 목록 대신 한 줄에 하나씩 입력한다', () => {
+			mocks.entries = [{ ...gmailEntry, inputFields: [{ ...gmailEntry.inputFields[1], ref: undefined }] }]
+			renderPanel(createGmailNode())
+
+			expect(getFieldInput(LABELS_TITLE).tagName).toBe('TEXTAREA')
+			expect(screen.queryByRole('list', { name: `고른 ${LABELS_TITLE}` })).not.toBeInTheDocument()
+		})
+
+		it('목록에 없는 기존 값은 ID 칩으로 보여 주고 뺄 수 있다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createGmailNode({ label_ids: ['Label_99'] }))
+
+			expect(getChips().map(chip => chip.textContent)).toEqual(['Label_99'])
+			await user.click(screen.getByRole('button', { name: 'Label_99 빼기' }))
+
+			expect(lastNode().config).toEqual({ subject: '안녕' })
+		})
+
+		it('Google 권한이 부족하면 통합 설정으로 안내한다', async () => {
+			const user = userEvent.setup()
+			mockLabels(() =>
+				HttpResponse.json(
+					{ success: false, data: null, message: '서버 메시지', code: 'GOOGLE_SCOPE_REQUIRED' },
+					{ status: 403 }
+				)
+			)
+			renderPanel(createGmailNode())
+
+			await user.click(getFieldInput(LABELS_TITLE))
+			const alert = await screen.findByRole('alert')
+
+			expect(alert).toHaveTextContent('Google 권한이 더 필요해요')
+			expect(within(alert).getByRole('link', { name: '통합 설정 열기' })).toHaveAttribute('href', '/inter-setting')
+		})
+
+		it('다음 페이지가 있으면 더 불러오기로 이어 받은 항목도 고를 수 있다', async () => {
+			const user = userEvent.setup()
+			const requests = mockLabels(url =>
+				url.searchParams.get('cursor') === 'next'
+					? { items: [labels[1]], nextCursor: null }
+					: { items: [labels[0]], nextCursor: 'next' }
+			)
+			const { lastNode } = renderPanel(createGmailNode())
+
+			await user.click(getFieldInput(LABELS_TITLE))
+			await user.click(await screen.findByRole('button', { name: '더 불러오기' }))
+			await user.click(await screen.findByRole('option', { name: /^고객/ }))
+
+			expect(requests.map(url => url.searchParams.get('cursor'))).toEqual([null, 'next'])
+			expect(lastNode().config).toMatchObject({ label_ids: ['Label_12'], _names: { label_ids: { Label_12: '고객' } } })
+		})
+
+		it('부모 칸이 비었으면 목록을 열지 않고 이유를 알리며, 고른 칩은 뺄 수 있다', async () => {
+			const user = userEvent.setup()
+			const requests = mockLabels(() => ({ items: labels }))
+			// 실제 카탈로그의 목록 칸에는 부모 칸이 없어, 연쇄 칸 규칙을 확인하려고 optionsInputs를 붙인다.
+			mocks.entries = [
+				{
+					...gmailEntry,
+					inputFields: [
+						{ key: 'account', title: '계정', type: 'string', path: 'config.account' },
+						{ ...gmailEntry.inputFields[1], optionsInputs: ['account'] },
+					],
+				},
+			]
+			const { lastNode } = renderPanel(createGmailNode({ label_ids: ['IMPORTANT'] }))
+
+			await user.click(getFieldInput(LABELS_TITLE))
+
+			expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+			expect(getFieldInput(LABELS_TITLE)).toHaveAttribute('aria-disabled', 'true')
+			expect(getFieldInput(LABELS_TITLE)).toHaveAccessibleDescription(/'계정' 칸을 먼저 채우면/)
+			await user.click(screen.getByRole('button', { name: 'IMPORTANT 빼기' }))
+			expect(lastNode().config).toEqual({ subject: '안녕' })
+			expect(requests).toHaveLength(0)
 		})
 	})
 

@@ -14,6 +14,8 @@ export type SettingsDropdownRow = {
 	isCurrent: boolean
 	/** 비우기 행처럼 흐리게 보여 줄 행인지. */
 	isMuted?: boolean
+	/** 화면 문구 대신 보조기술에 알릴 행 이름. 체크 아이콘만으로는 전해지지 않는 상태를 알릴 때 쓴다. */
+	ariaLabel?: string
 }
 
 type SettingsDropdownProps = {
@@ -190,6 +192,7 @@ const SettingsDropdown = ({
 									id={optionId(rowIndex)}
 									role='option'
 									aria-selected={isActive}
+									aria-label={row.ariaLabel}
 									onClick={() => choose(rowIndex)}
 									onMouseEnter={() => state.setActiveIndex(rowIndex)}
 									className={cn(

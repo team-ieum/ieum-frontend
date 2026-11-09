@@ -4,23 +4,23 @@ import { useSettingsDropdown } from '@/hooks/workflow/useSettingsDropdown'
 import type { NodeOption } from '@/types/nodeOptions'
 import { getNodeOptionsErrorNotice, type NodeOptionsInputsState } from '@/utils/workflow/nodeOptions'
 
-/** 목록 맨 위 비우기 행의 index. 불러온 항목은 그 뒤(index 1부터)에 이어지므로 호출자도 이 순서로 행을 그린다. */
-const CLEAR_ROW_INDEX = 0
-
 type UseNodeOptionsComboboxOptions = {
 	source: string
 	inputsState: NodeOptionsInputsState
-	/** 칸에 값이 있는지. 부모 칸이 막혀 있어도 값이 있으면 비우기 행으로 지울 수 있게 연다. */
+	/** 칸에 값이 있는지. 부모 칸이 막혀 있어도 값이 있으면 비우기 행으로 지울 수 있게 연다. 비우기 행이 없는 칸은 false를 넘긴다. */
 	hasValue: boolean
 	onSelect: (option: NodeOption) => void
-	/** 비우기 행을 고르면 부른다. */
-	onClear: () => void
+	/**
+	 * 비우기 행을 고르면 부른다. 넘기면 목록 맨 위(index 0)에 비우기 행이 있고 불러온 항목은 index 1부터 이어지며,
+	 * 넘기지 않으면 비우기 행 없이 index 0부터 항목이다. 호출자도 이 순서로 행을 그린다.
+	 */
+	onClear?: () => void
 }
 
 /**
  * 목록 공급원 칸 드롭다운의 열림 상태와 options 목록 조회를 관리한다.
- * 행 index는 비우기 행(`CLEAR_ROW_INDEX`)을 포함한다. 목록은 열려 있고 부모 칸이 준비됐을 때만 부르며,
- * 부모 칸이 막힌 채 열면 비우기 행만 남는다.
+ * 행 index는 비우기 행(`onClear`를 넘긴 경우)을 포함한다. 목록은 열려 있고 부모 칸이 준비됐을 때만 부른다.
+ * 부모 칸이 막혀 있으면 `hasValue`일 때만 열리고, 그때는 비우기 행만 남는다.
  */
 export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect, onClear }: UseNodeOptionsComboboxOptions) => {
 	const isReady = inputsState.status === 'ready'
@@ -33,11 +33,11 @@ export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect
 	const items = query.data?.pages.flatMap(page => page.data.items) ?? []
 
 	const choose = (rowIndex: number) => {
-		if (rowIndex === CLEAR_ROW_INDEX) {
+		if (onClear && rowIndex === 0) {
 			onClear()
 			return
 		}
-		const option = items[rowIndex - 1]
+		const option = items[onClear ? rowIndex - 1 : rowIndex]
 		if (option) onSelect(option)
 	}
 

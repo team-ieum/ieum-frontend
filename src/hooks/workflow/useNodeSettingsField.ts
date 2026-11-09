@@ -18,7 +18,7 @@ type UseNodeSettingsFieldOptions = {
 	value: unknown
 	/** 저장할 값을 넘긴다. `undefined`는 키 삭제(비움)다. `name`은 목록에서 고른 항목의 표시 이름이다. */
 	onChange: (value: unknown, name?: NodeFieldName) => void
-	/** 목록 공급원 드롭다운으로 그리는 칸인지. 직접 입력이 없어 참조 피커를 쓰지 않는다. */
+	/** 목록 공급원 드롭다운(단일 칸·목록 칸)으로 그리는 칸인지. 직접 입력이 없어 참조 피커를 쓰지 않는다. */
 	isOptionsCombobox: boolean
 	/** 참조 검사 문맥. 없으면 참조 경고를 만들지 않는다. */
 	referenceContext?: NodeReferenceContext

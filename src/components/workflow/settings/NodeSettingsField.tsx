@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, type ChangeEvent, type MouseEvent, type Synth
 import NodeChoiceSelect, { type NodeChoice } from '@/components/workflow/settings/NodeChoiceSelect'
 import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
 import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
+import NodeOptionsListInput from '@/components/workflow/settings/NodeOptionsListInput'
 import NodeReferenceList from '@/components/workflow/settings/NodeReferenceList'
 import NodeReferencePicker from '@/components/workflow/settings/NodeReferencePicker'
 import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
@@ -23,7 +24,7 @@ import {
 	type NodeFieldMode,
 } from '@/utils/workflow/nodeFieldValue'
 import type { TextSelection } from '@/utils/workflow/nodeReference'
-import { isOptionsComboboxField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
+import { isOptionsComboboxField, isOptionsListField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 
 const REFERENCE_PLACEHOLDER = '{{nodes.노드ID.output.필드}}'
 const DATETIME_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
@@ -71,8 +72,15 @@ const NodeSettingsField = ({
 	const referenceWarningId = `${inputId}-reference-warning`
 	const validationErrorsId = `${inputId}-validation-errors`
 	const isOptionsCombobox = Boolean(options && isOptionsComboboxField(field))
+	const isOptionsList = Boolean(options && isOptionsListField(field))
 	const { mode, changeMode, draft, changeText, changeValue, error, pickerTarget, insertReference, referenceWarning } =
-		useNodeSettingsField({ field, value, onChange, isOptionsCombobox, referenceContext: references?.context })
+		useNodeSettingsField({
+			field,
+			value,
+			onChange,
+			isOptionsCombobox: isOptionsCombobox || isOptionsList,
+			referenceContext: references?.context,
+		})
 	const isMissing = isRequiredFieldMissing(field, value)
 	const describedBy = [
 		field.description ? descriptionId : null,
@@ -191,6 +199,22 @@ const NodeSettingsField = ({
 					describedBy={inputProps['aria-describedby']}
 					onSelect={option => changeValue(option.id, option.name)}
 					onClear={() => changeValue(undefined)}
+				/>
+			)
+		}
+
+		if (options && isOptionsList) {
+			return (
+				<NodeOptionsListInput
+					id={inputId}
+					title={field.title}
+					source={options.source}
+					inputsState={options.inputsState}
+					value={value}
+					names={typeof name === 'object' ? name : undefined}
+					triggerClassName={INPUT_CLASS}
+					describedBy={inputProps['aria-describedby']}
+					onChange={(next, names) => changeValue(next, names)}
 				/>
 			)
 		}
@@ -334,7 +358,7 @@ const NodeSettingsField = ({
 					{autocomplete.isOpen ? `출력 참조 후보 ${autocomplete.optionCount}개` : ''}
 				</span>
 			</div>
-			{field.optionsSource && !isOptionsCombobox && mode === 'fixed' ? (
+			{field.optionsSource && !isOptionsCombobox && !isOptionsList && mode === 'fixed' ? (
 				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>
 					{typeof name === 'string' && name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접
 					입력해 주세요.

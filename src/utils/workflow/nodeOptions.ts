@@ -23,6 +23,13 @@ export const showsOptionId = (source: string) => !INTERNAL_ID_SOURCES.has(source
 export const isOptionsComboboxField = (field: NodeCatalogInputField) =>
 	Boolean(field.optionsSource) && field.type === 'string' && !field.list && !field.choices
 
+/**
+ * 목록 공급원이 있는 문자열 목록 칸은 고른 항목을 칩으로 보여 주고 드롭다운에서 하나씩 더한다.
+ * 칩 목록에는 참조식을 넣을 자리가 없어 참조식을 쓰지 않는 칸(`ref: false`)만 대상으로 한다.
+ */
+export const isOptionsListField = (field: NodeCatalogInputField) =>
+	Boolean(field.optionsSource) && field.type === 'string' && Boolean(field.list) && !field.choices && field.ref === false
+
 export type NodeOptionsInputsState =
 	| { status: 'ready'; inputs: Record<string, string> }
 	/** 부모 칸이 비었거나 참조식이면 목록을 부르지 않는다. */

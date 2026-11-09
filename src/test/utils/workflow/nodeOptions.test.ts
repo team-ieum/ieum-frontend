@@ -11,6 +11,7 @@ import {
 	getOptionsBlockedMessage,
 	getOptionsInputsState,
 	isOptionsComboboxField,
+	isOptionsListField,
 	isRetryableNodeOptionsError,
 	showsOptionId,
 } from '@/utils/workflow/nodeOptions'
@@ -74,6 +75,29 @@ describe('isOptionsComboboxField', () => {
 		expect(isOptionsComboboxField(eventField)).toBe(true)
 		expect(isOptionsComboboxField({ ...eventField, list: true })).toBe(false)
 		expect(isOptionsComboboxField({ ...eventField, optionsSource: undefined })).toBe(false)
+	})
+})
+
+describe('isOptionsListField', () => {
+	it('참조식을 쓰지 않고 목록 공급원이 있는 문자열 목록 칸만 칩 목록 드롭다운으로 그린다', () => {
+		const labelsField: NodeCatalogInputField = {
+			key: 'label_ids',
+			title: '보낸 뒤 붙일 라벨',
+			type: 'string',
+			list: true,
+			ref: false,
+			optionsSource: 'google.gmail_labels',
+			path: 'config.label_ids',
+		}
+
+		expect(isOptionsListField(labelsField)).toBe(true)
+		expect(isOptionsListField({ ...labelsField, list: false })).toBe(false)
+		expect(isOptionsListField({ ...labelsField, optionsSource: undefined })).toBe(false)
+		expect(isOptionsListField({ ...labelsField, type: 'object' })).toBe(false)
+		expect(isOptionsListField({ ...labelsField, choices: [{ id: 'a', name: 'A' }] })).toBe(false)
+		// 칩 목록에는 참조식을 넣을 자리가 없어, 참조식을 허용하는 목록 칸은 대상에서 뺀다.
+		expect(isOptionsListField({ ...labelsField, ref: undefined })).toBe(false)
+		expect(isOptionsListField({ ...labelsField, ref: true })).toBe(false)
 	})
 })
 
