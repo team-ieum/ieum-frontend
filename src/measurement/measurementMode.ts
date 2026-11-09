@@ -1,6 +1,7 @@
 import { setupWorker } from 'msw/browser'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
 import { createNodeTestHandlers } from '@/mocks/nodeTestHandlers'
+import { createWebhookTokenHandlers } from '@/mocks/webhookTokenHandlers'
 import { createWorkflowValidateHandler } from '@/mocks/workflowValidationHandlers'
 import { seedMeasurementAuthState } from './measurementAuth'
 import { parseMeasurementDelay } from './measurementConfig'
@@ -14,6 +15,7 @@ export const enableMeasurementMode = async () => {
 	const worker = setupWorker(
 		...createDelayedSuccessHandlers(delayMs),
 		...createNodeTestHandlers({ delayMs, remembersSamples: true }),
+		...createWebhookTokenHandlers({ delayMs, remembersTokens: true }),
 		createWorkflowValidateHandler()
 	)
 	await worker.start({ onUnhandledRequest: onMeasurementUnhandledRequest })

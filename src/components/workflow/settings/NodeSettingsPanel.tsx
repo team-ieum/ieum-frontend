@@ -42,6 +42,10 @@ type NodeSettingsPanelProps = {
 	validatedNode?: WorkflowNodeDto
 	/** 다른 노드의 설정 패널로 바꾼다. */
 	onNodeOpen: (nodeId: string) => void
+	/** 서버에 저장된 이 노드. 아직 저장하지 않은 노드면 없다. 노드 테스트가 저장 여부를 따질 때 쓴다. */
+	savedNode?: WorkflowNodeDto
+	/** 워크플로우가 켜져 있는지. 웹훅 수신 테스트가 실제 실행으로 이어진다고 알릴 때 쓴다. */
+	isWorkflowActive?: boolean
 	onClose: () => void
 }
 
@@ -59,6 +63,8 @@ const NodeSettingsPanel = ({
 	validationErrors = NO_VALIDATION_ERRORS,
 	validatedNode,
 	onNodeOpen,
+	savedNode,
+	isWorkflowActive = false,
 	onClose,
 }: NodeSettingsPanelProps) => {
 	const {
@@ -268,7 +274,15 @@ const NodeSettingsPanel = ({
 				{renderBody()}
 			</div>
 			{status === 'ready' || status === 'outsideCatalog' ? (
-				<NodeTestSection workflowId={workflowId} node={node} entry={entry} nodes={nodes} onNodeOpen={onNodeOpen} />
+				<NodeTestSection
+					workflowId={workflowId}
+					node={node}
+					entry={entry}
+					nodes={nodes}
+					onNodeOpen={onNodeOpen}
+					savedNode={savedNode}
+					isWorkflowActive={isWorkflowActive}
+				/>
 			) : null}
 		</motion.aside>
 	)
