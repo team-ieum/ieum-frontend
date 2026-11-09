@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, type ChangeEvent, type MouseEvent, type Synth
 import NodeChoiceSelect, { type NodeChoice } from '@/components/workflow/settings/NodeChoiceSelect'
 import NodeDictInput from '@/components/workflow/settings/NodeDictInput'
 import NodeOptionsCombobox from '@/components/workflow/settings/NodeOptionsCombobox'
+import NodeOptionsListInput from '@/components/workflow/settings/NodeOptionsListInput'
 import NodeReferenceList from '@/components/workflow/settings/NodeReferenceList'
 import NodeReferencePicker from '@/components/workflow/settings/NodeReferencePicker'
 import WorkflowValidationIssueList from '@/components/workflow/WorkflowValidationIssueList'
@@ -10,6 +11,7 @@ import { DROPDOWN_POPUP_CLASS, INPUT_CLASS, TEXTAREA_CLASS } from '@/components/
 import { useNodeReferenceAutocomplete } from '@/hooks/workflow/useNodeReferenceAutocomplete'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName } from '@/types/nodeOptions'
 import type { NodeReferenceSource } from '@/types/nodeReference'
 import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
@@ -22,7 +24,7 @@ import {
 	type NodeFieldMode,
 } from '@/utils/workflow/nodeFieldValue'
 import type { TextSelection } from '@/utils/workflow/nodeReference'
-import { isOptionsComboboxField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
+import { isOptionsComboboxField, isOptionsListField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
 
 const REFERENCE_PLACEHOLDER = '{{nodes.노드ID.output.필드}}'
 const DATETIME_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/
@@ -35,8 +37,8 @@ const BOOLEAN_CHOICES: NodeChoice[] = [
 type NodeSettingsFieldProps = {
 	field: NodeCatalogInputField
 	value: unknown
-	/** 선택 목록에서 고른 항목의 표시 이름(`_names`). */
-	name?: string
+	/** 선택 목록에서 고른 항목의 표시 이름(`_names`). 목록 칸은 id별 이름 객체다. */
+	name?: NodeFieldName
 	/** 목록 공급원 칸의 조회 정보. 있으면 드롭다운으로 그린다. */
 	options?: NodeFieldOptions
 	/** 칸이 비었을 때 칸 아래에 보여 줄 안내(예: AI 도구 칸의 AI 결정). */
@@ -45,7 +47,7 @@ type NodeSettingsFieldProps = {
 	references?: NodeReferenceSource
 	/** 이 칸(과 그 아래 경로)에 붙은 서버 검사 오류. 저장된 버전 기준이다. */
 	validationErrors?: WorkflowValidationErrorDto[]
-	onChange: (value: unknown, name?: string) => void
+	onChange: (value: unknown, name?: NodeFieldName) => void
 }
 
 const getPlaceholder = (field: NodeCatalogInputField) => {
@@ -70,8 +72,15 @@ const NodeSettingsField = ({
 	const referenceWarningId = `${inputId}-reference-warning`
 	const validationErrorsId = `${inputId}-validation-errors`
 	const isOptionsCombobox = Boolean(options && isOptionsComboboxField(field))
+	const isOptionsList = Boolean(options && isOptionsListField(field))
 	const { mode, changeMode, draft, changeText, changeValue, error, pickerTarget, insertReference, referenceWarning } =
-		useNodeSettingsField({ field, value, onChange, isOptionsCombobox, referenceContext: references?.context })
+		useNodeSettingsField({
+			field,
+			value,
+			onChange,
+			isOptionsCombobox: isOptionsCombobox || isOptionsList,
+			referenceContext: references?.context,
+		})
 	const isMissing = isRequiredFieldMissing(field, value)
 	const describedBy = [
 		field.description ? descriptionId : null,
@@ -183,13 +192,29 @@ const NodeSettingsField = ({
 					source={options.source}
 					inputsState={options.inputsState}
 					value={value}
-					name={name}
+					name={typeof name === 'string' ? name : undefined}
 					placeholder={options.emptyHint}
 					clearLabel={options.clearLabel}
 					triggerClassName={INPUT_CLASS}
 					describedBy={inputProps['aria-describedby']}
 					onSelect={option => changeValue(option.id, option.name)}
 					onClear={() => changeValue(undefined)}
+				/>
+			)
+		}
+
+		if (options && isOptionsList) {
+			return (
+				<NodeOptionsListInput
+					id={inputId}
+					title={field.title}
+					source={options.source}
+					inputsState={options.inputsState}
+					value={value}
+					names={typeof name === 'object' ? name : undefined}
+					triggerClassName={INPUT_CLASS}
+					describedBy={inputProps['aria-describedby']}
+					onChange={(next, names) => changeValue(next, names)}
 				/>
 			)
 		}
@@ -333,9 +358,10 @@ const NodeSettingsField = ({
 					{autocomplete.isOpen ? `출력 참조 후보 ${autocomplete.optionCount}개` : ''}
 				</span>
 			</div>
-			{field.optionsSource && !isOptionsCombobox && mode === 'fixed' ? (
+			{field.optionsSource && !isOptionsCombobox && !isOptionsList && mode === 'fixed' ? (
 				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>
-					{name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접 입력해 주세요.
+					{typeof name === 'string' && name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접
+					입력해 주세요.
 				</p>
 			) : null}
 			{error ? (

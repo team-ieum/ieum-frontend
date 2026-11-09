@@ -5,6 +5,7 @@ import { useNodeAiOutputFields } from '@/hooks/workflow/useNodeAiOutputFields'
 import { useNodeAiTools } from '@/hooks/workflow/useNodeAiTools'
 import { useNodeReferenceCandidates } from '@/hooks/workflow/useNodeReferenceCandidates'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName } from '@/types/nodeOptions'
 import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { findNodeReferenceIssues, findNodesReferencingMissingOutputs } from '@/utils/workflow/findNodeReferenceIssues'
@@ -131,7 +132,7 @@ export const useNodeSettingsPanel = ({
 			tool.fields.reduce((sum, { field }) => sum + (matchedValidationErrors.byPath.get(field.path)?.length ?? 0), 0)
 		) ?? []
 
-	const changeField = (field: NodeCatalogInputField, value: unknown, name?: string) => {
+	const changeField = (field: NodeCatalogInputField, value: unknown, name?: NodeFieldName) => {
 		if (entry) onNodeChange(updateNodeField(node, entry, field, value, name))
 	}
 

@@ -1,4 +1,5 @@
 import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName, NodeOptionNames } from '@/types/nodeOptions'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { deleteAtPath, getAtPath, setAtPath } from '@/utils/workflow/objectPath'
 
@@ -15,15 +16,25 @@ const removeFieldName = (node: WorkflowNodeDto, field: NodeCatalogInputField) =>
 	return names && typeof names === 'object' && Object.keys(names).length === 0 ? deleteAtPath(next, namesPath) : next
 }
 
-/** 설정 폼 칸에 저장된 표시 이름. 직접 입력·참조식 값에는 없다. */
-export const getFieldName = (node: WorkflowNodeDto, field: NodeCatalogInputField) => {
+const readOptionNames = (value: unknown): NodeOptionNames | undefined => {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+	const entries = Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+	return entries.length > 0 ? Object.fromEntries(entries) : undefined
+}
+
+/**
+ * 설정 폼 칸에 저장된 표시 이름. 직접 입력·참조식 값에는 없다.
+ * 목록 칸은 id별 이름 객체(문자열 이름만), 그 밖의 칸은 문자열이다. 모양이 맞지 않으면 undefined다.
+ */
+export const getFieldName = (node: WorkflowNodeDto, field: NodeCatalogInputField): NodeFieldName | undefined => {
 	const name = getAtPath(node, `${getNamesPath(field)}.${field.key}`)
+	if (field.list) return readOptionNames(name)
 	return typeof name === 'string' ? name : undefined
 }
 
 /**
  * 칸 값을 바꾼 새 노드를 돌려준다. `value`가 `undefined`면 키를 지운다(비움).
- * `name`은 드롭다운에서 고른 항목의 표시 이름이며 `_names`에 저장한다. 직접 입력한 값에는 넘기지 않는다.
+ * `name`은 드롭다운에서 고른 항목의 표시 이름이며 `_names`에 저장한다(목록 칸은 id별 이름 객체). 직접 입력한 값에는 넘기지 않는다.
  * 이전 표시 이름과, `optionsInputs`로 이 칸에 연쇄된 자식 칸의 값·표시 이름도 함께 지운다.
  * 폼에 없는 config 키는 그대로 둔다.
  */
@@ -32,7 +43,7 @@ export const updateNodeField = (
 	entry: NodeCatalogEntry,
 	field: NodeCatalogInputField,
 	value: unknown,
-	name?: string
+	name?: NodeFieldName
 ): WorkflowNodeDto => {
 	let next = value === undefined ? deleteAtPath(node, field.path) : setAtPath(node, field.path, value)
 	next = removeFieldName(next, field)
