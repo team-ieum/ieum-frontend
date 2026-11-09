@@ -39,6 +39,12 @@ export const queryKeys = {
 		/** `workflows.detail` 무효화에 휩쓸리지 않도록 워크플로우 키 밖에 둔다. */
 		detail: (workflowId: string, nodeId: string) => [...queryKeys.nodeTestSamples.all(), workflowId, nodeId] as const,
 	},
+	webhookTokens: {
+		all: () => ['webhook-tokens'] as const,
+		status: (workflowId: string) => [...queryKeys.webhookTokens.all(), workflowId, 'status'] as const,
+		/** 발급 응답의 평문 주소. 서버에서 다시 받을 수 없어 발급 mutation이 넣은 값만 들어 있다. */
+		address: (workflowId: string) => [...queryKeys.webhookTokens.all(), workflowId, 'address'] as const,
+	},
 	workflowValidations: {
 		all: () => ['workflow-validations'] as const,
 		/** 생성·삭제 때의 `workflows.all()` 무효화가 검사 POST를 다시 보내지 않도록 워크플로우 키 밖에 둔다. */

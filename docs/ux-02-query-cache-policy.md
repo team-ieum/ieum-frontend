@@ -29,8 +29,11 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 | AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
 | AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
 | Node test sample     |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.             |
+| Webhook token status |        60초 | 수신 주소 발급은 이 화면의 발급 버튼에서만 바뀐다.                    |
 | Workflow validation  |         0초 | 편집 화면을 열 때마다 저장된 버전을 다시 검사한다. 2026-11-08 결정.   |
 | Current user         |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                        |
+
+발급 응답의 평문 수신 주소(`queryKeys.webhookTokens.address`)는 서버에서 다시 받을 수 없어 요청하지 않는 query(`skipToken`)로 두고 `staleTime`·`gcTime`을 `Infinity`로 둔다. 새로고침이나 로그아웃(`queryClient.clear()`)이면 사라진다.
 
 전역 QueryClient에는 `staleTime`을 추가하지 않는다. 정책 값은 `src/constants/queryCache.ts`에서 관리하고 각 option factory가 참조한다.
 
@@ -65,6 +68,7 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 | Webhook 생성·삭제         | Webhook credentials list exact key                |
 | OAuth callback 완료       | OAuth connections list exact key                  |
 | Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
+| 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
 
 Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSuccess`는 `invalidateQueries()` Promise를 반환하지 않으며, `mutateAsync()`와 `isPending`이 완료된 뒤에도 active query refetch는 background에서 계속될 수 있다. 이때 기존 cache 데이터를 유지하고 refetch 실패를 mutation 실패로 취급하지 않는다.
 
