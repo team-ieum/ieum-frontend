@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName } from '@/types/nodeOptions'
 import type { NodeReferenceContext } from '@/types/nodeReference'
 import { findNodeReferenceIssues, getNodeReferenceIssueMessage } from '@/utils/workflow/findNodeReferenceIssues'
 import {
@@ -16,7 +17,7 @@ type UseNodeSettingsFieldOptions = {
 	field: NodeCatalogInputField
 	value: unknown
 	/** 저장할 값을 넘긴다. `undefined`는 키 삭제(비움)다. `name`은 목록에서 고른 항목의 표시 이름이다. */
-	onChange: (value: unknown, name?: string) => void
+	onChange: (value: unknown, name?: NodeFieldName) => void
 	/** 목록 공급원 드롭다운으로 그리는 칸인지. 직접 입력이 없어 참조 피커를 쓰지 않는다. */
 	isOptionsCombobox: boolean
 	/** 참조 검사 문맥. 없으면 참조 경고를 만들지 않는다. */
@@ -57,7 +58,7 @@ export const useNodeSettingsField = ({
 		setError(null)
 	}
 
-	const emit = (next: unknown, name?: string) => {
+	const emit = (next: unknown, name?: NodeFieldName) => {
 		setSyncedValue(next)
 		onChange(next, name)
 	}
@@ -75,7 +76,7 @@ export const useNodeSettingsField = ({
 	}
 
 	/** 선택 상자·드롭다운처럼 해석이 필요 없는 위젯의 값을 바로 넘긴다. */
-	const changeValue = (next: unknown, name?: string) => {
+	const changeValue = (next: unknown, name?: NodeFieldName) => {
 		setError(null)
 		emit(next, name)
 	}

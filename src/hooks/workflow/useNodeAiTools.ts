@@ -1,4 +1,5 @@
 import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName } from '@/types/nodeOptions'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { clearAiOutputFields, hasAiOutputFields } from '@/utils/workflow/aiOutputFields'
 import {
@@ -70,7 +71,7 @@ export const useNodeAiTools = ({ node, entries, onNodeChange }: UseNodeAiToolsOp
 			emptyHint: isAiDecidedWhenEmpty(toolKey, field.key) ? AI_DECIDED_HINT : undefined,
 		}))
 
-		const changeField = (field: NodeCatalogInputField, value: unknown, name?: string) => {
+		const changeField = (field: NodeCatalogInputField, value: unknown, name?: NodeFieldName) => {
 			if (fieldEntry) onNodeChange(updateNodeField(ensureAiToolObject(node, index), fieldEntry, field, value, name))
 		}
 

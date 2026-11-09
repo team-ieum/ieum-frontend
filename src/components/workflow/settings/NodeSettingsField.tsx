@@ -10,6 +10,7 @@ import { DROPDOWN_POPUP_CLASS, INPUT_CLASS, TEXTAREA_CLASS } from '@/components/
 import { useNodeReferenceAutocomplete } from '@/hooks/workflow/useNodeReferenceAutocomplete'
 import { useNodeSettingsField } from '@/hooks/workflow/useNodeSettingsField'
 import type { NodeCatalogInputField } from '@/types/nodeCatalog'
+import type { NodeFieldName } from '@/types/nodeOptions'
 import type { NodeReferenceSource } from '@/types/nodeReference'
 import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
 import { cn } from '@/utils/cn'
@@ -35,8 +36,8 @@ const BOOLEAN_CHOICES: NodeChoice[] = [
 type NodeSettingsFieldProps = {
 	field: NodeCatalogInputField
 	value: unknown
-	/** 선택 목록에서 고른 항목의 표시 이름(`_names`). */
-	name?: string
+	/** 선택 목록에서 고른 항목의 표시 이름(`_names`). 목록 칸은 id별 이름 객체다. */
+	name?: NodeFieldName
 	/** 목록 공급원 칸의 조회 정보. 있으면 드롭다운으로 그린다. */
 	options?: NodeFieldOptions
 	/** 칸이 비었을 때 칸 아래에 보여 줄 안내(예: AI 도구 칸의 AI 결정). */
@@ -45,7 +46,7 @@ type NodeSettingsFieldProps = {
 	references?: NodeReferenceSource
 	/** 이 칸(과 그 아래 경로)에 붙은 서버 검사 오류. 저장된 버전 기준이다. */
 	validationErrors?: WorkflowValidationErrorDto[]
-	onChange: (value: unknown, name?: string) => void
+	onChange: (value: unknown, name?: NodeFieldName) => void
 }
 
 const getPlaceholder = (field: NodeCatalogInputField) => {
@@ -183,7 +184,7 @@ const NodeSettingsField = ({
 					source={options.source}
 					inputsState={options.inputsState}
 					value={value}
-					name={name}
+					name={typeof name === 'string' ? name : undefined}
 					placeholder={options.emptyHint}
 					clearLabel={options.clearLabel}
 					triggerClassName={INPUT_CLASS}
@@ -335,7 +336,8 @@ const NodeSettingsField = ({
 			</div>
 			{field.optionsSource && !isOptionsCombobox && mode === 'fixed' ? (
 				<p className='m-0 text-[0.7rem] leading-snug text-neutral-500'>
-					{name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접 입력해 주세요.
+					{typeof name === 'string' && name ? `선택한 항목: ${name} · ` : ''}이 칸은 목록에서 고를 수 없어요. ID를 직접
+					입력해 주세요.
 				</p>
 			) : null}
 			{error ? (

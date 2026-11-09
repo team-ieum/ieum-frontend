@@ -22,6 +22,15 @@ const modelField: NodeCatalogInputField = {
 	optionsInputs: ['llmProvider'],
 }
 const promptField: NodeCatalogInputField = { key: 'prompt', title: '프롬프트', type: 'text', path: 'config.prompt' }
+const labelsField: NodeCatalogInputField = {
+	key: 'label_ids',
+	title: '보낸 뒤 붙일 라벨',
+	type: 'string',
+	list: true,
+	ref: false,
+	optionsSource: 'google.gmail_labels',
+	path: 'config.label_ids',
+}
 const entry = { id: 'ai.agent', inputFields: [providerField, modelField, promptField] } as NodeCatalogEntry
 
 const node: WorkflowNodeDto = {
@@ -78,5 +87,47 @@ describe('updateNodeField', () => {
 
 		expect(next.config).not.toHaveProperty('model')
 		expect(next.config).not.toHaveProperty('_names')
+	})
+
+	it('목록 칸은 id별 이름 객체를 _names에 저장하고, 값을 모두 비우면 _names도 지운다', () => {
+		const gmailNode: WorkflowNodeDto = {
+			id: 'gmail',
+			type: 'ACTION',
+			event: 'gmail.send_email',
+			label: '메일',
+			config: { subject: '안녕' },
+		}
+		const gmailEntry = { id: 'gmail.send_email', inputFields: [labelsField] } as NodeCatalogEntry
+
+		const next = updateNodeField(gmailNode, gmailEntry, labelsField, ['IMPORTANT', 'Label_12'], {
+			IMPORTANT: '중요',
+			Label_12: '고객',
+		})
+		const cleared = updateNodeField(next, gmailEntry, labelsField, undefined)
+
+		expect(next.config).toEqual({
+			subject: '안녕',
+			label_ids: ['IMPORTANT', 'Label_12'],
+			_names: { label_ids: { IMPORTANT: '중요', Label_12: '고객' } },
+		})
+		expect(cleared.config).toEqual({ subject: '안녕' })
+	})
+})
+
+describe('getFieldName', () => {
+	it('목록 칸은 문자열 이름만 담은 객체를, 단일 칸은 문자열 이름만 돌려준다', () => {
+		const withNames: WorkflowNodeDto = {
+			...node,
+			config: {
+				...node.config,
+				label_ids: ['IMPORTANT', 'Label_12'],
+				_names: { model: 'Gemini Pro', label_ids: { IMPORTANT: '중요', Label_12: 12 } },
+			},
+		}
+
+		expect(getFieldName(withNames, labelsField)).toEqual({ IMPORTANT: '중요' })
+		expect(getFieldName(withNames, modelField)).toBe('Gemini Pro')
+		expect(getFieldName({ ...withNames, config: { _names: { label_ids: '중요' } } }, labelsField)).toBeUndefined()
+		expect(getFieldName({ ...withNames, config: { _names: { model: { a: 'b' } } } }, modelField)).toBeUndefined()
 	})
 })
