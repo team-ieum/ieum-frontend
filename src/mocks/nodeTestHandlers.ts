@@ -4,7 +4,7 @@ import type { NodeTestRequest, NodeTestResult } from '@/types/nodeTest'
 export const NODE_TEST_PATH = '*/api/v1/workflows/:workflowId/nodes/:nodeId/test'
 export const NODE_SAMPLE_PATH = '*/api/v1/workflows/:workflowId/nodes/:nodeId/sample'
 
-/** 서버처럼 오프셋 없는 LocalDateTime 문자열을 만든다. */
+/** 오프셋 없는 옛 서버 형식의 시각 문자열을 만든다. 지금 서버는 `…Z`(UTC)로 보내지만 화면은 두 형식을 같이 읽는다. */
 const toLocalDateTime = (date: Date) => {
 	const pad = (value: number) => String(value).padStart(2, '0')
 	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`

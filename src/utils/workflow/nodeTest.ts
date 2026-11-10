@@ -106,14 +106,3 @@ export const getNodeTestErrorMessage = (error: unknown): string => {
 	if ((code === 'INVALID_INPUT' || code === 'INVALID_WORKFLOW') && error.message) return error.message
 	return DEFAULT_ERROR_MESSAGE
 }
-
-/**
- * 오프셋 없는 서버 LocalDateTime(`2026-11-02T10:05:00`)을 `11월 2일 10:05`로 보여 준다.
- * 시간대 정보가 없으므로 변환하지 않고 숫자만 옮기며, 형식이 다르면 받은 값을 그대로 쓴다.
- */
-export const formatTestedAt = (value: string) => {
-	const match = /^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value)
-	if (!match) return value
-	const [, month, day, hour, minute] = match
-	return `${Number(month)}월 ${Number(day)}일 ${hour}:${minute}`
-}

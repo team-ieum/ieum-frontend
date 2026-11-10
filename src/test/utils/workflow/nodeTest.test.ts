@@ -6,7 +6,6 @@ import {
 	getListenWindow,
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
-	formatTestedAt,
 	getNodeTestErrorMessage,
 	isSampleRecordedSince,
 	requiresRunConfirm,
@@ -174,11 +173,5 @@ describe('nodeTest', () => {
 				'테스트하지 못했어요. 잠시 후 다시 시도해 주세요.'
 			)
 		})
-	})
-
-	it('오프셋 없는 서버 시각을 변환하지 않고 월·일·시각으로 보여 주며 모르는 형식은 그대로 둔다', () => {
-		expect(formatTestedAt('2026-11-02T09:05:30')).toBe('11월 2일 09:05')
-		expect(formatTestedAt('2026-11-02T09:05:30.123456')).toBe('11월 2일 09:05')
-		expect(formatTestedAt('어제')).toBe('어제')
 	})
 })

@@ -6,7 +6,8 @@ import {
 	webhookTokenStatusQueryOptions,
 } from '@/hooks/workflow/queries/webhookTokenQueryOptions'
 import { useModalStore } from '@/stores/useModalStore'
-import { formatWebhookIssuedAt, toWebhookUrl } from '@/utils/workflow/webhookToken'
+import { formatServerDateTime } from '@/utils/workflow/formatServerDateTime'
+import { toWebhookUrl } from '@/utils/workflow/webhookToken'
 
 type WebhookTokenState = 'loading' | 'error' | 'notIssued' | 'issued'
 
@@ -85,7 +86,7 @@ export const useWebhookToken = (workflowId: string): UseWebhookTokenResult => {
 	return {
 		state: getState(),
 		url,
-		issuedAtLabel: issuedAt ? formatWebhookIssuedAt(issuedAt) : undefined,
+		issuedAtLabel: issuedAt ? formatServerDateTime(issuedAt) : undefined,
 		isIssuing: mutation.isPending,
 		issueErrorMessage,
 		copyState,

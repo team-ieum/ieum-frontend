@@ -6,7 +6,7 @@ import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { NodeTestResult } from '@/types/nodeTest'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
-import { formatTestedAt } from '@/utils/workflow/nodeTest'
+import { formatServerDateTime } from '@/utils/workflow/formatServerDateTime'
 
 type NodeTestSectionProps = {
 	workflowId: string
@@ -40,7 +40,9 @@ const TestResult = ({ result, isOutdated }: { result: NodeTestResult; isOutdated
 		<div className='flex flex-col gap-2'>
 			<div className='flex items-center gap-2'>
 				<span className={cn('rounded-md px-1.5 py-0.5 text-[11px] font-bold', badge.className)}>{badge.label}</span>
-				{result.testedAt ? <span className='text-xs text-neutral-500'>{formatTestedAt(result.testedAt)}</span> : null}
+				{result.testedAt ? (
+					<span className='text-xs text-neutral-500'>{formatServerDateTime(result.testedAt)}</span>
+				) : null}
 			</div>
 			{isOutdated ? <p className='m-0 text-xs text-[#9a6700]'>설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.</p> : null}
 			{result.status === 'SUCCESS' ? (
