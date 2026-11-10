@@ -1,5 +1,6 @@
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import Spinner from '@/components/common/Spinner'
+import ManualRunInputField from '@/components/workflow/settings/ManualRunInputField'
 import WebhookAddressBox from '@/components/workflow/settings/WebhookAddressBox'
 import { useNodeTest } from '@/hooks/workflow/useNodeTest'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
@@ -44,7 +45,9 @@ const TestResult = ({ result, isOutdated }: { result: NodeTestResult; isOutdated
 					<span className='text-xs text-neutral-500'>{formatServerDateTime(result.testedAt)}</span>
 				) : null}
 			</div>
-			{isOutdated ? <p className='m-0 text-xs text-[#9a6700]'>설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.</p> : null}
+			{isOutdated ? (
+				<p className='m-0 text-xs text-[#9a6700]'>설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.</p>
+			) : null}
 			{result.status === 'SUCCESS' ? (
 				<pre
 					aria-label='테스트 출력'
@@ -81,6 +84,10 @@ const NodeTestSection = ({ workflowId, node, entry, nodes, onNodeOpen, savedNode
 		isListenExpired,
 		listenRemainingLabel,
 		stopListening,
+		hasTestInput,
+		inputText,
+		inputError,
+		handleInputChange,
 	} = useNodeTest({ workflowId, node, entry, nodes, savedNode })
 
 	const renderResult = () => {
@@ -142,13 +149,14 @@ const NodeTestSection = ({ workflowId, node, entry, nodes, onNodeOpen, savedNode
 					<button
 						type='button'
 						onClick={run}
-						disabled={!availability.canTest || isRunning || isListening}
+						disabled={!availability.canTest || Boolean(inputError) || isRunning || isListening}
 						className='rounded-lg bg-main-deep-blue px-3 py-1.5 text-xs font-semibold text-white hover:bg-main-blue disabled:cursor-not-allowed disabled:bg-neutral-300'
 					>
 						{getRunLabel()}
 					</button>
 				</div>
 			</div>
+			{hasTestInput ? <ManualRunInputField value={inputText} error={inputError} onChange={handleInputChange} /> : null}
 			{isWebhook ? <WebhookAddressBox workflowId={workflowId} /> : null}
 			{isWebhook && isWorkflowActive ? (
 				<p className='m-0 rounded-lg bg-warning-100 px-3 py-2 typo-caption1_regular text-warning-700'>

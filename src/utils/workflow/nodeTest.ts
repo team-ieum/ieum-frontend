@@ -11,6 +11,31 @@ const LISTEN_CLOCK_SKEW_MS = 60_000
 
 export const isWebhookCatch = (entry: NodeCatalogEntry | undefined) => entry?.id === WEBHOOK_CATCH_EVENT
 
+/** 테스트 요청의 `input`을 트리거 출력으로 쓰는 event. 서버는 다른 노드의 `input`을 무시한다. */
+const MANUAL_RUN_EVENT = 'manual.run'
+
+export const isManualRun = (entry: NodeCatalogEntry | undefined) => entry?.id === MANUAL_RUN_EVENT
+
+type ManualRunInputParseResult = { ok: true; input?: Record<string, unknown> } | { ok: false; error: string }
+
+/**
+ * `manual.run` 테스트 입력 칸의 JSON을 요청 `input`으로 바꾼다. 비어 있으면 입력 없이 테스트한다(`input` 없음).
+ * 서버 `input`은 객체만 받으므로 배열·null·문자열·숫자는 거부한다.
+ */
+export const parseManualRunInput = (text: string): ManualRunInputParseResult => {
+	if (!text.trim()) return { ok: true }
+	let parsed: unknown
+	try {
+		parsed = JSON.parse(text)
+	} catch {
+		return { ok: false, error: 'JSON 형식이 올바르지 않아요.' }
+	}
+	if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+		return { ok: false, error: '중괄호로 감싼 객체({ … })만 넣을 수 있어요.' }
+	}
+	return { ok: true, input: parsed as Record<string, unknown> }
+}
+
 export type NodeTestAvailability = { canTest: true } | { canTest: false; reason: string }
 
 type NodeTestConditions = {

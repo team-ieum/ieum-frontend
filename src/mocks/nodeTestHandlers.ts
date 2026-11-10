@@ -64,7 +64,8 @@ export const createNodeTestHandlers = ({
 			}
 			const result: NodeTestResult = {
 				status: 'SUCCESS',
-				output: { ok: true, event: body.node?.event ?? 'unknown' },
+				// 서버처럼 manual.run 테스트 입력을 트리거 출력에 그대로 싣는다.
+				output: { ...body.input, ok: true, event: body.node?.event ?? 'unknown' },
 				testedAt: toLocalDateTime(new Date()),
 			}
 			if (remembersSamples) samples.set(sampleKey, result)
