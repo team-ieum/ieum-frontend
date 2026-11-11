@@ -1,5 +1,7 @@
 # Frontend DEV Secrets와 Blue/Green 설정
 
+MAIN 전용 설정과 CI·배포 분리는 [MAIN Blue/Green 설정](main-bluegreen-secrets.md)을 따른다.
+
 이 문서는 2026-11-01 v17 앱 네트워크 분리·공용 데이터망과 DEV_COM_ 명명 규칙을 반영한다. 이번 수정에서 GitHub 설정·서버·배포·커밋·push는 수행하지 않았다.
 
 ## 이름 규칙
@@ -20,7 +22,7 @@ Frontend 저장소의 `DEV_` Secrets를 선택하고 접두사를 한 번 제거
 NODE_VERSION·IMAGE_NAME·VITE_API_URL이나 서버 원본 `.env`로 fallback하지 않는다.
 `MAIN_`, `DEVELOPMENT_`, `DEVX_`도 선택하지 않는다. 이전에 `DEV_BACKEND_*` 이름을 만들었다면
 이 저장소에서는 `BACKEND_*`라는 확장 키가 되므로 `DEV_` + 실제 앱 변수명으로 정리한다.
-GitHub 등록값을 자동 복사·변경·삭제하지 않았다. Main/AWS workflow는 변경하지 않았다.
+GitHub 등록값은 수집기가 자동 복사·변경·삭제하지 않는다.
 
 `VITE_*`는 앱에서 참조하면 **브라우저 JavaScript에 포함될 수 있는 공개 설정**이다.
 GitHub Secret에 저장해도 빌드된 값이 비밀이 되지 않으므로 백엔드 비밀번호·토큰을 넣지 않는다.
