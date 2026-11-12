@@ -268,10 +268,10 @@ describe('NodeTestSection', () => {
 		await screen.findByText('성공')
 
 		rerenderNode({ ...triggerNode, position: { x: 10, y: 20 }, label: '이름만 바꿈' })
-		expect(screen.queryByText('설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).not.toBeInTheDocument()
+		expect(screen.queryByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).not.toBeInTheDocument()
 
 		rerenderNode({ ...triggerNode, config: { brand: 'ieum', note: '바뀐 값' } })
-		expect(screen.getByText('설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
+		expect(screen.getByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
 	})
 
 	it('설정을 바꾼 뒤 다시 실행해 성공하면 새 결과로 바꾸고 바꾸기 전 기준 안내를 지운다', async () => {
@@ -289,16 +289,16 @@ describe('NodeTestSection', () => {
 		await waitFor(() => expect(screen.getByLabelText('테스트 출력')).toHaveTextContent('"run": 1'))
 
 		rerenderNode({ ...triggerNode, config: { brand: 'ieum', note: '바뀐 값' } })
-		expect(screen.getByText('설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
+		expect(screen.getByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
 		await user.click(getTestButton())
 
 		await waitFor(() => expect(screen.getByLabelText('테스트 출력')).toHaveTextContent('"run": 2'))
-		expect(screen.queryByText('설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).not.toBeInTheDocument()
+		expect(screen.queryByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).not.toBeInTheDocument()
 	})
 
 	it('설정을 바꾼 뒤 다시 실행하는 중이거나 실패해도 이전 결과가 바꾸기 전 기준이라고 계속 알린다', async () => {
 		const user = userEvent.setup()
-		const outdatedNotice = '설정을 바꿨어요. 결과는 바꾸기 전 기준이에요.'
+		const outdatedNotice = '설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.'
 		let release!: () => void
 		const released = new Promise<void>(resolve => {
 			release = resolve
@@ -712,5 +712,108 @@ describe('NodeTestSection webhook.catch', () => {
 
 		expect(await screen.findByText(/복사하지 못했어요. 주소를 직접 선택해 복사해 주세요./)).toBeInTheDocument()
 		expect(screen.queryByText(/주소를 복사했어요/)).not.toBeInTheDocument()
+	})
+})
+
+describe('NodeTestSection manual.run 테스트 입력', () => {
+	const getInputField = () => screen.getByRole('textbox', { name: '테스트 입력 (JSON)' })
+
+	/** userEvent.type은 `{`를 키 이름으로 읽으므로 JSON은 붙여 넣는다. */
+	const replaceInput = async (user: ReturnType<typeof userEvent.setup>, text: string) => {
+		await user.clear(getInputField())
+		await user.click(getInputField())
+		if (text) await user.paste(text)
+	}
+
+	it('JSON 입력을 테스트 요청 input으로 보내고, 실제 실행에는 쓰지 않는다고 알린다', async () => {
+		const user = userEvent.setup()
+		const bodies = observeTestRequests()
+		renderSection(triggerNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+		expect(screen.getByText(/실제 실행에는 이 입력이 들어가지 않고/)).toBeInTheDocument()
+
+		await replaceInput(user, '{"orderId":"ORD-1","amount":12000,"items":[{"sku":"A"}]}')
+		await user.click(getTestButton())
+
+		await screen.findByText('성공')
+		expect(bodies[0]).toEqual({
+			node: triggerNode,
+			input: { orderId: 'ORD-1', amount: 12000, items: [{ sku: 'A' }] },
+		})
+	})
+
+	it('입력을 비우면 input 없이 테스트한다', async () => {
+		const user = userEvent.setup()
+		const bodies = observeTestRequests()
+		renderSection(triggerNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+
+		await user.click(getTestButton())
+
+		await screen.findByText('성공')
+		expect(bodies[0]).toEqual({ node: triggerNode })
+	})
+
+	it.each([
+		['JSON으로 읽을 수 없으면', '{"orderId": ', 'JSON 형식이 올바르지 않아요.'],
+		['객체가 아니면', '[1, 2]', '중괄호로 감싼 객체({ … })만 넣을 수 있어요.'],
+	])('%s 이유를 보여 주고 고칠 때까지 테스트를 끈다', async (_, text, error) => {
+		const user = userEvent.setup()
+		renderSection(triggerNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+
+		await replaceInput(user, text)
+
+		expect(screen.getByText(error)).toBeInTheDocument()
+		expect(getInputField()).toHaveAttribute('aria-invalid', 'true')
+		expect(getInputField()).toHaveAccessibleDescription(expect.stringContaining(error))
+		expect(getTestButton()).toBeDisabled()
+
+		await replaceInput(user, '{"orderId":"ORD-1"}')
+
+		expect(screen.queryByText(error)).not.toBeInTheDocument()
+		expect(getInputField()).not.toHaveAttribute('aria-invalid')
+		expect(getTestButton()).toBeEnabled()
+	})
+
+	it('테스트한 뒤 입력만 바꿔도 결과가 바꾸기 전 기준이라고 알리고, 키 순서·공백만 바꾸면 알리지 않는다', async () => {
+		const user = userEvent.setup()
+		observeTestRequests()
+		renderSection(triggerNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+		await replaceInput(user, '{"a":1,"b":2}')
+		await user.click(getTestButton())
+		await screen.findByText('성공')
+
+		await replaceInput(user, '{ "b": 2, "a": 1 }')
+		expect(screen.queryByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).not.toBeInTheDocument()
+
+		await replaceInput(user, '{"a":1,"b":3}')
+		expect(screen.getByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
+	})
+
+	it('테스트한 뒤 입력을 고치는 중 JSON이 깨져도 결과가 바꾸기 전 기준이라는 안내를 유지한다', async () => {
+		const user = userEvent.setup()
+		observeTestRequests()
+		renderSection(triggerNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+		await replaceInput(user, '{"a":1}')
+		await user.click(getTestButton())
+		await screen.findByText('성공')
+
+		await replaceInput(user, '{"a":')
+
+		expect(screen.getByText('JSON 형식이 올바르지 않아요.')).toBeInTheDocument()
+		expect(screen.getByText('설정이나 입력을 바꿨어요. 결과는 바꾸기 전 기준이에요.')).toBeInTheDocument()
+	})
+
+	it.each([
+		['action 노드', slackNode],
+		['webhook.catch', webhookNode],
+	])('%s에는 테스트 입력 칸이 없다', async (_, node) => {
+		renderSection(node)
+
+		await screen.findByRole('heading', { name: '테스트' })
+		expect(screen.queryByRole('textbox', { name: '테스트 입력 (JSON)' })).not.toBeInTheDocument()
 	})
 })

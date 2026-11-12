@@ -6,9 +6,10 @@ import {
 	getListenWindow,
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
-	formatTestedAt,
 	getNodeTestErrorMessage,
+	isManualRun,
 	isSampleRecordedSince,
+	parseManualRunInput,
 	requiresRunConfirm,
 } from '@/utils/workflow/nodeTest'
 
@@ -176,9 +177,38 @@ describe('nodeTest', () => {
 		})
 	})
 
-	it('오프셋 없는 서버 시각을 변환하지 않고 월·일·시각으로 보여 주며 모르는 형식은 그대로 둔다', () => {
-		expect(formatTestedAt('2026-11-02T09:05:30')).toBe('11월 2일 09:05')
-		expect(formatTestedAt('2026-11-02T09:05:30.123456')).toBe('11월 2일 09:05')
-		expect(formatTestedAt('어제')).toBe('어제')
+	it('manual.run만 테스트 입력을 받는다', () => {
+		expect(isManualRun(findEntry('manual.run'))).toBe(true)
+		expect(isManualRun(findEntry('webhook.catch'))).toBe(false)
+		expect(isManualRun(undefined)).toBe(false)
+	})
+
+	describe('parseManualRunInput', () => {
+		it.each([
+			['빈 문자열', ''],
+			['공백뿐', '  \n '],
+		])('%s이면 입력 없이 테스트한다', (_, text) => {
+			expect(parseManualRunInput(text)).toEqual({ ok: true })
+		})
+
+		it('객체 JSON은 숫자·불리언·중첩 값을 그대로 입력으로 쓴다', () => {
+			expect(parseManualRunInput('{"orderId":"ORD-1","amount":12000,"paid":true,"items":[{"sku":"A"}]}')).toEqual({
+				ok: true,
+				input: { orderId: 'ORD-1', amount: 12000, paid: true, items: [{ sku: 'A' }] },
+			})
+		})
+
+		it('JSON으로 읽을 수 없으면 형식 오류를 알린다', () => {
+			expect(parseManualRunInput('{"orderId": ')).toEqual({ ok: false, error: 'JSON 형식이 올바르지 않아요.' })
+		})
+
+		it.each([
+			['배열', '[1, 2]'],
+			['null', 'null'],
+			['문자열', '"주문"'],
+			['숫자', '42'],
+		])('%s은 객체가 아니라서 거부한다', (_, text) => {
+			expect(parseManualRunInput(text)).toEqual({ ok: false, error: '중괄호로 감싼 객체({ … })만 넣을 수 있어요.' })
+		})
 	})
 })
