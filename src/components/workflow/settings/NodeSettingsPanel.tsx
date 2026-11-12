@@ -184,13 +184,14 @@ const NodeSettingsPanel = ({
 						</ul>
 					</div>
 				) : null}
-				{fields.map(({ field, value, name, options }) => (
+				{fields.map(({ field, value, name, options, notice }) => (
 					<NodeSettingsField
 						key={field.path}
 						field={field}
 						value={value}
 						name={name}
 						options={options}
+						notice={notice}
 						references={references}
 						validationErrors={validationErrorsByPath.get(field.path)}
 						onChange={(next, nextName) => changeField(field, next, nextName)}

@@ -38,6 +38,7 @@ export type NodeOptionsInputsState =
 /**
  * 연쇄 칸의 부모 값을 options 쿼리로 모은다.
  * 부모 칸은 칸 순서가 아니라 `optionsInputs`의 key로 같은 노드에서 찾는다.
+ * 비운 부모 칸에 카탈로그 기본값이 있으면 실행과 같게 그 값으로 부른다(예: 캘린더를 비우면 `primary`).
  */
 export const getOptionsInputsState = (
 	entry: NodeCatalogEntry,
@@ -50,6 +51,11 @@ export const getOptionsInputsState = (
 		const value = parent ? getAtPath(node, parent.path) : undefined
 		const parentTitle = parent?.title ?? key
 		if (value === undefined || value === null || String(value).trim() === '') {
+			const fallback = parent?.default
+			if (typeof fallback === 'string' && fallback.trim() !== '') {
+				inputs[key] = fallback
+				continue
+			}
 			return { status: 'blocked', reason: 'empty', parentTitle }
 		}
 		if (String(value).includes('{{')) return { status: 'blocked', reason: 'reference', parentTitle }
@@ -58,12 +64,15 @@ export const getOptionsInputsState = (
 	return { status: 'ready', inputs }
 }
 
-/** 부모 칸이 막혀 목록을 부를 수 없을 때 칸 아래에 보여 줄 이유. 막히지 않았으면 null이다. */
-export const getOptionsBlockedMessage = (inputsState: NodeOptionsInputsState) => {
+/**
+ * 부모 칸이 막혀 목록을 부를 수 없을 때 칸 아래에 보여 줄 이유. 막히지 않았으면 null이다.
+ * `canUseReference`면 부모가 참조식일 때 이 칸도 참조식으로 넣으라고 안내한다.
+ */
+export const getOptionsBlockedMessage = (inputsState: NodeOptionsInputsState, canUseReference = false) => {
 	if (inputsState.status !== 'blocked') return null
-	return inputsState.reason === 'reference'
-		? `'${inputsState.parentTitle}' 칸이 참조식이라 목록에서 고를 수 없어요.`
-		: `'${inputsState.parentTitle}' 칸을 먼저 채우면 목록에서 고를 수 있어요.`
+	if (inputsState.reason === 'empty') return `'${inputsState.parentTitle}' 칸을 먼저 채우면 목록에서 고를 수 있어요.`
+	const message = `'${inputsState.parentTitle}' 칸이 참조식이라 목록에서 고를 수 없어요.`
+	return canUseReference ? `${message} 이 칸도 '참조식'으로 바꿔 넣어 주세요.` : message
 }
 
 /** 드롭다운 칸이 목록을 부르는 데 필요한 정보. */
@@ -74,6 +83,8 @@ export type NodeFieldOptions = {
 	emptyHint?: string
 	/** 목록 맨 위 비우기 행 이름. 없으면 '선택 안 함'이다. */
 	clearLabel?: string
+	/** 드롭다운과 함께 값/참조식 전환을 두는지. 앞 노드 출력을 넘겨야 하는 칸만 켠다(Calendar 일정·캘린더). */
+	canUseReference?: boolean
 }
 
 export type NodeOptionsErrorNotice = {

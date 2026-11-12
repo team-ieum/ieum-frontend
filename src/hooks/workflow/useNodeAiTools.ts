@@ -9,6 +9,7 @@ import {
 	ensureAiToolObject,
 	findAiToolEntry,
 	findAiToolsField,
+	getVisibleAiToolFields,
 	isAiDecidedWhenEmpty,
 	isAiNodeEvent,
 	readAiToolNames,
@@ -60,7 +61,7 @@ export const useNodeAiTools = ({ node, entries, onNodeChange }: UseNodeAiToolsOp
 		// choices 밖 도구(mcp 등)는 칸을 그리지 않고 원소를 그대로 보존한다.
 		const toolEntry = choice ? findAiToolEntry(entries, toolKey) : undefined
 		const fieldEntry = toolEntry ? createAiToolFieldEntry(toolEntry, index) : undefined
-		const fields = (fieldEntry?.inputFields ?? []).map(field => ({
+		const fields = getVisibleAiToolFields(toolKey, fieldEntry?.inputFields ?? []).map(field => ({
 			field,
 			value: getAtPath(node, field.path),
 			name: getFieldName(node, field),

@@ -43,6 +43,8 @@ export type NodeReferenceGroup = {
 /** 참조 검사에 쓰는 노드 하나의 정보. `paths`가 `null`이면 출력 경로를 알 수 없어(동적 출력·카탈로그 밖) 경로는 검사하지 않는다. */
 export type NodeReferenceTarget = {
 	label: string
+	/** 노드 event. 앱별 참조 경고(예: Calendar 찾기 결과의 종료일)를 가리는 데 쓴다. */
+	event: string
 	paths: NodeOutputPath[] | null
 }
 

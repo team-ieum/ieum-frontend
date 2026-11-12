@@ -17,6 +17,7 @@ import { getFieldName, updateNodeField } from '@/utils/workflow/updateNodeField'
 import { matchValidationErrorsToPaths } from '@/utils/workflow/matchValidationErrorsToPaths'
 import { readAiToolNames } from '@/utils/workflow/aiTools'
 import { isSameNodeDefinition } from '@/utils/workflow/isSameNodeDefinition'
+import { getGoogleCalendarFieldRule } from '@/utils/workflow/getGoogleCalendarFieldRule'
 
 /**
  * 설정 패널 본문 상태.
@@ -73,10 +74,10 @@ export const useNodeSettingsPanel = ({
 			? 'ready'
 			: 'outsideCatalog'
 
-	const getFieldOptions = (field: NodeCatalogInputField): NodeFieldOptions | undefined => {
+	const getFieldOptions = (field: NodeCatalogInputField, canUseReference: boolean): NodeFieldOptions | undefined => {
 		if (!entry || !field.optionsSource) return undefined
 		const inputsState = getOptionsInputsState(entry, node, field)
-		if (field !== modelField) return { source: field.optionsSource, inputsState }
+		if (field !== modelField) return { source: field.optionsSource, inputsState, canUseReference }
 		// 제공자가 비었거나 참조식이어도 비운 model은 기본 모델로 실행되므로 이름만 빼고 안내한다.
 		const defaultModel =
 			inputsState.status === 'ready'
@@ -102,14 +103,20 @@ export const useNodeSettingsPanel = ({
 	}))
 
 	// 도구 칸과 출력 칸은 각각 도구 카드 영역(`aiTools`)과 출력 칸 편집기(`outputFields`)가 따로 그린다.
+	// 앱 전용 규칙을 입힌 칸도 key·path는 카탈로그 칸과 같아 값 쓰기·연쇄 정리는 그대로 동작한다.
 	const fields = (entry?.inputFields ?? [])
 		.filter(field => field !== aiTools?.toolsField && field !== outputFields?.field)
-		.map(field => ({
-			field,
-			value: getAtPath(node, field.path),
-			name: getFieldName(node, field),
-			options: getFieldOptions(field),
-		}))
+		.map(catalogField => {
+			const value = getAtPath(node, catalogField.path)
+			const rule = getGoogleCalendarFieldRule(node.event, catalogField, value, context)
+			return {
+				field: rule.field,
+				value,
+				name: getFieldName(node, rule.field),
+				options: getFieldOptions(catalogField, rule.canUseOptionsReference),
+				notice: rule.notice,
+			}
+		})
 
 	// 검사 오류의 도구 index는 검사한 저장 버전 기준이라, 그 뒤 도구를 빼거나 바꿔 같은 index에 다른 도구가 오면
 	// 그 도구 칸에 붙이지 않고 도구 섹션(`config.tools`)으로 보낸다.

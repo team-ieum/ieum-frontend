@@ -19,6 +19,8 @@ type NodeOptionsComboboxProps = {
 	clearLabel?: string
 	triggerClassName: string
 	describedBy?: string
+	/** 칸이 참조식 방식을 함께 쓰는지. 부모 칸이 참조식이라 막혔을 때 참조식으로 넣으라고 안내한다. */
+	canUseReference?: boolean
 	onSelect: (option: NodeOption) => void
 	onClear: () => void
 }
@@ -35,6 +37,7 @@ const NodeOptionsCombobox = ({
 	clearLabel = '선택 안 함',
 	triggerClassName,
 	describedBy,
+	canUseReference = false,
 	onSelect,
 	onClear,
 }: NodeOptionsComboboxProps) => {
@@ -46,7 +49,7 @@ const NodeOptionsCombobox = ({
 		onSelect,
 		onClear,
 	})
-	const blockedMessage = getOptionsBlockedMessage(inputsState)
+	const blockedMessage = getOptionsBlockedMessage(inputsState, canUseReference)
 	// 빈 이름은 이름이 없는 것으로 보고 ID를 보여 준다. 목록에 없는 값·참조식도 그대로 보여 준다.
 	const displayText = name || formatFieldDraft(value)
 	const showsId = showsOptionId(source)

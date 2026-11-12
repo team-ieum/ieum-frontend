@@ -1,5 +1,6 @@
 import { setupWorker } from 'msw/browser'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
+import { createNodeOptionsHandlers } from '@/mocks/nodeOptionsHandlers'
 import { createNodeTestHandlers } from '@/mocks/nodeTestHandlers'
 import { createWebhookTokenHandlers } from '@/mocks/webhookTokenHandlers'
 import { createWorkflowValidateHandler } from '@/mocks/workflowValidationHandlers'
@@ -15,6 +16,7 @@ export const enableMeasurementMode = async () => {
 	const worker = setupWorker(
 		...createDelayedSuccessHandlers(delayMs),
 		...createNodeTestHandlers({ delayMs, remembersSamples: true }),
+		...createNodeOptionsHandlers({ delayMs }),
 		...createWebhookTokenHandlers({ delayMs, remembersTokens: true }),
 		createWorkflowValidateHandler()
 	)
