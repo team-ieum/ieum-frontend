@@ -5,6 +5,7 @@ import { INTEGRATION_STATUS_LABEL } from '@/constants/integration/statusLabels'
 import type { IntegrationService } from '@/types/integration'
 import { toConnectedDisplayStatus } from '@/utils/integration/selectors'
 import { cn } from '@/utils/cn'
+import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 
 type IntegrationConnectedCardProps = {
 	service: IntegrationService
@@ -31,7 +32,10 @@ const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: Inte
 					{brand.icon}
 				</span>
 				<div className='min-w-0 flex-1'>
-					<h3 className='typo-body2_semibold m-0 truncate text-neutral-900'>{service.name}</h3>
+					<div className='flex min-w-0 items-center gap-1.5'>
+						<h3 className='typo-body2_semibold m-0 truncate text-neutral-900'>{service.name}</h3>
+						{service.connectionMethod && <IntegrationConnectionMethodBadge method={service.connectionMethod} />}
+					</div>
 					<p className='typo-caption1_regular m-0 truncate text-neutral-500'>{service.account}</p>
 				</div>
 				<span

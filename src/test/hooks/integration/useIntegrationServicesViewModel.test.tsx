@@ -3,7 +3,9 @@ import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import type { PropsWithChildren } from 'react'
 import { describe, expect, it } from 'vitest'
 import { useIntegrationServicesViewModel } from '@/hooks/integration/useIntegrationServicesViewModel'
-import { createPartialFailureHandlers, createResourceSuccessHandler } from '@/mocks/apiScenarios'
+import { http, HttpResponse } from 'msw'
+import { createPartialFailureHandlers, createResourceEmptyHandler, createResourceSuccessHandler } from '@/mocks/apiScenarios'
+import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 
@@ -37,9 +39,12 @@ describe('useIntegrationServicesViewModel', () => {
 					origin: 'oauth',
 				}),
 			])
-			expect(result.current.available.map(service => service.brand)).not.toEqual(
-				expect.arrayContaining(['slack', 'google', 'gmail', 'sheets'])
-			)
+			const availableIds = result.current.available.map(service => service.id)
+			// Slack 웹훅만 연결된 상태라 웹훅 타일만 빠지고 봇 타일은 남는다.
+			expect(availableIds).toContain('slack')
+			for (const excludedId of ['slack-webhook', 'google', 'gmail', 'sheets']) {
+				expect(availableIds).not.toContain(excludedId)
+			}
 			expect(result.current.connectedCount).toBe(result.current.connected.length)
 			expect(result.current.availableCount).toBe(result.current.available.length)
 			expect(result.current.canNormalizeDetail).toBe(true)
@@ -87,6 +92,36 @@ describe('useIntegrationServicesViewModel', () => {
 			expect(result.current.canResolveAvailable).toBe(true)
 			expect(result.current.canNormalizeDetail).toBe(false)
 			await waitFor(() => expect(result.current.webhookResource.isRefetching).toBe(false))
+		} finally {
+			queryClient.clear()
+		}
+	})
+
+	it('Slack 봇이 연결되면 봇 타일만 빼고 웹훅 타일은 남기며 카드에 워크스페이스 이름과 봇 방식을 표시한다', async () => {
+		server.use(
+			createResourceEmptyHandler('webhookCredentials'),
+			http.get('*/api/v1/oauth/connections', () =>
+				HttpResponse.json({ ...oauthConnectionsResponse, data: [slackOAuthConnection] })
+			)
+		)
+		const queryClient = createTestQueryClient()
+		const { result } = renderHook(() => useIntegrationServicesViewModel(), { wrapper: createWrapper(queryClient) })
+
+		try {
+			await waitFor(() => expect(result.current.canResolveAvailable).toBe(true))
+
+			expect(result.current.connected).toEqual([
+				expect.objectContaining({
+					brand: 'slack',
+					origin: 'oauth',
+					oauthProvider: 'SLACK',
+					connectionMethod: 'bot',
+					account: '이음 팀',
+				}),
+			])
+			const availableIds = result.current.available.map(service => service.id)
+			expect(availableIds).not.toContain('slack')
+			expect(availableIds).toContain('slack-webhook')
 		} finally {
 			queryClient.clear()
 		}

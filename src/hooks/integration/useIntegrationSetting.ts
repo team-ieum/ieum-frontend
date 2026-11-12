@@ -30,6 +30,7 @@ type UseIntegrationSettingResult = {
 	onConnect: (id: string) => void
 	onDisconnect: () => void
 	isDisconnecting: boolean
+	canDisconnect: boolean
 	webhookConnectServiceId: WebhookConnectServiceId | null
 	closeWebhookConnect: () => void
 }
@@ -49,7 +50,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		shouldReturnToList: navigation.hasServiceIdParam,
 		onReturnToList: navigation.goList,
 	})
-	const { disconnect, isDisconnecting } = useIntegrationDisconnect({
+	const { disconnect, isDisconnecting, canDisconnect } = useIntegrationDisconnect({
 		service: navigation.currentService,
 		onDisconnected: navigation.goList,
 	})
@@ -81,6 +82,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		onConnect,
 		onDisconnect: disconnect,
 		isDisconnecting,
+		canDisconnect,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	}

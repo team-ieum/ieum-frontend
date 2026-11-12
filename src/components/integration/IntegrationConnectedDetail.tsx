@@ -2,11 +2,13 @@ import type { Ref } from 'react'
 import { ArrowLeft, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { IntegrationService } from '@/types/integration'
+import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
 type IntegrationConnectedDetailProps = {
 	service: IntegrationService
 	onBack: () => void
+	/** 해제할 수 있는 연결일 때만 넘긴다. 없으면 해제 버튼을 렌더하지 않는다. */
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
 	headingRef?: Ref<HTMLHeadingElement>
@@ -39,9 +41,12 @@ const IntegrationConnectedDetail = ({
 						{brand.icon}
 					</span>
 					<div className='min-w-0 flex-1'>
-						<h2 ref={headingRef} tabIndex={-1} className='typo-title2_bold m-0 text-neutral-900'>
-							{service.name}
-						</h2>
+						<div className='flex flex-wrap items-center gap-2'>
+							<h2 ref={headingRef} tabIndex={-1} className='typo-title2_bold m-0 text-neutral-900'>
+								{service.name}
+							</h2>
+							{service.connectionMethod && <IntegrationConnectionMethodBadge method={service.connectionMethod} />}
+						</div>
 						<p className='typo-body3_regular m-0 text-neutral-600'>{service.account}</p>
 					</div>
 					{isError && (
@@ -49,7 +54,7 @@ const IntegrationConnectedDetail = ({
 							연결 오류
 						</span>
 					)}
-					{service.origin === 'webhook' && onDisconnect && (
+					{onDisconnect && (
 						<button
 							type='button'
 							onClick={onDisconnect}

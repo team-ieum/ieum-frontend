@@ -4,10 +4,17 @@ import type { IntegrationService } from '@/types/integration'
 export const AVAILABLE_INTEGRATION_CATALOG: IntegrationService[] = [
 	{
 		id: 'slack',
-		name: 'Slack',
+		name: 'Slack 봇',
 		brand: 'slack',
 		status: 'available',
-		desc: '채널 메시지 전송 및 Incoming Webhook',
+		desc: '공개 채널에 봇으로 메시지 보내기',
+	},
+	{
+		id: 'slack-webhook',
+		name: 'Slack 웹훅',
+		brand: 'slack',
+		status: 'available',
+		desc: 'Incoming Webhook으로 지정 채널에 보내기',
 	},
 	{
 		id: 'notion',
