@@ -100,11 +100,11 @@ const Harness = ({
 const getFieldInput = (title: string) =>
 	screen.getByLabelText(new RegExp(`^${title}`), { selector: 'input, textarea, select, button' })
 
-/** 설정 드롭다운을 열고 `{title} 목록`에서 항목을 고른다. */
+/** 설정 드롭다운을 열고 `{title} 목록`에서 항목을 고른다. options 목록은 열린 뒤 응답이 와야 항목이 생겨 항목도 기다린다. */
 const chooseFromDropdown = async (user: ReturnType<typeof userEvent.setup>, title: string, optionName: string | RegExp) => {
 	await user.click(getFieldInput(title))
 	const listbox = await screen.findByRole('listbox', { name: `${title} 목록` })
-	await user.click(within(listbox).getByRole('option', { name: optionName }))
+	await user.click(await within(listbox).findByRole('option', { name: optionName }))
 }
 
 const renderPanel = (initialNode: WorkflowNodeDto) => {
