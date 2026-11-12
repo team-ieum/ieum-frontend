@@ -90,7 +90,7 @@ const openDisconnectConfirm = async () => {
 	return { ...rendered, dialog }
 }
 
-const useSlackBotConnected = () =>
+const mockSlackBotConnected = () =>
 	server.use(
 		http.get('*/api/v1/oauth/connections', () =>
 			HttpResponse.json({ ...oauthConnectionsResponse, data: [...oauthConnectionsResponse.data, slackOAuthConnection] })
@@ -233,14 +233,16 @@ describe('통합 설정 Slack 봇 연결', () => {
 	})
 
 	it('연결된 카드에 봇과 웹훅 연결 방식을 배지로 구분한다', async () => {
-		useSlackBotConnected()
+		mockSlackBotConnected()
 		renderAppRoute('/inter-setting')
 
 		const botHeading = await screen.findByRole('heading', { level: 3, name: 'Slack' })
 		const botCard = botHeading.closest('article') as HTMLElement
 		expect(within(botCard).getByText('봇')).toBeInTheDocument()
 		expect(within(botCard).getByText('이음 팀')).toBeInTheDocument()
-		const webhookCard = screen.getByRole('heading', { level: 3, name: '팀 Slack' }).closest('article') as HTMLElement
+		// 웹훅·OAuth 연결 목록은 따로 도착하므로 웹훅 카드도 따로 기다린다.
+		const webhookHeading = await screen.findByRole('heading', { level: 3, name: '팀 Slack' })
+		const webhookCard = webhookHeading.closest('article') as HTMLElement
 		expect(within(webhookCard).getByText('웹훅')).toBeInTheDocument()
 	})
 
@@ -252,7 +254,7 @@ describe('통합 설정 Slack 봇 연결', () => {
 	})
 
 	it('Slack 봇 해제는 재초대 안내를 확인한 뒤 Slack 해제 API를 호출하고 목록으로 돌아간다', async () => {
-		useSlackBotConnected()
+		mockSlackBotConnected()
 		const deleteRequest = vi.fn()
 		server.use(
 			http.delete('*/api/v1/slack/oauth2/connection', () => {

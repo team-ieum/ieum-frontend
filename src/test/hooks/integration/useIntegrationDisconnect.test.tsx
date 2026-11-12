@@ -168,4 +168,51 @@ describe('useIntegrationDisconnect', () => {
 		expect(onDisconnected).not.toHaveBeenCalled()
 		expect(useModalStore.getState().isOpen).toBe(false)
 	})
+
+	// 같은 화면에서 목록으로 돌아가 다른 서비스 상세를 열면 훅은 마운트된 채 service만 바뀐다.
+	it.each([
+		['성공', () => new HttpResponse(null, { status: 204 })],
+		[
+			'실패',
+			() =>
+				HttpResponse.json(
+					{ success: false, data: null, message: 'Slack 해제에 실패했어요.', code: 'INTERNAL_SERVER_ERROR' },
+					{ status: 500 }
+				),
+		],
+	])(
+		'응답 전에 다른 서비스 상세로 바꾸면 이전 서비스의 늦은 %s 응답이 목록 이동이나 오류 modal을 실행하지 않는다',
+		async (_, respond) => {
+			const response = createDeferred()
+			const deleteRequest = vi.fn()
+			server.use(
+				http.delete('*/api/v1/slack/oauth2/connection', async () => {
+					deleteRequest()
+					await response.promise
+					return respond()
+				})
+			)
+			const onDisconnected = vi.fn()
+			const queryClient = createTestQueryClient()
+			const { result, rerender } = renderHook(
+				({ current }: { current: IntegrationService }) => useIntegrationDisconnect({ service: current, onDisconnected }),
+				{
+					initialProps: { current: slackBotService },
+					wrapper: ({ children }: { children: ReactNode }) => (
+						<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+					),
+				}
+			)
+
+			act(() => result.current.disconnect())
+			confirmModal()
+			await waitFor(() => expect(deleteRequest).toHaveBeenCalledOnce())
+			rerender({ current: service })
+
+			response.resolve()
+			await waitFor(() => expect(queryClient.isMutating()).toBe(0))
+			expect(onDisconnected).not.toHaveBeenCalled()
+			expect(useModalStore.getState().isOpen).toBe(false)
+		}
+	)
 })

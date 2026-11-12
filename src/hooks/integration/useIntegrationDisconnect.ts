@@ -22,7 +22,7 @@ const buildDisconnectMessage = (service: IntegrationService): string => {
  * 연결된 서비스 해제 command를 제공한다.
  * 위험 동작 확인 modal을 거쳐 웹훅 자격증명을 삭제하거나 OAuth 연결을 해제하고, 성공하면 `onDisconnected`를 호출한다.
  * 해제할 수 없는 서비스(`canDisconnect`가 false)이거나 요청이 진행 중이면 `disconnect`는 아무것도 하지 않는다.
- * 응답 전에 화면을 떠나면 늦은 응답으로 목록 이동이나 오류 modal을 실행하지 않는다.
+ * 응답 전에 화면을 떠나거나 다른 서비스 상세로 바꾸면 늦은 응답으로 목록 이동이나 오류 modal을 실행하지 않는다.
  */
 export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegrationDisconnectOptions) => {
 	const { mutateAsync: deleteWebhookCredential, isPending: isDeletingWebhook } = useDeleteWebhookCredentialMutation()
@@ -31,15 +31,17 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 	const openModal = useModalStore(state => state.open)
 	const isDisconnecting = isDeletingWebhook || isDeletingOAuth
 	const canDisconnect = service !== undefined && canDisconnectIntegrationService(service)
-	// 다른 화면으로 이동한 뒤 응답이 오면 onDisconnected(목록 이동)가 떠난 화면의 search param을 바꾸므로 막는다.
-	const isMountedRef = useRef(false)
+	const serviceId = service?.id
+	// 응답이 왔을 때 요청한 서비스를 아직 보고 있는지 판정한다. 화면을 떠나면 undefined가 된다.
+	// 다른 서비스 상세나 다른 화면에서 onDisconnected(목록 이동)·오류 modal이 실행되지 않게 막는다.
+	const currentServiceIdRef = useRef<string | undefined>(undefined)
 
 	useEffect(() => {
-		isMountedRef.current = true
+		currentServiceIdRef.current = serviceId
 		return () => {
-			isMountedRef.current = false
+			currentServiceIdRef.current = undefined
 		}
-	}, [])
+	}, [serviceId])
 
 	const disconnect = useCallback(() => {
 		if (!service || !canDisconnect || isDisconnecting) return
@@ -49,9 +51,9 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 			try {
 				if (origin === 'oauth' && oauthProvider) await deleteOAuthConnection(oauthProvider)
 				else await deleteWebhookCredential(id)
-				if (isMountedRef.current) onDisconnected()
+				if (currentServiceIdRef.current === id) onDisconnected()
 			} catch (error) {
-				if (!isMountedRef.current) return
+				if (currentServiceIdRef.current !== id) return
 				openModal('연결 해제 실패', isApiError(error) ? error.message : '연결을 해제하지 못했습니다. 다시 시도해주세요.')
 			}
 		}
