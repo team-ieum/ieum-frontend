@@ -68,8 +68,11 @@ controller는 `/home/kwung/deploy/bluegreen-main/bluegreen.py`, helper는
    artifact ID로 다운로드한다. 같은 source SHA·run ID·attempt, 이미지 tar SHA-256,
    공개 빌드 값과 배포 메타데이터의 해시를 검증한다. 두 job 사이 빌드·배포 설정이
    바뀌었으면 배포하지 않는다. 빌드에 사용하지 않는 runtime 값은 이 비교 대상이 아니다.
-5. MAIN controller/helper 설치 해시를 확인한 다음 이미지를 불러온다. 이미지 ID가
-   빌드 결과와 같은지 확인하고 tag 대신 검증된 image ID로 controller에 전달한다.
+5. MAIN controller/helper 설치 해시를 확인한 다음 이미지를 불러온다. classic Docker의
+   config ID와 containerd의 manifest/index ID를 구분하고, tar 안의 Docker·OCI 참조가
+   같은 MAIN 태그와 linux/amd64 설정을 가리키는지 검증한다. 저장 방식 변환으로 새 ID가
+   생기면 로드한 이미지를 임시 tar로 다시 저장해 config 해시가 같은지 확인하고 정리한다.
+   tag 대신 배포 서버에서 검증된 실제 image ID를 controller에 전달한다.
    이 러너에서 npm 설치·테스트·빌드는 실행하지 않는다.
 6. controller가 MAIN 후보 환경 준비·검증·전환을 수행한다. 후보 설정과 임시 다운로드
    파일은 성공 여부와 관계없이 정리하며, controller가 보관하는 색상별 스냅샷은 유지한다.
@@ -96,5 +99,6 @@ npm run build
 ```
 
 새 테스트는 MAIN/DEV 수집 격리, MAIN 도메인·경로·네트워크·이름 검증,
-설정 변경과 이미지 변조·다른 실행 artifact 거절을 다룬다. 실제 MAIN 배포 검증은
+설정 변경과 이미지 변조·다른 실행 artifact 거절, classic/containerd 간 이미지 전달,
+OCI 태그·descriptor·config 변조 및 attestation ID 거절을 다룬다. 실제 MAIN 배포 검증은
 서버 준비와 별도 실행 승인이 완료된 뒤 진행한다.

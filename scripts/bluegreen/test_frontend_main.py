@@ -105,7 +105,7 @@ class MainArtifactTest(unittest.TestCase):
         self.bundle = self.root / 'ieum-frontend-bundle.synthetic'
         self.bundle.mkdir(mode=0o700)
         self.environment = {'GITHUB_RUN_ID': '42', 'GITHUB_RUN_ATTEMPT': '1',
-                            'GITHUB_OUTPUT': str(self.root / 'output')}
+                            'GITHUB_OUTPUT': str(self.root / 'output'), 'RUNNER_TEMP': str(self.root)}
         self.patch_env = patch.dict(os.environ, {'RUNNER_TEMP': str(self.root)})
         self.patch_env.start()
         self.addCleanup(self.patch_env.stop)
@@ -113,22 +113,63 @@ class MainArtifactTest(unittest.TestCase):
         self.config = json.dumps({'architecture': 'amd64', 'os': 'linux', 'config': {}}).encode()
         self.image_id = 'sha256:' + hashlib.sha256(self.config).hexdigest()
 
+    def write_archive(self, entries, path=None):
+        with tarfile.open(path or self.bundle / artifact.ARCHIVE, 'w') as output:
+            for name, content in entries.items():
+                entry = tarfile.TarInfo(name); entry.size = len(content)
+                output.addfile(entry, io.BytesIO(content))
+
     def create_archive(self, tags=None, extra=None):
         config_name = self.image_id[7:] + '.json'
         manifest = [{'Config': config_name, 'RepoTags': tags or [IMAGE + ':' + SOURCE], 'Layers': ['layer.tar']}]
         entries = {'manifest.json': json.dumps(manifest).encode(), config_name: self.config, 'layer.tar': b'layer'}
         entries.update(extra or {})
-        with tarfile.open(self.bundle / artifact.ARCHIVE, 'w') as output:
-            for name, content in entries.items():
-                entry = tarfile.TarInfo(name); entry.size = len(content)
-                output.addfile(entry, io.BytesIO(content))
+        self.write_archive(entries)
 
-    def pack(self):
+    def oci_entries(self, index=True, config=None):
+        """containerd docker save의 OCI + Docker 호환 manifest 및 BuildKit attestation 형태."""
+        entries = {}
+
+        def blob(content, media_type):
+            encoded = content if isinstance(content, bytes) else json.dumps(content).encode()
+            digest = 'sha256:' + hashlib.sha256(encoded).hexdigest()
+            entries['blobs/sha256/' + digest[7:]] = encoded
+            return {'mediaType': media_type, 'digest': digest, 'size': len(encoded)}
+
+        configuration = blob(self.config if config is None else config, 'application/vnd.oci.image.config.v1+json')
+        layer = blob(b'layer', 'application/vnd.oci.image.layer.v1.tar')
+        manifest_type = 'application/vnd.oci.image.manifest.v1+json'
+        image_manifest = blob({'schemaVersion': 2, 'mediaType': manifest_type,
+            'config': configuration, 'layers': [layer]}, manifest_type)
+        image_manifest['platform'] = {'architecture': 'amd64', 'os': 'linux'}
+        root = image_manifest
+        attestation = None
+        if index:
+            attestation_config = blob({'architecture': 'unknown', 'os': 'unknown'}, 'application/vnd.oci.image.config.v1+json')
+            attestation = blob({'schemaVersion': 2, 'mediaType': manifest_type,
+                'config': attestation_config, 'layers': []}, manifest_type)
+            attestation.update({'platform': {'architecture': 'unknown', 'os': 'unknown'},
+                'annotations': {'vnd.docker.reference.type': 'attestation-manifest',
+                                'vnd.docker.reference.digest': image_manifest['digest']}})
+            index_type = 'application/vnd.oci.image.index.v1+json'
+            root = blob({'schemaVersion': 2, 'mediaType': index_type,
+                         'manifests': [image_manifest, attestation]}, index_type)
+        root['annotations'] = {'io.containerd.image.name': 'docker.io/library/' + IMAGE + ':' + SOURCE,
+                               'org.opencontainers.image.ref.name': SOURCE}
+        entries['oci-layout'] = b'{"imageLayoutVersion":"1.0.0"}'
+        entries['index.json'] = json.dumps({'schemaVersion': 2, 'manifests': [root]}).encode()
+        entries['manifest.json'] = json.dumps([{'Config': 'blobs/sha256/' + configuration['digest'][7:],
+            'RepoTags': [IMAGE + ':' + SOURCE], 'Layers': ['blobs/sha256/' + layer['digest'][7:]]}]).encode()
+        return root['digest'], entries, attestation
+
+    def pack(self, oci=False):
+        image_id, entries, _ = self.oci_entries() if oci else (self.image_id, None, None)
         def docker(*arguments):
             if arguments[:3] == ('docker', 'image', 'inspect'):
-                return self.image_id
+                return image_id
             if arguments[:3] == ('docker', 'image', 'save'):
-                self.create_archive(); return ''
+                self.write_archive(entries) if oci else self.create_archive()
+                return ''
             raise AssertionError('Unexpected Docker operation')
         with patch.object(artifact, 'command', side_effect=docker):
             value = artifact.pack(self.bundle, self.settings, IMAGE, SOURCE, self.environment)
@@ -200,9 +241,144 @@ class MainArtifactTest(unittest.TestCase):
 
     def test_loaded_id_mismatch_is_not_passed_to_controller(self):
         self.pack()
-        with patch.object(artifact, 'command', side_effect=['loaded', 'sha256:' + 'b' * 64]), \
+        wrong_config = json.dumps({'architecture': 'amd64', 'os': 'linux', 'config': {'Env': ['WRONG=true']}}).encode()
+        wrong_id, entries, _ = self.oci_entries(config=wrong_config)
+        def docker(*arguments):
+            if arguments[:3] == ('docker', 'image', 'load'):
+                return ''
+            if arguments[:3] == ('docker', 'image', 'inspect'):
+                return wrong_id
+            self.assertEqual(arguments[:4], ('docker', 'image', 'save', '--output'))
+            self.write_archive(entries, arguments[4])
+            return ''
+        Path(self.environment['GITHUB_OUTPUT']).write_text('')
+        with patch.object(artifact, 'command', side_effect=docker), \
                 self.assertRaisesRegex(frontend.FrontendEnvironmentError, 'loaded_image_mismatch'):
             artifact.load(self.bundle, self.settings, IMAGE, SOURCE, self.environment)
+        self.assertEqual(Path(self.environment['GITHUB_OUTPUT']).read_text(), '')
+        self.assertEqual(list(self.root.glob('ieum-frontend-loaded.*')), [])
+
+    def test_oci_manifest_and_index_resolve_to_config_digest(self):
+        for index in (False, True):
+            with self.subTest(index=index):
+                image_id, entries, _ = self.oci_entries(index=index)
+                self.assertNotEqual(image_id, self.image_id)
+                self.write_archive(entries)
+                for engine_id in (image_id, self.image_id):
+                    self.assertEqual(artifact.validate_archive(self.bundle / artifact.ARCHIVE,
+                        IMAGE + ':' + SOURCE, engine_id), self.image_id)
+
+    def test_oci_bundle_passes_pack_verify_and_load_on_containerd(self):
+        manifest = self.pack(oci=True)
+        self.assertNotEqual(manifest['image_id'], self.image_id)
+        self.assertEqual(artifact.verify(self.bundle, self.settings, IMAGE, SOURCE, self.environment), manifest)
+        with patch.object(artifact, 'command', side_effect=['loaded', manifest['image_id']]) as docker:
+            artifact.load(self.bundle, self.settings, IMAGE, SOURCE, self.environment)
+        self.assertEqual(docker.call_count, 2)
+
+    def test_export_may_omit_attestation_blobs_but_must_keep_executable_manifest(self):
+        for omitted in ('attestation', 'attestation_config', 'executable'):
+            with self.subTest(omitted=omitted):
+                image_id, entries, attestation = self.oci_entries()
+                path = 'blobs/sha256/' + attestation['digest'][7:]
+                if omitted == 'attestation_config':
+                    path = 'blobs/sha256/' + json.loads(entries[path])['config']['digest'][7:]
+                elif omitted == 'executable':
+                    path = 'blobs/sha256/' + attestation['annotations']['vnd.docker.reference.digest'][7:]
+                del entries[path]
+                self.write_archive(entries)
+                if omitted == 'executable':
+                    with self.assertRaises(frontend.FrontendEnvironmentError):
+                        artifact.validate_archive(self.bundle / artifact.ARCHIVE, IMAGE + ':' + SOURCE, image_id)
+                else:
+                    self.assertEqual(artifact.validate_archive(self.bundle / artifact.ARCHIVE,
+                        IMAGE + ':' + SOURCE, image_id), self.image_id)
+
+    def test_containerd_bundle_loads_into_classic_store_with_actual_config_id(self):
+        self.pack(oci=True)
+        Path(self.environment['GITHUB_OUTPUT']).write_text('')
+        with patch.object(artifact, 'command', side_effect=['loaded', self.image_id]) as docker:
+            artifact.load(self.bundle, self.settings, IMAGE, SOURCE, self.environment)
+        self.assertEqual(docker.call_count, 2)
+        self.assertEqual(Path(self.environment['GITHUB_OUTPUT']).read_text(), 'image_id=' + self.image_id + '\n')
+
+    def test_classic_bundle_loads_into_containerd_after_resaving_same_config(self):
+        self.pack()
+        new_id, entries, _ = self.oci_entries(index=False)
+        def docker(*arguments):
+            if arguments[:3] == ('docker', 'image', 'load'):
+                return ''
+            if arguments[:3] == ('docker', 'image', 'inspect'):
+                return new_id
+            self.assertEqual(arguments[:4], ('docker', 'image', 'save', '--output'))
+            self.write_archive(entries, arguments[4])
+            return ''
+        Path(self.environment['GITHUB_OUTPUT']).write_text('')
+        with patch.object(artifact, 'command', side_effect=docker):
+            artifact.load(self.bundle, self.settings, IMAGE, SOURCE, self.environment)
+        self.assertEqual(Path(self.environment['GITHUB_OUTPUT']).read_text(), 'image_id=' + new_id + '\n')
+        self.assertEqual(list(self.root.glob('ieum-frontend-loaded.*')), [])
+
+    def test_oci_cannot_import_dev_or_additional_tags_through_index(self):
+        for mutation in ('name', 'ref', 'extra'):
+            with self.subTest(mutation=mutation):
+                image_id, entries, _ = self.oci_entries()
+                index = json.loads(entries['index.json'])
+                root = index['manifests'][0]
+                if mutation == 'name':
+                    root['annotations']['io.containerd.image.name'] = 'docker.io/library/ieum-frontend-dev:latest'
+                elif mutation == 'ref':
+                    root['annotations']['org.opencontainers.image.ref.name'] = 'dev'
+                else:
+                    index['manifests'].append(root)
+                entries['index.json'] = json.dumps(index).encode()
+                self.write_archive(entries)
+                with self.assertRaises(frontend.FrontendEnvironmentError):
+                    artifact.validate_archive(self.bundle / artifact.ARCHIVE, IMAGE + ':' + SOURCE, image_id)
+
+    def test_archive_rejects_path_aliases_that_docker_would_normalize(self):
+        for alias in ('./index.json', 'index.json/', 'blobs/../index.json', './manifest.json', 'blobs//sha256/unused'):
+            with self.subTest(alias=alias):
+                image_id, entries, _ = self.oci_entries()
+                malicious = json.loads(entries['index.json'])
+                malicious['manifests'][0]['annotations']['io.containerd.image.name'] = 'ieum-frontend-dev:latest'
+                entries[alias] = json.dumps(malicious).encode()
+                self.write_archive(entries)
+                with self.assertRaisesRegex(frontend.FrontendEnvironmentError, 'invalid_image_archive'):
+                    artifact.validate_archive(self.bundle / artifact.ARCHIVE, IMAGE + ':' + SOURCE, image_id)
+
+    def test_oci_rejects_changed_descriptors_config_or_unrelated_id(self):
+        for mutation in ('digest', 'size', 'config', 'unrelated', 'attestation'):
+            with self.subTest(mutation=mutation):
+                image_id, entries, attestation = self.oci_entries()
+                if mutation == 'digest':
+                    entries['blobs/sha256/' + image_id[7:]] += b' '
+                elif mutation == 'size':
+                    index = json.loads(entries['index.json'])
+                    index['manifests'][0]['size'] += 1
+                    entries['index.json'] = json.dumps(index).encode()
+                elif mutation == 'config':
+                    entries['blobs/sha256/' + self.image_id[7:]] += b' '
+                elif mutation == 'unrelated':
+                    image_id = 'sha256:' + 'b' * 64
+                else:
+                    image_id = attestation['digest']
+                self.write_archive(entries)
+                with self.assertRaises(frontend.FrontendEnvironmentError):
+                    artifact.validate_archive(self.bundle / artifact.ARCHIVE, IMAGE + ':' + SOURCE, image_id)
+
+    def test_oci_rejects_wrong_platform_and_different_docker_compatibility_config(self):
+        for configuration in ({'architecture': 'arm64', 'os': 'linux', 'config': {}},
+                              {'architecture': 'amd64', 'os': 'linux', 'config': {'Env': ['OTHER=true']}}):
+            image_id, entries, _ = self.oci_entries(config=json.dumps(configuration).encode())
+            if configuration['architecture'] == 'amd64':
+                entries['blobs/sha256/' + self.image_id[7:]] = self.config
+                manifest = json.loads(entries['manifest.json'])
+                manifest[0]['Config'] = 'blobs/sha256/' + self.image_id[7:]
+                entries['manifest.json'] = json.dumps(manifest).encode()
+            self.write_archive(entries)
+            with self.assertRaises(frontend.FrontendEnvironmentError):
+                artifact.validate_archive(self.bundle / artifact.ARCHIVE, IMAGE + ':' + SOURCE, image_id)
 
     def test_cleanup_refuses_unrelated_directory_or_unexpected_files(self):
         unrelated = self.root / 'unrelated'; unrelated.mkdir()
