@@ -33,6 +33,10 @@ ROUTES = {'legacy': ('10.10.10.10', '10.10.10.11', '10.10.10.14')}
 BUILD_COMMAND = ('npx', '--no-install', 'vite', 'build')
 REQUIRED_KEYS = ('VITE_API_URL',)
 CI_KEYS = ('NODE_VERSION', 'IMAGE_NAME')
+MAIN_BUILD_KEYS = ('VITE_API_URL', 'VITE_MEASUREMENT_MODE', 'VITE_MEASUREMENT_DELAY_MS')
+MAIN_SECRET_KEYS = tuple('MAIN_COM_' + key for key in MAIN_BUILD_KEYS) + tuple(
+    'MAIN_' + (key if key.startswith(('BLUE_', 'GREEN_')) else 'COM_' + key)
+    for key in DEPLOYMENT_KEYS)
 FIXED_VALUES = {'NODE_ENV': 'production', 'HUSKY': '0'}
 FORBIDDEN_CHARACTERS = '\x00\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029'
 RESERVED_KEYS = (
@@ -76,6 +80,16 @@ def environment_prefix(environment):
     if environment not in ('dev', 'main'):
         raise FrontendEnvironmentError('invalid_environment')
     return environment.upper() + '_'
+
+
+def configuration_payload(ambient, environment='dev'):
+    """MAIN은 명시된 입력만 읽고 DEV의 기존 JSON 전달 계약은 유지합니다."""
+    environment_prefix(environment)
+    if environment == 'dev':
+        return ambient.get(SECRETS_VARIABLE)
+    # GitHub는 미등록 Secret을 빈 문자열로 전달합니다. 선택 항목은 기존 기본값을 유지합니다.
+    return json.dumps({key: ambient[key] for key in MAIN_SECRET_KEYS
+                       if key in ambient and ambient[key] != ''}, ensure_ascii=False)
 
 
 def selected_values(payload, environment='dev'):
@@ -354,11 +368,14 @@ def public_build_settings(content, environment='main'):
 
 def build_process_environment(content, ambient, environment='dev'):
     values = candidate_values(content, environment)
-    environment = {key: value for key, value in ambient.items()
-                   if not key.upper().startswith('VITE_') and key != SECRETS_VARIABLE and key.upper() not in DEPLOYMENT_KEYS}
-    environment.update({key: value for key, value in values.items() if key.startswith('VITE_')})
-    environment.update({'NODE_ENV': 'production', 'HUSKY': '0', BUILD_MARKER: '1'})
-    return environment
+    child = {key: value for key, value in ambient.items()
+             if not key.upper().startswith('VITE_') and key != SECRETS_VARIABLE and key.upper() not in DEPLOYMENT_KEYS}
+    if environment == 'main':
+        child = {key: value for key, value in child.items()
+                 if not key.upper().startswith(('MAIN_', 'DEV_', 'AWS_')) and key != 'GITHUB_TOKEN'}
+    child.update({key: value for key, value in values.items() if key.startswith('VITE_')})
+    child.update({'NODE_ENV': 'production', 'HUSKY': '0', BUILD_MARKER: '1'})
+    return child
 
 
 def validate_ci(environment, deployment_environment='dev'):
@@ -454,9 +471,9 @@ def main(argv=None):
         if arguments.operation == 'validate-ci':
             validate_ci(os.environ, arguments.environment)
         elif arguments.operation == 'build':
-            build_settings(arguments.directory, os.environ.get(SECRETS_VARIABLE), arguments.environment)
+            build_settings(arguments.directory, configuration_payload(os.environ, arguments.environment), arguments.environment)
         elif arguments.operation == 'restore':
-            restore_settings(arguments.directory, os.environ.get(SECRETS_VARIABLE), arguments.environment)
+            restore_settings(arguments.directory, configuration_payload(os.environ, arguments.environment), arguments.environment)
         elif arguments.operation == 'verify':
             verify_settings(arguments.directory, arguments.environment)
         else:

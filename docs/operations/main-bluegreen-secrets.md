@@ -6,14 +6,18 @@ MAIN은 `https://kiacms.co.kr`을 사용한다. DEV의 Secrets, 네트워크, �
 ## GitHub Secrets
 
 공통 값은 `MAIN_COM_`, 색상별 배포 값은 `MAIN_BLUE_`와 `MAIN_GREEN_`으로 등록한다.
-수집기는 `--environment main`을 명시했을 때 이 접두사만 읽으며, 누락된 값을
-`DEV_`, `AWS_` 또는 접두사 없는 Secrets에서 보충하지 않는다.
+MAIN 워크플로우는 필요한 Secrets를 각 단계의 `env`에 이름별로 명시한다.
+`toJSON(secrets)`로 전체 Secrets를 전달하지 않는다. 수집기는 `--environment main`일 때
+명시적 입력 목록만 읽으며, 누락된 값을 `DEV_`, `AWS_`, 접두사 없는 Secrets 또는
+기존 JSON 입력에서 보충하지 않는다. GitHub Secrets 등록 위치와 기존 이름은 유지한다.
 
 | 공통 Secret | 값·용도 |
 | --- | --- |
 | `MAIN_COM_NODE_VERSION` | 빌드 Node 버전. 예: `24` |
 | `MAIN_COM_IMAGE_NAME` | MAIN 전용 로컬 이미지 이름. 예: `ieum-frontend-main` |
 | `MAIN_COM_VITE_API_URL` | `https://kiacms.co.kr` |
+| `MAIN_COM_VITE_MEASUREMENT_MODE` | 선택 항목. 측정 모드를 사용할 때만 등록 |
+| `MAIN_COM_VITE_MEASUREMENT_DELAY_MS` | 선택 항목. 측정 모드의 지연 시간(ms) |
 | `MAIN_COM_DATA_DOCKER_NETWORK` | `ieum_main_net_data` |
 | `MAIN_COM_DATA_DOCKER_NETWORK_SUBNET` | MAIN 데이터 네트워크의 확정된 사설 CIDR |
 | `MAIN_COM_POSTGRES_CONTAINER_NAME` | `ieum-main-postgres` |
@@ -35,7 +39,11 @@ MAIN은 `https://kiacms.co.kr`을 사용한다. DEV의 Secrets, 네트워크, �
 | `MAIN_{COLOR}_FRONTEND_ENV_DIR` | `/home/kwung/deploy/bluegreen-main/runtime/{color}` |
 | `MAIN_{COLOR}_FRONTEND_ENV_FILE` | `/home/kwung/deploy/bluegreen-main/runtime/{color}/frontend.env` |
 
-새 `MAIN_COM_VITE_*` 항목은 접두사를 제거한 `VITE_*` 이름으로 빌드에 자동 반영된다.
+새 `MAIN_COM_VITE_*` 항목을 추가할 때는 GitHub 등록과 함께
+`frontend-main-server.yml`의 빌드·설정 복원 단계 `env` 및
+`frontend_env.py`의 `MAIN_BUILD_KEYS`에 추가해야 한다. 등록만으로 자동 수집하지 않는다.
+명시된 입력은 기존처럼 접두사를 제거한 `VITE_*` 이름으로 `.env`에 기록한다.
+미등록·빈 선택 항목은 기록하지 않아 앱의 기본 동작을 유지하며, 값의 공백은 자르지 않는다.
 Vite 환경변수는 브라우저 번들에 공개되므로 비밀번호·토큰·비공개 API 키를 넣지 않는다.
 `NODE_VERSION`, `IMAGE_NAME` 및 배포 메타데이터는 앱 `.env`에서 제외한다.
 `NODE_ENV=production`, `HUSKY=0`은 코드가 관리한다.
@@ -59,15 +67,19 @@ controller는 `/home/kwung/deploy/bluegreen-main/bluegreen.py`, helper는
 
 1. `main` push 또는 `main`을 선택한 수동 실행이 GitHub의 `ubuntu-latest`에서
    lint, Python 배포 테스트, 프론트 테스트, 타입 검사와 빌드를 수행한다.
-2. MAIN Secrets에서 공개 빌드 값(`VITE_*`, `NODE_ENV`)과 배포 메타데이터 스냅샷을
-   만들고 그 값으로 한 번 빌드한다. 그 외 runtime 값은 배포 job에서만 파일에 기록한다.
+2. 빌드·설정 복원 단계는 명시된 공개 빌드 값 3개(선택 항목 2개 포함)와 배포 메타데이터
+   21개만 받는다. 배포 메타데이터는 빌드 시점과 배포 시점의 설정 동일성 검증에 필요하다.
+   Node·이미지 이름은 기존의 별도 명시적 CI 입력으로 유지한다. `.env`와 배포 메타데이터
+   스냅샷을 만들고 공개 빌드 값으로 한 번 빌드한다. npm/Vite 자식 프로세스에는
+   `MAIN_`·`DEV_`·`AWS_` 원본 입력과 JSON 입력을 상속하지 않는다.
    빌드된 Nginx 이미지에서 index·asset 응답과 없는 asset의 404를 확인한다.
 3. 이미지 tar와 검증 manifest만 보관 기간 1일의 immutable artifact로 전달한다.
    `.env`와 배포 설정 JSON은 업로드하지 않는다. CI의 비공개 설정 파일은 정리한다.
 4. 선택한 작업의 실행 허용 Variable이 `true`인 경우에만 MAIN 배포 러너가 같은 실행의
    artifact ID로 다운로드한다. 같은 source SHA·run ID·attempt, 이미지 tar SHA-256,
    공개 빌드 값과 배포 메타데이터의 해시를 검증한다. 두 job 사이 빌드·배포 설정이
-   바뀌었으면 배포하지 않는다. 빌드에 사용하지 않는 runtime 값은 이 비교 대상이 아니다.
+   바뀌었으면 배포하지 않는다. 설정 복원 후 원본 `MAIN_` 입력을 해제하며, 이후 이미지
+   검증·controller 단계는 만들어진 파일을 사용한다. 색상별 `.env`·스냅샷 형식은 유지한다.
 5. MAIN controller/helper 설치 해시를 확인한 다음 이미지를 불러온다. classic Docker의
    config ID와 containerd의 manifest/index ID를 구분하고, tar 안의 Docker·OCI 참조가
    같은 MAIN 태그와 linux/amd64 설정을 가리키는지 검증한다. 저장 방식 변환으로 새 ID가

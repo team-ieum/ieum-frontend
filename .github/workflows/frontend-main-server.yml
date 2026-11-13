@@ -77,7 +77,30 @@ jobs:
       - name: Build frontend from MAIN Secrets
         id: frontend_settings
         env:
-          IEUM_FRONTEND_SECRETS_JSON: ${{ toJSON(secrets) }}
+          MAIN_COM_VITE_API_URL: ${{ secrets.MAIN_COM_VITE_API_URL }}
+          MAIN_COM_VITE_MEASUREMENT_MODE: ${{ secrets.MAIN_COM_VITE_MEASUREMENT_MODE }}
+          MAIN_COM_VITE_MEASUREMENT_DELAY_MS: ${{ secrets.MAIN_COM_VITE_MEASUREMENT_DELAY_MS }}
+          MAIN_COM_DATA_DOCKER_NETWORK: ${{ secrets.MAIN_COM_DATA_DOCKER_NETWORK }}
+          MAIN_COM_DATA_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_COM_DATA_DOCKER_NETWORK_SUBNET }}
+          MAIN_COM_POSTGRES_CONTAINER_NAME: ${{ secrets.MAIN_COM_POSTGRES_CONTAINER_NAME }}
+          MAIN_COM_REDIS_CONTAINER_NAME: ${{ secrets.MAIN_COM_REDIS_CONTAINER_NAME }}
+          MAIN_COM_MONGO_CONTAINER_NAME: ${{ secrets.MAIN_COM_MONGO_CONTAINER_NAME }}
+          MAIN_BLUE_DOCKER_NETWORK: ${{ secrets.MAIN_BLUE_DOCKER_NETWORK }}
+          MAIN_BLUE_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_BLUE_DOCKER_NETWORK_SUBNET }}
+          MAIN_BLUE_CONTAINER_NAME: ${{ secrets.MAIN_BLUE_CONTAINER_NAME }}
+          MAIN_BLUE_FRONTEND_IP: ${{ secrets.MAIN_BLUE_FRONTEND_IP }}
+          MAIN_BLUE_BACKEND_IP: ${{ secrets.MAIN_BLUE_BACKEND_IP }}
+          MAIN_BLUE_AGENT_IP: ${{ secrets.MAIN_BLUE_AGENT_IP }}
+          MAIN_BLUE_FRONTEND_ENV_DIR: ${{ secrets.MAIN_BLUE_FRONTEND_ENV_DIR }}
+          MAIN_BLUE_FRONTEND_ENV_FILE: ${{ secrets.MAIN_BLUE_FRONTEND_ENV_FILE }}
+          MAIN_GREEN_DOCKER_NETWORK: ${{ secrets.MAIN_GREEN_DOCKER_NETWORK }}
+          MAIN_GREEN_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_GREEN_DOCKER_NETWORK_SUBNET }}
+          MAIN_GREEN_CONTAINER_NAME: ${{ secrets.MAIN_GREEN_CONTAINER_NAME }}
+          MAIN_GREEN_FRONTEND_IP: ${{ secrets.MAIN_GREEN_FRONTEND_IP }}
+          MAIN_GREEN_BACKEND_IP: ${{ secrets.MAIN_GREEN_BACKEND_IP }}
+          MAIN_GREEN_AGENT_IP: ${{ secrets.MAIN_GREEN_AGENT_IP }}
+          MAIN_GREEN_FRONTEND_ENV_DIR: ${{ secrets.MAIN_GREEN_FRONTEND_ENV_DIR }}
+          MAIN_GREEN_FRONTEND_ENV_FILE: ${{ secrets.MAIN_GREEN_FRONTEND_ENV_FILE }}
         run: |
           set +x
           set -euo pipefail
@@ -85,7 +108,7 @@ jobs:
           settings_dir="$(mktemp -d "$RUNNER_TEMP/ieum-frontend-settings.XXXXXX")"
           printf 'directory=%s\n' "$settings_dir" >> "$GITHUB_OUTPUT"
           python3 scripts/bluegreen/frontend_env.py build "$settings_dir" --environment main
-          unset IEUM_FRONTEND_SECRETS_JSON
+          unset "${!MAIN_@}"
 
       - name: Write nginx config
         run: |
@@ -258,7 +281,30 @@ jobs:
       - name: Restore MAIN settings and verify build snapshot
         id: frontend_settings
         env:
-          IEUM_FRONTEND_SECRETS_JSON: ${{ toJSON(secrets) }}
+          MAIN_COM_VITE_API_URL: ${{ secrets.MAIN_COM_VITE_API_URL }}
+          MAIN_COM_VITE_MEASUREMENT_MODE: ${{ secrets.MAIN_COM_VITE_MEASUREMENT_MODE }}
+          MAIN_COM_VITE_MEASUREMENT_DELAY_MS: ${{ secrets.MAIN_COM_VITE_MEASUREMENT_DELAY_MS }}
+          MAIN_COM_DATA_DOCKER_NETWORK: ${{ secrets.MAIN_COM_DATA_DOCKER_NETWORK }}
+          MAIN_COM_DATA_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_COM_DATA_DOCKER_NETWORK_SUBNET }}
+          MAIN_COM_POSTGRES_CONTAINER_NAME: ${{ secrets.MAIN_COM_POSTGRES_CONTAINER_NAME }}
+          MAIN_COM_REDIS_CONTAINER_NAME: ${{ secrets.MAIN_COM_REDIS_CONTAINER_NAME }}
+          MAIN_COM_MONGO_CONTAINER_NAME: ${{ secrets.MAIN_COM_MONGO_CONTAINER_NAME }}
+          MAIN_BLUE_DOCKER_NETWORK: ${{ secrets.MAIN_BLUE_DOCKER_NETWORK }}
+          MAIN_BLUE_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_BLUE_DOCKER_NETWORK_SUBNET }}
+          MAIN_BLUE_CONTAINER_NAME: ${{ secrets.MAIN_BLUE_CONTAINER_NAME }}
+          MAIN_BLUE_FRONTEND_IP: ${{ secrets.MAIN_BLUE_FRONTEND_IP }}
+          MAIN_BLUE_BACKEND_IP: ${{ secrets.MAIN_BLUE_BACKEND_IP }}
+          MAIN_BLUE_AGENT_IP: ${{ secrets.MAIN_BLUE_AGENT_IP }}
+          MAIN_BLUE_FRONTEND_ENV_DIR: ${{ secrets.MAIN_BLUE_FRONTEND_ENV_DIR }}
+          MAIN_BLUE_FRONTEND_ENV_FILE: ${{ secrets.MAIN_BLUE_FRONTEND_ENV_FILE }}
+          MAIN_GREEN_DOCKER_NETWORK: ${{ secrets.MAIN_GREEN_DOCKER_NETWORK }}
+          MAIN_GREEN_DOCKER_NETWORK_SUBNET: ${{ secrets.MAIN_GREEN_DOCKER_NETWORK_SUBNET }}
+          MAIN_GREEN_CONTAINER_NAME: ${{ secrets.MAIN_GREEN_CONTAINER_NAME }}
+          MAIN_GREEN_FRONTEND_IP: ${{ secrets.MAIN_GREEN_FRONTEND_IP }}
+          MAIN_GREEN_BACKEND_IP: ${{ secrets.MAIN_GREEN_BACKEND_IP }}
+          MAIN_GREEN_AGENT_IP: ${{ secrets.MAIN_GREEN_AGENT_IP }}
+          MAIN_GREEN_FRONTEND_ENV_DIR: ${{ secrets.MAIN_GREEN_FRONTEND_ENV_DIR }}
+          MAIN_GREEN_FRONTEND_ENV_FILE: ${{ secrets.MAIN_GREEN_FRONTEND_ENV_FILE }}
           ARTIFACT_DIR: ${{ steps.artifact.outputs.directory }}
           IEUM_EXPECTED_IMAGE_ID: ${{ needs.build.outputs.image_id }}
           IEUM_EXPECTED_ARCHIVE_SHA256: ${{ needs.build.outputs.archive_sha256 }}
@@ -270,7 +316,7 @@ jobs:
           settings_dir="$(mktemp -d "$RUNNER_TEMP/ieum-frontend-settings.XXXXXX")"
           printf 'directory=%s\n' "$settings_dir" >> "$GITHUB_OUTPUT"
           python3 scripts/bluegreen/frontend_env.py restore "$settings_dir" --environment main
-          unset IEUM_FRONTEND_SECRETS_JSON
+          unset "${!MAIN_@}"
           python3 scripts/bluegreen/frontend_artifact.py verify \
             --directory "$ARTIFACT_DIR" --settings-directory "$settings_dir"
 
