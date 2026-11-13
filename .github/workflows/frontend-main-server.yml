@@ -17,7 +17,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: frontend_main_bluegreen
+  group: ${{ github.ref == 'refs/heads/main' && 'frontend_main_bluegreen' || format('frontend_main_build_{0}', github.ref) }}
   cancel-in-progress: false
 
 defaults:
@@ -31,7 +31,10 @@ env:
 jobs:
   build:
     name: Test and build MAIN frontend on GitHub
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/infra/IEUM-FE-95' && inputs.operation == 'build')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     outputs:

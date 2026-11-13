@@ -1,10 +1,13 @@
 """MAIN 격리와 CI 이미지 전달 경계. 실제 Docker·서버·Secrets는 사용하지 않습니다."""
 
+import ast
 import hashlib
 import io
+import itertools
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tarfile
 import tempfile
@@ -216,6 +219,54 @@ class MainArtifactTest(unittest.TestCase):
 
 
 class MainWorkflowTest(unittest.TestCase):
+    def job_enabled(self, job, ref, event, operation, deploy_enabled='false', bootstrap_enabled='false'):
+        """워크플로우의 실제 조건을 제한된 비교식으로 평가해 서버 실행 경계를 확인합니다."""
+        workflow = (ROOT / '.github/workflows/frontend-main-server.yml').read_text()
+        section = workflow.split('  ' + job + ':\n', 1)[1]
+        match = re.search(r'^    if: (.+)(?:\n|$)', section, re.MULTILINE)
+        self.assertIsNotNone(match)
+        condition = match[1]
+        if condition == '>-':
+            lines = []
+            for line in section[match.end():].splitlines():
+                if not line.startswith('      '):
+                    break
+                lines.append(line.strip())
+            condition = ' '.join(lines)
+        values = {
+            'github.ref': ref, 'github.event_name': event, 'inputs.operation': operation,
+            'vars.MAIN_DEPLOY_ENABLED': deploy_enabled,
+            'vars.MAIN_BOOTSTRAP_ENABLED': bootstrap_enabled,
+        }
+        for name, value in values.items():
+            condition = condition.replace(name, repr(value))
+        expression = ast.parse(condition.replace('&&', ' and ').replace('||', ' or '), mode='eval')
+        allowed = (ast.Expression, ast.BoolOp, ast.And, ast.Or, ast.Compare, ast.Eq, ast.Constant)
+        self.assertTrue(all(isinstance(node, allowed) for node in ast.walk(expression)))
+        return eval(compile(expression, '<workflow-condition>', 'eval'), {'__builtins__': {}})
+
+    def test_non_main_refs_only_allow_manual_build_on_the_reviewed_branch(self):
+        branch = 'refs/heads/infra/IEUM-FE-95'
+        refs = (branch, 'refs/heads/dev', 'refs/heads/infra/IEUM-FE-96', 'refs/tags/main')
+        events = ('workflow_dispatch', 'push', 'pull_request')
+        operations = ('build', 'configure-frontend', 'stage-bootstrap', 'deploy', '')
+        for ref, event, operation in itertools.product(refs, events, operations):
+            with self.subTest(ref=ref, event=event, operation=operation):
+                expected = ref == branch and event == 'workflow_dispatch' and operation == 'build'
+                self.assertEqual(self.job_enabled('build', ref, event, operation), expected)
+                self.assertFalse(self.job_enabled('deploy', ref, event, operation, 'true', 'true'))
+
+    def test_main_build_preserves_explicit_deployment_and_bootstrap_gates(self):
+        scenarios = (('push', ''), ('workflow_dispatch', 'build'),
+                     ('workflow_dispatch', 'configure-frontend'),
+                     ('workflow_dispatch', 'stage-bootstrap'), ('workflow_dispatch', 'deploy'))
+        for (event, operation), deploy, bootstrap in itertools.product(scenarios, ('false', 'true'), ('false', 'true')):
+            with self.subTest(event=event, operation=operation, deploy=deploy, bootstrap=bootstrap):
+                self.assertTrue(self.job_enabled('build', 'refs/heads/main', event, operation, deploy, bootstrap))
+                expected = (event == 'push' or operation == 'deploy') and deploy == 'true' or \
+                    operation in ('configure-frontend', 'stage-bootstrap') and bootstrap == 'true'
+                self.assertEqual(self.job_enabled('deploy', 'refs/heads/main', event, operation, deploy, bootstrap), expected)
+
     def test_ci_and_server_deploy_have_separate_trust_and_execution_boundaries(self):
         workflow = (ROOT / '.github/workflows/frontend-main-server.yml').read_text()
         build, deploy = workflow.split('  deploy:\n', 1)
