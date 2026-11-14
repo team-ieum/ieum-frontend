@@ -312,6 +312,20 @@ describe('mapWorkflowCanvas', () => {
 		])
 	})
 
+	it('카탈로그에 있는 brand ACTION 노드는 헤더 라벨에 카탈로그 앱 이름을 쓴다', () => {
+		const calendarEntry = nodeCatalogEntriesFixture.find(entry => entry.app === 'google_calendar')
+		if (!calendarEntry) throw new Error('Google Calendar 카탈로그 fixture가 필요합니다.')
+		const [result] = toWorkflowCanvasNodes(
+			[{ id: 'calendar', type: 'ACTION', event: calendarEntry.id, label: '일정', config: { brand: 'google' } }],
+			new Map(),
+			false,
+			new Map([[calendarEntry.id, calendarEntry]])
+		)
+
+		// google brand의 기본 이름(Google Drive)이 아니라 앱 이름이 나와야 한다.
+		expect(result.data).toMatchObject({ brand: 'google', app: 'google_calendar', typeLabel: 'Google Calendar' })
+	})
+
 	it('카탈로그에 없는 event 노드는 type 기준 기본 표시를 유지한다', () => {
 		const [result] = toWorkflowCanvasNodes(
 			[{ id: 'future', type: 'CUSTOM', event: 'future_app.do_something', label: '새 노드', config: {} }],

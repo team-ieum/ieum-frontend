@@ -3,7 +3,7 @@ import { ArrowLeft, ChevronRight, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { NodeTypeIcon } from '@/components/workflow/WorkflowNode'
-import { getBrandConfig } from '@/constants/integration/brandConfig'
+import { getAppIcon, getBrandConfig } from '@/constants/integration/brandConfig'
 import { NODE_CATALOG_KIND_LABELS, NODE_CATALOG_PALETTE_ID, NODE_PALETTE_MODES } from '@/constants/workflow/nodeCatalog'
 import { getWorkflowNodeMeta } from '@/constants/workflow/workflowNode'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
@@ -22,7 +22,7 @@ const AppIcon = ({ group }: { group: NodeCatalogAppGroup }) => {
 				className='grid size-8 shrink-0 place-items-center rounded-[0.6rem] bg-(--brand-tint)'
 				style={{ '--brand-tint': brandConfig.tint } as CSSProperties}
 			>
-				{brandConfig.icon}
+				{getAppIcon(group.brand, group.app)}
 			</span>
 		)
 	}
