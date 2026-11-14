@@ -156,8 +156,9 @@ export const toWorkflowNodeStatus = (status?: NodeExecutionStatus): WorkflowNode
 /**
  * 저장 노드를 캔버스 노드로 바꾼다.
  * `catalogEntries`(event → 카탈로그 항목)를 넘기면 그 안에 없는 event 노드를 카탈로그 밖 노드로 표시하고,
- * 카탈로그 항목이 있는 노드는 비어 있는 필수 칸 수를 함께 계산한다.
+ * 카탈로그 항목이 있는 노드는 비어 있는 필수 칸 수를 함께 계산하고, 머리 이름(`appTitle`)과 앱 로고 키(`app`)도 그 항목을 따른다.
  * 카탈로그를 아직 받지 못했으면 넘기지 않아야 정상 노드가 미지원으로 보이지 않는다.
+ * 이때 brand 노드는 brand 기본 이름·로고로 보인다(예: google 노드는 'Google Drive').
  */
 export const toWorkflowCanvasNodes = (
 	nodes: WorkflowNodeDto[],
@@ -185,9 +186,11 @@ export const toWorkflowCanvasNodes = (
 			data: {
 				nodeType: dto.type,
 				brand,
+				app: catalogEntry?.app,
 				role: meta.role,
-				// brand를 아는 ACTION 노드는 "앱 작업" 대신 서비스 이름을 보여 준다.
-				typeLabel: brand ? WORKFLOW_SERVICE_META[brand].name : meta.label,
+				// brand를 아는 ACTION 노드는 "앱 작업" 대신 앱 이름을 보여 준다.
+				// 한 brand에 여러 앱이 묶이므로(google → Calendar·Drive·Forms) 카탈로그 appTitle을 먼저 쓴다.
+				typeLabel: brand ? (catalogEntry?.appTitle ?? WORKFLOW_SERVICE_META[brand].name) : meta.label,
 				step: index + 1,
 				title: dto.label,
 				// TODO: 서버가 설명을 항상 반환하면 대체 문구를 제거합니다.

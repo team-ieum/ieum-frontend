@@ -17,7 +17,7 @@ import {
 	Workflow,
 } from 'lucide-react'
 import { WorkflowNodeActionsContext } from '@/components/workflow/WorkflowNodeActionsContext'
-import { getBrandConfig } from '@/constants/integration/brandConfig'
+import { getAppIcon, getBrandConfig } from '@/constants/integration/brandConfig'
 import { getWorkflowNodeMeta, WORKFLOW_NODE_STATUS } from '@/constants/workflow/workflowNode'
 import type { IntegrationBrand } from '@/types/integration'
 import type { WorkflowNodeIconKey, WorkflowNodeStatus, WorkflowNodeType } from '@/types/workflow'
@@ -49,7 +49,7 @@ export const NodeTypeIcon = ({ iconKey }: { iconKey: WorkflowNodeIconKey }) => {
 	return <Workflow size={20} aria-hidden='true' />
 }
 
-const NodeIcon = ({ iconKey, brand }: { iconKey: WorkflowNodeIconKey; brand?: IntegrationBrand }) => {
+const NodeIcon = ({ iconKey, brand, app }: { iconKey: WorkflowNodeIconKey; brand?: IntegrationBrand; app?: string }) => {
 	if (!brand) {
 		return (
 			<span
@@ -75,7 +75,7 @@ const NodeIcon = ({ iconKey, brand }: { iconKey: WorkflowNodeIconKey; brand?: In
 			)}
 			style={{ '--brand-tint': brandConfig.tint } as CSSProperties}
 		>
-			{brandConfig.icon}
+			{getAppIcon(brand, app)}
 		</span>
 	)
 }
@@ -141,7 +141,7 @@ const WorkflowNode = ({ id, data, selected }: NodeProps<WorkflowNodeType>) => {
 					'border-b-[color-mix(in_srgb,var(--node-color)_28%,white)]'
 				)}
 			>
-				<NodeIcon iconKey={nodeMeta.iconKey} brand={data.brand} />
+				<NodeIcon iconKey={nodeMeta.iconKey} brand={data.brand} app={data.app} />
 				<span>{data.typeLabel}</span>
 				<motion.span
 					key={data.status}

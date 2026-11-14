@@ -53,6 +53,15 @@ describe('NodeCatalogPalette', () => {
 		expect(within(palette).queryByRole('button', { name: /Gmail/ })).not.toBeInTheDocument()
 	})
 
+	it('같은 google brand라도 앱 그룹마다 앱 로고를 보여 준다', async () => {
+		renderPalette('next')
+
+		const palette = screen.getByRole('complementary', { name: '다음 노드 추가' })
+		const calendarButton = await within(palette).findByRole('button', { name: /Google Calendar/ })
+		expect(within(calendarButton).getByRole('img', { hidden: true, name: 'Google Calendar 로고' })).toBeInTheDocument()
+		expect(within(calendarButton).queryByRole('img', { hidden: true, name: 'Google Drive 로고' })).not.toBeInTheDocument()
+	})
+
 	it('받은 카탈로그가 있으면 재조회가 실패해도 오류 화면 대신 목록을 유지한다', async () => {
 		const client = createTestQueryClient()
 		const { queryKey } = nodeCatalogQueryOptions()

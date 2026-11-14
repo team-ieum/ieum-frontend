@@ -142,6 +142,19 @@ describe('WorkflowNode', () => {
 		expect(screen.queryByRole('img', { name: 'Slack 로고' })).not.toBeInTheDocument()
 	})
 
+	it.each([
+		['google_calendar', 'Google Calendar 로고'],
+		['google_forms', 'Google Forms 로고'],
+		['google_drive', 'Google Drive 로고'],
+		[undefined, 'Google Drive 로고'],
+	])('google brand 노드는 앱 키 %s에 맞는 로고(%s)를 표시한다', (app, logoName) => {
+		const props = createProps(false)
+		Object.assign(props.data, { nodeType: 'ACTION', role: 'action', brand: 'google', app, typeLabel: 'Google' })
+		render(<WorkflowNode {...props} />)
+
+		expect(screen.getByRole('img', { hidden: true, name: logoName })).toBeInTheDocument()
+	})
+
 	it('brand가 없는 ACTION·APPROVAL 노드는 기본 아이콘과 타입 라벨을 표시한다', () => {
 		const actionProps = createProps(false)
 		Object.assign(actionProps.data, { nodeType: 'ACTION', role: 'action', typeLabel: '앱 작업' })
