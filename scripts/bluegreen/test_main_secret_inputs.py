@@ -12,7 +12,7 @@ import textwrap
 import unittest
 
 import frontend_env as frontend
-from test_frontend_env import payload as dev_payload, python_subprocess_environment, records, run_workflow_shell
+from test_frontend_env import python_subprocess_environment, records, run_workflow_shell
 from test_frontend_main import main_payload
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,12 +60,6 @@ class MainSecretInputsTest(unittest.TestCase):
         ambient['MAIN_COM_VITE_API_URL'] = ''
         with self.assertRaisesRegex(frontend.FrontendEnvironmentError, 'missing_required_configuration'):
             frontend.build_environment(frontend.configuration_payload(ambient, 'main'), 'main')
-
-    def test_dev_keeps_original_json_transport_and_automatic_key_selection(self):
-        payload = dev_payload({'DEV_COM_FUTURE_SETTING': 'unchanged'})
-        selected = frontend.configuration_payload({**settings_inputs(), frontend.SECRETS_VARIABLE: payload}, 'dev')
-        self.assertEqual(selected, payload)
-        self.assertEqual(records(frontend.build_environment(selected))['FUTURE_SETTING'], 'unchanged')
 
     def test_restore_preserves_paths_permissions_literals_and_color_snapshot_format(self):
         directory = self.directory('restore')

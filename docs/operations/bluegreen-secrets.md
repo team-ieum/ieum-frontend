@@ -10,18 +10,18 @@ GitHub의 이 저장소 Actions Secrets에 등록한다. 공통 값은 `DEV_COM_
 
 ### 공통 설정
 
-| Secret                               | 필수 여부 | 값·용도                                             |
-| ------------------------------------ | --------- | --------------------------------------------------- |
-| `DEV_COM_NODE_VERSION`               | 필수      | 빌드할 Node 버전                                    |
-| `DEV_COM_IMAGE_NAME`                 | 필수      | Docker 이미지 이름                                  |
-| `DEV_COM_VITE_API_URL`               | 필수      | 브라우저가 접근할 DEV API 주소                      |
-| `DEV_COM_DATA_DOCKER_NETWORK`        | 필수      | 공용 데이터망 이름. 예: `ieum_net_data`             |
-| `DEV_COM_DATA_DOCKER_NETWORK_SUBNET` | 필수      | 공용 데이터망의 확정된 사설 CIDR                    |
-| `DEV_COM_POSTGRES_CONTAINER_NAME`    | 필수      | 공용 PostgreSQL 컨테이너 이름                       |
-| `DEV_COM_REDIS_CONTAINER_NAME`       | 필수      | 공용 Redis 컨테이너 이름                            |
-| `DEV_COM_MONGO_CONTAINER_NAME`       | 필수      | 공용 MongoDB 컨테이너 이름                          |
-| `DEV_COM_VITE_MEASUREMENT_MODE`      | 선택      | `true`일 때 모의 API 측정 모드. 미등록 시 비활성    |
-| `DEV_COM_VITE_MEASUREMENT_DELAY_MS`  | 선택      | 측정 모드의 지연 시간(ms). 미등록 시 800, 빈 값은 0 |
+| Secret                               | 필수 여부 | 값·용도                                                        |
+| ------------------------------------ | --------- | -------------------------------------------------------------- |
+| `DEV_COM_NODE_VERSION`               | 필수      | 빌드할 Node 버전                                               |
+| `DEV_COM_IMAGE_NAME`                 | 필수      | Docker 이미지 이름                                             |
+| `DEV_COM_VITE_API_URL`               | 필수      | 브라우저가 접근할 DEV API 주소                                 |
+| `DEV_COM_DATA_DOCKER_NETWORK`        | 필수      | 공용 데이터망 이름. 예: `ieum_net_data`                        |
+| `DEV_COM_DATA_DOCKER_NETWORK_SUBNET` | 필수      | 공용 데이터망의 확정된 사설 CIDR                               |
+| `DEV_COM_POSTGRES_CONTAINER_NAME`    | 필수      | 공용 PostgreSQL 컨테이너 이름                                  |
+| `DEV_COM_REDIS_CONTAINER_NAME`       | 필수      | 공용 Redis 컨테이너 이름                                       |
+| `DEV_COM_MONGO_CONTAINER_NAME`       | 필수      | 공용 MongoDB 컨테이너 이름                                     |
+| `DEV_COM_VITE_MEASUREMENT_MODE`      | 선택      | `true`일 때 모의 API 측정 모드. 미등록 시 비활성               |
+| `DEV_COM_VITE_MEASUREMENT_DELAY_MS`  | 선택      | 측정 모드의 지연 시간(ms). 미등록·빈 값은 800, `0`은 지연 없음 |
 
 측정 모드는 실제 API 대신 모의 응답을 사용하므로 일반 DEV 배포에는 켜지 않는다.
 
@@ -48,21 +48,41 @@ Blue·Green이 같은 DB를 사용하므로 별도 DB 동기화는 없다.
 
 ## 변수 추가·변경 규칙
 
-- DEV 수집기는 실행에서 접근 가능한 Secrets JSON 중 `DEV_` 항목을 자동 선택한다.
-  `DEV_COM_VITE_API_URL`은 접두사를 제거한 `VITE_API_URL`로 전달한다.
-- 새 `DEV_COM_VITE_*`는 워크플로우에 개별 매핑을 추가하지 않아도 수집된다.
-  앱 코드에서도 해당 변수를 읽어야 동작한다.
-- 일반 `DEV_COM_*`도 앱 환경설정에 보존하지만 Vite 빌드에는 `VITE_*`만 전달한다.
-- 앱 설정의 이전 `DEV_VITE_*` 표기도 읽지만 같은 키의 `DEV_COM_VITE_*`와 함께 등록하면 충돌한다.
-  빌드용 Node·이미지 이름은 `DEV_COM_NODE_VERSION`·`DEV_COM_IMAGE_NAME`을 사용한다.
-- 접두사 없는 기존 Secrets나 서버 원본 `.env`로 누락값을 보충하지 않는다.
-  `DEV_CONTAINER_NAME` 같은 이전 단일 색상 배포 키는 색상별 키로 대체한다.
-- 선택 변수의 빈 값은 `KEY=`로 보존하고, 삭제한 변수는 다음 배포 후보에서 제거한다.
-  값의 공백·따옴표는 그대로 유지하며 줄바꿈이 있는 값은 받지 않는다.
+- 이전의 접두사 자동 수집 대신 필요한 Secrets만 워크플로우 `env`에 명시하며 전체 Secrets JSON을 전달하지 않는다.
+  `DEV_COM_VITE_API_URL`은 접두사를 제거한 `VITE_API_URL`로 기록한다.
+- 이미 지원하는 앱 설정의 **값만 변경**하면 Secrets를 갱신한 뒤 새로 빌드·배포한다.
+  **새 변수 이름 추가**는 Secrets 등록만으로 반영되지 않으므로 아래 절차에 따라 수집 목록·워크플로우·앱·문서를 함께 갱신한다.
+- 허용 목록 밖의 `DEV_*`, MAIN·AWS, 이전 `DEV_VITE_*`·접두사 없는 Secrets,
+  전체 Secrets JSON이나 서버 원본 `.env`로 누락값을 보충하지 않는다.
+- 필수값이 없거나 공백뿐이면 중단한다. 선택 항목은 미등록·빈 문자열을 생략해 앱 기본값을 사용한다.
+  값의 공백·따옴표는 그대로 유지하며 줄바꿈은 받지 않는다. 측정 지연을 없애려면 빈 값 대신 `0`을 등록한다.
+- 빌드에는 스냅샷의 `VITE_*`만 전달하며 원본 DEV·MAIN·AWS 입력과 GitHub 토큰은 자식 프로세스에서 제거한다.
 - `NODE_ENV=production`, `HUSKY=0`은 빌드 코드가 관리하므로 별도 등록할 필요가 없다.
   실행 경로·Node 옵션·배포 제어용 예약 변수는 앱 Secrets로 설정하지 않는다.
 
 **`VITE_*`는 브라우저에 공개되는 설정이다. 비밀번호·토큰·비공개 API 키를 넣지 않는다.**
+
+### 새 공개 설정 추가 체크리스트
+
+`VITE_NEW_OPTION`을 추가하는 예시다. 현재 필수 등록 목록에 포함된 항목은 아니다.
+
+- [ ] GitHub Actions Secret `DEV_COM_VITE_NEW_OPTION`을 등록한다.
+- [ ] [수집기](../../scripts/bluegreen/frontend_env.py)의 `DEV_BUILD_KEYS`에 `VITE_NEW_OPTION`을 추가한다.
+      `DEV_SECRET_KEYS`에는 접두사가 붙은 이름이 자동으로 포함된다.
+- [ ] [DEV 워크플로우](../../.github/workflows/frontend-dev-server.yml)의 `Build frontend from DEV Secrets` 단계에
+      아래 `env` 매핑을 추가한다. `run` 안에 Secret 값을 직접 삽입하지 않는다.
+- [ ] 앱에서 `import.meta.env.VITE_NEW_OPTION`을 읽고 필수 여부·기본값을 정한다.
+      [DEV 입력 테스트](../../scripts/bluegreen/test_dev_secret_inputs.py)에 미등록·빈 값 처리 검증을 보완한다.
+- [ ] 이 문서의 Secrets 표를 갱신하고 아래 로컬 확인을 수행한 뒤 새 빌드·배포에 반영한다.
+
+```yaml
+env:
+    DEV_COM_VITE_NEW_OPTION: ${{ secrets.DEV_COM_VITE_NEW_OPTION }}
+```
+
+`REQUIRED_KEYS`와 연결 설정 목록 `DEPLOYMENT_KEYS`는 DEV·MAIN이 공유한다.
+이를 변경할 때는 양쪽 수집기·워크플로우 입력·검증에 미치는 영향을 함께 확인한다.
+DEV 공개 옵션만 추가하는 경우 `MAIN_BUILD_KEYS`를 수정할 필요는 없다.
 
 ## 배포 실행
 

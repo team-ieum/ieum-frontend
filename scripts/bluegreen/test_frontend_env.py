@@ -97,7 +97,7 @@ class SelectionTest(unittest.TestCase):
         self.assertEqual(records(frontend.build_environment(payload())),
                          {'NODE_ENV': 'production', 'VITE_API_URL': URL})
 
-    def test_new_prefixed_values_and_empty_values_are_automatic(self):
+    def test_internal_payload_mapping_preserves_values_and_empty_values(self):
         self.assertEqual(records(frontend.build_environment(payload({'DEV_VITE_NEW': SECRET,
             'DEV_RUNTIME_ONLY': '', 'DEV_FEATURE_TOKEN': SECRET}))),
             {'NODE_ENV': 'production', 'VITE_API_URL': URL, 'VITE_NEW': SECRET,
@@ -482,17 +482,21 @@ class WorkflowTest(unittest.TestCase):
                 'RUNNER_TEMP': str(runner), 'GITHUB_OUTPUT': str(output), 'IMAGE_NAME': 'ieum-frontend-dev',
                 'IMAGE_TAG': 'synthetic-sha', 'IEUM_BLUEGREEN_JOB_DEADLINE_EPOCH': str(int(time.time()) + 21600),
                 'IEUM_BLUEGREEN_HOME': str(root / 'nonexistent-bluegreen-home'),
-                'VITE_AMBIENT_OLD': 'must-not-use', frontend.SECRETS_VARIABLE: source or payload({
-                    'DEV_VITE_NEW': SECRET + '$(touch ' + shlex.quote(str(marker)) + ')',
-                    'DEV_RUNTIME_TOKEN': SECRET})}
+                'VITE_AMBIENT_OLD': 'must-not-use', frontend.SECRETS_VARIABLE: payload(),
+                **json.loads(source if source is not None else payload({
+                    'DEV_COM_VITE_MEASUREMENT_DELAY_MS': SECRET + '$(touch ' + shlex.quote(str(marker)) + ')',
+                    'DEV_RUNTIME_TOKEN': SECRET}))}
             def shell(code, controllers, builders):
                 return rewrite_workflow_shell(code, controller, controllers, builders)
             built = run_workflow_shell(shell(self.build_shell, 0, 2), cwd=root, env=env)
             settings = ''
             if output.exists():
                 settings = output.read_text().strip().split('=', 1)[1]
-            # This is a later workflow step; the whole Secrets JSON is step-scoped.
+            # 설정 입력은 빌드 단계에만 선언되어 이후 배포 단계로 전달되지 않습니다.
             env.pop(frontend.SECRETS_VARIABLE)
+            for key in list(env):
+                if key.startswith('DEV_'):
+                    env.pop(key)
             env['SETTINGS_DIR'] = settings
             if tamper and settings:
                 Path(settings, frontend.CANDIDATE_NAME).write_text('VITE_API_URL=changed\nNODE_ENV=production\n')
@@ -506,10 +510,11 @@ class WorkflowTest(unittest.TestCase):
                 'outputs': output.read_text() if output.exists() else '', 'remaining': list(runner.iterdir()),
                 'expanded': marker.exists()}
 
-    def test_workflow_has_prefixed_metadata_and_only_one_raw_json_reference(self):
+    def test_workflow_has_prefixed_metadata_and_explicit_settings_only(self):
         self.assertIn('NODE_VERSION: ${{ secrets.DEV_COM_NODE_VERSION }}', self.source)
         self.assertIn('IMAGE_NAME: ${{ secrets.DEV_COM_IMAGE_NAME }}', self.source)
-        self.assertEqual(self.source.count('${{ toJSON(secrets) }}'), 1)
+        self.assertNotIn('toJSON(secrets)', self.source)
+        self.assertNotIn(frontend.SECRETS_VARIABLE, self.source)
         self.assertNotIn('secrets.VITE_API_URL', self.source)
         self.assertNotIn('${{ secrets.', self.build_shell + self.deploy_shell + self.cleanup_shell)
         self.assertIn('if: always()', self.source)
@@ -598,8 +603,9 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn('VITE_AMBIENT_OLD', result['node'])
         self.assertEqual(result['node']['VITE_API_URL'], URL)
         candidate = records(result['controller']['content'].encode())
-        self.assertEqual(candidate['VITE_NEW'], result['node']['VITE_NEW'])
-        self.assertEqual(candidate['RUNTIME_TOKEN'], SECRET)
+        self.assertEqual(candidate['VITE_MEASUREMENT_DELAY_MS'], result['node']['VITE_MEASUREMENT_DELAY_MS'])
+        self.assertNotIn('RUNTIME_TOKEN', candidate)
+        self.assertFalse(any(key.startswith(('DEV_', 'MAIN_', 'AWS_')) for key in result['node']))
         self.assertIn('--replace-env', result['controller']['args'])
         self.assertFalse(result['expanded'])
         self.assertEqual(result['remaining'], [])
