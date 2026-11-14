@@ -14,10 +14,12 @@ import {
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
 	getNodeTestErrorMessage,
+	isManualRun,
 	isWebhookCatch,
+	parseManualRunInput,
 	requiresRunConfirm,
 } from '@/utils/workflow/nodeTest'
-import { isSameNodeDefinition } from '@/utils/workflow/isSameNodeDefinition'
+import { isSameJsonValue, isSameNodeDefinition } from '@/utils/workflow/isSameNodeDefinition'
 
 type UseNodeTestOptions = {
 	workflowId: string
@@ -40,11 +42,16 @@ type MissingSampleNode = { id: string; label?: string }
  * action 노드는 실제 발송·사용량 차감이 일어나므로 확인 모달을 거쳐 실행한다.
  * `webhook.catch`는 실행하지 않고 수신 대기(`LISTENING`)를 시작해 받은 요청을 샘플로 기다린다.
  * 받은 요청은 저장된 노드 설정으로 처리되므로 저장본과 같고 수신 주소가 있을 때만 테스트할 수 있다.
+ * `manual.run`은 패널 안의 JSON 테스트 입력을 함께 보낸다. 실제 실행(툴바)에는 쓰지 않는다.
  */
 export const useNodeTest = ({ workflowId, node, entry, nodes, savedNode }: UseNodeTestOptions) => {
 	const queryClient = useQueryClient()
 	const openConfirm = useModalStore(state => state.openConfirm)
 	const isWebhook = isWebhookCatch(entry)
+	const hasTestInput = isManualRun(entry)
+	// 패널이 노드마다 다시 마운트되므로 입력은 그 노드 패널이 열려 있는 동안만 남는다.
+	const [inputText, setInputText] = useState('')
+	const parsedInput = parseManualRunInput(hasTestInput ? inputText : '')
 	const sampleQuery = useQuery(nodeTestSampleQueryOptions(workflowId, node.id))
 	const tokenStatusQuery = useQuery({ ...webhookTokenStatusQueryOptions(workflowId), enabled: isWebhook })
 	const listen = useWebhookListen({ workflowId, nodeId: node.id })
@@ -56,39 +63,47 @@ export const useNodeTest = ({ workflowId, node, entry, nodes, savedNode }: UseNo
 	// mutation은 다시 실행하는 동안과 실패했을 때 `data`·`variables`를 바꾸므로, 마지막으로 받은 결과와
 	// 그때 보낸 노드를 따로 둬야 재실행 중에도 이전 결과가 어느 설정 기준인지 알릴 수 있다.
 	// 패널이 노드마다 다시 마운트되므로 이 상태는 노드 하나에만 속한다.
-	const [lastRun, setLastRun] = useState<{ result: NodeTestResult; node: WorkflowNodeDto }>()
+	const [lastRun, setLastRun] = useState<{
+		result: NodeTestResult
+		node: WorkflowNodeDto
+		input: Record<string, unknown> | undefined
+	}>()
 
-	const execute = (target: WorkflowNodeDto) =>
-		mutation.mutate(target, {
-			onSuccess: response => {
-				const result = response.data
-				if (result.status === 'LISTENING') {
-					listen.start(result.expiresAt)
-					return
-				}
-				setLastRun({ result, node: target })
-			},
-			onError: error => {
-				// 다른 화면에서 주소를 지웠거나 발급 상태 캐시가 오래됐다. 주소 영역이 '만들기'로 돌아가게 다시 확인한다.
-				if (isApiError(error) && error.code === 'WEBHOOK_TOKEN_NOT_ISSUED') {
-					void queryClient.invalidateQueries({ queryKey: webhookTokenStatusQueryOptions(workflowId).queryKey })
-				}
-			},
-		})
+	const execute = (target: WorkflowNodeDto, input: Record<string, unknown> | undefined) =>
+		mutation.mutate(
+			{ node: target, input },
+			{
+				onSuccess: response => {
+					const result = response.data
+					if (result.status === 'LISTENING') {
+						listen.start(result.expiresAt)
+						return
+					}
+					setLastRun({ result, node: target, input })
+				},
+				onError: error => {
+					// 다른 화면에서 주소를 지웠거나 발급 상태 캐시가 오래됐다. 주소 영역이 '만들기'로 돌아가게 다시 확인한다.
+					if (isApiError(error) && error.code === 'WEBHOOK_TOKEN_NOT_ISSUED') {
+						void queryClient.invalidateQueries({ queryKey: webhookTokenStatusQueryOptions(workflowId).queryKey })
+					}
+				},
+			}
+		)
 
 	const run = () => {
-		if (!entry || !availability.canTest || mutation.isPending || listen.isListening) return
-		// 확인을 기다리는 동안 노드가 바뀌어도 사용자가 본 설정으로 실행한다.
+		if (!entry || !availability.canTest || !parsedInput.ok || mutation.isPending || listen.isListening) return
+		// 확인을 기다리는 동안 노드나 입력이 바뀌어도 사용자가 본 값으로 실행한다.
 		const target = node
+		const input = parsedInput.input
 		if (!requiresRunConfirm(entry)) {
-			execute(target)
+			execute(target, input)
 			return
 		}
 		openConfirm({
 			title: '노드를 실제로 실행할까요?',
 			message: '테스트도 실제로 실행돼요. 메시지·요청이 그대로 보내지고, AI 노드는 사용량이 차감돼요.',
 			confirmText: '테스트 실행',
-			onConfirm: () => execute(target),
+			onConfirm: () => execute(target, input),
 		})
 	}
 
@@ -108,8 +123,14 @@ export const useNodeTest = ({ workflowId, node, entry, nodes, savedNode }: UseNo
 		isSampleLoading: !testedResult && sampleQuery.isPending,
 		isSampleError: !testedResult && sampleQuery.isError,
 		retrySample: () => void sampleQuery.refetch(),
-		/** 마지막으로 받은 결과 뒤에 노드 설정을 바꿨으면 true. 서버에서 불러온 샘플은 기준 설정을 알 수 없어 false다. */
-		isOutdated: Boolean(lastRun && !isSameNodeDefinition(lastRun.node, node)),
+		/** 마지막으로 받은 결과 뒤에 노드 설정이나 테스트 입력을 바꿨으면 true. 서버에서 불러온 샘플은 기준을 알 수 없어 false다. */
+		isOutdated: Boolean(
+			lastRun &&
+			(!isSameNodeDefinition(lastRun.node, node) ||
+				// 고치는 중이라 읽을 수 없는 입력도 마지막 결과의 입력과 다르다고 본다. 안내가 깜빡이지 않게 하기 위해서다.
+				!parsedInput.ok ||
+				!isSameJsonValue(lastRun.input ?? null, parsedInput.input ?? null))
+		),
 		missingNodes,
 		errorMessage: mutation.isError && missingNodes.length === 0 ? getNodeTestErrorMessage(mutation.error) : undefined,
 		isWebhook,
@@ -118,5 +139,11 @@ export const useNodeTest = ({ workflowId, node, entry, nodes, savedNode }: UseNo
 		isListenExpired: listen.isExpired,
 		listenRemainingLabel: formatRemainingTime(listen.remainingMs),
 		stopListening: listen.stop,
+		/** `manual.run`이라 JSON 테스트 입력 칸을 보여 준다. */
+		hasTestInput,
+		inputText,
+		/** 입력이 객체 JSON이 아니면 그 이유. 이 동안은 테스트할 수 없다. */
+		inputError: parsedInput.ok ? undefined : parsedInput.error,
+		handleInputChange: setInputText,
 	}
 }
