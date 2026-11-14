@@ -1,4 +1,5 @@
 const AUTHORIZE_URL_KEYS = [
+	'authUrl',
 	'authorizationUrl',
 	'authorization_url',
 	'authorizeUrl',

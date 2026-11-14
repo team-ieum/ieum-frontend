@@ -1,4 +1,4 @@
-import type { OAuthConnectionsListResponse } from '@/types/oauthConnections'
+import type { OAuthConnectionDto, OAuthConnectionsListResponse } from '@/types/oauthConnections'
 import type { WebhookCredentialsListResponse } from '@/types/webhookCredentials'
 
 export const webhookCredentialsResponse = {
@@ -29,6 +29,7 @@ export const oauthConnectionsResponse = {
 			id: '66666666-6666-4666-8666-666666666666',
 			provider: 'GOOGLE',
 			providerAccountId: 'tester@example.com',
+			displayName: null,
 			scopes: ['https://www.googleapis.com/auth/drive.file'],
 			createdAt: '2026-08-24T03:00:00Z',
 		},
@@ -41,3 +42,12 @@ export const emptyOAuthConnectionsResponse = {
 	...oauthConnectionsResponse,
 	data: [],
 } satisfies OAuthConnectionsListResponse
+
+export const slackOAuthConnection = {
+	id: '77777777-7777-4777-8777-777777777777',
+	provider: 'SLACK',
+	providerAccountId: 'T0123456789',
+	displayName: '이음 팀',
+	scopes: ['chat:write', 'chat:write.public', 'channels:read'],
+	createdAt: '2026-10-21T10:00:00Z',
+} satisfies OAuthConnectionDto

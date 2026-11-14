@@ -1,21 +1,21 @@
 import type { WebhookCredentialProvider } from '@/types/webhookCredentials'
 import type { IntegrationBrand } from '@/types/integration'
 
-export type WebhookConnectServiceId = 'slack' | 'discord'
+export type WebhookConnectServiceId = 'slack-webhook' | 'discord'
 
-const WEBHOOK_CONNECT_SERVICE_IDS: WebhookConnectServiceId[] = ['slack', 'discord']
+const WEBHOOK_CONNECT_SERVICE_IDS: WebhookConnectServiceId[] = ['slack-webhook', 'discord']
 
 export const isWebhookConnectServiceId = (serviceId: string): serviceId is WebhookConnectServiceId =>
 	WEBHOOK_CONNECT_SERVICE_IDS.includes(serviceId as WebhookConnectServiceId)
 
 export const webhookServiceIdToProvider = (serviceId: WebhookConnectServiceId): WebhookCredentialProvider =>
-	serviceId === 'slack' ? 'SLACK' : 'DISCORD'
+	serviceId === 'slack-webhook' ? 'SLACK' : 'DISCORD'
 
 export const isValidWebhookUrl = (url: string, serviceId: WebhookConnectServiceId): boolean => {
 	try {
 		const parsed = new URL(url)
 		if (parsed.protocol !== 'https:') return false
-		if (serviceId === 'slack') return parsed.hostname === 'hooks.slack.com'
+		if (serviceId === 'slack-webhook') return parsed.hostname === 'hooks.slack.com'
 		return parsed.hostname === 'discord.com' || parsed.hostname === 'discordapp.com'
 	} catch {
 		return false
@@ -36,8 +36,8 @@ export type WebhookConnectConfig = {
 }
 
 export const WEBHOOK_CONNECT_CONFIG: Record<WebhookConnectServiceId, WebhookConnectConfig> = {
-	slack: {
-		serviceId: 'slack',
+	'slack-webhook': {
+		serviceId: 'slack-webhook',
 		brand: 'slack',
 		title: 'Slack 웹훅 연결',
 		fields: {

@@ -1,6 +1,7 @@
 import { setupWorker } from 'msw/browser'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
 import { createNodeTestHandlers } from '@/mocks/nodeTestHandlers'
+import { createSlackOAuthHandlers } from '@/mocks/slackOAuthHandlers'
 import { createWebhookTokenHandlers } from '@/mocks/webhookTokenHandlers'
 import { createWorkflowValidateHandler } from '@/mocks/workflowValidationHandlers'
 import { seedMeasurementAuthState } from './measurementAuth'
@@ -13,6 +14,12 @@ export const enableMeasurementMode = async () => {
 	installMeasurementResourceObserver()
 	const delayMs = parseMeasurementDelay(import.meta.env.VITE_MEASUREMENT_DELAY_MS)
 	const worker = setupWorker(
+		// 연결 목록 조회를 Slack 연결 상태로 덮어써야 하므로 기본 성공 handler보다 앞에 둔다.
+		...createSlackOAuthHandlers({
+			delayMs,
+			authUrl: `${window.location.origin}/inter-setting?connected=slack`,
+			connectionStorage: window.sessionStorage,
+		}),
 		...createDelayedSuccessHandlers(delayMs),
 		...createNodeTestHandlers({ delayMs, remembersSamples: true }),
 		...createWebhookTokenHandlers({ delayMs, remembersTokens: true }),
