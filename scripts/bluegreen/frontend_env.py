@@ -33,6 +33,10 @@ ROUTES = {'legacy': ('10.10.10.10', '10.10.10.11', '10.10.10.14')}
 BUILD_COMMAND = ('npx', '--no-install', 'vite', 'build')
 REQUIRED_KEYS = ('VITE_API_URL',)
 CI_KEYS = ('NODE_VERSION', 'IMAGE_NAME')
+DEV_BUILD_KEYS = ('VITE_API_URL', 'VITE_MEASUREMENT_MODE', 'VITE_MEASUREMENT_DELAY_MS')
+DEV_SECRET_KEYS = tuple('DEV_COM_' + key for key in DEV_BUILD_KEYS) + tuple(
+    'DEV_' + (key if key.startswith(('BLUE_', 'GREEN_')) else 'COM_' + key)
+    for key in DEPLOYMENT_KEYS)
 MAIN_BUILD_KEYS = ('VITE_API_URL', 'VITE_MEASUREMENT_MODE', 'VITE_MEASUREMENT_DELAY_MS')
 MAIN_SECRET_KEYS = tuple('MAIN_COM_' + key for key in MAIN_BUILD_KEYS) + tuple(
     'MAIN_' + (key if key.startswith(('BLUE_', 'GREEN_')) else 'COM_' + key)
@@ -83,12 +87,11 @@ def environment_prefix(environment):
 
 
 def configuration_payload(ambient, environment='dev'):
-    """MAIN은 명시된 입력만 읽고 DEV의 기존 JSON 전달 계약은 유지합니다."""
+    """선택한 환경의 명시된 입력만 읽으며 전체 Secrets JSON으로 보충하지 않습니다."""
     environment_prefix(environment)
-    if environment == 'dev':
-        return ambient.get(SECRETS_VARIABLE)
+    keys = DEV_SECRET_KEYS if environment == 'dev' else MAIN_SECRET_KEYS
     # GitHub는 미등록 Secret을 빈 문자열로 전달합니다. 선택 항목은 기존 기본값을 유지합니다.
-    return json.dumps({key: ambient[key] for key in MAIN_SECRET_KEYS
+    return json.dumps({key: ambient[key] for key in keys
                        if key in ambient and ambient[key] != ''}, ensure_ascii=False)
 
 
@@ -369,10 +372,8 @@ def public_build_settings(content, environment='main'):
 def build_process_environment(content, ambient, environment='dev'):
     values = candidate_values(content, environment)
     child = {key: value for key, value in ambient.items()
-             if not key.upper().startswith('VITE_') and key != SECRETS_VARIABLE and key.upper() not in DEPLOYMENT_KEYS}
-    if environment == 'main':
-        child = {key: value for key, value in child.items()
-                 if not key.upper().startswith(('MAIN_', 'DEV_', 'AWS_')) and key != 'GITHUB_TOKEN'}
+             if not key.upper().startswith(('VITE_', 'MAIN_', 'DEV_', 'AWS_'))
+             and key not in (SECRETS_VARIABLE, 'GITHUB_TOKEN') and key.upper() not in DEPLOYMENT_KEYS}
     child.update({key: value for key, value in values.items() if key.startswith('VITE_')})
     child.update({'NODE_ENV': 'production', 'HUSKY': '0', BUILD_MARKER: '1'})
     return child
