@@ -48,11 +48,10 @@ Blue·Green이 같은 DB를 사용하므로 별도 DB 동기화는 없다.
 
 ## 변수 추가·변경 규칙
 
-- DEV도 필요한 Secrets만 워크플로우 `env`에 명시하며 전체 Secrets JSON을 전달하지 않는다.
+- 이전의 접두사 자동 수집 대신 필요한 Secrets만 워크플로우 `env`에 명시하며 전체 Secrets JSON을 전달하지 않는다.
   `DEV_COM_VITE_API_URL`은 접두사를 제거한 `VITE_API_URL`로 기록한다.
-- 새 `DEV_COM_VITE_*`를 사용하려면 Secret 등록, `frontend_env.py`의 `DEV_BUILD_KEYS`,
-  `frontend-dev-server.yml`의 빌드 단계 `env`를 함께 수정한다. 앱에서도 해당 변수를 읽어야 한다.
-  연결 설정을 추가할 때도 수집 목록·검증·워크플로우·이 문서를 함께 갱신한다. 등록만으로 자동 수집하지 않는다.
+- 이미 지원하는 앱 설정의 **값만 변경**하면 Secrets를 갱신한 뒤 새로 빌드·배포한다.
+  **새 변수 이름 추가**는 Secrets 등록만으로 반영되지 않으므로 아래 절차에 따라 수집 목록·워크플로우·앱·문서를 함께 갱신한다.
 - 허용 목록 밖의 `DEV_*`, MAIN·AWS, 이전 `DEV_VITE_*`·접두사 없는 Secrets,
   전체 Secrets JSON이나 서버 원본 `.env`로 누락값을 보충하지 않는다.
 - 필수값이 없거나 공백뿐이면 중단한다. 선택 항목은 미등록·빈 문자열을 생략해 앱 기본값을 사용한다.
@@ -62,6 +61,28 @@ Blue·Green이 같은 DB를 사용하므로 별도 DB 동기화는 없다.
   실행 경로·Node 옵션·배포 제어용 예약 변수는 앱 Secrets로 설정하지 않는다.
 
 **`VITE_*`는 브라우저에 공개되는 설정이다. 비밀번호·토큰·비공개 API 키를 넣지 않는다.**
+
+### 새 공개 설정 추가 체크리스트
+
+`VITE_NEW_OPTION`을 추가하는 예시다. 현재 필수 등록 목록에 포함된 항목은 아니다.
+
+- [ ] GitHub Actions Secret `DEV_COM_VITE_NEW_OPTION`을 등록한다.
+- [ ] [수집기](../../scripts/bluegreen/frontend_env.py)의 `DEV_BUILD_KEYS`에 `VITE_NEW_OPTION`을 추가한다.
+      `DEV_SECRET_KEYS`에는 접두사가 붙은 이름이 자동으로 포함된다.
+- [ ] [DEV 워크플로우](../../.github/workflows/frontend-dev-server.yml)의 `Build frontend from DEV Secrets` 단계에
+      아래 `env` 매핑을 추가한다. `run` 안에 Secret 값을 직접 삽입하지 않는다.
+- [ ] 앱에서 `import.meta.env.VITE_NEW_OPTION`을 읽고 필수 여부·기본값을 정한다.
+      [DEV 입력 테스트](../../scripts/bluegreen/test_dev_secret_inputs.py)에 미등록·빈 값 처리 검증을 보완한다.
+- [ ] 이 문서의 Secrets 표를 갱신하고 아래 로컬 확인을 수행한 뒤 새 빌드·배포에 반영한다.
+
+```yaml
+env:
+    DEV_COM_VITE_NEW_OPTION: ${{ secrets.DEV_COM_VITE_NEW_OPTION }}
+```
+
+`REQUIRED_KEYS`와 연결 설정 목록 `DEPLOYMENT_KEYS`는 DEV·MAIN이 공유한다.
+이를 변경할 때는 양쪽 수집기·워크플로우 입력·검증에 미치는 영향을 함께 확인한다.
+DEV 공개 옵션만 추가하는 경우 `MAIN_BUILD_KEYS`를 수정할 필요는 없다.
 
 ## 배포 실행
 
