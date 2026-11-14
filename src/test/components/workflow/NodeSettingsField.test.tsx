@@ -26,7 +26,9 @@ const references: NodeReferenceSource = {
 	],
 	context: {
 		ancestorIds: new Set(['http']),
-		targets: new Map([['http', { label: '상태 확인', paths: [{ path: 'status', title: '상태 코드' }] }]]),
+		targets: new Map([
+			['http', { label: '상태 확인', event: 'http.request', paths: [{ path: 'status', title: '상태 코드' }] }],
+		]),
 	},
 }
 

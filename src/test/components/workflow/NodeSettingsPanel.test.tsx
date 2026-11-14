@@ -100,11 +100,11 @@ const Harness = ({
 const getFieldInput = (title: string) =>
 	screen.getByLabelText(new RegExp(`^${title}`), { selector: 'input, textarea, select, button' })
 
-/** 설정 드롭다운을 열고 `{title} 목록`에서 항목을 고른다. */
+/** 설정 드롭다운을 열고 `{title} 목록`에서 항목을 고른다. options 목록은 열린 뒤 응답이 와야 항목이 생겨 항목도 기다린다. */
 const chooseFromDropdown = async (user: ReturnType<typeof userEvent.setup>, title: string, optionName: string | RegExp) => {
 	await user.click(getFieldInput(title))
 	const listbox = await screen.findByRole('listbox', { name: `${title} 목록` })
-	await user.click(within(listbox).getByRole('option', { name: optionName }))
+	await user.click(await within(listbox).findByRole('option', { name: optionName }))
 }
 
 const renderPanel = (initialNode: WorkflowNodeDto) => {
@@ -317,7 +317,7 @@ describe('NodeSettingsPanel', () => {
 				within(nextList)
 					.getAllByRole('option')
 					.map(option => option.textContent)
-			).toEqual([`${SLACK_TITLE}Slack`])
+			).toEqual([`${SLACK_TITLE}Slack`, '캘린더 일정 수정Google Calendar'])
 		})
 
 		it('저장된 도구는 접어 두고, 펼친 도구 칸 값을 그 원소 config에 쓰며 비우면 키를 지우고 AI가 정한다고 안내한다', async () => {
@@ -405,6 +405,28 @@ describe('NodeSettingsPanel', () => {
 
 			expect(lastNode().config.tools).toEqual([
 				{ name: SLACK_TOOL, config: { channel: 'C2', _names: { channel: '#random' } } },
+			])
+		})
+
+		it('Calendar 수정 도구 카드는 적용 범위·참석자 알림만 보여 주고 숨긴 칸 값은 그대로 둔다', async () => {
+			const user = userEvent.setup()
+			const CALENDAR_TOOL = 'builtin:google_calendar_update'
+			const { lastNode } = renderPanel(
+				createAiNode('ai.agent', [{ name: CALENDAR_TOOL, config: { attendees: 'a@example.com' } }])
+			)
+
+			await user.click(getToolToggle('캘린더 일정 수정'))
+			const card = getToolCard('캘린더 일정 수정')
+			expect(
+				within(card)
+					.getAllByText(/./, { selector: 'label' })
+					.map(label => label.textContent)
+			).toEqual(['적용 범위', '참석자 알림'])
+			expect(within(card).queryByText('비우면 AI가 정해요')).not.toBeInTheDocument()
+
+			await chooseFromDropdown(user, '적용 범위', '반복 전체')
+			expect(lastNode().config.tools).toEqual([
+				{ name: CALENDAR_TOOL, config: { attendees: 'a@example.com', scope: 'all' } },
 			])
 		})
 
@@ -1441,6 +1463,184 @@ describe('NodeSettingsPanel', () => {
 			expect(screen.getByText(/이 노드에 없는 출력을 참조하는 노드가 있어요/)).toBeInTheDocument()
 			await user.click(screen.getByRole('button', { name: "'요약 보내기' 열기" }))
 			expect(onNodeOpen).toHaveBeenCalledWith('node-1')
+		})
+	})
+
+	describe('Google Calendar 노드', () => {
+		const createCalendarNode = (event: string, config: Record<string, unknown> = {}) =>
+			createNode({ id: 'calendar', event, label: '일정 수정', config })
+
+		/** options 요청을 기록하고 공급원별 응답을 돌려준다. 정하지 않은 공급원은 빈 목록이다. */
+		const mockCalendarOptions = (
+			pages: Record<string, (url: URL) => { items: NodeOption[]; nextCursor?: string | null }>
+		) => {
+			const requests: URL[] = []
+			server.use(
+				http.get('*/api/v1/integrations/:app/options/:resource', ({ request, params }) => {
+					const url = new URL(request.url)
+					requests.push(url)
+					const respond = pages[`${String(params.app)}.${String(params.resource)}`]
+					return HttpResponse.json({
+						success: true,
+						message: 'OK',
+						code: 'OK',
+						data: respond ? respond(url) : { items: [] },
+					})
+				})
+			)
+			return requests
+		}
+
+		it('시간대를 목록에서 고르고 비우면 키를 지운다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createCalendarNode('google_calendar.update'))
+
+			await chooseFromDropdown(user, '시간대', /^Asia\/Seoul/)
+			expect(lastNode().config).toEqual({ time_zone: 'Asia/Seoul' })
+
+			await chooseFromDropdown(user, '시간대', '선택 안 함')
+			expect(lastNode().config).toEqual({})
+		})
+
+		it('목록에 없는 시간대 값도 그대로 보여 준다', () => {
+			renderPanel(createCalendarNode('google_calendar.update', { time_zone: 'Mars/Olympus' }))
+
+			expect(getFieldInput('시간대')).toHaveTextContent('Mars/Olympus')
+		})
+
+		it('캘린더를 비워 두면 기본 캘린더(primary)의 일정 목록을 불러온다', async () => {
+			const user = userEvent.setup()
+			const requests = mockCalendarOptions({
+				'google.events': () => ({ items: [{ id: 'evt-1', name: '주간 회의' }] }),
+			})
+			const { lastNode } = renderPanel(createCalendarNode('google_calendar.update'))
+
+			await chooseFromDropdown(user, '일정', /주간 회의/)
+
+			expect(requests[0].pathname).toMatch(/\/integrations\/google\/options\/events$/)
+			expect(requests[0].searchParams.get('calendar_id')).toBe('primary')
+			expect(lastNode().config).toEqual({ event_id: 'evt-1', _names: { event_id: '주간 회의' } })
+		})
+
+		it('일정 칸에 지난 일정·반복 일정 안내를 붙인다', () => {
+			renderPanel(createCalendarNode('google_calendar.delete'))
+
+			expect(getFieldInput('일정')).toHaveAccessibleDescription(
+				expect.stringContaining(
+					'목록에는 지금 이후 일정만 보여요. 지난 일정이나 앞 노드가 찾은 일정은 참조식으로 넣어 주세요.'
+				)
+			)
+		})
+
+		it('일정 칸을 참조식으로 바꾸면 고른 값을 지우고 참조식을 저장하며, 값으로 돌아오면 다시 드롭다운이다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(
+				createCalendarNode('google_calendar.update', { event_id: 'evt-1', _names: { event_id: '주간 회의' } })
+			)
+
+			const modes = screen.getByRole('radiogroup', { name: '일정 입력 방식' })
+			await user.click(within(modes).getByRole('radio', { name: '참조식' }))
+			expect(lastNode().config).toEqual({})
+
+			await user.click(getFieldInput('일정'))
+			await user.paste('{{nodes.find.output.items.0.id}}')
+			expect(lastNode().config).toEqual({ event_id: '{{nodes.find.output.items.0.id}}' })
+
+			await user.click(within(modes).getByRole('radio', { name: '값' }))
+			expect(lastNode().config).toEqual({})
+			expect(getFieldInput('일정')).toHaveAttribute('role', 'combobox')
+		})
+
+		it('저장된 참조식 일정은 참조식 방식으로 연다', () => {
+			renderPanel(createCalendarNode('google_calendar.update', { event_id: '{{nodes.find.output.items.0.id}}' }))
+
+			expect(getFieldInput('일정')).toHaveValue('{{nodes.find.output.items.0.id}}')
+			expect(screen.getByRole('radio', { name: '참조식', checked: true })).toBeInTheDocument()
+		})
+
+		it('캘린더가 참조식이면 일정 목록을 막고 일정도 참조식으로 넣으라고 안내한다', () => {
+			renderPanel(createCalendarNode('google_calendar.update', { calendar_id: '{{nodes.find.output.items.0.id}}' }))
+
+			expect(
+				screen.getByText("'캘린더' 칸이 참조식이라 목록에서 고를 수 없어요. 이 칸도 '참조식'으로 바꿔 넣어 주세요.")
+			).toBeInTheDocument()
+		})
+
+		it('다른 앱의 드롭다운 칸에는 참조식 전환을 두지 않는다', () => {
+			renderPanel(createNode())
+
+			expect(screen.queryByRole('radiogroup', { name: '채널 입력 방식' })).not.toBeInTheDocument()
+		})
+
+		it('쓰기 가능한 캘린더 첫 페이지가 비어도 다음 페이지를 이어 읽어 항목을 보여 준다', async () => {
+			const user = userEvent.setup()
+			const requests = mockCalendarOptions({
+				'google.writable_calendars': url =>
+					url.searchParams.get('cursor') === 'next'
+						? { items: [{ id: 'team@group.calendar.google.com', name: '팀 일정' }], nextCursor: null }
+						: { items: [], nextCursor: 'next' },
+			})
+			renderPanel(createCalendarNode('google_calendar.create'))
+
+			await user.click(getFieldInput('캘린더'))
+			expect(await screen.findByRole('option', { name: /팀 일정/ })).toBeInTheDocument()
+			expect(requests.map(url => url.searchParams.get('cursor'))).toEqual([null, 'next'])
+			expect(screen.queryByRole('button', { name: '더 불러오기' })).not.toBeInTheDocument()
+		})
+
+		it('빈 페이지가 계속 이어지면 5페이지까지만 자동으로 읽고 더 불러오기를 보여 준다', async () => {
+			const user = userEvent.setup()
+			const requests = mockCalendarOptions({
+				'google.writable_calendars': url => ({
+					items: [],
+					nextCursor: `${Number(url.searchParams.get('cursor') ?? 0) + 1}`,
+				}),
+			})
+			renderPanel(createCalendarNode('google_calendar.create'))
+
+			await user.click(getFieldInput('캘린더'))
+			// 자동으로 읽는 동안에도 버튼이 '불러오는 중…'으로 보여, 요청이 멈춘 뒤의 버튼 이름으로 확인한다.
+			await waitFor(() => expect(requests).toHaveLength(5))
+			expect(await screen.findByRole('button', { name: '더 불러오기' })).toBeEnabled()
+			expect(requests).toHaveLength(5)
+		})
+
+		describe('찾기 결과 종료 참조', () => {
+			const findNode: WorkflowNodeDto = {
+				id: 'find',
+				type: 'ACTION',
+				event: 'google_calendar.find',
+				label: '오늘 일정 찾기',
+				config: {},
+			}
+
+			const renderUpdate = (config: Record<string, unknown>) => {
+				const node = createCalendarNode('google_calendar.update', config)
+				renderWithProviders(
+					<NodeSettingsPanel
+						{...nodeTestProps}
+						node={node}
+						nodes={[findNode, node]}
+						edges={[{ source: 'find', target: 'calendar' }]}
+						onNodeChange={() => undefined}
+						onClose={() => undefined}
+					/>
+				)
+			}
+
+			it('새 종료가 찾기 결과의 종료를 참조하면 하루 늘어난다고 경고한다', () => {
+				renderUpdate({ end_datetime: '{{nodes.find.output.items.0.end}}' })
+
+				expect(getFieldInput('새 종료')).toHaveAccessibleDescription(
+					expect.stringContaining('찾기 결과의 종료는 종일 일정이면 다음 날이라, 그대로 넣으면 일정이 하루 늘어나요.')
+				)
+			})
+
+			it('찾기 결과의 시작을 참조하면 경고하지 않는다', () => {
+				renderUpdate({ end_datetime: '{{nodes.find.output.items.0.start}}' })
+
+				expect(screen.queryByText(/그대로 넣으면 일정이 하루 늘어나요/)).not.toBeInTheDocument()
+			})
 		})
 	})
 

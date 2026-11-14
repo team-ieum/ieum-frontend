@@ -125,6 +125,7 @@ const aiAgentEntry = {
 			choices: [
 				{ id: 'discord', name: 'Discord 웹훅으로 보내기' },
 				{ id: 'builtin:slack_send_channel_message', name: 'Slack 채널에 메시지 보내기' },
+				{ id: 'builtin:google_calendar_update', name: '캘린더 일정 수정' },
 			],
 			path: 'config.tools',
 		},
@@ -229,11 +230,219 @@ const slackBotSendEntry = {
 	],
 } satisfies NodeCatalogEntry
 
+// Google Calendar 4종. 실제 카탈로그(ieum-node-catalog events/google_calendar)와 같은 칸·기본값·선택지 모양이다.
+const GOOGLE_CALENDAR_BASE = {
+	provider: 'google',
+	app: 'google_calendar',
+	appTitle: 'Google Calendar',
+	nodeType: 'ACTION',
+} as const
+
+const calendarIdField = (description: string, optionsSource: string) => ({
+	key: 'calendar_id',
+	title: '캘린더',
+	type: 'string' as const,
+	default: 'primary',
+	description,
+	optionsSource,
+	path: 'config.calendar_id',
+})
+
+const eventIdField = (description: string) => ({
+	key: 'event_id',
+	title: '일정',
+	type: 'string' as const,
+	required: true,
+	description,
+	optionsSource: 'google.events',
+	optionsInputs: ['calendar_id'],
+	path: 'config.event_id',
+})
+
+const scopeField = (description: string) => ({
+	key: 'scope',
+	title: '적용 범위',
+	type: 'string' as const,
+	default: 'this',
+	ref: false,
+	description,
+	choices: [
+		{ id: 'this', name: '이 일정만' },
+		{ id: 'all', name: '반복 전체' },
+	],
+	path: 'config.scope',
+})
+
+const sendUpdatesField = {
+	key: 'send_updates',
+	title: '참석자 알림',
+	type: 'string' as const,
+	ref: false,
+	description: '비우면 Google 기본 동작',
+	choices: [
+		{ id: 'all', name: '모두에게' },
+		{ id: 'externalOnly', name: '외부 참석자에게만' },
+		{ id: 'none', name: '보내지 않음' },
+	],
+	path: 'config.send_updates',
+}
+
+const calendarEventOutputFields = [
+	{ key: 'eventId', title: '일정 ID', type: 'string' as const },
+	{ key: 'htmlLink', title: '일정 링크', type: 'string' as const },
+]
+
+const googleCalendarCreateEntry = {
+	...GOOGLE_CALENDAR_BASE,
+	id: 'google_calendar.create',
+	kind: 'action',
+	toolKey: 'builtin:google_calendar_create',
+	title: '캘린더 일정 만들기',
+	fixed: { type: 'ACTION', event: 'google_calendar.create', config: {} },
+	inputFields: [
+		calendarIdField('대상 캘린더 (비우면 기본 캘린더)', 'google.writable_calendars'),
+		{ key: 'summary', title: '제목', type: 'string', required: true, path: 'config.summary' },
+		{ key: 'start_datetime', title: '시작', type: 'datetime', required: true, path: 'config.start_datetime' },
+		{ key: 'end_datetime', title: '종료', type: 'datetime', required: true, path: 'config.end_datetime' },
+		{ key: 'description', title: '설명', type: 'text', default: '', path: 'config.description' },
+	],
+	outputFields: calendarEventOutputFields,
+} satisfies NodeCatalogEntry
+
+const googleCalendarFindEntry = {
+	...GOOGLE_CALENDAR_BASE,
+	id: 'google_calendar.find',
+	kind: 'search',
+	toolKey: 'builtin:google_calendar_find',
+	title: '캘린더 일정 찾기',
+	fixed: { type: 'ACTION', event: 'google_calendar.find', config: {} },
+	inputFields: [
+		calendarIdField('읽을 캘린더 (비우면 기본 캘린더, 공휴일 캘린더 포함)', 'google.calendars'),
+		{ key: 'query', title: '검색어', type: 'string', default: '', path: 'config.query' },
+		{
+			key: 'period',
+			title: '기간',
+			type: 'string',
+			default: '',
+			choices: [
+				{ id: 'today', name: '오늘' },
+				{ id: 'tomorrow', name: '내일' },
+				{ id: 'this_week', name: '이번 주(월~일)' },
+				{ id: 'next_7_days', name: '앞으로 7일' },
+			],
+			path: 'config.period',
+		},
+		{ key: 'time_min', title: '시작 시각', type: 'datetime', default: '', path: 'config.time_min' },
+		{ key: 'time_max', title: '종료 시각', type: 'datetime', default: '', path: 'config.time_max' },
+		{ key: 'max_results', title: '최대 개수', type: 'integer', default: 50, path: 'config.max_results' },
+	],
+	outputFields: [
+		{ key: 'found', title: '찾음', type: 'boolean' },
+		{ key: 'total', title: '개수', type: 'integer' },
+		{
+			key: 'items',
+			title: '일정',
+			type: 'object',
+			list: true,
+			children: [
+				{ key: 'id', title: 'ID', type: 'string' },
+				{ key: 'summary', title: '제목', type: 'string' },
+				{ key: 'start', title: '시작', type: 'datetime' },
+				{
+					key: 'end',
+					title: '종료',
+					type: 'datetime',
+					description: '종일 일정은 날짜이고, Google 규칙대로 끝나는 날의 다음 날이에요',
+				},
+				{ key: 'allDay', title: '종일', type: 'boolean' },
+			],
+		},
+	],
+} satisfies NodeCatalogEntry
+
+const googleCalendarUpdateEntry = {
+	...GOOGLE_CALENDAR_BASE,
+	id: 'google_calendar.update',
+	kind: 'action',
+	toolKey: 'builtin:google_calendar_update',
+	title: '캘린더 일정 수정',
+	fixed: { type: 'ACTION', event: 'google_calendar.update', config: {} },
+	inputFields: [
+		eventIdField('수정할 일정'),
+		calendarIdField('대상 캘린더 (비우면 기본 캘린더, 쓰기 권한이 있는 캘린더만)', 'google.writable_calendars'),
+		{ key: 'summary', title: '새 제목', type: 'string', description: '비우면 그대로', path: 'config.summary' },
+		{
+			key: 'start_datetime',
+			title: '새 시작',
+			type: 'datetime',
+			description: '비우면 그대로. 시작만 바꾸면 길이를 유지해요',
+			path: 'config.start_datetime',
+		},
+		{
+			key: 'end_datetime',
+			title: '새 종료',
+			type: 'datetime',
+			description: '비우면 그대로. 종일 일정은 끝나는 날(포함)',
+			path: 'config.end_datetime',
+		},
+		{ key: 'description', title: '새 설명', type: 'text', description: '비우면 그대로', path: 'config.description' },
+		scopeField('반복 일정일 때 이 일정만 또는 반복 전체(반복 전체는 날짜는 두고 시각만 바꿔요)'),
+		{
+			key: 'all_day',
+			title: '종일',
+			type: 'boolean',
+			ref: false,
+			description: '켜면 종일 일정, 끄면 시각 일정. 비우면 그대로',
+			path: 'config.all_day',
+		},
+		{
+			key: 'time_zone',
+			title: '시간대',
+			type: 'string',
+			description: 'IANA 이름(예: Asia/Seoul). 비우면 캘린더 시간대',
+			path: 'config.time_zone',
+		},
+		{ key: 'location', title: '새 장소', type: 'string', description: '비우면 그대로', path: 'config.location' },
+		{
+			key: 'attendees',
+			title: '참석자',
+			type: 'string',
+			description: '이메일을 쉼표로 구분, 기존 참석자를 모두 바꿉니다. 비우면 그대로',
+			path: 'config.attendees',
+		},
+		sendUpdatesField,
+	],
+	outputFields: calendarEventOutputFields,
+} satisfies NodeCatalogEntry
+
+const googleCalendarDeleteEntry = {
+	...GOOGLE_CALENDAR_BASE,
+	id: 'google_calendar.delete',
+	kind: 'action',
+	toolKey: 'builtin:google_calendar_delete',
+	title: '캘린더 일정 삭제',
+	fixed: { type: 'ACTION', event: 'google_calendar.delete', config: {} },
+	inputFields: [
+		eventIdField('삭제할 일정'),
+		calendarIdField('대상 캘린더 (비우면 기본 캘린더, 쓰기 권한이 있는 캘린더만)', 'google.writable_calendars'),
+		scopeField('반복 일정일 때 이 일정만 또는 반복 전체'),
+		sendUpdatesField,
+	],
+	outputFields: [
+		{ key: 'eventId', title: '일정 ID', type: 'string' },
+		{ key: 'deleted', title: '삭제됨', type: 'boolean' },
+	],
+} satisfies NodeCatalogEntry
+
 export const nodeCatalogEntriesFixture: NodeCatalogEntry[] = [
 	aiAgentEntry,
 	aiReasoningEntry,
 	discordSendEntry,
 	gmailNewEmailEntry,
+	googleCalendarCreateEntry,
+	googleCalendarDeleteEntry,
+	googleCalendarFindEntry,
+	googleCalendarUpdateEntry,
 	httpRequestEntry,
 	manualRunEntry,
 	scheduleEveryEntry,

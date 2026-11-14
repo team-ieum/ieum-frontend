@@ -22,6 +22,7 @@ import {
 	isFieldEditable,
 	isRequiredFieldMissing,
 	type NodeFieldMode,
+	type NodeFieldNotice,
 } from '@/utils/workflow/nodeFieldValue'
 import type { TextSelection } from '@/utils/workflow/nodeReference'
 import { isOptionsComboboxField, isOptionsListField, type NodeFieldOptions } from '@/utils/workflow/nodeOptions'
@@ -43,6 +44,8 @@ type NodeSettingsFieldProps = {
 	options?: NodeFieldOptions
 	/** 칸이 비었을 때 칸 아래에 보여 줄 안내(예: AI 도구 칸의 AI 결정). */
 	emptyHint?: string
+	/** 칸 설명 아래에 덧붙이는 앱별 안내·경고(예: Calendar 일정 칸). */
+	notice?: NodeFieldNotice | null
 	/** 출력 참조 후보와 참조 검사 문맥. 없으면 참조 피커와 참조 경고를 보여 주지 않는다. */
 	references?: NodeReferenceSource
 	/** 이 칸(과 그 아래 경로)에 붙은 서버 검사 오류. 저장된 버전 기준이다. */
@@ -62,6 +65,7 @@ const NodeSettingsField = ({
 	name,
 	options,
 	emptyHint,
+	notice,
 	references,
 	validationErrors = [],
 	onChange,
@@ -70,20 +74,24 @@ const NodeSettingsField = ({
 	const descriptionId = `${inputId}-description`
 	const messageId = `${inputId}-message`
 	const referenceWarningId = `${inputId}-reference-warning`
+	const noticeId = `${inputId}-notice`
 	const validationErrorsId = `${inputId}-validation-errors`
 	const isOptionsCombobox = Boolean(options && isOptionsComboboxField(field))
 	const isOptionsList = Boolean(options && isOptionsListField(field))
+	const canUseOptionsReference = isOptionsCombobox && Boolean(options?.canUseReference)
 	const { mode, changeMode, draft, changeText, changeValue, error, pickerTarget, insertReference, referenceWarning } =
 		useNodeSettingsField({
 			field,
 			value,
 			onChange,
 			isOptionsCombobox: isOptionsCombobox || isOptionsList,
+			canUseOptionsReference,
 			referenceContext: references?.context,
 		})
 	const isMissing = isRequiredFieldMissing(field, value)
 	const describedBy = [
 		field.description ? descriptionId : null,
+		notice ? noticeId : null,
 		error || isMissing ? messageId : null,
 		referenceWarning ? referenceWarningId : null,
 		validationErrors.length > 0 ? validationErrorsId : null,
@@ -184,7 +192,8 @@ const NodeSettingsField = ({
 			)
 		}
 
-		if (options && isOptionsCombobox) {
+		// 참조식 방식을 함께 쓰는 드롭다운 칸은 참조식 방식이면 아래 참조식 입력 칸으로 그린다.
+		if (options && isOptionsCombobox && mode === 'fixed') {
 			return (
 				<NodeOptionsCombobox
 					id={inputId}
@@ -197,6 +206,7 @@ const NodeSettingsField = ({
 					clearLabel={options.clearLabel}
 					triggerClassName={INPUT_CLASS}
 					describedBy={inputProps['aria-describedby']}
+					canUseReference={canUseOptionsReference}
 					onSelect={option => changeValue(option.id, option.name)}
 					onClear={() => changeValue(undefined)}
 				/>
@@ -295,7 +305,7 @@ const NodeSettingsField = ({
 					{field.title}
 					{field.required ? <span className='ml-1 text-[0.7rem] font-semibold text-[#a84c36]'>필수</span> : null}
 				</label>
-				{hasReferenceMode(field) ? (
+				{hasReferenceMode(field, canUseOptionsReference) ? (
 					<div
 						role='radiogroup'
 						aria-label={`${field.title} 입력 방식`}
@@ -325,6 +335,20 @@ const NodeSettingsField = ({
 			{field.description ? (
 				<p id={descriptionId} className='m-0 text-xs leading-snug text-neutral-500'>
 					{field.description}
+				</p>
+			) : null}
+			{notice ? (
+				<p
+					id={noticeId}
+					role={notice.tone === 'warning' ? 'status' : undefined}
+					className={cn(
+						'm-0',
+						notice.tone === 'warning'
+							? 'typo-caption1_semibold text-warning-700'
+							: 'typo-caption1_regular text-neutral-500'
+					)}
+				>
+					{notice.message}
 				</p>
 			) : null}
 			<div className='relative'>

@@ -35,7 +35,7 @@ export const useWebhookCredentialConnect = (serviceId: WebhookConnectServiceId, 
 			if (!isValidWebhookUrl(trimmedUrl, serviceId)) {
 				openAlert(
 					'입력 확인',
-					serviceId === 'slack'
+					serviceId === 'slack-webhook'
 						? 'Slack Webhook URL은 https://hooks.slack.com/services/... 형식이어야 합니다.'
 						: 'Discord Webhook URL은 https://discord.com/api/webhooks/... 형식이어야 합니다.'
 				)

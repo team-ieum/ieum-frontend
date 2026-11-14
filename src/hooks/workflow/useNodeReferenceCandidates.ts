@@ -68,6 +68,7 @@ export const useNodeReferenceCandidates = ({
 		const entry = entryByEvent.get(item.event)
 		return {
 			label: item.label,
+			event: item.event,
 			paths: hasKnownOutputPaths(entry) ? getNodeOutputPaths({ node: item, entry }) : null,
 		}
 	}

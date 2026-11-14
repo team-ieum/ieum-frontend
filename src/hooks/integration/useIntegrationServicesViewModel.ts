@@ -3,12 +3,15 @@ import { AVAILABLE_INTEGRATION_CATALOG } from '@/constants/integration/available
 import { useOAuthConnectionsQuery } from '@/hooks/oauthConnections/queries/useOAuthConnectionsQuery'
 import { useWebhookCredentialsQuery } from '@/hooks/webhookCredentials/queries/useWebhookCredentialsQuery'
 import type { AsyncResourceState } from '@/types/asyncResource'
-import type { IntegrationBrand, IntegrationService } from '@/types/integration'
+import type { IntegrationService } from '@/types/integration'
 import {
-	getExcludedCatalogBrandsForOAuthConnections,
+	getExcludedCatalogIdsForOAuthConnections,
 	mapOAuthConnectionToIntegrationService,
 } from '@/utils/integration/mapOAuthConnectionToIntegrationService'
-import { mapWebhookCredentialToIntegrationService } from '@/utils/integration/mapWebhookCredentialToIntegrationService'
+import {
+	getExcludedCatalogIdsForWebhookCredentials,
+	mapWebhookCredentialToIntegrationService,
+} from '@/utils/integration/mapWebhookCredentialToIntegrationService'
 
 type UseIntegrationServicesViewModelResult = {
 	connected: IntegrationService[]
@@ -22,8 +25,8 @@ type UseIntegrationServicesViewModelResult = {
 	oauthResource: AsyncResourceState
 }
 
-const filterCatalogAvailable = (catalog: IntegrationService[], excludedBrands: Set<IntegrationBrand>) =>
-	catalog.filter(service => !excludedBrands.has(service.brand))
+const filterCatalogAvailable = (catalog: IntegrationService[], excludedIds: Set<string>) =>
+	catalog.filter(service => !excludedIds.has(service.id))
 
 export const useIntegrationServicesViewModel = (): UseIntegrationServicesViewModelResult => {
 	const webhookQuery = useWebhookCredentialsQuery()
@@ -36,14 +39,17 @@ export const useIntegrationServicesViewModel = (): UseIntegrationServicesViewMod
 	const oauthConnected = useMemo(() => (oauthQuery.data ?? []).map(mapOAuthConnectionToIntegrationService), [oauthQuery.data])
 	const connected = useMemo(() => [...webhookConnected, ...oauthConnected], [webhookConnected, oauthConnected])
 	const canResolveAvailable = webhookQuery.data !== undefined && oauthQuery.data !== undefined
-	const excludedCatalogBrands = useMemo(() => {
-		const brands = new Set(webhookConnected.map(service => service.brand))
-		getExcludedCatalogBrandsForOAuthConnections(oauthQuery.data ?? []).forEach(brand => brands.add(brand))
-		return brands
-	}, [oauthQuery.data, webhookConnected])
+	const excludedCatalogIds = useMemo(
+		() =>
+			new Set([
+				...getExcludedCatalogIdsForWebhookCredentials(webhookQuery.data ?? []),
+				...getExcludedCatalogIdsForOAuthConnections(oauthQuery.data ?? []),
+			]),
+		[oauthQuery.data, webhookQuery.data]
+	)
 	const available = useMemo(
-		() => (canResolveAvailable ? filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogBrands) : []),
-		[canResolveAvailable, excludedCatalogBrands]
+		() => (canResolveAvailable ? filterCatalogAvailable(AVAILABLE_INTEGRATION_CATALOG, excludedCatalogIds) : []),
+		[canResolveAvailable, excludedCatalogIds]
 	)
 	return {
 		connected,

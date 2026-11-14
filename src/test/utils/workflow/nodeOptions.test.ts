@@ -65,6 +65,22 @@ describe('getOptionsInputsState', () => {
 		})
 	})
 
+	it('비운 부모 칸에 카탈로그 기본값이 있으면 그 값으로 부른다', () => {
+		const entryWithDefault = {
+			...entry,
+			inputFields: [eventField, { ...calendarField, default: 'primary' }],
+		} as NodeCatalogEntry
+
+		expect(getOptionsInputsState(entryWithDefault, createNode({}), eventField)).toEqual({
+			status: 'ready',
+			inputs: { calendar_id: 'primary' },
+		})
+		expect(getOptionsInputsState(entryWithDefault, createNode({ calendar_id: 'team' }), eventField)).toEqual({
+			status: 'ready',
+			inputs: { calendar_id: 'team' },
+		})
+	})
+
 	it('optionsInputs가 없으면 바로 부를 수 있다', () => {
 		expect(getOptionsInputsState(entry, createNode({}), calendarField)).toEqual({ status: 'ready', inputs: {} })
 	})
@@ -110,6 +126,15 @@ describe('getOptionsBlockedMessage', () => {
 			"'캘린더' 칸이 참조식이라 목록에서 고를 수 없어요."
 		)
 		expect(getOptionsBlockedMessage({ status: 'ready', inputs: {} })).toBeNull()
+	})
+
+	it('참조식을 함께 쓰는 칸은 부모가 참조식일 때 이 칸도 참조식으로 넣으라고 덧붙인다', () => {
+		expect(getOptionsBlockedMessage({ status: 'blocked', reason: 'reference', parentTitle: '캘린더' }, true)).toBe(
+			"'캘린더' 칸이 참조식이라 목록에서 고를 수 없어요. 이 칸도 '참조식'으로 바꿔 넣어 주세요."
+		)
+		expect(getOptionsBlockedMessage({ status: 'blocked', reason: 'empty', parentTitle: '캘린더' }, true)).toBe(
+			"'캘린더' 칸을 먼저 채우면 목록에서 고를 수 있어요."
+		)
 	})
 })
 

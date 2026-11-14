@@ -1,4 +1,4 @@
-import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { deleteAtPath, getAtPath, setAtPath } from '@/utils/workflow/objectPath'
 
@@ -17,6 +17,12 @@ const FIXED_ONLY_TOOL_FIELD_KEYS = new Set(['webhookCredentialId'])
 // 비우면 AI가 정하지 않고 서버 기본값으로 고정되는 도구 칸(명세).
 const SERVER_DEFAULT_TOOL_FIELD_KEYS: Record<string, string[]> = {
 	'builtin:google_calendar_update': ['scope', 'send_updates', 'attendees'],
+}
+
+// 도구 카드에 보여 줄 칸. 없는 도구는 ACTION 항목 칸을 모두 보여 준다.
+// Calendar 수정 도구는 일정·내용을 AI가 정하고, 반복 범위·알림만 고정할 수 있다(명세: 참석자는 숨김).
+const VISIBLE_TOOL_FIELD_KEYS: Record<string, string[]> = {
+	'builtin:google_calendar_update': ['scope', 'send_updates'],
 }
 
 export const isAiNodeEvent = (event: string): event is AiNodeEvent => event === AI_AGENT_EVENT || event === AI_REASONING_EVENT
@@ -100,3 +106,9 @@ export const createAiToolFieldEntry = (toolEntry: NodeCatalogEntry, index: numbe
 /** 비운 도구 칸을 AI가 정하는지. 고정해야 하는 칸과 서버 기본값으로 고정되는 칸은 AI가 정하지 않는다. */
 export const isAiDecidedWhenEmpty = (toolKey: string, fieldKey: string) =>
 	!FIXED_ONLY_TOOL_FIELD_KEYS.has(fieldKey) && !SERVER_DEFAULT_TOOL_FIELD_KEYS[toolKey]?.includes(fieldKey)
+
+/** 도구 카드에 그릴 칸만 고른다. 숨긴 칸에 저장된 값은 건드리지 않아 그대로 보존된다. */
+export const getVisibleAiToolFields = (toolKey: string, fields: NodeCatalogInputField[]) => {
+	const visibleKeys = VISIBLE_TOOL_FIELD_KEYS[toolKey]
+	return visibleKeys ? fields.filter(field => visibleKeys.includes(field.key)) : fields
+}

@@ -14,7 +14,7 @@ const ModalHarness = ({ onSubmit = vi.fn() }: { onSubmit?: () => void }) => {
 			</button>
 			{isOpen ? (
 				<WebhookCredentialConnectModal
-					serviceId='slack'
+					serviceId='slack-webhook'
 					onClose={() => setIsOpen(false)}
 					onSubmit={onSubmit}
 					isPending={false}

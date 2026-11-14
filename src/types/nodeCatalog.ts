@@ -18,7 +18,7 @@ type NodeCatalogFieldType =
 	| 'dict'
 	| 'object'
 
-type NodeCatalogChoice = {
+export type NodeCatalogChoice = {
 	id: string
 	name: string
 }

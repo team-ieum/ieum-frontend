@@ -42,7 +42,7 @@ const IntegrationListBody = ({
 		<IntegrationSectionHeading
 			label='연결된 서비스'
 			count={connected.length}
-			desc='웹훅(Slack, Discord) 및 Google OAuth 연동입니다.'
+			desc='웹훅(Slack, Discord)과 OAuth(Slack 봇, Google 등) 연동입니다.'
 			isCountPending={!canResolveAvailable}
 		/>
 		<div className='mt-2'>
