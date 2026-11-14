@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Select DEV_ frontend settings and reuse one private build/deploy snapshot."""
+"""환경별 frontend 설정을 수집하고 같은 빌드·배포 스냅샷을 검증합니다."""
 
 import argparse
 import hashlib
@@ -27,11 +27,16 @@ DEPLOYMENT_KEYS = ('DATA_DOCKER_NETWORK', 'DATA_DOCKER_NETWORK_SUBNET',
     *(color + '_' + key for color in ('BLUE', 'GREEN') for key in
       ('DOCKER_NETWORK', 'DOCKER_NETWORK_SUBNET', 'CONTAINER_NAME', 'FRONTEND_IP', 'BACKEND_IP', 'AGENT_IP', 'FRONTEND_ENV_DIR', 'FRONTEND_ENV_FILE')))
 RUNTIME_ROOT = Path('/home/kwung/deploy/bluegreen/runtime')
+MAIN_RUNTIME_ROOT = Path('/home/kwung/deploy/bluegreen-main/runtime')
 ROUTES = {'legacy': ('10.10.10.10', '10.10.10.11', '10.10.10.14')}
 
 BUILD_COMMAND = ('npx', '--no-install', 'vite', 'build')
 REQUIRED_KEYS = ('VITE_API_URL',)
 CI_KEYS = ('NODE_VERSION', 'IMAGE_NAME')
+MAIN_BUILD_KEYS = ('VITE_API_URL', 'VITE_MEASUREMENT_MODE', 'VITE_MEASUREMENT_DELAY_MS')
+MAIN_SECRET_KEYS = tuple('MAIN_COM_' + key for key in MAIN_BUILD_KEYS) + tuple(
+    'MAIN_' + (key if key.startswith(('BLUE_', 'GREEN_')) else 'COM_' + key)
+    for key in DEPLOYMENT_KEYS)
 FIXED_VALUES = {'NODE_ENV': 'production', 'HUSKY': '0'}
 FORBIDDEN_CHARACTERS = '\x00\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029'
 RESERVED_KEYS = (
@@ -71,7 +76,24 @@ def invalid_json_constant(_value):
     raise FrontendEnvironmentError('invalid_json')
 
 
-def selected_values(payload):
+def environment_prefix(environment):
+    if environment not in ('dev', 'main'):
+        raise FrontendEnvironmentError('invalid_environment')
+    return environment.upper() + '_'
+
+
+def configuration_payload(ambient, environment='dev'):
+    """MAIN은 명시된 입력만 읽고 DEV의 기존 JSON 전달 계약은 유지합니다."""
+    environment_prefix(environment)
+    if environment == 'dev':
+        return ambient.get(SECRETS_VARIABLE)
+    # GitHub는 미등록 Secret을 빈 문자열로 전달합니다. 선택 항목은 기존 기본값을 유지합니다.
+    return json.dumps({key: ambient[key] for key in MAIN_SECRET_KEYS
+                       if key in ambient and ambient[key] != ''}, ensure_ascii=False)
+
+
+def selected_values(payload, environment='dev'):
+    prefix = environment_prefix(environment)
     if not isinstance(payload, str) or not payload:
         raise FrontendEnvironmentError('missing_configuration')
     try:
@@ -89,11 +111,13 @@ def selected_values(payload):
     values, seen = {}, set()
     for secret_name, value in source.items():
         name = secret_name.upper()
-        if not name.startswith(SECRET_PREFIX):
+        if not name.startswith(prefix):
             continue
         if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', secret_name) is None:
             raise FrontendEnvironmentError('invalid_secret_name')
-        key = name[len(SECRET_PREFIX):]
+        key = name[len(prefix):]
+        if environment == 'main' and not key.startswith(('COM_', 'BLUE_', 'GREEN_')):
+            raise FrontendEnvironmentError('invalid_secret_scope')
         if key.startswith('COM_'):
             key = key[4:]
             if key.startswith(('BLUE_', 'GREEN_')):
@@ -119,15 +143,19 @@ def selected_values(payload):
             key = fixed_key
         if key in FIXED_VALUES and value != FIXED_VALUES[key]:
             raise FrontendEnvironmentError('managed_configuration_mismatch')
+        if environment == 'main' and key.startswith(('BLUE_', 'GREEN_')) and key not in DEPLOYMENT_KEYS:
+            raise FrontendEnvironmentError('invalid_secret_scope')
         values[key] = value
     return values
 
 
-def build_environment(payload):
-    values = selected_values(payload)
+def build_environment(payload, environment='dev'):
+    values = selected_values(payload, environment)
     for key in REQUIRED_KEYS:
         if not values.get(key) or values[key].isspace():
             raise FrontendEnvironmentError('missing_required_configuration')
+    if environment == 'main' and values['VITE_API_URL'] != 'https://kiacms.co.kr':
+        raise FrontendEnvironmentError('main_api_origin_mismatch')
     for key in CI_KEYS + DEPLOYMENT_KEYS + ('HUSKY',):
         values.pop(key, None)
     values['NODE_ENV'] = 'production'
@@ -137,7 +165,8 @@ def build_environment(payload):
     return content
 
 
-def validate_split_settings(value):
+def validate_split_settings(value, environment='dev'):
+    environment_prefix(environment)
     try:
         if not isinstance(value, dict) or set(value) != {'version', 'data', 'blue', 'green'} or type(value['version']) is not int or value['version'] != 2:
             raise ValueError()
@@ -159,7 +188,7 @@ def validate_split_settings(value):
                 raise ValueError()
             names.add(name)
             directory, file = Path(slot['envDir']), Path(slot['envFile'])
-            allowed = RUNTIME_ROOT / color
+            allowed = (MAIN_RUNTIME_ROOT if environment == 'main' else RUNTIME_ROOT) / color
             if str(directory) != slot['envDir'] or '..' in directory.parts or \
                     (directory != allowed and allowed not in directory.parents) or \
                     file.parent != directory or str(file) != slot['envFile'] or file.name not in {'frontend.env', '.env'} or \
@@ -175,8 +204,15 @@ def validate_split_settings(value):
             if any(slot['network'] == existing_name or network.overlaps(existing_net) for existing_name, existing_net in networks):
                 raise ValueError()
             networks.append((slot['network'], network))
-        if value['blue']['network'] != 'ieum_net_blue' or value['green']['network'] != 'ieum_net_green':
+        network_prefix = 'ieum_main_net_' if environment == 'main' else 'ieum_net_'
+        if any(value[color]['network'] != network_prefix + color for color in ('blue', 'green')):
             raise ValueError()
+        if environment == 'main':
+            if data['network'] != 'ieum_main_net_data' or any(
+                    value[color]['containerName'] != 'ieum-main-' + color + '-frontend' for color in ('blue', 'green')):
+                raise ValueError()
+            if any(data['stores'][app] != 'ieum-main-' + app for app in ('postgres', 'redis', 'mongo')):
+                raise ValueError()
         for container in store_names:
             if not isinstance(container, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', container) or container in reserved | names:
                 raise ValueError()
@@ -195,8 +231,8 @@ def validate_split_settings(value):
         raise ValueError('Invalid separated-network deployment settings') from None
 
 
-def build_deployment(payload):
-    values = selected_values(payload)
+def build_deployment(payload, environment='dev'):
+    values = selected_values(payload, environment)
     if any(not values.get(key) or values[key].isspace() for key in DEPLOYMENT_KEYS):
         raise FrontendEnvironmentError('missing_deployment_configuration')
     try:
@@ -211,7 +247,7 @@ def build_deployment(payload):
                 ('containerName', 'CONTAINER_NAME'), ('ip', 'FRONTEND_IP'),
                 ('backendIp', 'BACKEND_IP'), ('agentIp', 'AGENT_IP'),
                 ('envDir', 'FRONTEND_ENV_DIR'), ('envFile', 'FRONTEND_ENV_FILE')]}
-        validate_split_settings(value)
+        validate_split_settings(value, environment)
         content = (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
         if len(content) > 16384: raise ValueError()
         return content
@@ -252,8 +288,8 @@ def write_private_empty(destination, content):
                 raise FrontendEnvironmentError('candidate_io_failed') from None
 
 
-def write_candidate(destination, payload):
-    write_private_empty(destination, build_environment(payload))
+def write_candidate(destination, payload, environment='dev'):
+    write_private_empty(destination, build_environment(payload, environment))
 
 
 def read_private(path, limit=MAX_ENV_BYTES):
@@ -305,7 +341,7 @@ def new_empty(path):
         raise FrontendEnvironmentError('candidate_io_failed') from None
 
 
-def candidate_values(content):
+def candidate_values(content, environment='dev'):
     try:
         values = {}
         for line in content.decode('utf-8').split('\n'):
@@ -315,7 +351,8 @@ def candidate_values(content):
             if not separator or key in values:
                 raise FrontendEnvironmentError('invalid_candidate')
             values[key] = value
-        expected = build_environment(json.dumps({SECRET_PREFIX + k: v for k, v in values.items()}, ensure_ascii=False))
+        prefix = environment_prefix(environment) + ('COM_' if environment == 'main' else '')
+        expected = build_environment(json.dumps({prefix + k: v for k, v in values.items()}, ensure_ascii=False), environment)
         if expected != content:
             raise FrontendEnvironmentError('invalid_candidate')
         return values
@@ -323,34 +360,57 @@ def candidate_values(content):
         raise FrontendEnvironmentError('invalid_encoding') from None
 
 
-def build_process_environment(content, ambient):
-    values = candidate_values(content)
-    environment = {key: value for key, value in ambient.items()
-                   if not key.upper().startswith('VITE_') and key != SECRETS_VARIABLE and key.upper() not in DEPLOYMENT_KEYS}
-    environment.update({key: value for key, value in values.items() if key.startswith('VITE_')})
-    environment.update({'NODE_ENV': 'production', 'HUSKY': '0', BUILD_MARKER: '1'})
-    return environment
+def public_build_settings(content, environment='main'):
+    values = candidate_values(content, environment)
+    return ''.join(key + '=' + values[key] + '\n' for key in sorted(values)
+                   if key.startswith('VITE_') or key == 'NODE_ENV').encode('utf-8')
 
 
-def validate_ci(environment):
+def build_process_environment(content, ambient, environment='dev'):
+    values = candidate_values(content, environment)
+    child = {key: value for key, value in ambient.items()
+             if not key.upper().startswith('VITE_') and key != SECRETS_VARIABLE and key.upper() not in DEPLOYMENT_KEYS}
+    if environment == 'main':
+        child = {key: value for key, value in child.items()
+                 if not key.upper().startswith(('MAIN_', 'DEV_', 'AWS_')) and key != 'GITHUB_TOKEN'}
+    child.update({key: value for key, value in values.items() if key.startswith('VITE_')})
+    child.update({'NODE_ENV': 'production', 'HUSKY': '0', BUILD_MARKER: '1'})
+    return child
+
+
+def validate_ci(environment, deployment_environment='dev'):
+    environment_prefix(deployment_environment)
     for key in CI_KEYS:
         value = environment.get(key)
         if not isinstance(value, str) or not value or value.isspace() or \
                 any(c in value for c in FORBIDDEN_CHARACTERS) or value.startswith('-'):
             raise FrontendEnvironmentError('missing_or_invalid_ci_configuration')
+    if deployment_environment == 'main' and (
+            re.fullmatch(r'[0-9]+(?:\.[0-9]+){0,2}', environment['NODE_VERSION']) is None or
+            re.fullmatch(r'[a-z0-9]+(?:[._-][a-z0-9]+)*', environment['IMAGE_NAME']) is None or
+            'main' not in re.split(r'[._-]', environment['IMAGE_NAME']) or
+            'dev' in re.split(r'[._-]', environment['IMAGE_NAME'])):
+        raise FrontendEnvironmentError('invalid_main_ci_configuration')
 
 
-def build_settings(directory, payload):
+def prepare_settings(directory, payload, environment='dev', *, build_only=False):
     root = settings_directory(directory)
-    content = build_environment(payload)
-    deployment = build_deployment(payload)
+    content = build_environment(payload, environment)
+    if environment == 'main' and build_only:
+        content = public_build_settings(content, environment)
+    deployment = build_deployment(payload, environment)
     # Validate before creating either file; never reuse an earlier run's files.
     new_empty(root / CANDIDATE_NAME)
     new_empty(root / SEAL_NAME)
     new_empty(root / DEPLOYMENT_NAME)
     write_private_empty(root / DEPLOYMENT_NAME, deployment)
     write_private_empty(root / CANDIDATE_NAME, content)
-    child = build_process_environment(content, os.environ)
+    return root, content, deployment
+
+
+def build_settings(directory, payload, environment='dev'):
+    root, content, deployment = prepare_settings(directory, payload, environment, build_only=True)
+    child = build_process_environment(content, os.environ, environment)
     try:
         result = subprocess.run(BUILD_COMMAND, env=child, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except OSError:
@@ -362,7 +422,13 @@ def build_settings(directory, payload):
     write_private_empty(root / SEAL_NAME, snapshot_seal(content, deployment))
 
 
-def verify_settings(directory):
+def restore_settings(directory, payload, environment='dev'):
+    """이미지 빌드 없이 배포 계정 소유의 설정 파일을 새로 만듭니다."""
+    root, content, deployment = prepare_settings(directory, payload, environment)
+    write_private_empty(root / SEAL_NAME, snapshot_seal(content, deployment))
+
+
+def verify_settings(directory, environment='dev'):
     root = settings_directory(directory)
     content = read_private(root / CANDIDATE_NAME)
     seal = read_private(root / SEAL_NAME, 65)
@@ -370,7 +436,11 @@ def verify_settings(directory):
     if re.fullmatch(rb'[a-f0-9]{64}\n', seal) is None or not hmac.compare_digest(
             snapshot_seal(content, deployment), seal):
         raise FrontendEnvironmentError('snapshot_mismatch')
-    candidate_values(content)
+    candidate_values(content, environment)
+    try:
+        validate_split_settings(json.loads(deployment), environment)
+    except (ValueError, TypeError):
+        raise FrontendEnvironmentError('invalid_deployment_configuration') from None
     return root / CANDIDATE_NAME
 
 
@@ -393,16 +463,19 @@ def cleanup_settings(directory):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('validate-ci', 'build', 'verify', 'cleanup'))
+    parser.add_argument('operation', choices=('validate-ci', 'build', 'restore', 'verify', 'cleanup'))
     parser.add_argument('directory', nargs='?', default='')
+    parser.add_argument('--environment', choices=('dev', 'main'), default='dev')
     arguments = parser.parse_args(argv)
     try:
         if arguments.operation == 'validate-ci':
-            validate_ci(os.environ)
+            validate_ci(os.environ, arguments.environment)
         elif arguments.operation == 'build':
-            build_settings(arguments.directory, os.environ.get(SECRETS_VARIABLE))
+            build_settings(arguments.directory, configuration_payload(os.environ, arguments.environment), arguments.environment)
+        elif arguments.operation == 'restore':
+            restore_settings(arguments.directory, configuration_payload(os.environ, arguments.environment), arguments.environment)
         elif arguments.operation == 'verify':
-            verify_settings(arguments.directory)
+            verify_settings(arguments.directory, arguments.environment)
         else:
             cleanup_settings(arguments.directory)
     except FrontendEnvironmentError as failure:
