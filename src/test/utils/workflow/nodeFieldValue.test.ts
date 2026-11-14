@@ -33,6 +33,15 @@ describe('nodeFieldValue', () => {
 		expect(hasReferenceMode(field({ type: 'object' }))).toBe(false)
 	})
 
+	it('참조식을 함께 쓰는 드롭다운 문자열 칸은 입력 방식을 나누고 저장된 참조식을 참조식 방식으로 연다', () => {
+		const optionsField = field({ type: 'string', optionsSource: 'google.events' })
+
+		expect(hasReferenceMode(optionsField, true)).toBe(true)
+		expect(hasReferenceMode({ ...optionsField, ref: false }, true)).toBe(false)
+		expect(getInitialFieldMode(optionsField, '{{nodes.a.output.items.0.id}}', true)).toBe('reference')
+		expect(getInitialFieldMode(optionsField, '{{nodes.a.output.items.0.id}}')).toBe('fixed')
+	})
+
 	it('값 전체가 참조식 하나일 때만 참조식 방식으로 연다', () => {
 		expect(getInitialFieldMode(field({ type: 'integer' }), '{{nodes.a.output.count}}')).toBe('reference')
 		expect(getInitialFieldMode(field({ type: 'integer' }), 3)).toBe('fixed')
@@ -146,6 +155,15 @@ describe('nodeFieldValue', () => {
 			['값 방식 날짜', field({ type: 'datetime' }), 'fixed', false, 'replace'],
 		] as const)('%s 칸은 %s 방식에서 피커 동작이 %s이다', (_, target, mode, isOptionsCombobox, expected) => {
 			expect(getReferencePickerTarget(target, mode, isOptionsCombobox)).toBe(expected)
+		})
+
+		it.each([
+			['참조식이 없는 드롭다운 값 방식', 'none', 'fixed', false],
+			['참조식을 함께 쓰는 드롭다운 값 방식', 'replace', 'fixed', true],
+			['참조식을 함께 쓰는 드롭다운 참조식 방식', 'caret', 'reference', true],
+		] as const)('%s은 피커 동작이 %s이다', (_, expected, mode, canUseOptionsReference) => {
+			const optionsField = field({ type: 'string', optionsSource: 'google.events' })
+			expect(getReferencePickerTarget(optionsField, mode, true, canUseOptionsReference)).toBe(expected)
 		})
 	})
 })

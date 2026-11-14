@@ -7,6 +7,7 @@ import {
 	ensureAiToolObject,
 	findAiToolEntry,
 	findAiToolsField,
+	getVisibleAiToolFields,
 	isAiDecidedWhenEmpty,
 	readAiToolNames,
 	removeAiTool,
@@ -148,5 +149,15 @@ describe('aiTools', () => {
 		expect(isAiDecidedWhenEmpty('discord', 'webhookCredentialId')).toBe(false)
 		expect(isAiDecidedWhenEmpty('builtin:google_calendar_update', 'scope')).toBe(false)
 		expect(isAiDecidedWhenEmpty('builtin:google_calendar_update', 'summary')).toBe(true)
+	})
+
+	it('캘린더 수정 도구는 적용 범위·참석자 알림 칸만 보여 주고 다른 도구는 모든 칸을 보여 준다', () => {
+		const calendarEntry = findAiToolEntry(entries, 'builtin:google_calendar_update')
+		const discordEntry = findAiToolEntry(entries, 'discord')
+
+		expect(
+			getVisibleAiToolFields('builtin:google_calendar_update', calendarEntry?.inputFields ?? []).map(field => field.key)
+		).toEqual(['scope', 'send_updates'])
+		expect(getVisibleAiToolFields('discord', discordEntry?.inputFields ?? [])).toEqual(discordEntry?.inputFields)
 	})
 })

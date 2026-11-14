@@ -10,6 +10,9 @@ import { getAtPath } from '@/utils/workflow/objectPath'
  */
 export type NodeFieldMode = 'fixed' | 'reference'
 
+/** 칸 설명 아래에 덧붙이는 안내. `warning`은 지금 값에 문제가 있을 수 있다는 경고다. */
+export type NodeFieldNotice = { tone: 'info' | 'warning'; message: string }
+
 export type NodeFieldParseResult =
 	| { ok: true; value: unknown }
 	/** `rejected`면 입력 자체를 받지 않는다(입력 칸에 남기지 않음). */
@@ -35,23 +38,29 @@ export const isFieldEditable = (field: NodeCatalogInputField) => field.type !== 
 const isPlainTextField = (field: NodeCatalogInputField) =>
 	(field.type === 'string' || field.type === 'text') && !field.choices && !field.list
 
-export const hasReferenceMode = (field: NodeCatalogInputField) =>
-	canUseReference(field) && isFieldEditable(field) && !isPlainTextField(field)
+/**
+ * 값·참조식 입력 방식을 나눠 고르는 칸인지.
+ * `canUseOptionsReference`: 목록 공급원 드롭다운 칸이 참조식 방식을 함께 쓰는지. 드롭다운에는 참조식을 칠 자리가 없어 방식을 나눈다.
+ */
+export const hasReferenceMode = (field: NodeCatalogInputField, canUseOptionsReference = false) =>
+	canUseReference(field) && isFieldEditable(field) && (!isPlainTextField(field) || canUseOptionsReference)
 
 /**
  * 출력 참조 피커로 고른 참조식을 칸에 넣는 방식.
- * - `none`: 피커를 쓰지 않는 칸(참조식 금지, object, 목록 공급원 드롭다운, 값 방식의 dict)
+ * - `none`: 피커를 쓰지 않는 칸(참조식 금지, object, 참조식 방식이 없는 목록 공급원 드롭다운, 값 방식의 dict)
  * - `caret`: 입력 중 문자열의 커서 위치에 넣는다(참조식 방식, 문자열, json, 문자열 목록). 빈 json 칸은 넣는 쪽이 `replace`처럼 다룬다.
- * - `replace`: 참조식 방식으로 바꾸고 값 전체를 참조식으로 둔다(선택·boolean·숫자·날짜 등 값 방식 칸)
+ * - `replace`: 참조식 방식으로 바꾸고 값 전체를 참조식으로 둔다(선택·boolean·숫자·날짜 등 값 방식 칸, 참조식 방식을 함께 쓰는 드롭다운)
  */
 export type ReferencePickerTarget = 'none' | 'caret' | 'replace'
 
 export const getReferencePickerTarget = (
 	field: NodeCatalogInputField,
 	mode: NodeFieldMode,
-	isOptionsCombobox: boolean
+	isOptionsCombobox: boolean,
+	canUseOptionsReference = false
 ): ReferencePickerTarget => {
-	if (!canUseReference(field) || !isFieldEditable(field) || isOptionsCombobox) return 'none'
+	if (!canUseReference(field) || !isFieldEditable(field)) return 'none'
+	if (isOptionsCombobox && mode === 'fixed') return canUseOptionsReference ? 'replace' : 'none'
 	if (mode === 'reference' || isPlainTextField(field)) return 'caret'
 	if (field.type === 'dict') return 'none'
 	const isStringList = field.list === true && !field.choices && (field.type === 'string' || field.type === 'text')
@@ -70,8 +79,14 @@ export const isEmptyFieldValue = (value: unknown) => {
 // json처럼 값 안에 참조식을 섞어 쓰는 칸이 있어 값 전체가 참조식 하나일 때만 참조식 방식으로 본다.
 const WHOLE_REFERENCE_PATTERN = /^\s*\{\{[^{}]*\}\}\s*$/
 
-export const getInitialFieldMode = (field: NodeCatalogInputField, value: unknown): NodeFieldMode =>
-	hasReferenceMode(field) && typeof value === 'string' && WHOLE_REFERENCE_PATTERN.test(value) ? 'reference' : 'fixed'
+export const getInitialFieldMode = (
+	field: NodeCatalogInputField,
+	value: unknown,
+	canUseOptionsReference = false
+): NodeFieldMode =>
+	hasReferenceMode(field, canUseOptionsReference) && typeof value === 'string' && WHOLE_REFERENCE_PATTERN.test(value)
+		? 'reference'
+		: 'fixed'
 
 // 카탈로그는 model 칸을 required로 내리지만 서버는 빈 model을 provider 기본 모델로 실행하고 막지 않는다.
 const hasServerDefault = (field: NodeCatalogInputField) => field.default !== undefined || field.optionsSource === AI_MODELS_SOURCE

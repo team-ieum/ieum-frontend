@@ -1,5 +1,6 @@
 import { setupWorker } from 'msw/browser'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
+import { createNodeOptionsHandlers } from '@/mocks/nodeOptionsHandlers'
 import { createNodeTestHandlers } from '@/mocks/nodeTestHandlers'
 import { createSlackOAuthHandlers } from '@/mocks/slackOAuthHandlers'
 import { createWebhookTokenHandlers } from '@/mocks/webhookTokenHandlers'
@@ -22,6 +23,7 @@ export const enableMeasurementMode = async () => {
 		}),
 		...createDelayedSuccessHandlers(delayMs),
 		...createNodeTestHandlers({ delayMs, remembersSamples: true }),
+		...createNodeOptionsHandlers({ delayMs }),
 		...createWebhookTokenHandlers({ delayMs, remembersTokens: true }),
 		createWorkflowValidateHandler()
 	)

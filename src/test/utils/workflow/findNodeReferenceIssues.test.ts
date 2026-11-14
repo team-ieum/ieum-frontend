@@ -10,6 +10,7 @@ import { parseNodeReferences } from '@/utils/workflow/nodeReference'
 
 const summaryTarget: NodeReferenceTarget = {
 	label: '요약',
+	event: 'ai.reasoning',
 	paths: [
 		{ path: 'summary', title: '요약' },
 		{ path: 'items', title: '항목' },
@@ -22,8 +23,8 @@ const context: NodeReferenceContext = {
 	ancestorIds: new Set(['ai', 'trigger']),
 	targets: new Map<string, NodeReferenceTarget>([
 		['ai', summaryTarget],
-		['trigger', { label: '수동 실행', paths: null }],
-		['after', { label: '뒤 노드', paths: [] }],
+		['trigger', { label: '수동 실행', event: 'manual.run', paths: null }],
+		['after', { label: '뒤 노드', event: 'http.request', paths: [] }],
 	]),
 }
 

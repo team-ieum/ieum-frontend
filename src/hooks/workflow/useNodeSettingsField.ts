@@ -18,8 +18,10 @@ type UseNodeSettingsFieldOptions = {
 	value: unknown
 	/** 저장할 값을 넘긴다. `undefined`는 키 삭제(비움)다. `name`은 목록에서 고른 항목의 표시 이름이다. */
 	onChange: (value: unknown, name?: NodeFieldName) => void
-	/** 목록 공급원 드롭다운(단일 칸·목록 칸)으로 그리는 칸인지. 직접 입력이 없어 참조 피커를 쓰지 않는다. */
+	/** 목록 공급원 드롭다운(단일 칸·목록 칸)으로 그리는 칸인지. 직접 입력이 없어 참조식 방식이 없으면 참조 피커를 쓰지 않는다. */
 	isOptionsCombobox: boolean
+	/** 드롭다운 칸이 값/참조식 전환을 함께 쓰는지(`NodeFieldOptions.canUseReference`). */
+	canUseOptionsReference?: boolean
 	/** 참조 검사 문맥. 없으면 참조 경고를 만들지 않는다. */
 	referenceContext?: NodeReferenceContext
 }
@@ -43,9 +45,10 @@ export const useNodeSettingsField = ({
 	value,
 	onChange,
 	isOptionsCombobox,
+	canUseOptionsReference = false,
 	referenceContext,
 }: UseNodeSettingsFieldOptions) => {
-	const [mode, setMode] = useState<NodeFieldMode>(() => getInitialFieldMode(field, value))
+	const [mode, setMode] = useState<NodeFieldMode>(() => getInitialFieldMode(field, value, canUseOptionsReference))
 	const [draft, setDraft] = useState(() => formatFieldDraft(value))
 	const [error, setError] = useState<string | null>(null)
 	// 입력 중 문자열과 맞는 마지막 값. 직접 넘긴 값은 path로 다시 읽어도 같은 참조라 바뀌지 않은 것으로 본다.
@@ -53,7 +56,7 @@ export const useNodeSettingsField = ({
 
 	if (value !== syncedValue) {
 		setSyncedValue(value)
-		setMode(getInitialFieldMode(field, value))
+		setMode(getInitialFieldMode(field, value, canUseOptionsReference))
 		setDraft(formatFieldDraft(value))
 		setError(null)
 	}
@@ -90,7 +93,7 @@ export const useNodeSettingsField = ({
 		if (!isEmptyFieldValue(value)) emit(undefined)
 	}
 
-	const pickerTarget = getReferencePickerTarget(field, mode, isOptionsCombobox)
+	const pickerTarget = getReferencePickerTarget(field, mode, isOptionsCombobox, canUseOptionsReference)
 
 	/**
 	 * 고른 참조식을 칸에 넣고, 넣은 참조식 바로 뒤의 커서 위치를 돌려준다.
