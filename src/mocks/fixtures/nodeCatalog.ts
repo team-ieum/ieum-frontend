@@ -298,7 +298,7 @@ const googleCalendarCreateEntry = {
 	kind: 'action',
 	toolKey: 'builtin:google_calendar_create',
 	title: '캘린더 일정 만들기',
-	fixed: { type: 'ACTION', event: 'google_calendar.create', config: {} },
+	fixed: { type: 'ACTION', event: 'google_calendar.create', config: { brand: 'google' } },
 	inputFields: [
 		calendarIdField('대상 캘린더 (비우면 기본 캘린더)', 'google.writable_calendars'),
 		{ key: 'summary', title: '제목', type: 'string', required: true, path: 'config.summary' },
@@ -315,7 +315,7 @@ const googleCalendarFindEntry = {
 	kind: 'search',
 	toolKey: 'builtin:google_calendar_find',
 	title: '캘린더 일정 찾기',
-	fixed: { type: 'ACTION', event: 'google_calendar.find', config: {} },
+	fixed: { type: 'ACTION', event: 'google_calendar.find', config: { brand: 'google' } },
 	inputFields: [
 		calendarIdField('읽을 캘린더 (비우면 기본 캘린더, 공휴일 캘린더 포함)', 'google.calendars'),
 		{ key: 'query', title: '검색어', type: 'string', default: '', path: 'config.query' },
@@ -366,7 +366,7 @@ const googleCalendarUpdateEntry = {
 	kind: 'action',
 	toolKey: 'builtin:google_calendar_update',
 	title: '캘린더 일정 수정',
-	fixed: { type: 'ACTION', event: 'google_calendar.update', config: {} },
+	fixed: { type: 'ACTION', event: 'google_calendar.update', config: { brand: 'google' } },
 	inputFields: [
 		eventIdField('수정할 일정'),
 		calendarIdField('대상 캘린더 (비우면 기본 캘린더, 쓰기 권한이 있는 캘린더만)', 'google.writable_calendars'),
@@ -421,7 +421,7 @@ const googleCalendarDeleteEntry = {
 	kind: 'action',
 	toolKey: 'builtin:google_calendar_delete',
 	title: '캘린더 일정 삭제',
-	fixed: { type: 'ACTION', event: 'google_calendar.delete', config: {} },
+	fixed: { type: 'ACTION', event: 'google_calendar.delete', config: { brand: 'google' } },
 	inputFields: [
 		eventIdField('삭제할 일정'),
 		calendarIdField('대상 캘린더 (비우면 기본 캘린더, 쓰기 권한이 있는 캘린더만)', 'google.writable_calendars'),

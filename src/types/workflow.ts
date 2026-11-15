@@ -19,6 +19,8 @@ type WorkflowNodeData = {
 	nodeType: string
 	/** ACTION 노드 아이콘에 쓰는 연동 서비스 브랜드. 알 수 없는 brand는 비워 기본 아이콘을 쓴다. */
 	brand?: IntegrationBrand
+	/** 노드 카탈로그의 앱 키(예: `google_calendar`). 같은 brand 안에서 앱별 로고를 고를 때 쓴다. 카탈로그를 받기 전이거나 카탈로그 밖 노드면 비어 있다. */
+	app?: string
 	role: WorkflowNodeRole
 	typeLabel: string
 	step: number
