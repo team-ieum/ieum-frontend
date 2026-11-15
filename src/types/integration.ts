@@ -34,6 +34,8 @@ export type IntegrationService = {
 	connectionMethod?: IntegrationConnectionMethod
 	/** OAuth 연결의 서버 provider 값(예: `SLACK`). 해제 경로를 고를 때 쓴다. */
 	oauthProvider?: string
+	/** 노드 카탈로그의 `app` 키. 같은 브랜드 안에서 앱별 로고를 고를 때 쓴다(예: `google_calendar`). */
+	app?: string
 	desc?: string
 	account?: string
 	lastSync?: string

@@ -8,7 +8,8 @@ export const getOAuthConnections = async (): Promise<OAuthConnectionsListRespons
 }
 
 /**
- * 공급자의 OAuth 연결을 해제한다. 서버는 204(본문 없음)를 돌려주고, 연결이 없어도 성공으로 처리한다.
+ * 공급자의 OAuth 연결을 해제한다. 성공 응답(Slack 204, Google 200)의 본문은 쓰지 않는다.
+ * Slack은 연결이 없어도 성공이고, Google은 연결이 없으면 400 `ACCOUNT_NOT_CONNECTED`다.
  * @throws 연동 화면에서 해제할 수 없는 공급자면 Error
  */
 export const deleteOAuthConnection = async (provider: string): Promise<void> => {

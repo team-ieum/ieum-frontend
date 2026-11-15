@@ -31,6 +31,14 @@ export const AVAILABLE_INTEGRATION_CATALOG: IntegrationService[] = [
 		desc: '리포지토리·이슈·PR 자동화',
 	},
 	{
+		id: 'google-calendar',
+		name: 'Google Calendar',
+		brand: 'google',
+		app: 'google_calendar',
+		status: 'available',
+		desc: '일정 만들기·찾기·수정·삭제',
+	},
+	{
 		id: 'gmail',
 		name: 'Gmail',
 		brand: 'gmail',

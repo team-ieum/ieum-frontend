@@ -1,3 +1,4 @@
+import type { IntegrationServiceWorkflowsResponse } from '@/types/integrationWorkflows'
 import type { OAuthConnectionDto, OAuthConnectionsListResponse } from '@/types/oauthConnections'
 import type { WebhookCredentialsListResponse } from '@/types/webhookCredentials'
 
@@ -51,3 +52,35 @@ export const slackOAuthConnection = {
 	scopes: ['chat:write', 'chat:write.public', 'channels:read'],
 	createdAt: '2026-10-21T10:00:00Z',
 } satisfies OAuthConnectionDto
+
+/** Google 연결을 쓰는 워크플로우 목록(`GET /api/v1/integrations/GOOGLE/workflows` 첫 페이지) */
+export const googleIntegrationWorkflowsResponse = {
+	success: true,
+	data: {
+		content: [
+			{
+				id: 'a1b2c3d4-0000-4000-8000-000000000001',
+				name: '주간 회의 일정 등록',
+				description: '매주 월요일 회의를 Google Calendar에 만든다',
+				active: true,
+				triggerType: 'SCHEDULE',
+				usedNodeCount: 1,
+				updatedAt: '2026-11-14T09:00:00Z',
+			},
+			{
+				id: 'a1b2c3d4-0000-4000-8000-000000000002',
+				name: '마감 일정 정리',
+				description: '',
+				active: false,
+				triggerType: 'MANUAL',
+				usedNodeCount: 2,
+				updatedAt: '2026-11-10T09:00:00Z',
+			},
+		],
+		size: 20,
+		hasNext: false,
+		nextCursor: null,
+	},
+	message: 'success',
+	code: 'SUCCESS',
+} satisfies IntegrationServiceWorkflowsResponse

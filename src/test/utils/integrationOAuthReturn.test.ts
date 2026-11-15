@@ -20,11 +20,19 @@ describe('통합 OAuth 복귀 query 정리', () => {
 		expect(isOAuthReturnSearchParams(searchParams)).toBe(true)
 		expect(removeOAuthReturnSearchParams(searchParams).toString()).toBe('source=test')
 	})
+
+	it('Google 콜백의 linked query를 OAuth 복귀로 인식하고 제거한다', () => {
+		const searchParams = new URLSearchParams('linked=google&source=test')
+
+		expect(isOAuthReturnSearchParams(searchParams)).toBe(true)
+		expect(removeOAuthReturnSearchParams(searchParams).toString()).toBe('source=test')
+	})
 })
 
 describe('통합 OAuth 복귀 공급자 판별', () => {
 	it.each([
 		['connected=slack', 'slack'],
+		['linked=google', 'google'],
 		['error=slack_denied', 'slack'],
 		['error=slack_unknown_case', 'slack'],
 		['provider=github&success=true', 'github'],
@@ -41,6 +49,15 @@ describe('통합 OAuth 복귀 안내 문구', () => {
 		expect(getOAuthReturnMessage(searchParams, detectOAuthProvider('/inter-setting', searchParams))).toEqual({
 			title: '연동 완료',
 			message: 'Slack 워크스페이스가 연결되었습니다.',
+		})
+	})
+
+	it('linked=google이면 Google 계정 연결 완료를 안내한다', () => {
+		const searchParams = new URLSearchParams('linked=google')
+
+		expect(getOAuthReturnMessage(searchParams, detectOAuthProvider('/oauth2/callback', searchParams))).toEqual({
+			title: '연동 완료',
+			message: 'Google 계정이 연결되었습니다.',
 		})
 	})
 
@@ -82,5 +99,14 @@ describe('통합 OAuth 복귀 URL', () => {
 		const searchParams = new URLSearchParams('connected=slack')
 
 		expect(buildInterSettingOAuthReturnUrl(searchParams, 'slack')).toBe('/inter-setting?connected=slack&provider=slack')
+	})
+
+	// BE의 Google 콜백은 /oauth2/callback?linked=google로 오므로 연동 화면이 인식하는 성공·공급자 query로 바꿔 넘긴다.
+	it('Google 콜백의 linked query를 성공과 Google 공급자로 넘긴다', () => {
+		const searchParams = new URLSearchParams('linked=google')
+
+		expect(buildInterSettingOAuthReturnUrl(searchParams, detectOAuthProvider('/oauth2/callback', searchParams))).toBe(
+			'/inter-setting?success=true&provider=google'
+		)
 	})
 })

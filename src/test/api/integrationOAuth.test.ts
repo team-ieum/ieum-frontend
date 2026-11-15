@@ -26,6 +26,24 @@ describe('fetchIntegrationOAuthAuthorizeUrl', () => {
 		expect(get).toHaveBeenCalledWith('/api/v1/github/oauth2/authorize', undefined)
 	})
 
+	it('Google Calendar 연결은 calendar 권한 묶음을 POST로 보내고 authorizationUrl을 반환한다', async () => {
+		const get = vi.spyOn(api, 'get')
+		const post = vi.spyOn(api, 'post').mockResolvedValue({
+			data: {
+				success: true,
+				data: { authorizationUrl: '/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=t' },
+				message: 'OK',
+				code: 'OK',
+			},
+		})
+
+		await expect(fetchIntegrationOAuthAuthorizeUrl('google-calendar')).resolves.toBe(
+			'/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=t'
+		)
+		expect(post).toHaveBeenCalledWith('/api/v1/oauth/google/connect', { scopeGroups: ['calendar'] })
+		expect(get).not.toHaveBeenCalled()
+	})
+
 	it('OAuth로 연결할 수 없는 서비스는 요청하지 않고 null을 반환한다', async () => {
 		const get = vi.spyOn(api, 'get')
 

@@ -8,6 +8,7 @@ import {
 
 const OAUTH_RETURN_QUERY_KEYS = [
 	'connected',
+	'linked',
 	'error',
 	'oauth_error',
 	'success',
@@ -21,6 +22,7 @@ const OAUTH_RETURN_QUERY_KEYS = [
 ] as const
 
 // Slack은 콜백을 BE가 받은 뒤 `connected`·`error` 쿼리로 연동 화면에 돌려보낸다.
+// Google 연결은 BE가 `/oauth2/callback?linked=google`(실패면 `?error=`)로 돌려보낸다.
 // 콜백 URL이 프론트로 잘못 오면 code를 API로 다시 보내야 하므로(nonce 검증) 이 패턴에 넣지 않는다.
 const FRONTEND_OAUTH_CALLBACK_PATTERN = /^\/api\/v\d+\/(?:github|notion)\/oauth2\/callback\/?$/i
 
@@ -51,6 +53,7 @@ export const removeOAuthReturnSearchParams = (searchParams: URLSearchParams): UR
 export const detectOAuthProvider = (pathname: string, searchParams: URLSearchParams): IntegrationOAuthProvider | null => {
 	const providerParam =
 		searchParams.get('connected') ??
+		searchParams.get('linked') ??
 		searchParams.get('provider') ??
 		searchParams.get('integration') ??
 		searchParams.get('service')
@@ -64,7 +67,7 @@ export const detectOAuthProvider = (pathname: string, searchParams: URLSearchPar
 export const isFrontendOAuthApiCallbackPath = (pathname: string): boolean => FRONTEND_OAUTH_CALLBACK_PATTERN.test(pathname)
 
 const isOAuthSuccess = (searchParams: URLSearchParams): boolean => {
-	if (searchParams.has('connected')) return true
+	if (searchParams.has('connected') || searchParams.has('linked')) return true
 	const success = searchParams.get('success') ?? searchParams.get('oauth_success') ?? searchParams.get('status')
 	return success === 'true' || success === 'success' || success === '1' || success === 'ok'
 }
