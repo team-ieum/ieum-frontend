@@ -42,7 +42,7 @@ const AiToolCard = ({
 		if (tool.fields.length === 0) {
 			return <p className='m-0 text-xs text-neutral-500'>설정할 칸이 없어요. AI가 알아서 써요.</p>
 		}
-		return tool.fields.map(({ field, value, name, options, emptyHint }) => (
+		return tool.fields.map(({ field, value, name, options, emptyHint, notice }) => (
 			<NodeSettingsField
 				key={field.path}
 				field={field}
@@ -50,6 +50,7 @@ const AiToolCard = ({
 				name={name}
 				options={options}
 				emptyHint={emptyHint}
+				notice={notice}
 				references={references}
 				validationErrors={validationErrorsByPath?.get(field.path)}
 				onChange={(next, nextName) => tool.changeField(field, next, nextName)}

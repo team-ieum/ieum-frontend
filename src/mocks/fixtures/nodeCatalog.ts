@@ -201,6 +201,7 @@ const discordSendEntry = {
 	outputFields: [{ key: 'id', title: '메시지 ID', type: 'string' }],
 } satisfies NodeCatalogEntry
 
+// 실제 카탈로그(ieum-node-catalog events/slack_bot/send_channel_message.json)와 같은 칸·설명이다.
 const slackBotSendEntry = {
 	id: 'slack_bot.send_channel_message',
 	kind: 'action',
@@ -210,6 +211,7 @@ const slackBotSendEntry = {
 	toolKey: 'builtin:slack_send_channel_message',
 	nodeType: 'ACTION',
 	title: 'Slack 채널에 메시지 보내기',
+	description: '연결한 Slack 워크스페이스의 공개 채널에 봇으로 메시지를 보내요.',
 	fixed: { type: 'ACTION', event: 'slack_bot.send_channel_message', config: { brand: 'slack' } },
 	inputFields: [
 		{
@@ -220,14 +222,55 @@ const slackBotSendEntry = {
 			optionsSource: 'slack.channels',
 			path: 'config.channel',
 		},
-		{ key: 'text', title: '메시지', type: 'text', required: true, path: 'config.text' },
-		{ key: 'thread_ts', title: '스레드', type: 'string', default: '', path: 'config.thread_ts' },
+		{
+			key: 'text',
+			title: '메시지',
+			type: 'text',
+			required: true,
+			description: '4만 자가 넘으면 Slack이 잘라 보내요',
+			path: 'config.text',
+		},
+		{
+			key: 'thread_ts',
+			title: '스레드',
+			type: 'string',
+			default: '',
+			description: '비우면 새 메시지. 답글을 달 메시지의 ts',
+			path: 'config.thread_ts',
+		},
 	],
 	outputFields: [
 		{ key: 'ts', title: '메시지 ts', type: 'string' },
 		{ key: 'channel', title: '채널 ID', type: 'string' },
 		{ key: 'permalink', title: '메시지 링크', type: 'string' },
 	],
+} satisfies NodeCatalogEntry
+
+// 웹훅으로 보내는 기존 Slack 노드(ieum-node-catalog events/slack/send_message.json). 봇 노드와 달리 채널 칸이 없다.
+const slackWebhookSendEntry = {
+	id: 'slack.send_message',
+	kind: 'action',
+	provider: 'slack',
+	app: 'slack',
+	appTitle: 'Slack (웹훅)',
+	toolKey: 'slack',
+	nodeType: 'ACTION',
+	title: 'Slack 웹훅으로 보내기',
+	description: '등록한 웹훅으로 Slack에 메시지를 보내요.',
+	fixed: { type: 'ACTION', event: 'slack.send_message', config: { brand: 'slack' } },
+	inputFields: [
+		{
+			key: 'webhookCredentialId',
+			title: '웹훅',
+			type: 'string',
+			required: true,
+			ref: false,
+			optionsSource: 'slack.webhooks',
+			path: 'config.webhookCredentialId',
+		},
+		{ key: 'message', title: '메시지', type: 'text', path: 'config.message' },
+	],
+	outputFields: [{ key: 'message', title: '결과 메시지', type: 'string' }],
 } satisfies NodeCatalogEntry
 
 // Google Calendar 4종. 실제 카탈로그(ieum-node-catalog events/google_calendar)와 같은 칸·기본값·선택지 모양이다.
@@ -447,6 +490,7 @@ export const nodeCatalogEntriesFixture: NodeCatalogEntry[] = [
 	manualRunEntry,
 	scheduleEveryEntry,
 	slackBotSendEntry,
+	slackWebhookSendEntry,
 	webhookCatchEntry,
 ]
 

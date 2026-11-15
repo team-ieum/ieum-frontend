@@ -96,21 +96,35 @@ export type NodeOptionsErrorNotice = {
 const CONNECT_MESSAGES: Record<string, string> = {
 	AUTHENTICATION_REQUIRED: '연동이 만료됐어요. 통합 설정에서 다시 연결해 주세요.',
 	ACCOUNT_NOT_CONNECTED: '연결된 계정이 없어요. 통합 설정에서 먼저 연결해 주세요.',
-	SLACK_NOT_CONNECTED: 'Slack 봇이 연결되지 않았어요. 통합 설정에서 먼저 연결해 주세요.',
+	SLACK_NOT_CONNECTED: 'Slack이 연결되어 있지 않아요. 통합 설정에서 Slack을 연결해 주세요.',
 	GOOGLE_SCOPE_REQUIRED: 'Google 권한이 더 필요해요. 통합 설정에서 다시 연결해 주세요.',
 	TOKEN_REFRESH_FAILED: '연동을 갱신하지 못했어요. 통합 설정에서 다시 연결해 주세요.',
+}
+
+// 같은 code라도 공급원 앱마다 원인이 달라 앱 문구를 먼저 찾는다. 키는 공급원의 앱 부분(`slack.channels` → `slack`)이다.
+// Slack의 AUTHENTICATION_REQUIRED는 토큰 무효와 권한 부족(missing_scope)을 함께 뜻한다(명세).
+const APP_CONNECT_MESSAGES: Partial<Record<string, Record<string, string>>> = {
+	slack: {
+		AUTHENTICATION_REQUIRED: 'Slack 연결이 만료됐거나 앱 권한이 부족해요. 통합 설정에서 Slack을 다시 연결해 주세요.',
+	},
 }
 
 const RETRY_MESSAGES: Record<string, string> = {
 	UNAUTHORIZED: '로그인이 만료됐어요. 다시 로그인한 뒤 열어 주세요.',
 	GOOGLE_RESOURCE_NOT_FOUND: 'Google에서 항목을 찾을 수 없거나 볼 권한이 없어요.',
 	NOT_FOUND: '이 칸은 목록을 불러올 수 없어요.',
+	SLACK_API_UNAVAILABLE: 'Slack이 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
 }
 
-/** options 오류를 code별 안내로 바꾼다. 401이 두 종류라 status가 아니라 code로 구분한다. */
-export const getNodeOptionsErrorNotice = (error: unknown): NodeOptionsErrorNotice => {
+/**
+ * options 오류를 code별 안내로 바꾼다. 401이 두 종류라 status가 아니라 code로 구분한다.
+ * `source`를 넘기면 그 공급원 앱 전용 문구가 있는 code는 그 문구로 안내한다.
+ */
+export const getNodeOptionsErrorNotice = (error: unknown, source?: string): NodeOptionsErrorNotice => {
 	if (!isApiError(error)) return { message: '목록을 불러오지 못했어요.', action: 'retry' }
 	const code: string = error.code
+	const appMessage = source ? APP_CONNECT_MESSAGES[source.split('.')[0]]?.[code] : undefined
+	if (appMessage) return { message: appMessage, action: 'connect' }
 	if (CONNECT_MESSAGES[code]) return { message: CONNECT_MESSAGES[code], action: 'connect' }
 	if (RETRY_MESSAGES[code]) return { message: RETRY_MESSAGES[code], action: 'retry' }
 	if (code.endsWith('_API_UNAVAILABLE')) {
