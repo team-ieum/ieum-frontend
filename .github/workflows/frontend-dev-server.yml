@@ -103,7 +103,30 @@ jobs:
       - name: Build frontend from DEV Secrets
         id: frontend_settings
         env:
-          IEUM_FRONTEND_SECRETS_JSON: ${{ toJSON(secrets) }}
+          DEV_COM_VITE_API_URL: ${{ secrets.DEV_COM_VITE_API_URL }}
+          DEV_COM_VITE_MEASUREMENT_MODE: ${{ secrets.DEV_COM_VITE_MEASUREMENT_MODE }}
+          DEV_COM_VITE_MEASUREMENT_DELAY_MS: ${{ secrets.DEV_COM_VITE_MEASUREMENT_DELAY_MS }}
+          DEV_COM_DATA_DOCKER_NETWORK: ${{ secrets.DEV_COM_DATA_DOCKER_NETWORK }}
+          DEV_COM_DATA_DOCKER_NETWORK_SUBNET: ${{ secrets.DEV_COM_DATA_DOCKER_NETWORK_SUBNET }}
+          DEV_COM_POSTGRES_CONTAINER_NAME: ${{ secrets.DEV_COM_POSTGRES_CONTAINER_NAME }}
+          DEV_COM_REDIS_CONTAINER_NAME: ${{ secrets.DEV_COM_REDIS_CONTAINER_NAME }}
+          DEV_COM_MONGO_CONTAINER_NAME: ${{ secrets.DEV_COM_MONGO_CONTAINER_NAME }}
+          DEV_BLUE_DOCKER_NETWORK: ${{ secrets.DEV_BLUE_DOCKER_NETWORK }}
+          DEV_BLUE_DOCKER_NETWORK_SUBNET: ${{ secrets.DEV_BLUE_DOCKER_NETWORK_SUBNET }}
+          DEV_BLUE_CONTAINER_NAME: ${{ secrets.DEV_BLUE_CONTAINER_NAME }}
+          DEV_BLUE_FRONTEND_IP: ${{ secrets.DEV_BLUE_FRONTEND_IP }}
+          DEV_BLUE_BACKEND_IP: ${{ secrets.DEV_BLUE_BACKEND_IP }}
+          DEV_BLUE_AGENT_IP: ${{ secrets.DEV_BLUE_AGENT_IP }}
+          DEV_BLUE_FRONTEND_ENV_DIR: ${{ secrets.DEV_BLUE_FRONTEND_ENV_DIR }}
+          DEV_BLUE_FRONTEND_ENV_FILE: ${{ secrets.DEV_BLUE_FRONTEND_ENV_FILE }}
+          DEV_GREEN_DOCKER_NETWORK: ${{ secrets.DEV_GREEN_DOCKER_NETWORK }}
+          DEV_GREEN_DOCKER_NETWORK_SUBNET: ${{ secrets.DEV_GREEN_DOCKER_NETWORK_SUBNET }}
+          DEV_GREEN_CONTAINER_NAME: ${{ secrets.DEV_GREEN_CONTAINER_NAME }}
+          DEV_GREEN_FRONTEND_IP: ${{ secrets.DEV_GREEN_FRONTEND_IP }}
+          DEV_GREEN_BACKEND_IP: ${{ secrets.DEV_GREEN_BACKEND_IP }}
+          DEV_GREEN_AGENT_IP: ${{ secrets.DEV_GREEN_AGENT_IP }}
+          DEV_GREEN_FRONTEND_ENV_DIR: ${{ secrets.DEV_GREEN_FRONTEND_ENV_DIR }}
+          DEV_GREEN_FRONTEND_ENV_FILE: ${{ secrets.DEV_GREEN_FRONTEND_ENV_FILE }}
         run: |
           set +x
           set -euo pipefail
@@ -114,7 +137,7 @@ jobs:
           trap 'exit 130' INT
           trap 'exit 143' TERM
           python3 scripts/bluegreen/frontend_env.py build "$settings_dir"
-          unset IEUM_FRONTEND_SECRETS_JSON
+          unset "${!DEV_@}"
           printf 'directory=%s\n' "$settings_dir" >> "$GITHUB_OUTPUT"
           ready=true
 
