@@ -1,5 +1,7 @@
 import { setupServer } from 'msw/node'
 import { createSuccessHandlers } from '@/mocks/apiScenarios'
+import { createGoogleOAuthHandlers } from '@/mocks/googleOAuthHandlers'
+import { createIntegrationWorkflowsHandlers } from '@/mocks/integrationWorkflowsHandlers'
 import { createNodeOptionsHandlers } from '@/mocks/nodeOptionsHandlers'
 import { createNodeTestHandlers } from '@/mocks/nodeTestHandlers'
 import { createSlackOAuthHandlers } from '@/mocks/slackOAuthHandlers'
@@ -14,5 +16,7 @@ export const server = setupServer(
 	...createNodeOptionsHandlers(),
 	...createWebhookTokenHandlers(),
 	...createSlackOAuthHandlers(),
+	...createGoogleOAuthHandlers(),
+	...createIntegrationWorkflowsHandlers(),
 	createWorkflowValidateHandler()
 )
