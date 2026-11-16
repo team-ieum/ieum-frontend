@@ -155,4 +155,15 @@ describe('WorkflowChat 모델 선택', () => {
 		expect(screen.getByRole('button', { name: 'AI 모델 선택' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: /세부 모델 선택/ })).not.toBeInTheDocument()
 	})
+
+	it('AI 제공자 메뉴에는 등록한 자격 증명만 있고 선택 안 함은 없다', async () => {
+		chat.credentials = [CLAUDE_CREDENTIAL]
+		const user = userEvent.setup()
+		render(<WorkflowChat workflowId='workflow-1' currentNodes={[]} currentEdges={[]} isOpen />)
+
+		await user.click(screen.getByRole('button', { name: 'AI 모델 선택' }))
+
+		const items = within(screen.getByRole('menu')).getAllByRole('menuitemradio')
+		expect(items.map(item => item.textContent)).toEqual(['Claude'])
+	})
 })

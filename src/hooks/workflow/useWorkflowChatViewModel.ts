@@ -171,7 +171,7 @@ export const useWorkflowChatViewModel = ({
 	const toggleModelMenu = () => setOpenMenu(prev => (prev === 'credential' ? null : 'credential'))
 	const toggleModelIdMenu = () => setOpenMenu(prev => (prev === 'model' ? null : 'model'))
 
-	const selectCredential = (id: string | null) => {
+	const selectCredential = (id: string) => {
 		chat.setSelectedCredentialId(id)
 		setOpenMenu(null)
 		focusInput()

@@ -102,7 +102,7 @@ export type WorkflowChatViewModel = {
 	selectedCredentialId: string | null
 	isModelMenuOpen: boolean
 	toggleModelMenu: () => void
-	selectCredential: (id: string | null) => void
+	selectCredential: (id: string) => void
 	onModelMenuKeyDown: (e: KeyboardEvent<HTMLDivElement>) => void
 	modelMenuRef: RefObject<HTMLDivElement | null>
 	/** 선택한 자격 증명 제공자의 모델 목록. 자격 증명을 고르지 않았으면 비어 있다. */

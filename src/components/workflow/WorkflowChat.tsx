@@ -373,12 +373,6 @@ const WorkflowChat = ({
 													<p className='px-2.5 pt-1 pb-1.5 typo-caption1_semibold text-neutral-400'>
 														AI 모델
 													</p>
-													<ModelMenuItem
-														label='선택 안 함'
-														isSelected={selectedCredentialId === null}
-														onSelect={() => selectCredential(null)}
-														leading={<Sparkles size={12} className='text-neutral-400' />}
-													/>
 													{credentialOptions.map(option => (
 														<ModelMenuItem
 															key={option.id}
