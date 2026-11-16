@@ -259,7 +259,7 @@ const WorkflowChat = ({
 											</span>
 											<div className='flex flex-col gap-2 max-w-70'>
 												<div
-													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800 whitespace-pre-wrap wrap-anywhere'
 													style={{ background: '#F0F4FC' }}
 												>
 													{msg.body}
@@ -279,7 +279,7 @@ const WorkflowChat = ({
 										</div>
 									) : (
 										<div key={i} className='flex justify-end'>
-											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap wrap-anywhere'>
 												{msg.body}
 											</div>
 										</div>
