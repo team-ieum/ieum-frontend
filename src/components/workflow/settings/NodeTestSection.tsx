@@ -8,6 +8,7 @@ import type { NodeTestResult } from '@/types/nodeTest'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 import { formatServerDateTime } from '@/utils/workflow/formatServerDateTime'
+import { getNodeTestFailureMessage } from '@/utils/workflow/nodeTest'
 
 type NodeTestSectionProps = {
 	workflowId: string
@@ -57,7 +58,7 @@ const TestResult = ({ result, isOutdated }: { result: NodeTestResult; isOutdated
 				</pre>
 			) : null}
 			{result.status === 'FAILED' ? (
-				<p className='m-0 text-xs leading-relaxed text-danger-700'>{result.error || '실행에 실패했어요.'}</p>
+				<p className='m-0 text-xs leading-relaxed text-danger-700'>{getNodeTestFailureMessage(result.error)}</p>
 			) : null}
 		</div>
 	)

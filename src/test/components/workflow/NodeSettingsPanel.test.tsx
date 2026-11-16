@@ -9,7 +9,7 @@ import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import { providersResponse } from '@/mocks/fixtures/aiCredentials'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { server } from '@/mocks/server'
-import type { NodeCatalogEntry } from '@/types/nodeCatalog'
+import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
 import type { NodeOption } from '@/types/nodeOptions'
 import type { WorkflowNodeDto } from '@/types/workflowList'
 import type { WorkflowValidationErrorDto } from '@/types/workflowValidation'
@@ -549,6 +549,56 @@ describe('NodeSettingsPanel', () => {
 				expect(screen.getByRole('textbox', { name: '1번째 출력 칸 이름' })).toHaveValue('urgent')
 				expect(within(getToolsSection()).queryByRole('alert')).not.toBeInTheDocument()
 			})
+		})
+	})
+
+	describe('AI API 키 칸', () => {
+		const EMPTY_CREDENTIAL_NOTICE = '그 밖의 계정은 실행이 실패하니 등록한 API 키를 골라 주세요.'
+
+		// 실서버 카탈로그의 두 AI 노드에는 필수가 아닌 API 키 칸이 있다. fixture에는 없어 이 묶음에서만 붙인다.
+		const credentialField: NodeCatalogInputField = {
+			key: 'credentialId',
+			title: 'API 키',
+			type: 'string',
+			ref: false,
+			optionsSource: 'ieum.credentials',
+			optionsInputs: ['llmProvider'],
+			path: 'config.credentialId',
+		}
+
+		const createAiNode = (event: 'ai.agent' | 'ai.reasoning', config: Record<string, unknown> = {}) =>
+			createNode({
+				type: 'AI',
+				event,
+				label: 'AI 요약',
+				config: {
+					agentType: event === 'ai.agent' ? 'react' : 'simple',
+					tools: [],
+					llmProvider: 'GEMINI',
+					prompt: '요약해줘',
+					...config,
+				},
+			})
+
+		beforeEach(() => {
+			mocks.entries = nodeCatalogEntriesFixture.map(entry =>
+				entry.app === 'ai' ? { ...entry, inputFields: [...entry.inputFields, credentialField] } : entry
+			)
+		})
+
+		it.each(['ai.agent', 'ai.reasoning'] as const)('%s 노드의 API 키 칸이 비면 경고하되 필수 칸으로 세지 않는다', event => {
+			renderPanel(createAiNode(event, { credentialId: '' }))
+
+			expect(getFieldInput('API 키')).toHaveAccessibleDescription(expect.stringContaining(EMPTY_CREDENTIAL_NOTICE))
+			expect(screen.getByText(new RegExp(EMPTY_CREDENTIAL_NOTICE))).toHaveAttribute('role', 'status')
+			expect(screen.queryByText(/필수 칸 \d+개가 비어 있어요/)).not.toBeInTheDocument()
+		})
+
+		it('API 키를 고른 노드에는 경고를 보여 주지 않는다', () => {
+			renderPanel(createAiNode('ai.agent', { credentialId: 'credential-1', _names: { credentialId: 'Gemini 키' } }))
+
+			expect(getFieldInput('API 키')).toHaveTextContent('Gemini 키')
+			expect(screen.queryByText(new RegExp(EMPTY_CREDENTIAL_NOTICE))).not.toBeInTheDocument()
 		})
 	})
 
