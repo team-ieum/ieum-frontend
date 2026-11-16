@@ -15,6 +15,7 @@ import {
 	readAiToolNames,
 	removeAiTool,
 } from '@/utils/workflow/aiTools'
+import { getAppFieldRule } from '@/utils/workflow/getAppFieldRule'
 import { getMissingRequiredFields } from '@/utils/workflow/nodeFieldValue'
 import { getOptionsInputsState } from '@/utils/workflow/nodeOptions'
 import { getAtPath } from '@/utils/workflow/objectPath'
@@ -61,16 +62,27 @@ export const useNodeAiTools = ({ node, entries, onNodeChange }: UseNodeAiToolsOp
 		// choices 밖 도구(mcp 등)는 칸을 그리지 않고 원소를 그대로 보존한다.
 		const toolEntry = choice ? findAiToolEntry(entries, toolKey) : undefined
 		const fieldEntry = toolEntry ? createAiToolFieldEntry(toolEntry, index) : undefined
-		const fields = getVisibleAiToolFields(toolKey, fieldEntry?.inputFields ?? []).map(field => ({
-			field,
-			value: getAtPath(node, field.path),
-			name: getFieldName(node, field),
-			options:
-				fieldEntry && field.optionsSource
-					? { source: field.optionsSource, inputsState: getOptionsInputsState(fieldEntry, node, field) }
-					: undefined,
-			emptyHint: isAiDecidedWhenEmpty(toolKey, field.key) ? AI_DECIDED_HINT : undefined,
-		}))
+		const fields = fieldEntry
+			? getVisibleAiToolFields(toolKey, fieldEntry.inputFields).map(catalogField => {
+					const value = getAtPath(node, catalogField.path)
+					// 도구 칸 path는 `config.tools.<i>.config.<칸>`으로 바뀌었지만 key는 같아 ACTION 항목 규칙을 그대로 쓴다.
+					const rule = getAppFieldRule(fieldEntry, catalogField, value, { target: 'aiTool' })
+					return {
+						field: rule.field,
+						value,
+						name: getFieldName(node, rule.field),
+						options: catalogField.optionsSource
+							? {
+									source: catalogField.optionsSource,
+									inputsState: getOptionsInputsState(fieldEntry, node, catalogField),
+									canUseReference: rule.canUseOptionsReference,
+								}
+							: undefined,
+						emptyHint: isAiDecidedWhenEmpty(toolKey, catalogField.key) ? AI_DECIDED_HINT : undefined,
+						notice: rule.notice,
+					}
+				})
+			: []
 
 		const changeField = (field: NodeCatalogInputField, value: unknown, name?: NodeFieldName) => {
 			if (fieldEntry) onNodeChange(updateNodeField(ensureAiToolObject(node, index), fieldEntry, field, value, name))

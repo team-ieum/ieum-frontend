@@ -46,11 +46,23 @@ describe('NodeCatalogPalette', () => {
 		renderPalette('next')
 
 		const palette = screen.getByRole('complementary', { name: '다음 노드 추가' })
-		expect(await within(palette).findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(await within(palette).findByRole('button', { name: /^Slack\s*\d+개$/ })).toBeInTheDocument()
 		expect(within(palette).getByRole('button', { name: /HTTP/ })).toBeInTheDocument()
 		expect(within(palette).queryByRole('button', { name: /수동 실행/ })).not.toBeInTheDocument()
 		expect(within(palette).queryByRole('button', { name: /스케줄/ })).not.toBeInTheDocument()
 		expect(within(palette).queryByRole('button', { name: /Gmail/ })).not.toBeInTheDocument()
+	})
+
+	it('같은 slack brand인 봇 노드와 웹훅 노드는 카탈로그 앱 이름으로 나눠 보여 준다', async () => {
+		const user = userEvent.setup()
+		renderPalette('next')
+
+		const palette = screen.getByRole('complementary', { name: '다음 노드 추가' })
+		expect(await within(palette).findByRole('button', { name: /^Slack \(웹훅\)\s*1개$/ })).toBeInTheDocument()
+
+		await user.click(within(palette).getByRole('button', { name: /^Slack\s*1개$/ }))
+		expect(within(palette).getByRole('button', { name: /^Slack 채널에 메시지 보내기/ })).toBeInTheDocument()
+		expect(within(palette).queryByRole('button', { name: /^Slack 웹훅으로 보내기/ })).not.toBeInTheDocument()
 	})
 
 	it('같은 google brand라도 앱 그룹마다 앱 로고를 보여 준다', async () => {
@@ -70,7 +82,7 @@ describe('NodeCatalogPalette', () => {
 				<NodeCatalogPalette onSelect={vi.fn()} onClose={vi.fn()} />
 			</QueryClientProvider>
 		)
-		expect(await screen.findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Slack\s*\d+개$/ })).toBeInTheDocument()
 
 		server.use(...createPartialFailureHandlers(['nodeCatalog']))
 		// React Query는 결과 알림을 setTimeout(0)으로 미뤄 보내므로 실패 상태가 화면에 반영될 때까지 한 번 더 기다린다.
@@ -80,7 +92,7 @@ describe('NodeCatalogPalette', () => {
 		})
 
 		expect(client.getQueryState(queryKey)?.status).toBe('error')
-		expect(screen.getByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: /^Slack\s*\d+개$/ })).toBeInTheDocument()
 		expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 	})
 
@@ -93,7 +105,7 @@ describe('NodeCatalogPalette', () => {
 		expect(screen.queryByText('추가할 수 있는 노드가 없어요.')).not.toBeInTheDocument()
 
 		release()
-		expect(await screen.findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Slack\s*\d+개$/ })).toBeInTheDocument()
 	})
 
 	it('앱 → 종류 → 이벤트 순서로 고른 항목을 넘기고 뒤로 가기로 앱 목록에 돌아온다', async () => {
@@ -132,7 +144,7 @@ describe('NodeCatalogPalette', () => {
 		server.use(createResourceSuccessHandler('nodeCatalog'))
 		await user.click(screen.getByRole('button', { name: '다시 시도' }))
 
-		expect(await screen.findByRole('button', { name: /Slack/ })).toBeInTheDocument()
+		expect(await screen.findByRole('button', { name: /^Slack\s*\d+개$/ })).toBeInTheDocument()
 	})
 
 	it('추가할 항목이 없으면 빈 상태 문구를 표시한다', async () => {

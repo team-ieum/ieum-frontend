@@ -70,7 +70,7 @@ export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect
 		items,
 		isBlocked: !isReady,
 		isLoading: query.isPending && query.fetchStatus === 'fetching',
-		errorNotice: query.isError ? getNodeOptionsErrorNotice(query.error) : null,
+		errorNotice: query.isError ? getNodeOptionsErrorNotice(query.error, source) : null,
 		hasNextPage: query.hasNextPage,
 		isFetchingNextPage: query.isFetchingNextPage,
 		fetchNextPage: () => void fetchNextPage(),

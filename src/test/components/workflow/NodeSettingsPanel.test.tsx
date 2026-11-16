@@ -408,6 +408,24 @@ describe('NodeSettingsPanel', () => {
 			])
 		})
 
+		it('Slack 봇 도구 채널이 비면 고정 권장 경고를 보여 주고, 채널을 고르면 공개 채널 안내로 바꾼다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }]))
+
+			await user.click(getToolToggle(SLACK_TITLE))
+			const card = getToolCard(SLACK_TITLE)
+			expect(within(card).getByRole('status')).toHaveTextContent('채널을 골라 고정해 두는 걸 권장해요.')
+			expect(getFieldInput('채널')).toHaveAccessibleDescription(expect.stringContaining('비우면 AI가 채널을 고르는데'))
+
+			await chooseFromDropdown(user, '채널', /#general/)
+
+			expect(lastNode().config.tools).toEqual([
+				{ name: SLACK_TOOL, config: { channel: 'C0123456789', _names: { channel: '#general' } } },
+			])
+			expect(within(card).queryByText(/채널을 골라 고정해 두는 걸 권장해요/)).not.toBeInTheDocument()
+			expect(getFieldInput('채널')).toHaveAccessibleDescription(expect.stringContaining('공개 채널에만 보낼 수 있어요.'))
+		})
+
 		it('Calendar 수정 도구 카드는 적용 범위·참석자 알림만 보여 주고 숨긴 칸 값은 그대로 둔다', async () => {
 			const user = userEvent.setup()
 			const CALENDAR_TOOL = 'builtin:google_calendar_update'
@@ -428,6 +446,37 @@ describe('NodeSettingsPanel', () => {
 			expect(lastNode().config.tools).toEqual([
 				{ name: CALENDAR_TOOL, config: { attendees: 'a@example.com', scope: 'all' } },
 			])
+		})
+
+		it('Calendar 삭제 도구 카드의 일정·캘린더 칸은 노드 폼과 달리 참조식 전환과 일정 안내 없이 그린다', async () => {
+			const user = userEvent.setup()
+			const CALENDAR_DELETE_TOOL = 'builtin:google_calendar_delete'
+			// fixture의 도구 선택지에는 Calendar 수정 도구만 있어, 일정·캘린더 칸을 그리는 삭제 도구를 선택지에 더한다.
+			mocks.entries = [...nodeCatalogEntriesFixture, typedEntry].map(entry =>
+				entry.id === 'ai.agent'
+					? {
+							...entry,
+							inputFields: entry.inputFields.map(field =>
+								field.key === 'tools'
+									? {
+											...field,
+											choices: [
+												...(field.choices ?? []),
+												{ id: CALENDAR_DELETE_TOOL, name: '캘린더 일정 삭제' },
+											],
+										}
+									: field
+							),
+						}
+					: entry
+			)
+			renderPanel(createAiNode('ai.agent', [{ name: CALENDAR_DELETE_TOOL, config: {} }]))
+
+			await user.click(getToolToggle('캘린더 일정 삭제'))
+			const card = getToolCard('캘린더 일정 삭제')
+			expect(within(card).getByLabelText(/^일정/, { selector: 'button' })).toBeInTheDocument()
+			expect(within(card).queryByRole('radiogroup', { name: /입력 방식$/ })).not.toBeInTheDocument()
+			expect(within(card).queryByText(/지난 일정이나 앞 노드가 찾은 일정은 참조식으로 넣어 주세요/)).not.toBeInTheDocument()
 		})
 
 		describe('출력 칸과의 충돌', () => {
@@ -933,12 +982,26 @@ describe('NodeSettingsPanel', () => {
 			await user.click(getFieldInput('채널'))
 
 			const alert = await screen.findByRole('alert')
-			expect(alert).toHaveTextContent('Slack 봇이 연결되지 않았어요.')
+			expect(alert).toHaveTextContent('Slack이 연결되어 있지 않아요. 통합 설정에서 Slack을 연결해 주세요.')
 			const link = within(alert).getByRole('link', { name: '통합 설정 열기' })
 			expect(link).toHaveAttribute('href', '/inter-setting')
 			expect(fireEvent.mouseDown(link)).toBe(false)
 			const listbox = screen.getByRole('listbox', { name: '채널 목록' })
 			expect(within(listbox).getByRole('option', { name: '선택 안 함' })).toBeInTheDocument()
+		})
+
+		it('채널 목록이 Slack 앱 권한 부족으로 401이면 Slack 재연결 안내와 통합 설정 링크를 보여 준다', async () => {
+			const user = userEvent.setup()
+			mockOptions(() => optionsError(401, 'AUTHENTICATION_REQUIRED'))
+			renderPanel(createNode())
+
+			await user.click(getFieldInput('채널'))
+
+			const alert = await screen.findByRole('alert')
+			expect(alert).toHaveTextContent(
+				'Slack 연결이 만료됐거나 앱 권한이 부족해요. 통합 설정에서 Slack을 다시 연결해 주세요.'
+			)
+			expect(within(alert).getByRole('link', { name: '통합 설정 열기' })).toHaveAttribute('href', '/inter-setting')
 		})
 
 		it('재시도해도 같은 오류는 자동 재시도 없이 바로 안내하고 다시 시도로 목록을 다시 부른다', async () => {
@@ -1412,7 +1475,7 @@ describe('NodeSettingsPanel', () => {
 				screen.getByText('참조 2곳을 확인해 주세요. 없거나 앞에 연결되지 않은 노드·출력을 가리키고 있어요. 저장은 돼요.')
 			).toHaveAttribute('role', 'status')
 			expect(getFieldInput('메시지')).toHaveAccessibleDescription(
-				"'AI 요약' 노드에 없는 출력(title)을 가리켜요. 외 1곳 참조를 확인해 주세요."
+				expect.stringContaining("'AI 요약' 노드에 없는 출력(title)을 가리켜요. 외 1곳 참조를 확인해 주세요.")
 			)
 
 			await user.type(getFieldInput('메시지'), '!')
@@ -1463,6 +1526,29 @@ describe('NodeSettingsPanel', () => {
 			expect(screen.getByText(/이 노드에 없는 출력을 참조하는 노드가 있어요/)).toBeInTheDocument()
 			await user.click(screen.getByRole('button', { name: "'요약 보내기' 열기" }))
 			expect(onNodeOpen).toHaveBeenCalledWith('node-1')
+		})
+	})
+
+	describe('Slack 봇 노드', () => {
+		it('채널 칸에 공개 채널 안내를 붙이고, 채널·메시지·답글 ts를 config에 저장한다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createNode())
+
+			expect(getFieldInput('채널')).toHaveAccessibleDescription(
+				expect.stringContaining('봇을 채널에 초대하지 않아도 공개 채널에는 보내져요.')
+			)
+
+			await chooseFromDropdown(user, '채널', /#random/)
+			await user.type(getFieldInput('메시지'), '배포 완료')
+			await user.type(getFieldInput('스레드'), '1700000000.000100')
+
+			expect(lastNode().config).toEqual({
+				brand: 'slack',
+				channel: 'C0234567890',
+				_names: { channel: '#random' },
+				text: '배포 완료',
+				thread_ts: '1700000000.000100',
+			})
 		})
 	})
 

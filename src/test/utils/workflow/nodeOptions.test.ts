@@ -158,8 +158,41 @@ describe('getNodeOptionsErrorNotice', () => {
 		})
 	})
 
+	it('Slack 채널 목록 오류는 명세 표의 Slack 문구로 안내한다', () => {
+		expect(getNodeOptionsErrorNotice(apiError('SLACK_NOT_CONNECTED'), 'slack.channels')).toEqual({
+			message: 'Slack이 연결되어 있지 않아요. 통합 설정에서 Slack을 연결해 주세요.',
+			action: 'connect',
+		})
+		expect(getNodeOptionsErrorNotice(apiError('SLACK_API_UNAVAILABLE'), 'slack.channels')).toEqual({
+			message: 'Slack이 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
+			action: 'retry',
+		})
+	})
+
+	it('AUTHENTICATION_REQUIRED는 Slack 공급원이면 Slack 재연결 문구를, 다른 공급원이면 공통 문구를 보여 준다', () => {
+		expect(getNodeOptionsErrorNotice(apiError('AUTHENTICATION_REQUIRED'), 'slack.channels')).toEqual({
+			message: 'Slack 연결이 만료됐거나 앱 권한이 부족해요. 통합 설정에서 Slack을 다시 연결해 주세요.',
+			action: 'connect',
+		})
+		expect(getNodeOptionsErrorNotice(apiError('AUTHENTICATION_REQUIRED'), 'google.calendars')).toEqual({
+			message: '연동이 만료됐어요. 통합 설정에서 다시 연결해 주세요.',
+			action: 'connect',
+		})
+		expect(getNodeOptionsErrorNotice(apiError('AUTHENTICATION_REQUIRED')).message).toBe(
+			'연동이 만료됐어요. 통합 설정에서 다시 연결해 주세요.'
+		)
+	})
+
+	it('공급원 앱 이름이 상속 속성 이름이어도 그 속성 값을 문구로 보여 주지 않는다', () => {
+		// 앱 표를 그냥 조회하면 `constructor` → Object 함수, 그 `name` → 'Object'가 문구로 잡힌다.
+		expect(getNodeOptionsErrorNotice(apiError('name'), 'constructor.channels')).toEqual({
+			message: '목록을 불러오지 못했어요.',
+			action: 'retry',
+		})
+	})
+
 	it('외부 서비스 일시 장애는 다시 시도를, INVALID_INPUT은 서버 message를 보여 준다', () => {
-		expect(getNodeOptionsErrorNotice(apiError('SLACK_API_UNAVAILABLE')).message).toContain('잠시 후 다시 시도')
+		expect(getNodeOptionsErrorNotice(apiError('GOOGLE_API_UNAVAILABLE')).message).toContain('잠시 후 다시 시도')
 		expect(getNodeOptionsErrorNotice(apiError('INVALID_INPUT', 'spreadsheet_id 형식이 올바르지 않습니다'))).toEqual({
 			message: 'spreadsheet_id 형식이 올바르지 않습니다',
 			action: 'retry',

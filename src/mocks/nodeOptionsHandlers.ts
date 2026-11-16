@@ -31,6 +31,18 @@ const eventsByCalendar: Record<string, NodeOption[]> = {
 	'team@group.calendar.google.com': [{ id: 'evt-release', name: '배포 (11월 20일 15:00)' }],
 }
 
+// Slack 공개 채널(보관 제외). 실제 응답처럼 값은 채널 ID, 이름은 `#이름`이고 cursor로 이어진다.
+const slackChannelPages: Record<string, NodeOptionsPage> = {
+	first: {
+		items: [
+			{ id: 'C0123456789', name: '#general' },
+			{ id: 'C0234567890', name: '#random' },
+		],
+		nextCursor: 'channels-2',
+	},
+	'channels-2': { items: [{ id: 'C0345678901', name: '#release' }], nextCursor: null },
+}
+
 const getOptionsPage = (source: string, params: URLSearchParams): NodeOptionsPage => {
 	if (source === 'google.calendars')
 		return {
@@ -41,11 +53,12 @@ const getOptionsPage = (source: string, params: URLSearchParams): NodeOptionsPag
 		}
 	if (source === 'google.writable_calendars') return writableCalendarPages[params.get('cursor') ?? 'first'] ?? { items: [] }
 	if (source === 'google.events') return { items: eventsByCalendar[params.get('calendar_id') ?? ''] ?? [] }
+	if (source === 'slack.channels') return slackChannelPages[params.get('cursor') ?? 'first'] ?? { items: [] }
 	return { items: [] }
 }
 
 /**
- * 노드 설정 드롭다운 목록(options API) mock. Google Calendar 공급원만 항목을 주고 나머지는 빈 목록이다.
+ * 노드 설정 드롭다운 목록(options API) mock. Google Calendar·Slack 채널 공급원만 항목을 주고 나머지는 빈 목록이다.
  * 단위 테스트는 공급원별 응답을 `server.use`로 덮어쓴다.
  */
 export const createNodeOptionsHandlers = ({ delayMs }: NodeOptionsHandlersOptions = {}): HttpHandler[] => [

@@ -687,8 +687,8 @@ describe('WorkFlowPage', () => {
 		await user.click(paletteButton)
 		expect(paletteButton).toHaveAttribute('aria-expanded', 'true')
 
-		await user.click(screen.getByRole('button', { name: /Slack/ }))
-		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+		await user.click(screen.getByRole('button', { name: /^Slack\s*\d+개$/ }))
+		await user.click(screen.getByRole('button', { name: /^Slack 채널에 메시지 보내기/ }))
 
 		expect(screen.queryByRole('complementary', { name: '노드 추가' })).not.toBeInTheDocument()
 		expect(paletteButton).toHaveAttribute('aria-expanded', 'false')
@@ -731,8 +731,8 @@ describe('WorkFlowPage', () => {
 		await user.click(screen.getByRole('button', { name: '노드 추가' }))
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 
-		await user.click(screen.getByRole('button', { name: /Slack/ }))
-		await user.click(screen.getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+		await user.click(screen.getByRole('button', { name: /^Slack\s*\d+개$/ }))
+		await user.click(screen.getByRole('button', { name: /^Slack 채널에 메시지 보내기/ }))
 		expect(screen.getAllByTestId(/^status-/)).toHaveLength(1)
 		expect(screen.queryByRole('note')).not.toBeInTheDocument()
 		expect(screen.getByTestId('chat-start-hint')).toHaveTextContent('false')
@@ -767,8 +767,8 @@ describe('WorkFlowPage', () => {
 		const nextPalette = screen.getByRole('complementary', { name: '다음 노드 추가' })
 		expect(within(nextPalette).queryByRole('button', { name: /수동 실행/ })).not.toBeInTheDocument()
 		expect(screen.getByRole('button', { name: '노드 추가' })).toHaveAttribute('aria-expanded', 'false')
-		await user.click(within(nextPalette).getByRole('button', { name: /Slack/ }))
-		await user.click(within(nextPalette).getByRole('button', { name: 'Slack 채널에 메시지 보내기' }))
+		await user.click(within(nextPalette).getByRole('button', { name: /^Slack\s*\d+개$/ }))
+		await user.click(within(nextPalette).getByRole('button', { name: /^Slack 채널에 메시지 보내기/ }))
 
 		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
 		expect(screen.getByRole('button', { name: `다음 노드 추가 ${trigger.id}` })).toHaveFocus()
