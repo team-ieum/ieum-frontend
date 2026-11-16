@@ -98,6 +98,8 @@ export type WorkflowChatViewModel = {
 	isTyping: boolean
 	currentStage: string | null
 	credentialOptions: WorkflowChatCredentialOption[]
+	/** 등록한 AI 자격 증명이 하나도 없어 자격 증명 추가 안내를 보여 줘야 한다. */
+	hasNoCredentials: boolean
 	selectedCredentialOption: WorkflowChatCredentialOption | null
 	selectedCredentialId: string | null
 	isModelMenuOpen: boolean

@@ -12,6 +12,7 @@ import type {
 	WorkflowChatResponseData,
 	WorkflowChatStreamResponse,
 } from '@/types/workflowChat'
+import { selectWorkflowChatCredential } from '@/utils/workflow/selectWorkflowChatCredential'
 import { selectWorkflowChatModel } from '@/utils/workflow/selectWorkflowChatModel'
 
 const CHAT_STREAM_DESTINATION = '/user/queue/chat/stream'
@@ -75,8 +76,10 @@ export const useWorkflowChat = (
 	const credentials = useMemo(() => credentialsData?.data ?? [], [credentialsData])
 	const { data: providersData } = useProvidersQuery()
 
+	// 아직 고르지 않았으면 가장 최근에 추가한 자격 증명을 쓴다. 고른 값만 저장하고 자동 선택은 저장하지 않는다.
+	const selectedCredential = selectWorkflowChatCredential(credentials, selectedCredentialId)
 	// 고른 모델은 제공자와 관계없이 하나만 기억한다. 다른 제공자의 키로 바꾸면 그 제공자의 기본 모델로 돌아간다.
-	const selectedProvider = credentials.find(credential => credential.id === selectedCredentialId)?.provider
+	const selectedProvider = selectedCredential?.provider
 	const availableModels = providersData?.data.providers.find(info => info.provider === selectedProvider)?.models ?? []
 	const selectedModel = selectWorkflowChatModel(availableModels, preferredModelId)
 
@@ -92,13 +95,9 @@ export const useWorkflowChat = (
 		}
 	}, [credentialsData, credentials, selectedCredentialId])
 
-	const setSelectedCredentialId = (id: string | null) => {
+	const setSelectedCredentialId = (id: string) => {
 		setSelectedCredentialIdState(id)
-		if (id) {
-			localStorage.setItem(CREDENTIAL_STORAGE_KEY, id)
-		} else {
-			localStorage.removeItem(CREDENTIAL_STORAGE_KEY)
-		}
+		localStorage.setItem(CREDENTIAL_STORAGE_KEY, id)
 	}
 
 	const setSelectedModelId = (id: string) => {
@@ -325,8 +324,8 @@ export const useWorkflowChat = (
 				prompt: text,
 				...(currentNodes.length > 0 ? { currentNodes, currentEdges } : {}),
 				...(sessionId ? { sessionId } : {}),
-				...(selectedCredentialId ? { credentialId: selectedCredentialId } : {}),
-				...(selectedCredentialId && selectedModel ? { model: selectedModel.id } : {}),
+				...(selectedCredential ? { credentialId: selectedCredential.id } : {}),
+				...(selectedCredential && selectedModel ? { model: selectedModel.id } : {}),
 			}
 
 			client.publish({
@@ -360,7 +359,9 @@ export const useWorkflowChat = (
 		handleSend,
 		handleKeyDown,
 		credentials,
-		selectedCredentialId,
+		/** 자격 증명 목록을 받았는데 하나도 없다. 불러오는 중이거나 실패했으면 false다. */
+		hasNoCredentials: credentialsData !== undefined && credentials.length === 0,
+		selectedCredentialId: selectedCredential?.id ?? null,
 		setSelectedCredentialId,
 		availableModels,
 		selectedModelId: selectedModel?.id ?? null,

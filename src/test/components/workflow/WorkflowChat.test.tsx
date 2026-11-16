@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import WorkflowChat from '@/components/workflow/WorkflowChat'
 import type { CredentialItem, ProviderModel } from '@/types/credential'
@@ -7,6 +8,7 @@ import type { CredentialItem, ProviderModel } from '@/types/credential'
 const chat = vi.hoisted(() => ({
 	messages: [] as { type: string; body: string }[],
 	credentials: [] as CredentialItem[],
+	hasNoCredentials: false,
 	selectedCredentialId: null as string | null,
 	availableModels: [] as ProviderModel[],
 	selectedModelId: null as string | null,
@@ -23,6 +25,7 @@ vi.mock('@/hooks/workflow/useWorkflowChat', () => ({
 		handleKeyDown: vi.fn(),
 		bodyRef: { current: null },
 		credentials: chat.credentials,
+		hasNoCredentials: chat.hasNoCredentials,
 		selectedCredentialId: chat.selectedCredentialId,
 		setSelectedCredentialId: vi.fn(),
 		availableModels: chat.availableModels,
@@ -57,6 +60,7 @@ const createModel = (id: string, displayName: string, isDefault = false): Provid
 beforeEach(() => {
 	chat.messages = []
 	chat.credentials = []
+	chat.hasNoCredentials = false
 	chat.selectedCredentialId = null
 	chat.availableModels = []
 	chat.selectedModelId = null
@@ -165,5 +169,18 @@ describe('WorkflowChat 모델 선택', () => {
 
 		const items = within(screen.getByRole('menu')).getAllByRole('menuitemradio')
 		expect(items.map(item => item.textContent)).toEqual(['Claude'])
+	})
+
+	it('등록한 AI 자격 증명이 없으면 선택창 대신 자격 증명 추가 안내와 통합 설정 링크를 보여 준다', () => {
+		chat.hasNoCredentials = true
+		render(
+			<MemoryRouter>
+				<WorkflowChat workflowId='workflow-1' currentNodes={[]} currentEdges={[]} isOpen />
+			</MemoryRouter>
+		)
+
+		expect(screen.getByText('AI 자격 증명을 추가해 주세요.')).toBeInTheDocument()
+		expect(screen.getByRole('link', { name: '통합 설정에서 추가' })).toHaveAttribute('href', '/inter-setting')
+		expect(screen.queryByRole('button', { name: 'AI 모델 선택' })).not.toBeInTheDocument()
 	})
 })

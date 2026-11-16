@@ -209,6 +209,7 @@ export const useWorkflowChatViewModel = ({
 		isTyping: chat.isTyping,
 		currentStage: chat.currentStage,
 		credentialOptions,
+		hasNoCredentials: chat.hasNoCredentials,
 		selectedCredentialOption,
 		selectedCredentialId: chat.selectedCredentialId,
 		isModelMenuOpen,

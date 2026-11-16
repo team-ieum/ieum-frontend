@@ -1,6 +1,7 @@
-import { ArrowUp, Check, ChevronDown, Sparkles, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, KeyRound, Sparkles, X } from 'lucide-react'
 import type { ReactElement, ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Link } from 'react-router'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
 import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
@@ -125,6 +126,7 @@ const WorkflowChat = ({
 		handleSend,
 		handleKeyDown,
 		credentialOptions,
+		hasNoCredentials,
 		selectedCredentialOption,
 		selectedCredentialId,
 		isModelMenuOpen,
@@ -322,6 +324,18 @@ const WorkflowChat = ({
 
 						{/* 입력창 */}
 						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0 flex flex-col gap-2'>
+							{hasNoCredentials ? (
+								<p className='flex flex-wrap items-center gap-x-1.5 gap-y-0.5 self-start typo-caption1_medium text-neutral-500'>
+									<KeyRound size={12} aria-hidden='true' className='shrink-0 text-neutral-400' />
+									<span>AI 자격 증명을 추가해 주세요.</span>
+									<Link
+										to='/inter-setting'
+										className='rounded-sm font-semibold text-main-deep-blue underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
+									>
+										통합 설정에서 추가
+									</Link>
+								</p>
+							) : null}
 							{credentialOptions.length > 0 && (
 								<div className='flex max-w-full min-w-0 items-center gap-1.5 self-start'>
 									<div ref={modelMenuRef} className='relative shrink-0' onKeyDown={onModelMenuKeyDown}>

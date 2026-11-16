@@ -135,10 +135,45 @@ describe('useWorkflowChat 요청 본문', () => {
 		expect(await sendPrompt(result)).toMatchObject({ model: 'claude-opus-5-5' })
 	})
 
-	it('자격 증명을 고르지 않으면 모델 ID를 싣지 않는다', async () => {
-		givenClaudeCredentialWithModels()
+	it('자격 증명을 고르지 않았으면 가장 최근에 추가한 자격 증명과 그 제공자의 기본 모델을 싣는다', async () => {
+		mocks.credentialsData = {
+			data: [
+				{ id: CLAUDE_CREDENTIAL_ID, provider: 'CLAUDE', createdAt: '2026-10-01T00:00:00Z' },
+				{ id: 'credential-gemini', provider: 'GEMINI', createdAt: '2026-11-10T00:00:00Z' },
+			],
+		}
+		mocks.providersData = {
+			data: {
+				providers: [
+					{ provider: 'CLAUDE', models: [{ id: 'claude-sonnet-5-5', default: true }] },
+					{
+						provider: 'GEMINI',
+						models: [{ id: 'gemini-3.5-flash-lite' }, { id: 'gemini-3.7-flash', default: true }],
+					},
+				],
+			},
+		}
 		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
 
-		expect(await sendPrompt(result)).not.toHaveProperty('model')
+		expect(result.current.selectedCredentialId).toBe('credential-gemini')
+		expect(await sendPrompt(result)).toMatchObject({ credentialId: 'credential-gemini', model: 'gemini-3.7-flash' })
+		// 자동 선택은 기억하지 않아 나중에 추가한 자격 증명이 다시 자동 선택될 수 있다.
+		expect(localStorage.getItem('ieum-chat-credential-id')).toBeNull()
+	})
+
+	it('자격 증명이 하나도 없으면 안내 대상으로 알리고 자격 증명과 모델 ID를 싣지 않는다', async () => {
+		mocks.credentialsData = { data: [] }
+		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
+
+		expect(result.current.hasNoCredentials).toBe(true)
+		const body = await sendPrompt(result)
+		expect(body).not.toHaveProperty('credentialId')
+		expect(body).not.toHaveProperty('model')
+	})
+
+	it('자격 증명 목록을 아직 받지 못했으면 안내 대상으로 보지 않는다', () => {
+		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
+
+		expect(result.current.hasNoCredentials).toBe(false)
 	})
 })
