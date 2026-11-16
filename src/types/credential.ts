@@ -18,7 +18,7 @@ export interface ValidateCredentialResult {
 	valid: boolean
 }
 
-interface ProviderModel {
+export interface ProviderModel {
 	id: string
 	displayName: string
 	capabilities: string[]

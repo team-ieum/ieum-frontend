@@ -2,6 +2,7 @@ import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SockJS from 'sockjs-client'
 import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
+import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import type {
@@ -11,8 +12,11 @@ import type {
 	WorkflowChatResponseData,
 	WorkflowChatStreamResponse,
 } from '@/types/workflowChat'
+import { selectWorkflowChatModel } from '@/utils/workflow/selectWorkflowChatModel'
 
 const CHAT_STREAM_DESTINATION = '/user/queue/chat/stream'
+const CREDENTIAL_STORAGE_KEY = 'ieum-chat-credential-id'
+const MODEL_STORAGE_KEY = 'ieum-chat-model-id'
 const CONNECTION_TIMEOUT_MS = 8000
 
 const getWebSocketUrl = (): string | null => {
@@ -55,8 +59,9 @@ export const useWorkflowChat = (
 	const [connectionStatus, setConnectionStatus] = useState<WorkflowChatConnectionStatus>('idle')
 	const [currentStage, setCurrentStage] = useState<string | null>(null)
 	const [selectedCredentialId, setSelectedCredentialIdState] = useState<string | null>(() =>
-		localStorage.getItem('ieum-chat-credential-id')
+		localStorage.getItem(CREDENTIAL_STORAGE_KEY)
 	)
+	const [preferredModelId, setPreferredModelId] = useState<string | null>(() => localStorage.getItem(MODEL_STORAGE_KEY))
 	const clientRef = useRef<Client | null>(null)
 	const subscriptionRef = useRef<StompSubscription | null>(null)
 	const connectionReadyRef = useRef<Promise<void> | null>(null)
@@ -68,6 +73,12 @@ export const useWorkflowChat = (
 
 	const { data: credentialsData } = useCredentialsQuery()
 	const credentials = useMemo(() => credentialsData?.data ?? [], [credentialsData])
+	const { data: providersData } = useProvidersQuery()
+
+	// 고른 모델은 제공자와 관계없이 하나만 기억한다. 다른 제공자의 키로 바꾸면 그 제공자의 기본 모델로 돌아간다.
+	const selectedProvider = credentials.find(credential => credential.id === selectedCredentialId)?.provider
+	const availableModels = providersData?.data.providers.find(info => info.provider === selectedProvider)?.models ?? []
+	const selectedModel = selectWorkflowChatModel(availableModels, preferredModelId)
 
 	useEffect(() => {
 		onCanvasUpdateRef.current = onCanvasUpdate
@@ -76,7 +87,7 @@ export const useWorkflowChat = (
 	useEffect(() => {
 		if (!credentialsData) return
 		if (selectedCredentialId && !credentials.find(c => c.id === selectedCredentialId)) {
-			localStorage.removeItem('ieum-chat-credential-id')
+			localStorage.removeItem(CREDENTIAL_STORAGE_KEY)
 			queueMicrotask(() => setSelectedCredentialIdState(null))
 		}
 	}, [credentialsData, credentials, selectedCredentialId])
@@ -84,10 +95,15 @@ export const useWorkflowChat = (
 	const setSelectedCredentialId = (id: string | null) => {
 		setSelectedCredentialIdState(id)
 		if (id) {
-			localStorage.setItem('ieum-chat-credential-id', id)
+			localStorage.setItem(CREDENTIAL_STORAGE_KEY, id)
 		} else {
-			localStorage.removeItem('ieum-chat-credential-id')
+			localStorage.removeItem(CREDENTIAL_STORAGE_KEY)
 		}
+	}
+
+	const setSelectedModelId = (id: string) => {
+		setPreferredModelId(id)
+		localStorage.setItem(MODEL_STORAGE_KEY, id)
 	}
 
 	const createConnectionReady = useCallback(() => {
@@ -310,6 +326,7 @@ export const useWorkflowChat = (
 				...(currentNodes.length > 0 ? { currentNodes, currentEdges } : {}),
 				...(sessionId ? { sessionId } : {}),
 				...(selectedCredentialId ? { credentialId: selectedCredentialId } : {}),
+				...(selectedCredentialId && selectedModel ? { model: selectedModel.id } : {}),
 			}
 
 			client.publish({
@@ -345,5 +362,8 @@ export const useWorkflowChat = (
 		credentials,
 		selectedCredentialId,
 		setSelectedCredentialId,
+		availableModels,
+		selectedModelId: selectedModel?.id ?? null,
+		setSelectedModelId,
 	}
 }

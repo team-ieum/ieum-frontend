@@ -27,6 +27,9 @@ vi.mock('@/hooks/workflow/useWorkflowChat', () => ({
 		credentials: [],
 		selectedCredentialId: null,
 		setSelectedCredentialId: vi.fn(),
+		availableModels: [],
+		selectedModelId: null,
+		setSelectedModelId: vi.fn(),
 		currentStage: null,
 	}),
 }))

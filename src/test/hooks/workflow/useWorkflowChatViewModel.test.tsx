@@ -17,6 +17,9 @@ const mocks = vi.hoisted(() => ({
 		credentials: [],
 		selectedCredentialId: null,
 		setSelectedCredentialId: () => {},
+		availableModels: [],
+		selectedModelId: null,
+		setSelectedModelId: () => {},
 	},
 }))
 

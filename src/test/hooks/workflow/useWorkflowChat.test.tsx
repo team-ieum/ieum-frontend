@@ -5,7 +5,11 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 
 // 활성화하면 바로 연결된 것처럼 onConnect를 부르고, 보낸 프레임은 publish mock으로 확인한다.
-const mocks = vi.hoisted(() => ({ publish: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+	publish: vi.fn(),
+	credentialsData: undefined as unknown,
+	providersData: undefined as unknown,
+}))
 
 vi.mock('@stomp/stompjs', () => ({
 	Client: class {
@@ -32,8 +36,40 @@ vi.mock('@stomp/stompjs', () => ({
 }))
 vi.mock('sockjs-client', () => ({ default: vi.fn() }))
 vi.mock('@/hooks/aiCredentials/queries/useCredentialsQuery', () => ({
-	useCredentialsQuery: () => ({ data: undefined }),
+	useCredentialsQuery: () => ({ data: mocks.credentialsData }),
 }))
+vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
+	useProvidersQuery: () => ({ data: mocks.providersData }),
+}))
+
+const CLAUDE_CREDENTIAL_ID = 'credential-claude'
+
+const givenClaudeCredentialWithModels = () => {
+	mocks.credentialsData = {
+		data: [{ id: CLAUDE_CREDENTIAL_ID, provider: 'CLAUDE', credentialType: 'API_KEY', displayName: '내 키', keyHint: '' }],
+	}
+	mocks.providersData = {
+		data: {
+			providers: [
+				{
+					provider: 'CLAUDE',
+					models: [
+						{ id: 'claude-sonnet-5-5', displayName: 'Claude Sonnet 5.5', default: true },
+						{ id: 'claude-opus-5-5', displayName: 'Claude Opus 5.5' },
+					],
+				},
+			],
+		},
+	}
+}
+
+const sendPrompt = async (result: { current: ReturnType<typeof useWorkflowChat> }) => {
+	await waitFor(() => expect(result.current.connectionStatus).toBe('connected'))
+	act(() => result.current.setInput('슬랙 알림 만들어 줘'))
+	await act(() => result.current.handleSend())
+	const frame = mocks.publish.mock.lastCall?.[0] as { body: string }
+	return JSON.parse(frame.body) as Record<string, unknown>
+}
 
 describe('useWorkflowChat 요청 본문', () => {
 	beforeEach(() => {
@@ -45,6 +81,8 @@ describe('useWorkflowChat 요청 본문', () => {
 	afterEach(() => {
 		vi.unstubAllEnvs()
 		vi.clearAllMocks()
+		mocks.credentialsData = undefined
+		mocks.providersData = undefined
 	})
 
 	it('currentNodes에 AI 노드 출력 칸과 시스템 메시지를 원형 그대로 싣는다', async () => {
@@ -75,5 +113,32 @@ describe('useWorkflowChat 요청 본문', () => {
 		const frame = mocks.publish.mock.lastCall?.[0] as { destination: string; body: string }
 		expect(frame.destination).toBe('/app/chat/workflow-id')
 		expect(JSON.parse(frame.body)).toMatchObject({ prompt: '분류 칸을 하나 더 만들어줘', currentNodes: [aiNode] })
+	})
+
+	it('자격 증명을 고르면 고른 모델이 없을 때 그 제공자의 기본 모델 ID를 싣는다', async () => {
+		givenClaudeCredentialWithModels()
+		localStorage.setItem('ieum-chat-credential-id', CLAUDE_CREDENTIAL_ID)
+		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
+
+		expect(result.current.selectedModelId).toBe('claude-sonnet-5-5')
+		expect(await sendPrompt(result)).toMatchObject({ credentialId: CLAUDE_CREDENTIAL_ID, model: 'claude-sonnet-5-5' })
+	})
+
+	it('고른 모델을 기억해 요청에 싣는다', async () => {
+		givenClaudeCredentialWithModels()
+		localStorage.setItem('ieum-chat-credential-id', CLAUDE_CREDENTIAL_ID)
+		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
+
+		act(() => result.current.setSelectedModelId('claude-opus-5-5'))
+
+		expect(localStorage.getItem('ieum-chat-model-id')).toBe('claude-opus-5-5')
+		expect(await sendPrompt(result)).toMatchObject({ model: 'claude-opus-5-5' })
+	})
+
+	it('자격 증명을 고르지 않으면 모델 ID를 싣지 않는다', async () => {
+		givenClaudeCredentialWithModels()
+		const { result } = renderHook(() => useWorkflowChat('workflow-id', [], []))
+
+		expect(await sendPrompt(result)).not.toHaveProperty('model')
 	})
 })
