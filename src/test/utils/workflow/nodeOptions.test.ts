@@ -183,6 +183,14 @@ describe('getNodeOptionsErrorNotice', () => {
 		)
 	})
 
+	it('공급원 앱 이름이 상속 속성 이름이어도 그 속성 값을 문구로 보여 주지 않는다', () => {
+		// 앱 표를 그냥 조회하면 `constructor` → Object 함수, 그 `name` → 'Object'가 문구로 잡힌다.
+		expect(getNodeOptionsErrorNotice(apiError('name'), 'constructor.channels')).toEqual({
+			message: '목록을 불러오지 못했어요.',
+			action: 'retry',
+		})
+	})
+
 	it('외부 서비스 일시 장애는 다시 시도를, INVALID_INPUT은 서버 message를 보여 준다', () => {
 		expect(getNodeOptionsErrorNotice(apiError('GOOGLE_API_UNAVAILABLE')).message).toContain('잠시 후 다시 시도')
 		expect(getNodeOptionsErrorNotice(apiError('INVALID_INPUT', 'spreadsheet_id 형식이 올바르지 않습니다'))).toEqual({

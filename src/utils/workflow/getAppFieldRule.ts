@@ -45,6 +45,7 @@ export const getAppFieldRule = (
 	value: unknown,
 	context: AppFieldRuleContext
 ): AppFieldRule => {
-	const getRule = APP_FIELD_RULES[entry.app]
+	// 카탈로그 app은 임의 문자열이라 `constructor`처럼 상속 속성 이름이면 그 값을 규칙으로 부르게 되므로 자체 키만 조회한다.
+	const getRule = Object.hasOwn(APP_FIELD_RULES, entry.app) ? APP_FIELD_RULES[entry.app] : undefined
 	return getRule ? getRule(entry.id, field, value, context) : { field, canUseOptionsReference: false, notice: null }
 }

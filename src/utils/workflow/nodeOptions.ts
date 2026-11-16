@@ -109,6 +109,13 @@ const APP_CONNECT_MESSAGES: Partial<Record<string, Record<string, string>>> = {
 	},
 }
 
+// 공급원 앱과 code는 임의 문자열이라 상속 속성 이름(`constructor`, `name`)이 문구로 잡히지 않게 자체 키만 조회한다.
+const getAppConnectMessage = (source: string | undefined, code: string): string | undefined => {
+	const app = source?.split('.')[0]
+	const messages = app && Object.hasOwn(APP_CONNECT_MESSAGES, app) ? APP_CONNECT_MESSAGES[app] : undefined
+	return messages && Object.hasOwn(messages, code) ? messages[code] : undefined
+}
+
 const RETRY_MESSAGES: Record<string, string> = {
 	UNAUTHORIZED: '로그인이 만료됐어요. 다시 로그인한 뒤 열어 주세요.',
 	GOOGLE_RESOURCE_NOT_FOUND: 'Google에서 항목을 찾을 수 없거나 볼 권한이 없어요.',
@@ -123,7 +130,7 @@ const RETRY_MESSAGES: Record<string, string> = {
 export const getNodeOptionsErrorNotice = (error: unknown, source?: string): NodeOptionsErrorNotice => {
 	if (!isApiError(error)) return { message: '목록을 불러오지 못했어요.', action: 'retry' }
 	const code: string = error.code
-	const appMessage = source ? APP_CONNECT_MESSAGES[source.split('.')[0]]?.[code] : undefined
+	const appMessage = getAppConnectMessage(source, code)
 	if (appMessage) return { message: appMessage, action: 'connect' }
 	if (CONNECT_MESSAGES[code]) return { message: CONNECT_MESSAGES[code], action: 'connect' }
 	if (RETRY_MESSAGES[code]) return { message: RETRY_MESSAGES[code], action: 'retry' }

@@ -36,4 +36,17 @@ describe('getAppFieldRule', () => {
 			notice: null,
 		})
 	})
+
+	it.each(['constructor', '__proto__', 'toString'])(
+		'상속 속성 이름인 app(%s)도 규칙이 없는 앱으로 보고 칸을 그대로 돌려준다',
+		app => {
+			const catalogField = field('channel')
+
+			expect(getAppFieldRule({ id: `${app}.send`, app }, catalogField, undefined, { target: 'node' })).toEqual({
+				field: catalogField,
+				canUseOptionsReference: false,
+				notice: null,
+			})
+		}
+	)
 })
