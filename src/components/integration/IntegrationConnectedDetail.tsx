@@ -2,6 +2,7 @@ import type { Ref } from 'react'
 import { ArrowLeft, Link2Off } from 'lucide-react'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { IntegrationService } from '@/types/integration'
+import OAuthDisconnectAction from './OAuthDisconnectAction'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
@@ -54,6 +55,7 @@ const IntegrationConnectedDetail = ({
 							연결 오류
 						</span>
 					)}
+					<OAuthDisconnectAction key={service.id} service={service} />
 					{onDisconnect && (
 						<button
 							type='button'

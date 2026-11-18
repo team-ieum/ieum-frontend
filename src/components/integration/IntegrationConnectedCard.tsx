@@ -5,6 +5,7 @@ import { INTEGRATION_STATUS_LABEL } from '@/constants/integration/statusLabels'
 import type { IntegrationService } from '@/types/integration'
 import { toConnectedDisplayStatus } from '@/utils/integration/selectors'
 import { cn } from '@/utils/cn'
+import OAuthDisconnectAction from './OAuthDisconnectAction'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 
 type IntegrationConnectedCardProps = {
@@ -56,16 +57,17 @@ const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: Inte
 				</div>
 			)}
 
-			<div className='mt-auto px-4 pb-4 pt-1'>
+			<div className='mt-auto flex flex-wrap gap-2 px-4 pb-4 pt-1'>
 				<button
 					ref={manageButtonRef}
 					type='button'
 					onClick={onManage}
-					className='inline-flex h-9 w-full items-center justify-center gap-1 rounded-brand-sm border border-neutral-200 bg-neutral-white typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue'
+					className='inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-brand-sm border border-neutral-200 bg-neutral-white typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue'
 				>
 					관리
 					<ChevronRight size={14} />
 				</button>
+				<OAuthDisconnectAction service={service} />
 			</div>
 		</article>
 	)

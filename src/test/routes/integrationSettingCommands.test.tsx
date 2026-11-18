@@ -1,9 +1,10 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
-import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { emptyOAuthConnectionsResponse, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import { useModalStore } from '@/stores/useModalStore'
@@ -274,11 +275,93 @@ describe('통합 설정 Slack 봇 연결', () => {
 		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
 		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
+})
 
-	it('해제 경로가 없는 OAuth 연결 상세에는 연결 해제 버튼을 표시하지 않는다', async () => {
+describe('통합 설정 Google·Notion·GitHub 해제', () => {
+	it('Google 상세에서 해제 확인을 열고 취소하면 상세에 머문다', async () => {
+		const user = userEvent.setup()
 		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
 
-		await screen.findByRole('heading', { level: 2, name: 'Google' })
-		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		await user.click(await screen.findByRole('button', { name: '연동 해제' }))
+		const dialog = await screen.findByRole('alertdialog', { name: 'Google 연동 해제' })
+		await within(dialog).findByRole('button', { name: '연동 해제' })
+		await user.click(within(dialog).getByRole('button', { name: '취소' }))
+
+		expect(screen.queryByRole('alertdialog', { name: 'Google 연동 해제' })).not.toBeInTheDocument()
+		expect(screen.getByRole('heading', { level: 2, name: 'Google' })).toBeInTheDocument()
+	})
+
+	it('목록의 Google 해제는 모든 영향 페이지를 확인하고 승인한 뒤 연결 가능 타일을 복원한다', async () => {
+		const user = userEvent.setup()
+		const getWorkflows = vi.fn()
+		const deleteConnection = vi.fn()
+		const lastPage = createDeferred()
+		let isConnected = true
+		server.use(
+			http.get('*/api/v1/oauth/connections', () =>
+				HttpResponse.json(isConnected ? oauthConnectionsResponse : emptyOAuthConnectionsResponse)
+			),
+			http.get('*/api/v1/integrations/:serviceType/workflows', async ({ params, request }) => {
+				const search = new URL(request.url).searchParams
+				const cursor = search.get('cursor')
+				getWorkflows(params.serviceType, search.get('size'), cursor)
+				const isFirst = cursor === null
+				if (!isFirst) await lastPage.promise
+				return HttpResponse.json({
+					success: true,
+					data: {
+						content: [
+							{
+								id: isFirst ? 'manual' : 'schedule',
+								name: isFirst ? '수동 요청' : '일정 자동 등록',
+								description: '',
+								active: true,
+								triggerType: isFirst ? 'MANUAL' : 'SCHEDULE',
+								usedNodeCount: 1,
+								updatedAt: '2026-11-01T00:00:00Z',
+							},
+						],
+						size: 100,
+						hasNext: isFirst,
+						nextCursor: isFirst ? 'cursor-2' : null,
+					},
+					message: 'success',
+					code: 'SUCCESS',
+				})
+			}),
+			http.delete('*/api/v1/oauth/connections/:provider', ({ params }) => {
+				deleteConnection(params.provider)
+				isConnected = false
+				return HttpResponse.json({ success: true, data: null, message: 'success', code: 'SUCCESS' })
+			})
+		)
+		renderAppRoute('/inter-setting')
+
+		const heading = await screen.findByRole('heading', { level: 3, name: 'Google' })
+		const card = heading.closest('article') as HTMLElement
+		await user.click(within(card).getByRole('button', { name: '연동 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Google 연동 해제' }))
+		try {
+			await waitFor(() => expect(getWorkflows).toHaveBeenCalledTimes(2))
+			expect(getWorkflows.mock.calls).toEqual([
+				['google', '100', null],
+				['google', '100', 'cursor-2'],
+			])
+			expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+		} finally {
+			lastPage.resolve()
+		}
+
+		const confirm = await dialog.findByRole('button', { name: '연동 해제' })
+		expect(dialog.getByText('수동 요청')).toBeInTheDocument()
+		expect(dialog.getByText('일정 자동 등록')).toBeInTheDocument()
+		expect(dialog.getByText('자동 실행 실패')).toBeInTheDocument()
+		expect(deleteConnection).not.toHaveBeenCalled()
+		await user.click(confirm)
+
+		await waitFor(() => expect(card).not.toBeInTheDocument())
+		const availableTile = await getAvailableTile('Google Drive')
+		expect(within(availableTile).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
+		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith('GOOGLE')
 	})
 })

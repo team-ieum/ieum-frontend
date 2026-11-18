@@ -5,6 +5,7 @@ export const QUERY_STALE_TIME_MS = {
 	workflowList: 30_000,
 	workflowDetail: 10_000,
 	oauthConnections: 10_000,
+	oauthDisconnectImpact: 0,
 	webhookCredentials: 10_000,
 	providers: 5 * 60_000,
 	credentials: 10_000,

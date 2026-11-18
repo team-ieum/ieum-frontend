@@ -58,5 +58,7 @@ export const queryKeys = {
 		all: () => ['integrations'] as const,
 		workflows: (serviceType: IntegrationServiceType | 'UNKNOWN', params?: { size?: number }) =>
 			[...queryKeys.integrations.all(), 'workflows', serviceType, params] as const,
+		oauthDisconnectImpact: (serviceType: IntegrationServiceType, connectionId: string) =>
+			[...queryKeys.integrations.all(), 'oauth-disconnect-impact', serviceType, connectionId] as const,
 	},
 } as const
