@@ -7,11 +7,12 @@ export interface ApiResponse<T> {
 
 import type { AuthErrorCode } from '@/types/auth'
 import type { CredentialErrorCode } from '@/types/credential'
+import type { OAuthConnectionErrorCode } from '@/types/oauthConnections'
 import type { WorkflowErrorCode } from '@/types/workflowList'
 
 type CommonErrorCode = 'INVALID_INPUT' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_SUPPORTED' | 'INTERNAL_SERVER_ERROR'
 
-export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode | CredentialErrorCode
+export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode | CredentialErrorCode | OAuthConnectionErrorCode
 
 export interface ApiErrorResponse {
 	success: false

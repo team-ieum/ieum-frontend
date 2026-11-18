@@ -1,3 +1,4 @@
+import { isApiError } from '@/utils/ApiError'
 import { api } from '@/utils/AxiosInstance'
 import { isCommonOAuthDisconnectProvider, OAUTH_DISCONNECT_BY_PROVIDER } from '@/constants/integration/integrationProviders'
 import type { OAuthConnectionsListResponse } from '@/types/oauthConnections'
@@ -8,13 +9,17 @@ export const getOAuthConnections = async (): Promise<OAuthConnectionsListRespons
 }
 
 /**
- * 공급자의 OAuth 연결을 해제한다. Slack은 공용 API에서 처리되지 않아 전용 경로를 사용한다.
+ * 공용 OAuth 연결은 다른 탭에서 이미 해제한 경우에도 완료로 처리한다. Slack은 전용 경로를 사용한다.
  * @throws 해제를 지원하지 않는 공급자면 Error
  */
 export const deleteOAuthConnection = async (provider: string): Promise<void> => {
 	const normalizedProvider = provider.toUpperCase()
 	if (isCommonOAuthDisconnectProvider(normalizedProvider)) {
-		await api.delete(`/api/v1/oauth/connections/${normalizedProvider}`)
+		try {
+			await api.delete(`/api/v1/oauth/connections/${normalizedProvider}`)
+		} catch (error) {
+			if (!isApiError(error) || error.code !== 'ACCOUNT_NOT_CONNECTED') throw error
+		}
 		return
 	}
 

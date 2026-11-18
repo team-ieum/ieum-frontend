@@ -6,9 +6,9 @@ export const useDeleteOAuthConnectionMutation = () => {
 	const queryClient = useQueryClient()
 
 	return useMutation({
-		mutationFn: (provider: string) => deleteOAuthConnection(provider),
+		mutationFn: deleteOAuthConnection,
 		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: queryKeys.oauthConnections.list() })
+			void queryClient.invalidateQueries({ queryKey: queryKeys.oauthConnections.list(), exact: true })
 		},
 	})
 }

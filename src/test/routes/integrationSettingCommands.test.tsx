@@ -7,6 +7,7 @@ import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
 import { emptyOAuthConnectionsResponse, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
+import { useAuthStore } from '@/stores/useAuthStore'
 import { useModalStore } from '@/stores/useModalStore'
 
 const WEBHOOK_SERVICE_ID = '55555555-5555-4555-8555-555555555555'
@@ -81,6 +82,14 @@ const getAvailableTile = async (name: string) => {
 	const tile = heading.closest('article')
 	expect(tile).not.toBeNull()
 	return tile as HTMLElement
+}
+
+const openGoogleCardDisconnect = async (user: ReturnType<typeof userEvent.setup>) => {
+	const heading = await screen.findByRole('heading', { level: 3, name: 'Google' })
+	const card = heading.closest('article') as HTMLElement
+	await user.click(within(card).getByRole('button', { name: '연동 해제' }))
+	const dialog = await screen.findByRole('alertdialog', { name: 'Google 연동 해제' })
+	return { card, dialog }
 }
 
 const openDisconnectConfirm = async () => {
@@ -282,7 +291,9 @@ describe('통합 설정 Google·Notion·GitHub 해제', () => {
 		const user = userEvent.setup()
 		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
 
-		await user.click(await screen.findByRole('button', { name: '연동 해제' }))
+		const disconnectButton = await screen.findByRole('button', { name: '연동 해제' })
+		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		await user.click(disconnectButton)
 		const dialog = await screen.findByRole('alertdialog', { name: 'Google 연동 해제' })
 		await within(dialog).findByRole('button', { name: '연동 해제' })
 		await user.click(within(dialog).getByRole('button', { name: '취소' }))
@@ -337,10 +348,8 @@ describe('통합 설정 Google·Notion·GitHub 해제', () => {
 		)
 		renderAppRoute('/inter-setting')
 
-		const heading = await screen.findByRole('heading', { level: 3, name: 'Google' })
-		const card = heading.closest('article') as HTMLElement
-		await user.click(within(card).getByRole('button', { name: '연동 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: 'Google 연동 해제' }))
+		const { card, dialog: dialogElement } = await openGoogleCardDisconnect(user)
+		const dialog = within(dialogElement)
 		try {
 			await waitFor(() => expect(getWorkflows).toHaveBeenCalledTimes(2))
 			expect(getWorkflows.mock.calls).toEqual([
@@ -363,5 +372,59 @@ describe('통합 설정 Google·Notion·GitHub 해제', () => {
 		const availableTile = await getAvailableTile('Google Drive')
 		expect(within(availableTile).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith('GOOGLE')
+	})
+
+	it('다른 탭에서 이미 Google을 해제했으면 오류 없이 목록을 갱신하고 이음 로그인을 유지한다', async () => {
+		const user = userEvent.setup()
+		const observeConnections = vi.fn()
+		const auth = { accessToken: 'test-existing-access', refreshToken: 'test-existing-refresh' }
+		const errorMessage = '연동된 계정이 없습니다.'
+		let isConnected = true
+		server.use(
+			http.get('*/api/v1/oauth/connections', () => {
+				observeConnections(isConnected)
+				return HttpResponse.json(isConnected ? oauthConnectionsResponse : emptyOAuthConnectionsResponse)
+			}),
+			http.delete('*/api/v1/oauth/connections/GOOGLE', () =>
+				HttpResponse.json(
+					{ success: false, data: null, message: errorMessage, code: 'ACCOUNT_NOT_CONNECTED' },
+					{ status: 400 }
+				)
+			)
+		)
+		const { router } = renderAppRoute('/inter-setting', { auth })
+
+		const { card, dialog } = await openGoogleCardDisconnect(user)
+		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
+		isConnected = false
+		await user.click(confirm)
+
+		await waitFor(() => expect(card).not.toBeInTheDocument())
+		expect(observeConnections).toHaveBeenCalledWith(true)
+		expect(observeConnections).toHaveBeenLastCalledWith(false)
+		expect(dialog).not.toBeInTheDocument()
+		expect(screen.queryByText(errorMessage)).not.toBeInTheDocument()
+		expect(within(await getAvailableTile('Google Drive')).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
+		expect(router.state.location.pathname).toBe('/inter-setting')
+		expect(useAuthStore.getState()).toMatchObject(auth)
+	})
+
+	it('다른 해제 오류는 확인창 안에서 안내하고 연결된 카드를 유지한다', async () => {
+		const user = userEvent.setup()
+		const errorMessage = '이 연동을 해제할 수 없습니다.'
+		server.use(
+			http.delete('*/api/v1/oauth/connections/GOOGLE', () =>
+				HttpResponse.json({ success: false, data: null, message: errorMessage, code: 'INVALID_INPUT' }, { status: 400 })
+			)
+		)
+		renderAppRoute('/inter-setting')
+
+		const { card, dialog } = await openGoogleCardDisconnect(user)
+		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
+		await user.click(confirm)
+
+		expect(await within(dialog).findByRole('alert')).toHaveTextContent(errorMessage)
+		expect(within(dialog).getByRole('button', { name: '연동 해제' })).toBeEnabled()
+		expect(card).toBeInTheDocument()
 	})
 })

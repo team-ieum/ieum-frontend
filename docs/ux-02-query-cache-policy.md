@@ -77,6 +77,8 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 
 Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSuccess`는 `invalidateQueries()` Promise를 반환하지 않으며, `mutateAsync()`와 `isPending`이 완료된 뒤에도 active query refetch는 background에서 계속될 수 있다. 이때 기존 cache 데이터를 유지하고 refetch 실패를 mutation 실패로 취급하지 않는다.
 
+공용 OAuth 연결 해제는 이미 해제되었다는 응답(`ACCOUNT_NOT_CONNECTED`)도 완료로 처리하고 연결 목록을 다시 조회한다.
+
 OAuth callback은 mutation이 아니며 callback 처리와 query parameter 정리 순서를 보장하기 위해 OAuth connections invalidation을 기다린다. Query key 구조와 기존 prefix/exact invalidation 범위는 변경하지 않는다.
 
 현재 workflow 실행은 dashboard query를 무효화하지 않으므로 실행 직후 dashboard에는 최대 10초의 stale 구간이 남을 수 있다. Workflow 활성화 토글도 list를 무효화하지 않으므로 목록에는 최대 30초의 stale 구간이 남을 수 있다. 이 invalidation 개선은 UX-02 범위에서 제외한다.
