@@ -50,6 +50,13 @@ export type OAuthConnectServiceId = keyof typeof OAUTH_AUTHORIZE_REQUEST_BY_SERV
 export const isOAuthConnectServiceId = (serviceId: string): serviceId is OAuthConnectServiceId =>
 	serviceId in OAUTH_AUTHORIZE_REQUEST_BY_SERVICE_ID
 
+const COMMON_OAUTH_DISCONNECT_PROVIDERS = ['GOOGLE', 'NOTION', 'GITHUB'] as const
+
+type CommonOAuthDisconnectProvider = (typeof COMMON_OAUTH_DISCONNECT_PROVIDERS)[number]
+
+export const isCommonOAuthDisconnectProvider = (provider: string): provider is CommonOAuthDisconnectProvider =>
+	COMMON_OAUTH_DISCONNECT_PROVIDERS.some(candidate => candidate === provider)
+
 type OAuthDisconnectConfig = {
 	path: string
 	/** 해제 확인 창에 덧붙일 공급자별 안내 */
