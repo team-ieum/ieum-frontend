@@ -52,10 +52,16 @@ export const isOAuthConnectServiceId = (serviceId: string): serviceId is OAuthCo
 
 const COMMON_OAUTH_DISCONNECT_PROVIDERS = ['GOOGLE', 'NOTION', 'GITHUB'] as const
 
-type CommonOAuthDisconnectProvider = (typeof COMMON_OAUTH_DISCONNECT_PROVIDERS)[number]
+export type CommonOAuthDisconnectProvider = (typeof COMMON_OAUTH_DISCONNECT_PROVIDERS)[number]
 
 export const isCommonOAuthDisconnectProvider = (provider: string): provider is CommonOAuthDisconnectProvider =>
 	COMMON_OAUTH_DISCONNECT_PROVIDERS.some(candidate => candidate === provider)
+
+export const OAUTH_DISCONNECT_NOTICE: Record<CommonOAuthDisconnectProvider, string> = {
+	GOOGLE: 'Google로 로그인하는 계정은 해제 후에도 로그인할 수 있습니다. 다음 Google 로그인 때 이메일·프로필 기본 연결이 다시 생길 수 있으며, Gmail·Drive 등 추가 권한은 다시 동의해야 합니다.',
+	GITHUB: 'GitHub App 설치는 별도로 남습니다. 설치까지 제거하려면 GitHub 설정 > Applications에서 직접 제거해 주세요.',
+	NOTION: '이음에서 연결을 해제하고 Notion에도 권한 폐기를 요청합니다.',
+}
 
 type OAuthDisconnectConfig = {
 	path: string

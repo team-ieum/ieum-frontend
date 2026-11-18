@@ -9,6 +9,7 @@ type ModalProps = ComponentProps<typeof IntegrationDisconnectModal>
 const renderModal = (props: Partial<ModalProps> = {}) =>
 	render(
 		<IntegrationDisconnectModal
+			provider='GOOGLE'
 			serviceName='Google'
 			loadFailed={false}
 			isSubmitting={false}
@@ -19,9 +20,27 @@ const renderModal = (props: Partial<ModalProps> = {}) =>
 		/>
 	)
 
-const getDialog = () => within(screen.getByRole('alertdialog', { name: 'Google 연동 해제' }))
+const getDialog = (serviceName = 'Google') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
 
 describe('IntegrationDisconnectModal', () => {
+	it.each<[ModalProps['provider'], string, string]>([
+		[
+			'GOOGLE',
+			'Google',
+			'Google로 로그인하는 계정은 해제 후에도 로그인할 수 있습니다. 다음 Google 로그인 때 이메일·프로필 기본 연결이 다시 생길 수 있으며, Gmail·Drive 등 추가 권한은 다시 동의해야 합니다.',
+		],
+		[
+			'GITHUB',
+			'GitHub',
+			'GitHub App 설치는 별도로 남습니다. 설치까지 제거하려면 GitHub 설정 > Applications에서 직접 제거해 주세요.',
+		],
+		['NOTION', 'Notion', '이음에서 연결을 해제하고 Notion에도 권한 폐기를 요청합니다.'],
+	])('%s 해제 전에 공급자별 안내를 표시한다', (provider, serviceName, notice) => {
+		renderModal({ provider, serviceName, impact: { workflows: [], automaticCount: 0 } })
+
+		expect(getDialog(serviceName).getByText(notice)).toBeInTheDocument()
+	})
+
 	it('영향 조회가 끝나기 전에는 해제를 확인할 수 없고 취소에 포커스한다', async () => {
 		renderModal()
 

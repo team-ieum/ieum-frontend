@@ -1,10 +1,12 @@
 import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import DialogFocusTrap from '@/components/common/DialogFocusTrap'
+import { OAUTH_DISCONNECT_NOTICE, type CommonOAuthDisconnectProvider } from '@/constants/integration/integrationProviders'
 import type { DisconnectImpact } from '@/utils/integration/getDisconnectImpact'
 import { cn } from '@/utils/cn'
 
 type IntegrationDisconnectModalProps = {
+	provider: CommonOAuthDisconnectProvider
 	serviceName: string
 	impact?: DisconnectImpact
 	loadFailed: boolean
@@ -16,6 +18,7 @@ type IntegrationDisconnectModalProps = {
 }
 
 const IntegrationDisconnectModal = ({
+	provider,
 	serviceName,
 	impact,
 	loadFailed,
@@ -89,6 +92,7 @@ const IntegrationDisconnectModal = ({
 							</ul>
 						</>
 					)}
+					<p className='typo-body3_regular text-neutral-600'>{OAUTH_DISCONNECT_NOTICE[provider]}</p>
 					{deleteError && (
 						<p role='alert' className='text-danger-700'>
 							{deleteError}
