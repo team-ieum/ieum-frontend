@@ -1,16 +1,16 @@
-import { useIsMutating, useQuery, useQueryClient, type MutationFilters } from '@tanstack/react-query'
+import { useIsMutating, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLayoutEffect, useRef } from 'react'
-import type { CommonOAuthDisconnectProvider } from '@/constants/integration/integrationProviders'
-import { oauthDisconnectImpactQueryOptions } from '@/hooks/integration/queries/oauthDisconnectImpactQueryOptions'
+import type { OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import {
-	DELETE_OAUTH_CONNECTION_MUTATION_KEY,
-	useDeleteOAuthConnectionMutation,
-} from '@/hooks/oauthConnections/mutations/useDeleteOAuthConnectionMutation'
+	disconnectIntegrationOAuthMutationKey,
+	useDisconnectIntegrationOAuthMutation,
+} from '@/hooks/integration/mutations/useDisconnectIntegrationOAuthMutation'
+import { oauthDisconnectImpactQueryOptions } from '@/hooks/integration/queries/oauthDisconnectImpactQueryOptions'
 import { isApiError } from '@/utils/ApiError'
 import type { DisconnectImpact } from '@/utils/integration/getDisconnectImpact'
 
 type UseOAuthDisconnectPreviewOptions = {
-	provider: CommonOAuthDisconnectProvider
+	provider: OAuthDisconnectProvider
 	connectionId: string
 	onDisconnected: () => void
 	onCancel: () => void
@@ -38,13 +38,9 @@ export const useOAuthDisconnectPreview = ({
 }: UseOAuthDisconnectPreviewOptions): UseOAuthDisconnectPreviewResult => {
 	const query = useQuery(oauthDisconnectImpactQueryOptions(provider, connectionId))
 	const queryClient = useQueryClient()
-	const pendingDeleteFilters: MutationFilters = {
-		mutationKey: DELETE_OAUTH_CONNECTION_MUTATION_KEY,
-		exact: true,
-		predicate: ({ state: { variables } }) => typeof variables === 'string' && variables.toUpperCase() === provider,
-	}
+	const pendingDeleteFilters = { mutationKey: disconnectIntegrationOAuthMutationKey(provider), exact: true }
 	const pendingDeleteCount = useIsMutating(pendingDeleteFilters)
-	const { mutateAsync, isPending, error } = useDeleteOAuthConnectionMutation()
+	const { mutateAsync, isPending, error } = useDisconnectIntegrationOAuthMutation(provider)
 	const activePreviewRef = useRef<ActivePreview | null>(null)
 
 	useLayoutEffect(() => {
@@ -79,7 +75,7 @@ export const useOAuthDisconnectPreview = ({
 
 		preview.submitted = true
 		try {
-			await mutateAsync(provider)
+			await mutateAsync()
 		} catch {
 			preview.submitted = false
 			return

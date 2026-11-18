@@ -10,7 +10,6 @@ Query hook과 후속 prefetch가 같은 query key, query function, select, page 
 - Workflow list 첫 페이지와 다음 cursor 페이지
 - Workflow detail (PERF-01에서 추가)
 - OAuth connections
-- OAuth 연결 해제 영향 목록
 - Webhook credentials
 - AI providers와 credentials
 
@@ -18,28 +17,25 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 
 ## 데이터별 캐시 정책
 
-| 데이터                    | `staleTime` | 결정 근거                                                             |
-| ------------------------- | ----------: | --------------------------------------------------------------------- |
-| Dashboard summary         |        30초 | 집계 데이터의 짧은 재방문 요청을 줄인다.                              |
-| Dashboard executions      |        10초 | 실행 직후 변경 가능성이 높은 운영 데이터다.                           |
-| Dashboard errors          |        10초 | 실행 오류 직후 변경 가능성이 높은 운영 데이터다.                      |
-| Workflow list             |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다. |
-| Workflow detail           |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.       |
-| OAuth connections         |        10초 | 외부 연결 상태의 최신성을 우선한다.                                   |
-| OAuth 연결 해제 영향 목록 |         0초 | 확인창을 열 때마다 전체 워크플로우를 다시 조회한다.                   |
-| Webhook credentials       |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                       |
-| AI credentials            |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
-| AI providers              |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
-| Node test sample          |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.             |
-| Webhook token status      |        60초 | 수신 주소 발급은 이 화면의 발급 버튼에서만 바뀐다.                    |
-| Workflow validation       |         0초 | 편집 화면을 열 때마다 저장된 버전을 다시 검사한다. 2026-11-08 결정.   |
-| Current user              |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                        |
+| 데이터               | `staleTime` | 결정 근거                                                             |
+| -------------------- | ----------: | --------------------------------------------------------------------- |
+| Dashboard summary    |        30초 | 집계 데이터의 짧은 재방문 요청을 줄인다.                              |
+| Dashboard executions |        10초 | 실행 직후 변경 가능성이 높은 운영 데이터다.                           |
+| Dashboard errors     |        10초 | 실행 오류 직후 변경 가능성이 높은 운영 데이터다.                      |
+| Workflow list        |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다. |
+| Workflow detail      |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.       |
+| OAuth connections    |        10초 | 외부 연결 상태의 최신성을 우선한다.                                   |
+| Webhook credentials  |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                       |
+| AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
+| AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
+| Node test sample     |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.             |
+| Webhook token status |        60초 | 수신 주소 발급은 이 화면의 발급 버튼에서만 바뀐다.                    |
+| Workflow validation  |         0초 | 편집 화면을 열 때마다 저장된 버전을 다시 검사한다. 2026-11-08 결정.   |
+| Current user         |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                        |
 
 발급 응답의 평문 수신 주소(`queryKeys.webhookTokens.address`)는 서버에서 다시 받을 수 없어 요청하지 않는 query(`skipToken`)로 두고 `staleTime`·`gcTime`을 `Infinity`로 둔다. 새로고침이나 로그아웃(`queryClient.clear()`)이면 사라진다.
 
 전역 QueryClient에는 `staleTime`을 추가하지 않는다. 정책 값은 `src/constants/queryCache.ts`에서 관리하고 각 option factory가 참조한다.
-
-OAuth 연결 해제 영향 목록은 상세 화면의 일부 페이지를 재사용하지 않는다. 확인창이 열릴 때 첫 페이지부터 끝까지 조회하고, 조회 중에 창을 닫으면 요청을 취소한다. 닫힌 확인창의 목록은 캐시에 남기지 않는다.
 
 ## UX-01 기준값과 기대 변화
 
@@ -63,6 +59,8 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 - Dashboard와 workflow list의 page size는 factory와 query key가 같은 상수를 사용한다.
 - 현재 검색·정렬·필터는 클라이언트 상태이고 page size를 바꾸는 UI가 없으므로 `placeholderData`를 적용하지 않는다.
 
+Notion·GitHub 해제 확인창은 열 때마다 영향받는 워크플로우를 마지막 페이지까지 다시 조회한다. `staleTime`과 `gcTime`은 0이며, 확인창이 닫히면 진행 중인 조회를 취소한다.
+
 ## Mutation invalidation
 
 | 변경                      | 현재 invalidation                                 |
@@ -71,13 +69,13 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 | Credential 등록·삭제·검증 | `queryKeys.credentials.all()` prefix              |
 | Webhook 생성·삭제         | Webhook credentials list exact key                |
 | OAuth callback 완료       | OAuth connections list exact key                  |
-| OAuth 연결 해제           | OAuth connections list exact key                  |
+| OAuth 연결 해제(Slack)    | OAuth connections list exact key                  |
 | Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
 | 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
 
 Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSuccess`는 `invalidateQueries()` Promise를 반환하지 않으며, `mutateAsync()`와 `isPending`이 완료된 뒤에도 active query refetch는 background에서 계속될 수 있다. 이때 기존 cache 데이터를 유지하고 refetch 실패를 mutation 실패로 취급하지 않는다.
 
-공용 OAuth 연결 해제는 이미 해제되었다는 응답(`ACCOUNT_NOT_CONNECTED`)도 완료로 처리하고 연결 목록을 다시 조회한다.
+Notion·GitHub 해제가 성공하거나 서버가 이미 해제됐다고 응답하면 OAuth 연결 목록의 exact key를 무효화한다.
 
 OAuth callback은 mutation이 아니며 callback 처리와 query parameter 정리 순서를 보장하기 위해 OAuth connections invalidation을 기다린다. Query key 구조와 기존 prefix/exact invalidation 범위는 변경하지 않는다.
 

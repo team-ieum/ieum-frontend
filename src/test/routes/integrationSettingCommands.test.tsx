@@ -1,13 +1,11 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
-import { emptyOAuthConnectionsResponse, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
-import { useAuthStore } from '@/stores/useAuthStore'
 import { useModalStore } from '@/stores/useModalStore'
 
 const WEBHOOK_SERVICE_ID = '55555555-5555-4555-8555-555555555555'
@@ -15,6 +13,15 @@ const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize?client_id
 const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize?client_id=ieum-test&state=s'
 const SLACK_BOT_SERVICE_ID = `oauth-${slackOAuthConnection.id}`
 const GOOGLE_SERVICE_ID = `oauth-${oauthConnectionsResponse.data[0].id}`
+const GOOGLE_AUTHORIZATION_PATH = '/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=test-link-token'
+const GITHUB_OAUTH_CONNECTION = {
+	id: '88888888-8888-4888-8888-888888888888',
+	provider: 'GITHUB',
+	providerAccountId: 'octocat',
+	displayName: null,
+	scopes: ['repo'],
+	createdAt: '2026-10-01T00:00:00Z',
+}
 
 // 상세 view 전환(mode='wait')과 Modal exit 애니메이션이 jsdom에서 끝나지 않으므로 즉시 렌더한다.
 vi.mock('framer-motion', async () => {
@@ -84,14 +91,6 @@ const getAvailableTile = async (name: string) => {
 	return tile as HTMLElement
 }
 
-const openGoogleCardDisconnect = async (user: ReturnType<typeof userEvent.setup>) => {
-	const heading = await screen.findByRole('heading', { level: 3, name: 'Google' })
-	const card = heading.closest('article') as HTMLElement
-	await user.click(within(card).getByRole('button', { name: '연동 해제' }))
-	const dialog = await screen.findByRole('alertdialog', { name: 'Google 연동 해제' })
-	return { card, dialog }
-}
-
 const openDisconnectConfirm = async () => {
 	const rendered = renderAppRoute(`/inter-setting?serviceId=${WEBHOOK_SERVICE_ID}`)
 	await screen.findByRole('heading', { level: 2, name: '팀 Slack' })
@@ -149,28 +148,6 @@ describe('통합 설정 연결', () => {
 
 		await waitFor(() => expect(assign).toHaveBeenCalledWith(GITHUB_AUTHORIZE_URL))
 		expect(assign).toHaveBeenCalledTimes(1)
-	})
-
-	it('Gmail 재연결은 상대 인가 주소를 API 서버 기준으로 해석해 이동한다', async () => {
-		const user = userEvent.setup()
-		const assign = vi.fn()
-		vi.stubGlobal('location', { ...window.location, assign })
-		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
-		const path = '/api/v1/oauth2/authorize/google?scope_groups=gmail&link_token=test-link'
-		const requested = vi.fn()
-		server.use(
-			http.post('*/api/v1/oauth/google/connect', async ({ request }) => {
-				requested(await request.json())
-				return HttpResponse.json({ success: true, data: { authorizationUrl: path }, message: 'OK', code: 'OK' })
-			})
-		)
-		renderAppRoute('/inter-setting')
-
-		const tile = await getAvailableTile('Gmail')
-		await user.click(within(tile).getByRole('button', { name: '연결하기' }))
-
-		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(`https://api.example.com${path}`))
-		expect(requested).toHaveBeenCalledExactlyOnceWith({ scopeGroups: ['gmail'] })
 	})
 
 	it('webhook 서비스 연결은 연결 modal을 연다', async () => {
@@ -306,149 +283,158 @@ describe('통합 설정 Slack 봇 연결', () => {
 		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
 		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
-})
 
-describe('통합 설정 Google·Notion·GitHub 해제', () => {
-	it('Google 상세에서 해제를 취소하면 상세에 머물고 해제 버튼에 포커스한다', async () => {
-		const user = userEvent.setup()
-		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
-
-		const disconnectButton = await screen.findByRole('button', { name: '연동 해제' })
-		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
-		await user.click(disconnectButton)
-		const dialog = await screen.findByRole('alertdialog', { name: 'Google 연동 해제' })
-		await within(dialog).findByRole('button', { name: '연동 해제' })
-		await user.click(within(dialog).getByRole('button', { name: '취소' }))
-
-		expect(screen.queryByRole('alertdialog', { name: 'Google 연동 해제' })).not.toBeInTheDocument()
-		expect(screen.getByRole('heading', { level: 2, name: 'Google' })).toBeInTheDocument()
-		await waitFor(() => expect(disconnectButton).toHaveFocus())
-	})
-
-	it('목록의 Google 해제는 모든 영향 페이지를 확인하고 승인한 뒤 연결 가능 타일을 복원한다', async () => {
-		const user = userEvent.setup()
-		const getWorkflows = vi.fn()
-		const deleteConnection = vi.fn()
-		const lastPage = createDeferred()
-		let isConnected = true
+	it('해제·재연결 경로가 없는 OAuth 연결 상세에는 연결 해제·다시 연결 버튼을 표시하지 않는다', async () => {
 		server.use(
 			http.get('*/api/v1/oauth/connections', () =>
-				HttpResponse.json(isConnected ? oauthConnectionsResponse : emptyOAuthConnectionsResponse)
-			),
-			http.get('*/api/v1/integrations/:serviceType/workflows', async ({ params, request }) => {
-				const search = new URL(request.url).searchParams
-				const cursor = search.get('cursor')
-				getWorkflows(params.serviceType, search.get('size'), cursor)
-				const isFirst = cursor === null
-				if (!isFirst) await lastPage.promise
+				HttpResponse.json({ ...oauthConnectionsResponse, data: [GITHUB_OAUTH_CONNECTION] })
+			)
+		)
+		renderAppRoute(`/inter-setting?serviceId=oauth-${GITHUB_OAUTH_CONNECTION.id}`)
+
+		await screen.findByRole('heading', { level: 2, name: 'GitHub' })
+		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		expect(screen.queryByRole('button', { name: '다시 연결' })).not.toBeInTheDocument()
+	})
+})
+
+describe('통합 설정 Google 연결', () => {
+	const observeGoogleConnect = () => {
+		const bodies: unknown[] = []
+		server.use(
+			http.post('*/api/v1/oauth/google/connect', async ({ request }) => {
+				bodies.push(await request.json())
+				return HttpResponse.json({
+					success: true,
+					message: 'OK',
+					code: 'OK',
+					data: { authorizationUrl: GOOGLE_AUTHORIZATION_PATH },
+				})
+			})
+		)
+		return bodies
+	}
+
+	const stubRedirect = () => {
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		// authorizationUrl은 API 서버 기준 경로라 VITE_API_URL 호스트를 붙여 이동한다.
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+		return assign
+	}
+
+	it('Google Calendar 타일의 연결하기는 calendar 권한으로 연결을 시작하고 API 호스트의 인가 주소로 이동한다', async () => {
+		const assign = stubRedirect()
+		const bodies = observeGoogleConnect()
+		server.use(createResourceEmptyHandler('oauthConnections'))
+		renderAppRoute('/inter-setting')
+
+		const tile = await getAvailableTile('Google Calendar')
+		expect(within(tile).getByRole('img', { name: 'Google Calendar 로고' })).toBeInTheDocument()
+		fireEvent.click(within(tile).getByRole('button', { name: '연결하기' }))
+
+		await waitFor(() => expect(assign).toHaveBeenCalledWith(`https://api.example.com${GOOGLE_AUTHORIZATION_PATH}`))
+		expect(bodies).toEqual([{ scopeGroups: ['calendar'] }])
+	})
+
+	it('Google이 연결돼 있으면 Google Calendar 타일을 연결 가능 목록에 보여 주지 않는다', async () => {
+		renderAppRoute('/inter-setting')
+
+		await screen.findByRole('heading', { level: 3, name: 'Google' })
+		await screen.findByRole('heading', { level: 3, name: 'GitHub' })
+		expect(screen.queryByRole('heading', { level: 3, name: 'Google Calendar' })).not.toBeInTheDocument()
+	})
+
+	it('Google 상세의 다시 연결은 calendar 권한으로 연결을 다시 시작한다', async () => {
+		const assign = stubRedirect()
+		const bodies = observeGoogleConnect()
+		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
+
+		await screen.findByRole('heading', { level: 2, name: 'Google' })
+		fireEvent.click(screen.getByRole('button', { name: '다시 연결' }))
+
+		await waitFor(() => expect(assign).toHaveBeenCalledWith(`https://api.example.com${GOOGLE_AUTHORIZATION_PATH}`))
+		expect(bodies).toEqual([{ scopeGroups: ['calendar'] }])
+		// 이동하는 동안 다시 누를 수 없다.
+		expect(screen.getByRole('button', { name: '이동 중…' })).toBeDisabled()
+	})
+
+	it('다시 연결 요청이 거절되면 서버 메시지로 연결 실패를 안내한다', async () => {
+		stubRedirect()
+		server.use(
+			http.post('*/api/v1/oauth/google/connect', () =>
+				HttpResponse.json(
+					{ success: false, data: null, message: '지원하지 않는 권한 묶음입니다.', code: 'INVALID_INPUT' },
+					{ status: 400 }
+				)
+			)
+		)
+		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
+
+		await screen.findByRole('heading', { level: 2, name: 'Google' })
+		fireEvent.click(screen.getByRole('button', { name: '다시 연결' }))
+
+		const dialog = await screen.findByRole('dialog', { name: '연결 실패' })
+		expect(within(dialog).getByText('지원하지 않는 권한 묶음입니다.')).toBeInTheDocument()
+		expect(screen.getByRole('button', { name: '다시 연결' })).toBeEnabled()
+	})
+
+	it('Google 해제는 영향받는 워크플로우를 확인 창에 보여 준 뒤 공용 해제 API를 호출하고 목록으로 돌아간다', async () => {
+		const deleteRequest = vi.fn()
+		// 조회 중 버튼 상태를 확인할 수 있도록 워크플로우 응답을 붙잡아 둔다. 상세 아래 목록 조회도 같은 응답을 기다린다.
+		const workflowsResponse = createDeferred()
+		server.use(
+			http.get('*/api/v1/integrations/GOOGLE/workflows', async () => {
+				await workflowsResponse.promise
 				return HttpResponse.json({
 					success: true,
 					data: {
-						content: [
-							{
-								id: isFirst ? 'manual' : 'schedule',
-								name: isFirst ? '수동 요청' : '일정 자동 등록',
-								description: '',
-								active: true,
-								triggerType: isFirst ? 'MANUAL' : 'SCHEDULE',
-								usedNodeCount: 1,
-								updatedAt: '2026-11-01T00:00:00Z',
-							},
-						],
-						size: 100,
-						hasNext: isFirst,
-						nextCursor: isFirst ? 'cursor-2' : null,
+						content: ['일정 알림', '주간 회의 정리', '휴가 등록', '마감 리마인드'].map((name, index) => ({
+							id: `workflow-${index}`,
+							name,
+							description: '',
+							active: true,
+							triggerType: 'MANUAL',
+							usedNodeCount: 1,
+							updatedAt: '2026-11-15T00:00:00Z',
+						})),
+						size: 20,
+						hasNext: false,
+						nextCursor: null,
 					},
 					message: 'success',
 					code: 'SUCCESS',
 				})
 			}),
-			http.delete('*/api/v1/oauth/connections/:provider', ({ params }) => {
-				deleteConnection(params.provider)
-				isConnected = false
-				return HttpResponse.json({ success: true, data: null, message: 'success', code: 'SUCCESS' })
+			http.delete('*/api/v1/oauth/connections/GOOGLE', () => {
+				deleteRequest()
+				return HttpResponse.json({ success: true, message: 'OK', code: 'OK' })
 			})
 		)
-		renderAppRoute('/inter-setting')
+		const { router } = renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
 
-		const { card, dialog: dialogElement } = await openGoogleCardDisconnect(user)
-		const dialog = within(dialogElement)
-		try {
-			await waitFor(() => expect(getWorkflows).toHaveBeenCalledTimes(2))
-			expect(getWorkflows.mock.calls).toEqual([
-				['google', '100', null],
-				['google', '100', 'cursor-2'],
-			])
-			expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
-		} finally {
-			lastPage.resolve()
-		}
+		await screen.findByRole('heading', { level: 2, name: 'Google' })
+		fireEvent.click(screen.getByRole('button', { name: '연결 해제' }))
+		expect(await screen.findByRole('button', { name: '확인 중…' })).toBeDisabled()
+		expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument()
 
-		const confirm = await dialog.findByRole('button', { name: '연동 해제' })
-		expect(dialog.getByText('수동 요청')).toBeInTheDocument()
-		expect(dialog.getByText('일정 자동 등록')).toBeInTheDocument()
-		expect(dialog.getByText('자동 실행 실패')).toBeInTheDocument()
-		expect(deleteConnection).not.toHaveBeenCalled()
-		await user.click(confirm)
+		workflowsResponse.resolve()
+		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		expect(
+			within(dialog).getByText(/워크플로우 4개는 실행할 때 실패해요: 일정 알림, 주간 회의 정리, 휴가 등록 외 1개\./)
+		).toBeInTheDocument()
 
-		await waitFor(() => expect(card).not.toBeInTheDocument())
-		const availableTile = await getAvailableTile('Google Drive')
-		expect(within(availableTile).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
-		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith('GOOGLE')
-		await waitFor(() => expect(screen.getByRole('button', { name: '서비스 관리' })).toHaveFocus())
+		fireEvent.click(within(dialog).getByRole('button', { name: '연결 해제' }))
+
+		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
+		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
 
-	it('다른 탭에서 이미 Google을 해제했으면 오류 없이 목록을 갱신하고 이음 로그인을 유지한다', async () => {
-		const user = userEvent.setup()
-		const observeConnections = vi.fn()
-		const auth = { accessToken: 'test-existing-access', refreshToken: 'test-existing-refresh' }
-		const errorMessage = '연동된 계정이 없습니다.'
-		let isConnected = true
-		server.use(
-			http.get('*/api/v1/oauth/connections', () => {
-				observeConnections(isConnected)
-				return HttpResponse.json(isConnected ? oauthConnectionsResponse : emptyOAuthConnectionsResponse)
-			}),
-			http.delete('*/api/v1/oauth/connections/GOOGLE', () =>
-				HttpResponse.json(
-					{ success: false, data: null, message: errorMessage, code: 'ACCOUNT_NOT_CONNECTED' },
-					{ status: 400 }
-				)
-			)
-		)
-		const { router } = renderAppRoute('/inter-setting', { auth })
+	it('Google 콜백의 linked=google로 돌아오면 연동 화면에서 연결 완료를 안내한다', async () => {
+		const { router } = renderAppRoute('/oauth2/callback?linked=google')
 
-		const { card, dialog } = await openGoogleCardDisconnect(user)
-		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
-		isConnected = false
-		await user.click(confirm)
-
-		await waitFor(() => expect(card).not.toBeInTheDocument())
-		expect(observeConnections).toHaveBeenCalledWith(true)
-		expect(observeConnections).toHaveBeenLastCalledWith(false)
-		expect(dialog).not.toBeInTheDocument()
-		expect(screen.queryByText(errorMessage)).not.toBeInTheDocument()
-		expect(within(await getAvailableTile('Google Drive')).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
-		expect(router.state.location.pathname).toBe('/inter-setting')
-		expect(useAuthStore.getState()).toMatchObject(auth)
-	})
-
-	it('다른 해제 오류는 확인창 안에서 안내하고 연결된 카드를 유지한다', async () => {
-		const user = userEvent.setup()
-		const errorMessage = '이 연동을 해제할 수 없습니다.'
-		server.use(
-			http.delete('*/api/v1/oauth/connections/GOOGLE', () =>
-				HttpResponse.json({ success: false, data: null, message: errorMessage, code: 'INVALID_INPUT' }, { status: 400 })
-			)
-		)
-		renderAppRoute('/inter-setting')
-
-		const { card, dialog } = await openGoogleCardDisconnect(user)
-		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
-		await user.click(confirm)
-
-		expect(await within(dialog).findByRole('alert')).toHaveTextContent(errorMessage)
-		expect(within(dialog).getByRole('button', { name: '연동 해제' })).toBeEnabled()
-		expect(card).toBeInTheDocument()
+		expect(await screen.findByText('Google 계정이 연결되었습니다.')).toBeInTheDocument()
+		await waitFor(() => expect(router.state.location.pathname).toBe('/inter-setting'))
+		expect(new URLSearchParams(router.state.location.search).has('success')).toBe(false)
 	})
 })

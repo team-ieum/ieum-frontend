@@ -59,7 +59,11 @@ const InterSettingPage = () => {
 		onConnect,
 		onDisconnect,
 		isDisconnecting,
+		isCheckingDisconnect,
 		canDisconnect,
+		onReconnect,
+		canReconnect,
+		isReconnecting,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	} = useIntegrationSetting()
@@ -206,6 +210,9 @@ const InterSettingPage = () => {
 									onBack={handleBack}
 									onDisconnect={canDisconnect ? onDisconnect : undefined}
 									isDisconnecting={isDisconnecting}
+									isCheckingDisconnect={isCheckingDisconnect}
+									onReconnect={canReconnect ? onReconnect : undefined}
+									isReconnecting={isReconnecting}
 									headingRef={detailHeadingRef}
 								/>
 							</div>

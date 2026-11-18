@@ -1,7 +1,5 @@
 import type { ApiResponse } from '@/types/api'
 
-export type OAuthConnectionErrorCode = 'ACCOUNT_NOT_CONNECTED'
-
 type OAuthConnectionProvider = 'GOOGLE' | 'GITHUB' | 'NOTION' | 'SLACK' | (string & {})
 
 export interface OAuthConnectionDto {

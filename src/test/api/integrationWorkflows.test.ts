@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { getAllIntegrationServiceWorkflows, getIntegrationServiceWorkflows } from '@/api/integrationWorkflows'
-import type {
-	IntegrationServiceType,
-	IntegrationServiceWorkflowDto,
-	IntegrationServiceWorkflowsResponse,
-} from '@/types/integrationWorkflows'
+import { getAllIntegrationServiceWorkflows } from '@/api/oauthDisconnect'
+import type { IntegrationServiceWorkflowDto, IntegrationServiceWorkflowsResponse } from '@/types/integrationWorkflows'
 import { api } from '@/utils/AxiosInstance'
 
 afterEach(() => {
@@ -39,11 +35,11 @@ describe('getAllIntegrationServiceWorkflows', () => {
 			.mockResolvedValueOnce(createPage([workflows[1]], 'cursor-3'))
 			.mockResolvedValueOnce(createPage([workflows[2]], null))
 
-		await expect(getAllIntegrationServiceWorkflows('GOOGLE')).resolves.toEqual(workflows)
+		await expect(getAllIntegrationServiceWorkflows('GITHUB')).resolves.toEqual(workflows)
 		expect(get.mock.calls).toEqual([
-			['/api/v1/integrations/google/workflows', { params: { size: 100 } }],
-			['/api/v1/integrations/google/workflows', { params: { cursor: 'cursor-2', size: 100 } }],
-			['/api/v1/integrations/google/workflows', { params: { cursor: 'cursor-3', size: 100 } }],
+			['/api/v1/integrations/github/workflows', { params: { size: 100 } }],
+			['/api/v1/integrations/github/workflows', { params: { cursor: 'cursor-2', size: 100 } }],
+			['/api/v1/integrations/github/workflows', { params: { cursor: 'cursor-3', size: 100 } }],
 		])
 		for (const [, config] of get.mock.calls) expect(config).not.toHaveProperty('signal')
 	})
@@ -77,7 +73,7 @@ describe('getAllIntegrationServiceWorkflows', () => {
 			.mockResolvedValueOnce(createPage([createWorkflow('first')], 'cursor-2'))
 			.mockResolvedValueOnce(createPage([createWorkflow('second')], nextCursor, true))
 
-		await expect(getAllIntegrationServiceWorkflows('GOOGLE')).rejects.toThrow()
+		await expect(getAllIntegrationServiceWorkflows('NOTION')).rejects.toThrow()
 		expect(get).toHaveBeenCalledTimes(2)
 	})
 
@@ -91,27 +87,5 @@ describe('getAllIntegrationServiceWorkflows', () => {
 		await expect(getAllIntegrationServiceWorkflows('NOTION', signal)).resolves.toEqual([])
 		expect(get).toHaveBeenCalledTimes(2)
 		for (const [, config] of get.mock.calls) expect(config?.signal).toBe(signal)
-	})
-})
-
-describe('getIntegrationServiceWorkflows', () => {
-	it.each<[IntegrationServiceType, string]>([
-		['GOOGLE', 'google'],
-		['NOTION', 'notion'],
-		['GITHUB', 'github'],
-		['SLACK', 'SLACK'],
-		['DISCORD', 'DISCORD'],
-	])('%s 조회는 경로에 %s를 쓰고 페이지 정보와 응답 본문을 유지한다', async (serviceType, pathServiceType) => {
-		const params = { cursor: 'cursor-2', size: 100 }
-		const response = {
-			success: true,
-			data: { content: [], size: 100, hasNext: false, nextCursor: null },
-			message: 'OK',
-			code: 'OK',
-		} satisfies IntegrationServiceWorkflowsResponse
-		const get = vi.spyOn(api, 'get').mockResolvedValue({ data: response })
-
-		await expect(getIntegrationServiceWorkflows(serviceType, params)).resolves.toEqual(response)
-		expect(get).toHaveBeenCalledWith(`/api/v1/integrations/${pathServiceType}/workflows`, { params })
 	})
 })

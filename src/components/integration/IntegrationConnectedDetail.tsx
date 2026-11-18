@@ -1,8 +1,7 @@
 import type { Ref } from 'react'
-import { ArrowLeft, Link2Off } from 'lucide-react'
+import { ArrowLeft, Link2Off, RefreshCw } from 'lucide-react'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { IntegrationService } from '@/types/integration'
-import OAuthDisconnectAction from './OAuthDisconnectAction'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
@@ -12,6 +11,11 @@ type IntegrationConnectedDetailProps = {
 	/** 해제할 수 있는 연결일 때만 넘긴다. 없으면 해제 버튼을 렌더하지 않는다. */
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
+	/** 해제 확인 전에 영향받는 워크플로우를 조회하는 중인지 */
+	isCheckingDisconnect?: boolean
+	/** 다시 연결할 수 있는 OAuth 연결일 때만 넘긴다. 없으면 다시 연결 버튼을 렌더하지 않는다. */
+	onReconnect?: () => void
+	isReconnecting?: boolean
 	headingRef?: Ref<HTMLHeadingElement>
 }
 
@@ -20,6 +24,9 @@ const IntegrationConnectedDetail = ({
 	onBack,
 	onDisconnect,
 	isDisconnecting = false,
+	isCheckingDisconnect = false,
+	onReconnect,
+	isReconnecting = false,
 	headingRef,
 }: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
@@ -55,16 +62,26 @@ const IntegrationConnectedDetail = ({
 							연결 오류
 						</span>
 					)}
-					<OAuthDisconnectAction key={service.id} service={service} />
+					{onReconnect && (
+						<button
+							type='button'
+							onClick={onReconnect}
+							disabled={isReconnecting}
+							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none'
+						>
+							<RefreshCw size={15} aria-hidden='true' />
+							{isReconnecting ? '이동 중…' : '다시 연결'}
+						</button>
+					)}
 					{onDisconnect && (
 						<button
 							type='button'
 							onClick={onDisconnect}
-							disabled={isDisconnecting}
+							disabled={isDisconnecting || isCheckingDisconnect}
 							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
 						>
 							<Link2Off size={15} />
-							{isDisconnecting ? '해제 중…' : '연결 해제'}
+							{isDisconnecting ? '해제 중…' : isCheckingDisconnect ? '확인 중…' : '연결 해제'}
 						</button>
 					)}
 				</div>

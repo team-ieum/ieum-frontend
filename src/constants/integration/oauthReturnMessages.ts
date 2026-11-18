@@ -23,4 +23,5 @@ export const OAUTH_ERROR_MESSAGES: Record<string, string> = {
 /** 매핑에 없는 `{provider}_*` 오류 코드의 공급자 공통 문구. 없는 공급자는 오류 코드를 그대로 보여 준다. */
 export const OAUTH_FALLBACK_ERROR_MESSAGES: Partial<Record<IntegrationOAuthProvider, string>> = {
 	slack: 'Slack 연결에 실패했어요. 다시 시도해 주세요.',
+	google: 'Google 연결에 실패했어요. 다시 시도해 주세요.',
 }

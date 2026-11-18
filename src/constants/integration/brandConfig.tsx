@@ -40,7 +40,7 @@ const APP_ICONS: Record<string, ReactNode> = {
 
 export const getBrandConfig = (brand: IntegrationBrand): IntegrationBrandConfig => INTEGRATION_BRAND_CONFIG[brand]
 
-/** 노드·팔레트에 보여 줄 앱 로고를 고른다. `app`은 노드 카탈로그의 `app` 키이고, 앱별 로고가 없으면 brand 로고를 돌려준다. */
+/** 노드·팔레트·연결 가능 타일에 보여 줄 앱 로고를 고른다. `app`은 노드 카탈로그의 `app` 키이고, 앱별 로고가 없으면 brand 로고를 돌려준다. */
 export const getAppIcon = (brand: IntegrationBrand, app?: string): ReactNode =>
 	app && Object.hasOwn(APP_ICONS, app) ? APP_ICONS[app] : INTEGRATION_BRAND_CONFIG[brand].icon
 

@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
+import { oauthConnectionsResponse } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import type { IntegrationServiceWorkflowsResponse } from '@/types/integrationWorkflows'
@@ -24,9 +25,18 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		const user = userEvent.setup()
 		const observePage = vi.fn()
 		const deleteRequest = vi.fn()
+		const notionConnection = {
+			...oauthConnectionsResponse.data[0],
+			provider: 'NOTION',
+			providerAccountId: 'test-notion-account',
+			scopes: [],
+		}
 		let firstPageRequests = 0
 		server.use(
-			http.get('*/api/v1/integrations/google/workflows', ({ request }) => {
+			http.get('*/api/v1/oauth/connections', () =>
+				HttpResponse.json({ ...oauthConnectionsResponse, data: [notionConnection] })
+			),
+			http.get('*/api/v1/integrations/notion/workflows', ({ request }) => {
 				const params = new URL(request.url).searchParams
 				const cursor = params.get('cursor')
 				observePage(cursor, params.get('size'))
@@ -39,18 +49,19 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 				if (cursor === 'new-next') return createImpactPage('new-second', '새 두 번째 페이지 워크플로우', null)
 				return new HttpResponse(null, { status: 503 })
 			}),
-			http.delete('*/api/v1/oauth/connections/GOOGLE', () => {
+			http.delete('*/api/v1/oauth/connections/NOTION', () => {
 				deleteRequest()
 				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
 			})
 		)
 		renderAppRoute('/inter-setting')
 
-		const googleHeading = await screen.findByRole('heading', { name: 'Google' })
-		const googleCard = googleHeading.closest('article')
-		if (!googleCard) throw new Error('Google 연결 카드를 찾지 못했습니다.')
-		await user.click(within(googleCard).getByRole('button', { name: '연동 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: 'Google 연동 해제' }))
+		const notionHeading = await screen.findByRole('heading', { name: 'Notion' })
+		const notionCard = notionHeading.closest('article')
+		if (!notionCard) throw new Error('Notion 연결 카드를 찾지 못했습니다.')
+		const opener = within(notionCard).getByRole('button', { name: '연동 해제' })
+		await user.click(opener)
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' }))
 
 		expect(await dialog.findByRole('alert')).toHaveTextContent('영향받는 워크플로우를 모두 확인하지 못했습니다.')
 		expect(dialog.queryByRole('list', { name: '영향받는 워크플로우' })).not.toBeInTheDocument()
@@ -73,7 +84,8 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		])
 
 		await user.click(dialog.getByRole('button', { name: '취소' }))
-		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Google 연동 해제' })).not.toBeInTheDocument())
+		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Notion 연동 해제' })).not.toBeInTheDocument())
+		await waitFor(() => expect(opener).toHaveFocus())
 		expect(deleteRequest).not.toHaveBeenCalled()
 	})
 })

@@ -1,12 +1,14 @@
 import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import DialogFocusTrap, { type ReturnDialogFocus } from '@/components/common/DialogFocusTrap'
-import { OAUTH_DISCONNECT_NOTICE, type CommonOAuthDisconnectProvider } from '@/constants/integration/integrationProviders'
+import { FocusTrap } from 'focus-trap-react'
+import { OAUTH_DISCONNECT_NOTICE, type OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import type { DisconnectImpact } from '@/utils/integration/getDisconnectImpact'
 import { cn } from '@/utils/cn'
 
+export type ReturnDialogFocus = (opener: HTMLElement | SVGElement) => HTMLElement | SVGElement | false
+
 type IntegrationDisconnectModalProps = {
-	provider: CommonOAuthDisconnectProvider
+	provider: OAuthDisconnectProvider
 	serviceName: string
 	impact?: DisconnectImpact
 	loadFailed: boolean
@@ -41,10 +43,22 @@ const IntegrationDisconnectModal = ({
 	}
 
 	return createPortal(
-		<DialogFocusTrap onEscape={cancel} initialFocusRef={cancelRef} getReturnFocus={getReturnFocus}>
+		<FocusTrap
+			focusTrapOptions={{
+				initialFocus: () => cancelRef.current ?? false,
+				setReturnFocus: getReturnFocus,
+				escapeDeactivates: false,
+			}}
+		>
 			<div className='fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 sm:p-4'>
 				<section
 					role='alertdialog'
+					onKeyDown={event => {
+						if (event.key === 'Escape') {
+							event.stopPropagation()
+							cancel()
+						}
+					}}
 					aria-modal='true'
 					aria-labelledby={titleId}
 					aria-describedby={noticeId}
@@ -156,7 +170,7 @@ const IntegrationDisconnectModal = ({
 					</div>
 				</section>
 			</div>
-		</DialogFocusTrap>,
+		</FocusTrap>,
 		document.body
 	)
 }

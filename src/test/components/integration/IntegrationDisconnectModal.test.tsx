@@ -11,8 +11,8 @@ const renderModal = (props: Partial<ModalProps> = {}) =>
 		<>
 			<button type='button'>모달 밖 버튼</button>
 			<IntegrationDisconnectModal
-				provider='GOOGLE'
-				serviceName='Google'
+				provider='NOTION'
+				serviceName='Notion'
 				loadFailed={false}
 				isSubmitting={false}
 				onRetry={vi.fn()}
@@ -23,15 +23,10 @@ const renderModal = (props: Partial<ModalProps> = {}) =>
 		</>
 	)
 
-const getDialog = (serviceName = 'Google') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
+const getDialog = (serviceName = 'Notion') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
 
 describe('IntegrationDisconnectModal', () => {
 	it.each<[ModalProps['provider'], string, string]>([
-		[
-			'GOOGLE',
-			'Google',
-			'Google로 로그인하는 계정은 해제 후에도 로그인할 수 있습니다. 다음 Google 로그인 때 이메일·프로필 기본 연결이 다시 생길 수 있으며, Gmail·Drive 등 추가 권한은 다시 동의해야 합니다.',
-		],
 		[
 			'GITHUB',
 			'GitHub',

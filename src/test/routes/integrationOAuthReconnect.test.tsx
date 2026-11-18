@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { emptyOAuthConnectionsResponse } from '@/mocks/fixtures/integrations'
+import { oauthConnectionsResponse } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import type { OAuthConnectionDto } from '@/types/oauthConnections'
@@ -12,6 +12,7 @@ const cases = [
 		label: 'GitHub',
 		provider: 'GITHUB',
 		serviceType: 'github',
+		alreadyDisconnected: false,
 		notice: /GitHub 설정 > Applications에서 직접 제거해 주세요/,
 		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
 	},
@@ -19,6 +20,7 @@ const cases = [
 		label: 'Notion',
 		provider: 'NOTION',
 		serviceType: 'notion',
+		alreadyDisconnected: true,
 		notice: /Notion에도 권한 폐기를 요청합니다/,
 		authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
 	},
@@ -37,8 +39,8 @@ afterEach(() => {
 })
 
 describe('공용 OAuth 연동 해제 후 재연결', () => {
-	it.each(cases)('$label 해제 후 복원된 타일에서 기존 인가 URL로 다시 연결한다', async config => {
-		const { label, provider, serviceType, notice, authorizeUrl } = config
+	it.each(cases)('$label 해제를 확인하면 목록을 갱신하고 복원된 타일에서 다시 연결한다', async config => {
+		const { label, provider, serviceType, alreadyDisconnected, notice, authorizeUrl } = config
 		const user = userEvent.setup()
 		const assign = vi.fn()
 		vi.stubGlobal('location', { ...window.location, assign })
@@ -56,10 +58,14 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		const getWorkflows = vi.fn()
 		const deleteConnection = vi.fn()
 		const requestAuthorize = vi.fn()
+		const alreadyDisconnectedMessage = '연동된 계정이 없습니다.'
 		server.use(
 			http.get('*/api/v1/oauth/connections', () => {
 				listConnections(isConnected)
-				return HttpResponse.json({ ...emptyOAuthConnectionsResponse, data: isConnected ? [connection] : [] })
+				return HttpResponse.json({
+					...oauthConnectionsResponse,
+					data: isConnected ? [...oauthConnectionsResponse.data, connection] : oauthConnectionsResponse.data,
+				})
 			}),
 			http.get('*/api/v1/integrations/:serviceType/workflows', ({ params, request }) => {
 				const size = new URL(request.url).searchParams.get('size')
@@ -73,6 +79,12 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 			}),
 			http.delete('*/api/v1/oauth/connections/:provider', async ({ params, request }) => {
 				deleteConnection(params.provider, await request.text())
+				if (!isConnected) {
+					return HttpResponse.json(
+						{ success: false, data: null, message: alreadyDisconnectedMessage, code: 'ACCOUNT_NOT_CONNECTED' },
+						{ status: 400 }
+					)
+				}
 				isConnected = false
 				return HttpResponse.json({ success: true, data: null, message: 'success', code: 'SUCCESS' })
 			}),
@@ -90,12 +102,17 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		expect(within(dialog).getByText(notice)).toBeInTheDocument()
 		expect(getWorkflows).toHaveBeenCalledExactlyOnceWith(serviceType, '100')
 		expect(deleteConnection).not.toHaveBeenCalled()
+		if (alreadyDisconnected) isConnected = false
 		await user.click(confirm)
 
 		await waitFor(() => expect(connectedCard).not.toBeInTheDocument())
 		expect(listConnections).toHaveBeenCalledWith(true)
 		expect(listConnections).toHaveBeenLastCalledWith(false)
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
+		expect(screen.queryByText(alreadyDisconnectedMessage)).not.toBeInTheDocument()
+		const available = screen.getByRole('region', { name: '사용 가능한 서비스' })
+		await waitFor(() => expect(available).toHaveFocus())
+		expect(within(await findCard('Google')).queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
 		const availableTile = await findCard(label)
 		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))
 

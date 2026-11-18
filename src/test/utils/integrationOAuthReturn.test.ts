@@ -21,14 +21,11 @@ describe('통합 OAuth 복귀 query 정리', () => {
 		expect(removeOAuthReturnSearchParams(searchParams).toString()).toBe('source=test')
 	})
 
-	it('linked=google만 연동 완료 query로 인식하고 다른 query를 보존한다', () => {
-		const linkedGoogle = new URLSearchParams('linked=google&serviceId=service-1&source=test')
-		const unrelated = new URLSearchParams('linked=notion&source=test')
+	it('Google 콜백의 linked query를 OAuth 복귀로 인식하고 제거한다', () => {
+		const searchParams = new URLSearchParams('linked=google&source=test')
 
-		expect(isOAuthReturnSearchParams(linkedGoogle)).toBe(true)
-		expect(removeOAuthReturnSearchParams(linkedGoogle).toString()).toBe('serviceId=service-1&source=test')
-		expect(isOAuthReturnSearchParams(unrelated)).toBe(false)
-		expect(removeOAuthReturnSearchParams(unrelated).toString()).toBe('linked=notion&source=test')
+		expect(isOAuthReturnSearchParams(searchParams)).toBe(true)
+		expect(removeOAuthReturnSearchParams(searchParams).toString()).toBe('source=test')
 	})
 })
 
@@ -46,41 +43,21 @@ describe('통합 OAuth 복귀 공급자 판별', () => {
 })
 
 describe('통합 OAuth 복귀 안내 문구', () => {
-	it('서버가 linked=google로 돌려보내면 Google 연결 완료를 안내한다', () => {
-		const searchParams = new URLSearchParams('linked=google')
-
-		expect(getOAuthReturnMessage(searchParams, 'google')).toEqual({
-			title: '연동 완료',
-			message: 'Google 계정이 연결되었습니다.',
-		})
-	})
-
-	it.each(['code=oauth-code', 'provider=google&success=true', 'connected=google'])(
-		'%s는 Google 연결 성공으로 안내하거나 목록에 전달하지 않는다',
-		query => {
-			const searchParams = new URLSearchParams(query)
-
-			expect(getOAuthReturnMessage(searchParams, 'google')).toBeNull()
-			expect(buildInterSettingOAuthReturnUrl(searchParams, 'google')).toBe('/inter-setting')
-		}
-	)
-
-	it.each([
-		['linked=google&error=access_denied', '/inter-setting?error=access_denied&provider=google'],
-		['linked=google&success=false', '/inter-setting?success=false&provider=google'],
-	])('Google 연결 완료 값과 실패 표시가 함께 오면 실패가 우선한다', (query, expectedUrl) => {
-		const searchParams = new URLSearchParams(query)
-
-		expect(getOAuthReturnMessage(searchParams, 'google')?.title).toBe('연동 실패')
-		expect(buildInterSettingOAuthReturnUrl(searchParams, 'google')).toBe(expectedUrl)
-	})
-
 	it('connected=slack이면 Slack 워크스페이스 연결 완료를 안내한다', () => {
 		const searchParams = new URLSearchParams('connected=slack')
 
 		expect(getOAuthReturnMessage(searchParams, detectOAuthProvider('/inter-setting', searchParams))).toEqual({
 			title: '연동 완료',
 			message: 'Slack 워크스페이스가 연결되었습니다.',
+		})
+	})
+
+	it('linked=google이면 Google 계정 연결 완료를 안내한다', () => {
+		const searchParams = new URLSearchParams('linked=google')
+
+		expect(getOAuthReturnMessage(searchParams, detectOAuthProvider('/oauth2/callback', searchParams))).toEqual({
+			title: '연동 완료',
+			message: 'Google 계정이 연결되었습니다.',
 		})
 	})
 
@@ -118,23 +95,18 @@ describe('통합 OAuth 복귀 안내 문구', () => {
 })
 
 describe('통합 OAuth 복귀 URL', () => {
-	it('Google 연동 완료 표시만 전달하고 로그인 인가 코드는 전달하지 않는다', () => {
-		const linkedGoogle = new URLSearchParams('linked=google&code=oauth-code')
-		const rawCode = new URLSearchParams('code=oauth-code')
-
-		expect(buildInterSettingOAuthReturnUrl(linkedGoogle, 'google')).toBe('/inter-setting?linked=google&provider=google')
-		expect(buildInterSettingOAuthReturnUrl(rawCode, null)).toBe('/inter-setting')
-	})
-
-	it.each(['github', 'notion'] as const)('%s 기존 콜백의 인가 코드 처리를 유지한다', provider => {
-		const searchParams = new URLSearchParams('code=oauth-code')
-
-		expect(buildInterSettingOAuthReturnUrl(searchParams, provider)).toBe(`/inter-setting?success=true&provider=${provider}`)
-	})
-
 	it('connected query를 연동 화면 주소에 그대로 넘긴다', () => {
 		const searchParams = new URLSearchParams('connected=slack')
 
 		expect(buildInterSettingOAuthReturnUrl(searchParams, 'slack')).toBe('/inter-setting?connected=slack&provider=slack')
+	})
+
+	// BE의 Google 콜백은 /oauth2/callback?linked=google로 오므로 연동 화면이 인식하는 성공·공급자 query로 바꿔 넘긴다.
+	it('Google 콜백의 linked query를 성공과 Google 공급자로 넘긴다', () => {
+		const searchParams = new URLSearchParams('linked=google')
+
+		expect(buildInterSettingOAuthReturnUrl(searchParams, detectOAuthProvider('/oauth2/callback', searchParams))).toBe(
+			'/inter-setting?success=true&provider=google'
+		)
 	})
 })

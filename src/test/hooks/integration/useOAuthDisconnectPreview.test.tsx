@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import { useOAuthDisconnectPreview } from '@/hooks/integration/useOAuthDisconnectPreview'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
@@ -34,7 +35,7 @@ const createPreviewHarness = () => {
 
 	return {
 		queryClient,
-		renderPreview: (provider: 'GOOGLE' | 'NOTION', connectionId: string) => {
+		renderPreview: (provider: OAuthDisconnectProvider, connectionId: string) => {
 			const onDisconnected = vi.fn()
 			const onCancel = vi.fn()
 			const rendered = renderHook(() => useOAuthDisconnectPreview({ provider, connectionId, onDisconnected, onCancel }), {
@@ -55,7 +56,7 @@ describe('useOAuthDisconnectPreview', () => {
 		// jsdom의 XHR 경로에서는 MSW의 Request.signal이 Axios에 전달된 신호와 연결되지 않는다.
 		const get = vi.spyOn(api, 'get')
 		server.use(
-			http.get('*/api/v1/integrations/google/workflows', async () => {
+			http.get('*/api/v1/integrations/github/workflows', async () => {
 				started()
 				await response.promise
 				return emptyImpactResponse()
@@ -66,7 +67,7 @@ describe('useOAuthDisconnectPreview', () => {
 			})
 		)
 		const { renderPreview } = createPreviewHarness()
-		const preview = renderPreview('GOOGLE', 'oauth-google')
+		const preview = renderPreview('GITHUB', 'oauth-github')
 		try {
 			await waitFor(() => expect(started).toHaveBeenCalledOnce())
 			const signal = get.mock.calls[0]?.[1]?.signal
@@ -86,31 +87,31 @@ describe('useOAuthDisconnectPreview', () => {
 	})
 
 	it('화면을 다시 열어도 같은 공급자의 해제가 중복되지 않고 다른 공급자는 해제할 수 있다', async () => {
-		const firstGoogleResponse = createDeferred()
+		const firstGitHubResponse = createDeferred()
 		const deleteRequest = vi.fn()
-		let didStartGoogleDelete = false
+		let didStartGitHubDelete = false
 		server.use(
 			http.get('*/api/v1/integrations/:serviceType/workflows', emptyImpactResponse),
 			http.delete('*/api/v1/oauth/connections/:provider', async ({ params }) => {
 				deleteRequest(params.provider)
-				if (params.provider === 'GOOGLE' && !didStartGoogleDelete) {
-					didStartGoogleDelete = true
-					await firstGoogleResponse.promise
+				if (params.provider === 'GITHUB' && !didStartGitHubDelete) {
+					didStartGitHubDelete = true
+					await firstGitHubResponse.promise
 				}
 				return new HttpResponse(null, { status: 204 })
 			})
 		)
 		const { queryClient, renderPreview } = createPreviewHarness()
-		const first = renderPreview('GOOGLE', 'oauth-google')
+		const first = renderPreview('GITHUB', 'oauth-github')
 		try {
 			await waitFor(() => expect(first.result.current.impact).toBeDefined())
 			act(() => {
 				void first.result.current.onConfirm()
 			})
-			await waitFor(() => expect(deleteRequest).toHaveBeenCalledExactlyOnceWith('GOOGLE'))
+			await waitFor(() => expect(deleteRequest).toHaveBeenCalledExactlyOnceWith('GITHUB'))
 			first.unmount()
 
-			const reopened = renderPreview('GOOGLE', 'oauth-google')
+			const reopened = renderPreview('GITHUB', 'oauth-github')
 			await waitFor(() => expect(reopened.result.current.impact).toBeDefined())
 			act(() => {
 				void reopened.result.current.onConfirm()
@@ -122,15 +123,15 @@ describe('useOAuthDisconnectPreview', () => {
 				void notion.result.current.onConfirm()
 			})
 			await waitFor(() => expect(notion.onDisconnected).toHaveBeenCalledOnce())
-			expect(deleteRequest.mock.calls).toEqual([['GOOGLE'], ['NOTION']])
+			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 
-			firstGoogleResponse.resolve()
+			firstGitHubResponse.resolve()
 			await waitFor(() => expect(queryClient.isMutating()).toBe(0))
-			expect(deleteRequest.mock.calls).toEqual([['GOOGLE'], ['NOTION']])
+			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 			expect(first.onDisconnected).not.toHaveBeenCalled()
 			expect(reopened.onDisconnected).not.toHaveBeenCalled()
 		} finally {
-			firstGoogleResponse.resolve()
+			firstGitHubResponse.resolve()
 		}
 	})
 })

@@ -42,9 +42,9 @@ describe('useIntegrationServicesViewModel', () => {
 			const availableIds = result.current.available.map(service => service.id)
 			// Slack 웹훅만 연결된 상태라 웹훅 타일만 빠지고 봇 타일은 남는다.
 			expect(availableIds).toContain('slack')
-			expect(availableIds).not.toContain('slack-webhook')
-			// 이 계정의 drive.file 권한만으로는 Drive 전체, Sheets 또는 Gmail을 사용할 수 없다.
-			expect(availableIds).toEqual(expect.arrayContaining(['google', 'gmail', 'sheets']))
+			for (const excludedId of ['slack-webhook', 'google', 'gmail', 'sheets']) {
+				expect(availableIds).not.toContain(excludedId)
+			}
 			expect(result.current.connectedCount).toBe(result.current.connected.length)
 			expect(result.current.availableCount).toBe(result.current.available.length)
 			expect(result.current.canNormalizeDetail).toBe(true)

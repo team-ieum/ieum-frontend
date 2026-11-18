@@ -1,11 +1,11 @@
 import { queryOptions } from '@tanstack/react-query'
-import { getAllIntegrationServiceWorkflows } from '@/api/integrationWorkflows'
-import type { CommonOAuthDisconnectProvider } from '@/constants/integration/integrationProviders'
+import { getAllIntegrationServiceWorkflows } from '@/api/oauthDisconnect'
+import type { OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import { QUERY_STALE_TIME_MS } from '@/constants/queryCache'
 import { queryKeys } from '@/constants/queryKeys'
 import { getDisconnectImpact } from '@/utils/integration/getDisconnectImpact'
 
-export const oauthDisconnectImpactQueryOptions = (provider: CommonOAuthDisconnectProvider, connectionId: string) =>
+export const oauthDisconnectImpactQueryOptions = (provider: OAuthDisconnectProvider, connectionId: string) =>
 	queryOptions({
 		queryKey: queryKeys.integrations.oauthDisconnectImpact(provider, connectionId),
 		queryFn: ({ signal }) => getAllIntegrationServiceWorkflows(provider, signal),
