@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useIsPresent } from 'framer-motion'
 import { Link2Off } from 'lucide-react'
 import { isCommonOAuthDisconnectProvider, type CommonOAuthDisconnectProvider } from '@/constants/integration/integrationProviders'
 import { useOAuthDisconnectPreview } from '@/hooks/integration/useOAuthDisconnectPreview'
@@ -12,15 +13,16 @@ type OAuthDisconnectDialogProps = {
 }
 
 const OAuthDisconnectDialog = ({ service, provider, onClose }: OAuthDisconnectDialogProps) => {
-	const preview = useOAuthDisconnectPreview({ provider, connectionId: service.id, onDisconnected: onClose })
-	return <IntegrationDisconnectModal serviceName={service.name} provider={provider} onCancel={onClose} {...preview} />
+	const preview = useOAuthDisconnectPreview({ provider, connectionId: service.id, onDisconnected: onClose, onCancel: onClose })
+	return <IntegrationDisconnectModal serviceName={service.name} provider={provider} {...preview} />
 }
 
 /** 목록과 상세에서 같은 대상의 전체 영향을 확인한 뒤 해제하도록 한다. */
 const OAuthDisconnectAction = ({ service }: { service: IntegrationService }) => {
 	const [open, setOpen] = useState(false)
+	const isPresent = useIsPresent()
 	const provider = service.oauthProvider
-	if (service.origin !== 'oauth' || !provider || !isCommonOAuthDisconnectProvider(provider)) return null
+	if (!isPresent || service.origin !== 'oauth' || !provider || !isCommonOAuthDisconnectProvider(provider)) return null
 
 	return (
 		<>

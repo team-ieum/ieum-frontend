@@ -11,6 +11,7 @@ type IntegrationDisconnectModalProps = {
 	impact?: DisconnectImpact
 	loadFailed: boolean
 	isSubmitting: boolean
+	confirmDisabled?: boolean
 	deleteError?: string
 	onRetry: () => void
 	onCancel: () => void
@@ -23,6 +24,7 @@ const IntegrationDisconnectModal = ({
 	impact,
 	loadFailed,
 	isSubmitting,
+	confirmDisabled = false,
 	deleteError,
 	onRetry,
 	onCancel,
@@ -111,7 +113,7 @@ const IntegrationDisconnectModal = ({
 						{ready && (
 							<button
 								type='button'
-								disabled={isSubmitting}
+								disabled={isSubmitting || confirmDisabled}
 								onClick={onConfirm}
 								className='rounded-brand-sm bg-danger-600 px-4 py-2 typo-button1_semibold text-neutral-white disabled:opacity-60'
 							>
