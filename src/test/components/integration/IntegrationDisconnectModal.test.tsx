@@ -170,6 +170,8 @@ describe('IntegrationDisconnectModal', () => {
 		const dialog = getDialog()
 		const error = dialog.getByRole('alert')
 		expect(error).toHaveTextContent(deleteError)
+		// 긴 서버 오류는 제한된 높이 안에서 키보드로 스크롤할 수 있다.
+		expect(error).toHaveProperty('tabIndex', 0)
 		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).not.toContainElement(error)
 		await user.click(dialog.getByRole('button', { name: '연동 해제' }))
 

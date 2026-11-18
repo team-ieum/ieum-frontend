@@ -122,6 +122,7 @@ const IntegrationDisconnectModal = ({
 					{deleteError && (
 						<p
 							role='alert'
+							tabIndex={0}
 							className='m-0 max-h-[20dvh] shrink-0 overflow-y-auto [overflow-wrap:anywhere] typo-body3_medium text-danger-700'
 						>
 							{deleteError}

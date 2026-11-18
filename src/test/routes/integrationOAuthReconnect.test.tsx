@@ -1,0 +1,105 @@
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { emptyOAuthConnectionsResponse } from '@/mocks/fixtures/integrations'
+import { server } from '@/mocks/server'
+import { renderAppRoute } from '@/test/renderAppRoute'
+import type { OAuthConnectionDto } from '@/types/oauthConnections'
+
+const cases = [
+	{
+		label: 'GitHub',
+		provider: 'GITHUB',
+		serviceType: 'github',
+		notice: /GitHub 설정 > Applications에서 직접 제거해 주세요/,
+		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
+	},
+	{
+		label: 'Notion',
+		provider: 'NOTION',
+		serviceType: 'notion',
+		notice: /Notion에도 권한 폐기를 요청합니다/,
+		authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
+	},
+] as const
+
+const findCard = async (label: string) => {
+	const heading = await screen.findByRole('heading', { level: 3, name: label })
+	const card = heading.closest('article')
+	if (!card) throw new Error(`${label} 카드가 없습니다.`)
+	return card
+}
+
+afterEach(() => {
+	vi.unstubAllGlobals()
+	vi.unstubAllEnvs()
+})
+
+describe('공용 OAuth 연동 해제 후 재연결', () => {
+	it.each(cases)('$label 해제 후 복원된 타일에서 기존 인가 URL로 다시 연결한다', async config => {
+		const { label, provider, serviceType, notice, authorizeUrl } = config
+		const user = userEvent.setup()
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+		const connection = {
+			id: '44444444-4444-4444-8444-444444444444',
+			provider,
+			providerAccountId: `test-${serviceType}-account`,
+			displayName: null,
+			scopes: [],
+			createdAt: '2026-08-24T03:00:00Z',
+		} satisfies OAuthConnectionDto
+		let isConnected = true
+		const listConnections = vi.fn()
+		const getWorkflows = vi.fn()
+		const deleteConnection = vi.fn()
+		const requestAuthorize = vi.fn()
+		server.use(
+			http.get('*/api/v1/oauth/connections', () => {
+				listConnections(isConnected)
+				return HttpResponse.json({ ...emptyOAuthConnectionsResponse, data: isConnected ? [connection] : [] })
+			}),
+			http.get('*/api/v1/integrations/:serviceType/workflows', ({ params, request }) => {
+				const size = new URL(request.url).searchParams.get('size')
+				getWorkflows(params.serviceType, size)
+				return HttpResponse.json({
+					success: true,
+					data: { content: [], size: 100, hasNext: false, nextCursor: null },
+					message: 'success',
+					code: 'SUCCESS',
+				})
+			}),
+			http.delete('*/api/v1/oauth/connections/:provider', async ({ params, request }) => {
+				deleteConnection(params.provider, await request.text())
+				isConnected = false
+				return HttpResponse.json({ success: true, data: null, message: 'success', code: 'SUCCESS' })
+			}),
+			http.get(`*/api/v1/${serviceType}/oauth2/authorize`, () => {
+				requestAuthorize()
+				return HttpResponse.json({ success: true, data: { authorizationUrl: authorizeUrl }, message: 'OK', code: 'OK' })
+			})
+		)
+		renderAppRoute('/inter-setting')
+
+		const connectedCard = await findCard(label)
+		await user.click(within(connectedCard).getByRole('button', { name: '연동 해제' }))
+		const dialog = await screen.findByRole('alertdialog', { name: `${label} 연동 해제` })
+		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
+		expect(within(dialog).getByText(notice)).toBeInTheDocument()
+		expect(getWorkflows).toHaveBeenCalledExactlyOnceWith(serviceType, '100')
+		expect(deleteConnection).not.toHaveBeenCalled()
+		await user.click(confirm)
+
+		await waitFor(() => expect(connectedCard).not.toBeInTheDocument())
+		expect(listConnections).toHaveBeenCalledWith(true)
+		expect(listConnections).toHaveBeenLastCalledWith(false)
+		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
+		const availableTile = await findCard(label)
+		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))
+
+		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(authorizeUrl))
+		expect(requestAuthorize).toHaveBeenCalledOnce()
+	})
+})
