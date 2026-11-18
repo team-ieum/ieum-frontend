@@ -8,16 +8,19 @@ type ModalProps = ComponentProps<typeof IntegrationDisconnectModal>
 
 const renderModal = (props: Partial<ModalProps> = {}) =>
 	render(
-		<IntegrationDisconnectModal
-			provider='GOOGLE'
-			serviceName='Google'
-			loadFailed={false}
-			isSubmitting={false}
-			onRetry={vi.fn()}
-			onCancel={vi.fn()}
-			onConfirm={vi.fn()}
-			{...props}
-		/>
+		<>
+			<button type='button'>모달 밖 버튼</button>
+			<IntegrationDisconnectModal
+				provider='GOOGLE'
+				serviceName='Google'
+				loadFailed={false}
+				isSubmitting={false}
+				onRetry={vi.fn()}
+				onCancel={vi.fn()}
+				onConfirm={vi.fn()}
+				{...props}
+			/>
+		</>
 	)
 
 const getDialog = (serviceName = 'Google') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
@@ -119,6 +122,45 @@ describe('IntegrationDisconnectModal', () => {
 		expect(onConfirm).not.toHaveBeenCalled()
 	})
 
+	it('다른 확인창에서 시작한 해제가 진행 중이면 확인만 막고 취소는 허용한다', async () => {
+		const user = userEvent.setup()
+		const onCancel = vi.fn()
+		const onConfirm = vi.fn()
+		renderModal({ impact: { workflows: [], automaticCount: 0 }, confirmDisabled: true, onCancel, onConfirm })
+
+		const dialog = getDialog()
+		expect(dialog.getByRole('status')).toHaveTextContent('이 연결의 해제 요청이 진행 중입니다.')
+		const confirm = dialog.getByRole('button', { name: '연동 해제' })
+		expect(confirm).toBeDisabled()
+		await user.click(confirm)
+		await user.click(dialog.getByRole('button', { name: '취소' }))
+
+		expect(onConfirm).not.toHaveBeenCalled()
+		expect(onCancel).toHaveBeenCalledOnce()
+	})
+
+	it('Tab과 Shift+Tab 포커스를 모달 안에서 순환시키고 Escape로 취소한다', async () => {
+		const user = userEvent.setup()
+		const onCancel = vi.fn()
+		const onConfirm = vi.fn()
+		renderModal({ impact: { workflows: [], automaticCount: 0 }, onCancel, onConfirm })
+
+		const dialog = getDialog()
+		const cancel = dialog.getByRole('button', { name: '취소' })
+		const confirm = dialog.getByRole('button', { name: '연동 해제' })
+		await waitFor(() => expect(cancel).toHaveFocus())
+		await user.tab()
+		expect(confirm).toHaveFocus()
+		await user.tab()
+		expect(cancel).toHaveFocus()
+		await user.tab({ shift: true })
+		expect(confirm).toHaveFocus()
+		await user.keyboard('{Escape}')
+
+		expect(onCancel).toHaveBeenCalledOnce()
+		expect(onConfirm).not.toHaveBeenCalled()
+	})
+
 	it('해제가 실패하면 오류를 안내하고 다시 확인할 수 있다', async () => {
 		const user = userEvent.setup()
 		const onConfirm = vi.fn()
@@ -126,7 +168,9 @@ describe('IntegrationDisconnectModal', () => {
 		renderModal({ impact: { workflows: [], automaticCount: 0 }, deleteError, onConfirm })
 
 		const dialog = getDialog()
-		expect(dialog.getByRole('alert')).toHaveTextContent(deleteError)
+		const error = dialog.getByRole('alert')
+		expect(error).toHaveTextContent(deleteError)
+		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).not.toContainElement(error)
 		await user.click(dialog.getByRole('button', { name: '연동 해제' }))
 
 		expect(onConfirm).toHaveBeenCalledOnce()

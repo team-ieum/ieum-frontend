@@ -309,7 +309,7 @@ describe('통합 설정 Slack 봇 연결', () => {
 })
 
 describe('통합 설정 Google·Notion·GitHub 해제', () => {
-	it('Google 상세에서 해제 확인을 열고 취소하면 상세에 머문다', async () => {
+	it('Google 상세에서 해제를 취소하면 상세에 머물고 해제 버튼에 포커스한다', async () => {
 		const user = userEvent.setup()
 		renderAppRoute(`/inter-setting?serviceId=${GOOGLE_SERVICE_ID}`)
 
@@ -322,6 +322,7 @@ describe('통합 설정 Google·Notion·GitHub 해제', () => {
 
 		expect(screen.queryByRole('alertdialog', { name: 'Google 연동 해제' })).not.toBeInTheDocument()
 		expect(screen.getByRole('heading', { level: 2, name: 'Google' })).toBeInTheDocument()
+		await waitFor(() => expect(disconnectButton).toHaveFocus())
 	})
 
 	it('목록의 Google 해제는 모든 영향 페이지를 확인하고 승인한 뒤 연결 가능 타일을 복원한다', async () => {
@@ -394,6 +395,7 @@ describe('통합 설정 Google·Notion·GitHub 해제', () => {
 		const availableTile = await getAvailableTile('Google Drive')
 		expect(within(availableTile).getByRole('button', { name: '연결하기' })).toBeInTheDocument()
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith('GOOGLE')
+		await waitFor(() => expect(screen.getByRole('button', { name: '서비스 관리' })).toHaveFocus())
 	})
 
 	it('다른 탭에서 이미 Google을 해제했으면 오류 없이 목록을 갱신하고 이음 로그인을 유지한다', async () => {

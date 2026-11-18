@@ -1,6 +1,6 @@
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { INTEGRATION_PAGE_X } from '@/constants/integration/layout'
-import { INTEGRATION_TABS } from '@/constants/integration/statusLabels'
+import { INTEGRATION_SERVICES_BUTTON_ID, INTEGRATION_TABS } from '@/constants/integration/statusLabels'
 import type { IntegrationTabId, IntegrationView } from '@/types/integration'
 import { cn } from '@/utils/cn'
 
@@ -36,6 +36,7 @@ const IntegrationTabs = ({
 				<button
 					ref={element => onButtonRef(tab.id, element)}
 					key={tab.id}
+					id={tab.id === 'services' ? INTEGRATION_SERVICES_BUTTON_ID : undefined}
 					type='button'
 					onClick={() => onChange(tab.id)}
 					aria-current={active === tab.id ? 'true' : undefined}
