@@ -10,6 +10,19 @@ const mockAuthorizeResponse = (data: Record<string, string>) =>
 	vi.spyOn(api, 'get').mockResolvedValue({ data: { success: true, data, message: 'OK', code: 'OK' } })
 
 describe('fetchIntegrationOAuthAuthorizeUrl', () => {
+	it.each([
+		['google', 'drive'],
+		['gmail', 'gmail'],
+		['sheets', 'sheets'],
+	])('%s 타일은 Google 연결 POST에 %s 권한을 보내고 받은 URL을 그대로 반환한다', async (serviceId, group) => {
+		const post = vi.spyOn(api, 'post')
+
+		await expect(fetchIntegrationOAuthAuthorizeUrl(serviceId)).resolves.toBe(
+			`/api/v1/oauth2/authorize/google?scope_groups=${group}&link_token=test-token`
+		)
+		expect(post).toHaveBeenCalledExactlyOnceWith('/api/v1/oauth/google/connect', { scopeGroups: [group] })
+	})
+
 	// nonce 쿠키가 실리지 않으면 Slack 콜백이 모두 slack_state_mismatch로 실패한다.
 	it('Slack authorize 요청만 withCredentials를 켜고 authUrl을 반환한다', async () => {
 		const get = mockAuthorizeResponse({ authUrl: 'https://slack.com/oauth/v2/authorize?state=s' })

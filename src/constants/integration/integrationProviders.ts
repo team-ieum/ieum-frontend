@@ -24,7 +24,6 @@ export const OAUTH_PROVIDER_BRAND: Record<string, IntegrationBrand> = {
  * 같은 브랜드라도 연결 방식(봇·웹훅)마다 카탈로그 항목이 따로 있어 브랜드가 아니라 id로 제외한다.
  */
 export const OAUTH_PROVIDER_EXCLUDED_CATALOG_IDS: Record<string, string[]> = {
-	GOOGLE: ['google', 'gmail', 'sheets'],
 	GITHUB: ['github'],
 	NOTION: ['notion'],
 	SLACK: ['slack'],

@@ -151,6 +151,28 @@ describe('통합 설정 연결', () => {
 		expect(assign).toHaveBeenCalledTimes(1)
 	})
 
+	it('Gmail 재연결은 상대 인가 주소를 API 서버 기준으로 해석해 이동한다', async () => {
+		const user = userEvent.setup()
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+		const path = '/api/v1/oauth2/authorize/google?scope_groups=gmail&link_token=test-link'
+		const requested = vi.fn()
+		server.use(
+			http.post('*/api/v1/oauth/google/connect', async ({ request }) => {
+				requested(await request.json())
+				return HttpResponse.json({ success: true, data: { authorizationUrl: path }, message: 'OK', code: 'OK' })
+			})
+		)
+		renderAppRoute('/inter-setting')
+
+		const tile = await getAvailableTile('Gmail')
+		await user.click(within(tile).getByRole('button', { name: '연결하기' }))
+
+		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(`https://api.example.com${path}`))
+		expect(requested).toHaveBeenCalledExactlyOnceWith({ scopeGroups: ['gmail'] })
+	})
+
 	it('webhook 서비스 연결은 연결 modal을 연다', async () => {
 		renderAppRoute('/inter-setting')
 
