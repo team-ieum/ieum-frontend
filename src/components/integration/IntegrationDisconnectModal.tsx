@@ -49,7 +49,9 @@ const IntegrationDisconnectModal = ({
 	const cancelRef = useRef<HTMLButtonElement>(null)
 	const isCheckingImpact = resource.isLoading || resource.isRefetching
 	const hasImpactError = resource.isLoadingError || resource.isRefetchError
-	const isConfirmBlocked = isSubmitting || isConfirmDisabled
+	// 해제가 실패한 뒤 목록을 다시 조회하는 동안에는 확인 버튼에 포커스를 남기고 재시도만 막는다.
+	const isConfirmVisible = canConfirm || isSubmitting || deleteError !== undefined
+	const isConfirmBlocked = !canConfirm || isSubmitting || isConfirmDisabled
 	const handleCancel = () => {
 		if (!isSubmitting) onCancel()
 	}
@@ -132,7 +134,7 @@ const IntegrationDisconnectModal = ({
 						>
 							취소
 						</button>
-						{(canConfirm || isSubmitting) && (
+						{isConfirmVisible && (
 							<button
 								type='button'
 								aria-disabled={isConfirmBlocked}
