@@ -1,7 +1,7 @@
-import { useId, useRef } from 'react'
+import { useId, useLayoutEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { FocusTrap } from 'focus-trap-react'
 import { X } from 'lucide-react'
-import DialogFocusTrap from '@/components/common/DialogFocusTrap'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { OAUTH_DISCONNECT_NOTICE } from '@/constants/integration/oauthDisconnect'
 import type { AsyncResourceState } from '@/types/asyncResource'
@@ -18,6 +18,7 @@ type IntegrationDisconnectModalProps = {
 	isSubmitting: boolean
 	isConfirmDisabled?: boolean
 	deleteError?: string
+	getReturnFocusTarget?: () => HTMLElement | false
 	onCancel: () => void
 	onConfirm: () => void
 }
@@ -32,6 +33,7 @@ const IntegrationDisconnectModal = ({
 	isSubmitting,
 	isConfirmDisabled = false,
 	deleteError,
+	getReturnFocusTarget,
 	onCancel,
 	onConfirm,
 }: IntegrationDisconnectModalProps) => {
@@ -47,12 +49,29 @@ const IntegrationDisconnectModal = ({
 	const handleCancel = () => {
 		if (!isSubmitting) onCancel()
 	}
+	// 트랩은 열릴 때의 옵션을 유지하므로 document의 Escape도 최신 제출 상태를 확인한다.
+	const handleCancelRef = useRef(handleCancel)
+	useLayoutEffect(() => {
+		handleCancelRef.current = handleCancel
+	})
+
 	const handleConfirm = () => {
 		if (!isConfirmBlocked) onConfirm()
 	}
 
 	return createPortal(
-		<DialogFocusTrap onEscape={handleCancel} initialFocusRef={cancelRef}>
+		<FocusTrap
+			focusTrapOptions={{
+				initialFocus: () => cancelRef.current ?? undefined,
+				escapeDeactivates: () => {
+					handleCancelRef.current()
+					return false
+				},
+				allowOutsideClick: true,
+				// 취소와 해제 성공의 복원 대상이 다르므로 트랩이 닫힐 때 한 번만 이동한다.
+				setReturnFocus: getReturnFocusTarget,
+			}}
+		>
 			<div className='fixed inset-0 z-50 flex items-center justify-center'>
 				<div aria-hidden='true' className='absolute inset-0 bg-black/50 backdrop-blur-sm' onClick={handleCancel} />
 				<section
@@ -151,7 +170,7 @@ const IntegrationDisconnectModal = ({
 					</div>
 				</section>
 			</div>
-		</DialogFocusTrap>,
+		</FocusTrap>,
 		document.body
 	)
 }

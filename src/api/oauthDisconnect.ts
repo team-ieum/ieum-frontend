@@ -17,6 +17,7 @@ export const getOAuthDisconnectWorkflowsPage = async (
 	signal?: AbortSignal
 ): Promise<IntegrationServiceWorkflowsResponse> => {
 	assertSupportedProvider(provider)
+	// 영향 조회는 명세의 소문자 serviceType을, 연결 해제는 대문자 provider를 사용한다.
 	const response = await api.get<IntegrationServiceWorkflowsResponse>(
 		`/api/v1/integrations/${provider.toLowerCase()}/workflows`,
 		{

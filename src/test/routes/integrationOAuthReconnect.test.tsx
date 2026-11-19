@@ -97,7 +97,8 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		renderAppRoute('/inter-setting')
 
 		const connectedCard = await findCard(label)
-		await user.click(within(connectedCard).getByRole('button', { name: '연결 해제' }))
+		const opener = within(connectedCard).getByRole('button', { name: '연결 해제' })
+		await user.click(opener)
 		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
 		const confirm = await within(dialog).findByRole('button', { name: '연결 해제' })
 		expect(dialog).toHaveTextContent(notice)
@@ -111,6 +112,8 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		})
 		server.use(createResourceHoldHandler('oauthConnections', listResponse))
 		const available = screen.getByRole('region', { name: '사용 가능한 서비스' })
+		const focusOnDisconnectedService = vi.fn()
+		opener.addEventListener('focus', focusOnDisconnectedService, { once: true })
 		try {
 			if (isAlreadyDisconnected) isConnected = false
 			await user.click(confirm)
@@ -122,6 +125,7 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		}
 
 		await waitFor(() => expect(connectedCard).not.toBeInTheDocument())
+		expect(focusOnDisconnectedService).not.toHaveBeenCalled()
 		expect(listConnections).toHaveBeenCalledWith(true)
 		expect(listConnections).toHaveBeenLastCalledWith(false)
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')

@@ -178,6 +178,27 @@ describe('IntegrationDisconnectModal', () => {
 		expect(onConfirm).not.toHaveBeenCalled()
 	})
 
+	it('안내 문구를 클릭한 뒤에도 Escape로 취소할 수 있고 해제 요청 중에는 취소를 막는다', async () => {
+		const user = userEvent.setup()
+		const onCancel = vi.fn()
+		const props = { affectedNotice: EMPTY_NOTICE, onCancel }
+		const { rerender } = renderModal(props)
+		const dialog = getDialog()
+		await waitFor(() => expect(dialog.getByRole('button', { name: '취소' })).toHaveFocus())
+		await user.click(dialog.getByText(EMPTY_NOTICE, { exact: false }))
+		expect(document.body).toHaveFocus()
+		await user.keyboard('{Escape}')
+		expect(onCancel).toHaveBeenCalledOnce()
+
+		rerender(modalView({ ...props, isSubmitting: true }))
+		await user.keyboard('{Escape}')
+		expect(onCancel).toHaveBeenCalledOnce()
+
+		rerender(modalView(props))
+		await user.keyboard('{Escape}')
+		expect(onCancel).toHaveBeenCalledTimes(2)
+	})
+
 	it('해제가 실패하면 오류를 안내하고 다시 확인할 수 있다', async () => {
 		const user = userEvent.setup()
 		const onConfirm = vi.fn()

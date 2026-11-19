@@ -108,7 +108,7 @@ describe('useOAuthDisconnectPreview', () => {
 		const { renderPreview } = createPreviewHarness()
 		const first = renderPreview('GITHUB', 'oauth-github')
 		try {
-			await waitFor(() => expect(first.result.current.affectedNotice).toBeDefined())
+			await waitFor(() => expect(first.result.current.canConfirm).toBe(true))
 			act(() => {
 				void first.result.current.handleConfirm()
 			})
@@ -116,14 +116,14 @@ describe('useOAuthDisconnectPreview', () => {
 			first.unmount()
 
 			const reopened = renderPreview('GITHUB', 'oauth-github')
-			await waitFor(() => expect(reopened.result.current.affectedNotice).toBeDefined())
+			await waitFor(() => expect(reopened.result.current.canConfirm).toBe(true))
 			expect(reopened.result.current.isConfirmDisabled).toBe(true)
 			act(() => {
 				void reopened.result.current.handleConfirm()
 			})
 
 			const notion = renderPreview('NOTION', 'oauth-notion')
-			await waitFor(() => expect(notion.result.current.affectedNotice).toBeDefined())
+			await waitFor(() => expect(notion.result.current.canConfirm).toBe(true))
 			act(() => {
 				void notion.result.current.handleConfirm()
 			})
@@ -131,7 +131,10 @@ describe('useOAuthDisconnectPreview', () => {
 			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 
 			firstGitHubResponse.resolve()
-			await waitFor(() => expect(reopened.result.current.isConfirmDisabled).toBe(false))
+			await waitFor(() => {
+				expect(reopened.result.current.isConfirmDisabled).toBe(false)
+				expect(reopened.result.current.isSubmitting).toBe(false)
+			})
 			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 			expect(first.onDisconnected).not.toHaveBeenCalled()
 			expect(reopened.onDisconnected).not.toHaveBeenCalled()

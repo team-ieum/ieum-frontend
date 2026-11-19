@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { useIsPresent } from 'framer-motion'
 import { Link2Off } from 'lucide-react'
 import { isOAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
@@ -26,15 +26,12 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose }: OAuthD
 		},
 	})
 
-	useEffect(() => {
+	const getReturnFocusTarget = () => {
 		const opener = openerRef.current
-		const availableServices = document.getElementById('integration-available')
-		return () => {
-			// 해제 성공 후에는 열었던 카드가 사라지므로, trap이 해제되면 다시 연결할 수 있는 영역에 포커스를 둔다.
-			const hasLostOpener = !opener?.isConnected && document.activeElement === document.body
-			if (availableServices?.isConnected && (isDisconnectedRef.current || hasLostOpener)) availableServices.focus()
-		}
-	}, [openerRef])
+		if (!isDisconnectedRef.current && opener?.isConnected) return opener
+		// 해제 직후에는 재조회가 끝날 때까지 이전 카드가 남을 수 있다.
+		return document.getElementById('integration-available') ?? false
+	}
 
 	return (
 		<IntegrationDisconnectModal
@@ -46,6 +43,7 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose }: OAuthD
 			isSubmitting={preview.isSubmitting}
 			isConfirmDisabled={preview.isConfirmDisabled}
 			deleteError={preview.deleteError}
+			getReturnFocusTarget={getReturnFocusTarget}
 			onCancel={preview.handleCancel}
 			onConfirm={preview.handleConfirm}
 		/>
