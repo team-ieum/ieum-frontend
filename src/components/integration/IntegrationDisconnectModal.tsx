@@ -1,70 +1,68 @@
-import { useId, useRef, useState } from 'react'
+import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { FocusTrap } from 'focus-trap-react'
-import { ChevronDown } from 'lucide-react'
-import { OAUTH_DISCONNECT_NOTICE, type OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
-import type { DisconnectImpact } from '@/utils/integration/getDisconnectImpact'
-import { cn } from '@/utils/cn'
-
-const WORKFLOW_PREVIEW_LIMIT = 3
-
-export type ReturnDialogFocus = (opener: HTMLElement | SVGElement) => HTMLElement | SVGElement | false
+import DialogFocusTrap from '@/components/common/DialogFocusTrap'
+import SkeletonPulse from '@/components/common/SkeletonPulse'
+import { OAUTH_DISCONNECT_NOTICE } from '@/constants/integration/oauthDisconnect'
+import type { AsyncResourceState } from '@/types/asyncResource'
+import type { DisconnectImpact, OAuthDisconnectProvider } from '@/types/oauthDisconnect'
+import IntegrationDisconnectImpactList from './IntegrationDisconnectImpactList'
 
 type IntegrationDisconnectModalProps = {
 	provider: OAuthDisconnectProvider
 	serviceName: string
 	impact?: DisconnectImpact
-	loadFailed: boolean
+	resource: AsyncResourceState
+	/** 이번에 연 확인창에서 전체 목록 조회가 완료된 경우에만 해제를 확인할 수 있다. */
+	canConfirm: boolean
 	isSubmitting: boolean
-	confirmDisabled?: boolean
-	getReturnFocus?: ReturnDialogFocus
+	isConfirmDisabled?: boolean
 	deleteError?: string
-	onRetry: () => void
 	onCancel: () => void
 	onConfirm: () => void
 }
 
+const IntegrationDisconnectImpactSkeleton = () => (
+	<div role='status' aria-label='영향받는 워크플로우 불러오는 중' aria-busy='true' className='min-h-28 space-y-3'>
+		<SkeletonPulse className='h-4 w-2/3 rounded-brand-sm bg-neutral-200' />
+		<div className='space-y-3 rounded-brand-md border border-neutral-200 px-3 py-2'>
+			<SkeletonPulse className='h-4 w-1/2 rounded-brand-sm bg-neutral-200' />
+			<SkeletonPulse className='h-4 w-2/3 rounded-brand-sm bg-neutral-200' />
+		</div>
+	</div>
+)
+
+/** 영향 목록을 다시 조회하거나 펼쳐 보고, 전체 조회가 성공한 뒤에만 해제를 확인한다. */
 const IntegrationDisconnectModal = ({
 	provider,
 	serviceName,
 	impact,
-	loadFailed,
+	resource,
+	canConfirm,
 	isSubmitting,
-	confirmDisabled = false,
-	getReturnFocus,
+	isConfirmDisabled = false,
 	deleteError,
-	onRetry,
 	onCancel,
 	onConfirm,
 }: IntegrationDisconnectModalProps) => {
 	const titleId = useId()
 	const noticeId = useId()
-	const workflowListId = useId()
 	const cancelRef = useRef<HTMLButtonElement>(null)
-	const [isExpanded, setIsExpanded] = useState(false)
-	const workflows = impact?.workflows ?? []
-	const visibleWorkflows = isExpanded ? workflows : workflows.slice(0, WORKFLOW_PREVIEW_LIMIT)
-	const remainingCount = workflows.length - WORKFLOW_PREVIEW_LIMIT
-	const ready = !!impact && !loadFailed
-	const cancel = () => {
+	const isCheckingImpact = resource.isLoading || resource.isRefetching
+	const hasImpactError = resource.isLoadingError || resource.isRefetchError
+	const handleCancel = () => {
 		if (!isSubmitting) onCancel()
 	}
 
 	return createPortal(
-		<FocusTrap
-			focusTrapOptions={{
-				initialFocus: () => cancelRef.current ?? false,
-				setReturnFocus: getReturnFocus,
-				escapeDeactivates: false,
-			}}
-		>
-			<div className='fixed inset-0 z-50 grid place-items-center bg-black/50 p-3 sm:p-4'>
+		<DialogFocusTrap onEscape={handleCancel} initialFocusRef={cancelRef}>
+			<div className='fixed inset-0 z-50 grid place-items-center bg-neutral-900/50 p-3 sm:p-4'>
 				<section
 					role='alertdialog'
 					onKeyDown={event => {
 						if (event.key === 'Escape') {
+							// 내부에서 처리한 Escape가 바깥 화면의 단축키까지 닫지 않게 한다.
 							event.stopPropagation()
-							cancel()
+							handleCancel()
 						}
 					}}
 					aria-modal='true'
@@ -78,112 +76,65 @@ const IntegrationDisconnectModal = ({
 					<div
 						role='region'
 						aria-label='연동 해제 안내'
-						tabIndex={workflows.length ? 0 : undefined}
-						className='min-h-0 space-y-3 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:outline-main-blue'
+						aria-busy={isCheckingImpact}
+						tabIndex={impact?.workflows.length ? 0 : undefined}
+						className='min-h-0 space-y-3 overflow-y-auto overscroll-contain typo-body3_regular focus-visible:outline-2 focus-visible:outline-main-blue'
 					>
-						<p id={noticeId} className='typo-body3_regular text-neutral-600'>
+						<p id={noticeId} className='text-neutral-600'>
 							{OAUTH_DISCONNECT_NOTICE[provider]}
 						</p>
-						{loadFailed ? (
-							<div role='alert'>
+						{hasImpactError ? (
+							<div role='alert' className='flex min-h-28 flex-col items-start justify-center'>
 								<p>영향받는 워크플로우를 모두 확인하지 못했습니다.</p>
 								<button
 									type='button'
-									onClick={onRetry}
-									className='min-h-11 typo-button1_semibold text-main-blue focus-visible:outline-2 focus-visible:outline-main-blue'
+									onClick={resource.retry}
+									className='min-h-11 typo-button1_semibold text-main-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 								>
 									다시 조회
 								</button>
 							</div>
-						) : !impact ? (
-							<p role='status' className='typo-body3_regular'>
-								영향받는 워크플로우를 확인하고 있습니다…
+						) : resource.isRefetching ? (
+							<p role='status' className='typo-caption1_medium text-neutral-600'>
+								영향받는 워크플로우를 업데이트하고 있습니다…
 							</p>
-						) : workflows.length === 0 ? (
-							<p>연동을 해제하시겠습니까?</p>
-						) : (
-							<>
-								<p>아래 워크플로우 {workflows.length}개는 연동을 해제하면 정상적으로 동작하지 않습니다.</p>
-								{impact.automaticCount > 0 && (
-									<p className='typo-body3_semibold text-danger-700'>
-										자동 실행 중인 {impact.automaticCount}개는 해제 후에도 활성 상태로 남아 실행할 때마다
-										실패합니다.
-									</p>
-								)}
-								<ul
-									id={workflowListId}
-									aria-label='영향받는 워크플로우'
-									className='list-none divide-y divide-neutral-100 rounded-brand-md border border-neutral-200 p-0'
-								>
-									{visibleWorkflows.map(workflow => (
-										<li key={workflow.id} className='flex items-center justify-between gap-3 px-3 py-2'>
-											<span
-												className={cn(
-													'min-w-0 [overflow-wrap:anywhere]',
-													workflow.isActive && 'font-semibold'
-												)}
-											>
-												{workflow.name}
-											</span>
-											<span
-												className={cn(
-													'shrink-0 typo-caption1_medium',
-													workflow.willFailAutomatically && 'text-danger-700'
-												)}
-											>
-												<span>{workflow.isActive ? '활성' : '비활성'}</span>
-												{workflow.willFailAutomatically && (
-													<strong className='ml-2'>자동 실행 실패</strong>
-												)}
-											</span>
-										</li>
-									))}
-								</ul>
-								{remainingCount > 0 && (
-									<button
-										type='button'
-										aria-expanded={isExpanded}
-										aria-controls={workflowListId}
-										onClick={() => setIsExpanded(expanded => !expanded)}
-										className='inline-flex min-h-11 items-center gap-1 rounded-brand-sm px-2 typo-body3_semibold text-main-deep-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
-									>
-										{isExpanded ? '접기' : `외 ${remainingCount}개`}
-										<ChevronDown size={16} aria-hidden='true' className={cn(isExpanded && 'rotate-180')} />
-									</button>
-								)}
-							</>
-						)}
+						) : !impact ? (
+							<IntegrationDisconnectImpactSkeleton />
+						) : null}
+						{impact && <IntegrationDisconnectImpactList impact={impact} />}
 					</div>
 					{deleteError && (
 						<p
 							role='alert'
 							tabIndex={0}
-							className='m-0 max-h-[20dvh] shrink-0 overflow-y-auto [overflow-wrap:anywhere] typo-body3_medium text-danger-700'
+							className='m-0 max-h-[20dvh] shrink-0 overflow-y-auto [overflow-wrap:anywhere] typo-body3_medium text-danger-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 						>
 							{deleteError}
 						</p>
 					)}
-					{confirmDisabled && (
+					{isConfirmDisabled && (
 						<p role='status' className='m-0 shrink-0 typo-body3_medium'>
 							이 연결의 해제 요청이 진행 중입니다.
 						</p>
 					)}
 					<div className='flex shrink-0 flex-wrap justify-end gap-2'>
+						{/* 제출 중에도 확인창 안에 키보드 포커스를 둘 수 있도록 취소 버튼은 탭 순서에 남긴다. */}
 						<button
 							ref={cancelRef}
 							type='button'
 							aria-disabled={isSubmitting}
-							onClick={cancel}
-							className='min-h-11 rounded-brand-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue border border-neutral-200 px-4 py-2 typo-button1_semibold'
+							onClick={handleCancel}
+							className='min-h-11 rounded-brand-sm border border-neutral-200 px-4 py-2 typo-button1_semibold aria-disabled:cursor-not-allowed aria-disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 						>
 							취소
 						</button>
-						{ready && (
+						{canConfirm && (
 							<button
 								type='button'
-								disabled={isSubmitting || confirmDisabled}
+								disabled={isSubmitting || isConfirmDisabled}
+								aria-busy={isSubmitting}
 								onClick={onConfirm}
-								className='min-h-11 rounded-brand-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue bg-danger-600 px-4 py-2 typo-button1_semibold text-neutral-white disabled:opacity-60'
+								className='min-h-11 rounded-brand-sm bg-danger-800 px-4 py-2 typo-button1_semibold text-neutral-white disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 							>
 								{isSubmitting ? '해제 중…' : '연동 해제'}
 							</button>
@@ -191,7 +142,7 @@ const IntegrationDisconnectModal = ({
 					</div>
 				</section>
 			</div>
-		</FocusTrap>,
+		</DialogFocusTrap>,
 		document.body
 	)
 }

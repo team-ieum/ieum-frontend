@@ -31,14 +31,14 @@ describe('getDisconnectImpact', () => {
 
 		expect(impact).toEqual({
 			workflows: [
-				{ id: '1', name: '워크플로우 1', isActive: true, willFailAutomatically: true },
-				{ id: '2', name: '워크플로우 2', isActive: true, willFailAutomatically: false },
-				{ id: '3', name: '워크플로우 3', isActive: true, willFailAutomatically: true },
-				{ id: '4', name: '워크플로우 4', isActive: true, willFailAutomatically: false },
-				{ id: '5', name: '워크플로우 5', isActive: true, willFailAutomatically: false },
-				{ id: '6', name: '워크플로우 6', isActive: true, willFailAutomatically: false },
-				{ id: '7', name: '워크플로우 7', isActive: false, willFailAutomatically: false },
-				{ id: '8', name: '워크플로우 8', isActive: false, willFailAutomatically: false },
+				{ id: '1', name: '워크플로우 1', isActive: true, isAutomaticExecutionAtRisk: true },
+				{ id: '2', name: '워크플로우 2', isActive: true, isAutomaticExecutionAtRisk: false },
+				{ id: '3', name: '워크플로우 3', isActive: true, isAutomaticExecutionAtRisk: true },
+				{ id: '4', name: '워크플로우 4', isActive: true, isAutomaticExecutionAtRisk: false },
+				{ id: '5', name: '워크플로우 5', isActive: true, isAutomaticExecutionAtRisk: false },
+				{ id: '6', name: '워크플로우 6', isActive: true, isAutomaticExecutionAtRisk: false },
+				{ id: '7', name: '워크플로우 7', isActive: false, isAutomaticExecutionAtRisk: false },
+				{ id: '8', name: '워크플로우 8', isActive: false, isAutomaticExecutionAtRisk: false },
 			],
 			automaticCount: 2,
 		})

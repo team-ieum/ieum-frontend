@@ -6,22 +6,30 @@ import IntegrationDisconnectModal from '@/components/integration/IntegrationDisc
 
 type ModalProps = ComponentProps<typeof IntegrationDisconnectModal>
 
-const renderModal = (props: Partial<ModalProps> = {}) =>
-	render(
+const renderModal = (props: Partial<ModalProps> = {}) => {
+	const resource = {
+		isLoading: !props.impact,
+		isRefetching: false,
+		isLoadingError: false,
+		isRefetchError: false,
+		retry: vi.fn(),
+	}
+	return render(
 		<>
 			<button type='button'>모달 밖 버튼</button>
 			<IntegrationDisconnectModal
 				provider='NOTION'
 				serviceName='Notion'
-				loadFailed={false}
+				resource={resource}
+				canConfirm={!!props.impact}
 				isSubmitting={false}
-				onRetry={vi.fn()}
 				onCancel={vi.fn()}
 				onConfirm={vi.fn()}
 				{...props}
 			/>
 		</>
 	)
+}
 
 const getDialog = (serviceName = 'Notion') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
 
@@ -43,6 +51,8 @@ describe('IntegrationDisconnectModal', () => {
 		renderModal()
 
 		const dialog = getDialog()
+		expect(dialog.getByRole('region', { name: '연동 해제 안내', busy: true })).toBeVisible()
+		expect(dialog.getByRole('status', { name: '영향받는 워크플로우 불러오는 중' })).toBeVisible()
 		expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
 		await waitFor(() => expect(dialog.getByRole('button', { name: '취소' })).toHaveFocus())
 	})
@@ -52,7 +62,11 @@ describe('IntegrationDisconnectModal', () => {
 		const onRetry = vi.fn()
 		const onCancel = vi.fn()
 		const onConfirm = vi.fn()
-		renderModal({ loadFailed: true, onRetry, onCancel, onConfirm })
+		renderModal({
+			resource: { isLoading: false, isRefetching: false, isLoadingError: true, isRefetchError: false, retry: onRetry },
+			onCancel,
+			onConfirm,
+		})
 
 		const dialog = getDialog()
 		expect(dialog.getByRole('alert')).toBeInTheDocument()
@@ -70,9 +84,9 @@ describe('IntegrationDisconnectModal', () => {
 			impact: {
 				automaticCount: 1,
 				workflows: [
-					{ id: 'schedule', name: '일정 기록', isActive: true, willFailAutomatically: true },
-					{ id: 'manual', name: '주문 확인', isActive: true, willFailAutomatically: false },
-					{ id: 'paused', name: '휴무 알림', isActive: false, willFailAutomatically: false },
+					{ id: 'schedule', name: '일정 기록', isActive: true, isAutomaticExecutionAtRisk: true },
+					{ id: 'manual', name: '주문 확인', isActive: true, isAutomaticExecutionAtRisk: false },
+					{ id: 'paused', name: '휴무 알림', isActive: false, isAutomaticExecutionAtRisk: false },
 				],
 			},
 		})
@@ -98,7 +112,7 @@ describe('IntegrationDisconnectModal', () => {
 			id: name,
 			name,
 			isActive: true,
-			willFailAutomatically: name === '정산 알림',
+			isAutomaticExecutionAtRisk: name === '정산 알림',
 		}))
 		renderModal({ impact: { workflows, automaticCount: 1 } })
 
@@ -136,23 +150,28 @@ describe('IntegrationDisconnectModal', () => {
 		expect(onConfirm).toHaveBeenCalledOnce()
 	})
 
-	it('해제를 제출하는 동안에는 확인을 다시 누를 수 없다', async () => {
+	it('해제를 제출하는 동안에는 다시 확인하거나 취소할 수 없다', async () => {
 		const user = userEvent.setup()
 		const onConfirm = vi.fn()
-		renderModal({ impact: { workflows: [], automaticCount: 0 }, isSubmitting: true, onConfirm })
+		const onCancel = vi.fn()
+		renderModal({ impact: { workflows: [], automaticCount: 0 }, isSubmitting: true, onConfirm, onCancel })
 
-		const confirm = getDialog().getByRole('button', { name: /연동 해제|해제 중/ })
+		const dialog = getDialog()
+		const confirm = dialog.getByRole('button', { name: /해제 중/ })
 		expect(confirm).toBeDisabled()
 		await user.click(confirm)
+		await user.click(dialog.getByRole('button', { name: '취소' }))
+		await user.keyboard('{Escape}')
 
 		expect(onConfirm).not.toHaveBeenCalled()
+		expect(onCancel).not.toHaveBeenCalled()
 	})
 
 	it('다른 확인창에서 시작한 해제가 진행 중이면 확인만 막고 취소는 허용한다', async () => {
 		const user = userEvent.setup()
 		const onCancel = vi.fn()
 		const onConfirm = vi.fn()
-		renderModal({ impact: { workflows: [], automaticCount: 0 }, confirmDisabled: true, onCancel, onConfirm })
+		renderModal({ impact: { workflows: [], automaticCount: 0 }, isConfirmDisabled: true, onCancel, onConfirm })
 
 		const dialog = getDialog()
 		expect(dialog.getByRole('status')).toHaveTextContent('이 연결의 해제 요청이 진행 중입니다.')
@@ -181,8 +200,14 @@ describe('IntegrationDisconnectModal', () => {
 		expect(cancel).toHaveFocus()
 		await user.tab({ shift: true })
 		expect(confirm).toHaveFocus()
-		await user.keyboard('{Escape}')
-
+		const onOutsideKeyDown = vi.fn()
+		document.addEventListener('keydown', onOutsideKeyDown)
+		try {
+			await user.keyboard('{Escape}')
+			expect(onOutsideKeyDown).not.toHaveBeenCalled()
+		} finally {
+			document.removeEventListener('keydown', onOutsideKeyDown)
+		}
 		expect(onCancel).toHaveBeenCalledOnce()
 		expect(onConfirm).not.toHaveBeenCalled()
 	})

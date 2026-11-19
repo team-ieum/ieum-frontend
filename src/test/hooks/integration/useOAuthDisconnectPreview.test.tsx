@@ -3,11 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
+import { queryKeys } from '@/constants/queryKeys'
 import { useOAuthDisconnectPreview } from '@/hooks/integration/useOAuthDisconnectPreview'
+import { googleIntegrationWorkflowsResponse } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import { registerHarnessCleanup } from '@/test/harnessCleanup'
+import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
 import { api } from '@/utils/AxiosInstance'
 
 const createDeferred = () => {
@@ -49,7 +51,7 @@ const createPreviewHarness = () => {
 afterEach(() => vi.restoreAllMocks())
 
 describe('useOAuthDisconnectPreview', () => {
-	it('영향 조회가 끝나기 전에 확인할 수 없고 화면을 떠나면 진행 중인 조회를 취소한다', async () => {
+	it('이전 조회 결과는 표시하지만 새 조회 전에 해제할 수 없고 화면을 떠나면 조회를 취소한다', async () => {
 		const response = createDeferred()
 		const started = vi.fn()
 		const deleteRequest = vi.fn()
@@ -63,19 +65,22 @@ describe('useOAuthDisconnectPreview', () => {
 			}),
 			http.delete('*/api/v1/oauth/connections/:provider', ({ params }) => {
 				deleteRequest(params.provider)
-				return new HttpResponse(null, { status: 204 })
+				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
 			})
 		)
-		const { renderPreview } = createPreviewHarness()
+		const { queryClient, renderPreview } = createPreviewHarness()
+		const cachedWorkflow = { ...googleIntegrationWorkflowsResponse.data.content[0], name: '이전에 확인한 워크플로우' }
+		queryClient.setQueryData(queryKeys.integrations.oauthDisconnectImpact('GITHUB', 'oauth-github'), [cachedWorkflow])
 		const preview = renderPreview('GITHUB', 'oauth-github')
 		try {
 			await waitFor(() => expect(started).toHaveBeenCalledOnce())
 			const signal = get.mock.calls[0]?.[1]?.signal
 			expect(signal?.aborted).toBe(false)
 			act(() => {
-				void preview.result.current.onConfirm()
+				void preview.result.current.handleConfirm()
 			})
-			expect(preview.result.current.impact).toBeUndefined()
+			expect(preview.result.current.impact?.workflows.map(workflow => workflow.name)).toEqual([cachedWorkflow.name])
+			expect(preview.result.current.canConfirm).toBe(false)
 			preview.unmount()
 			expect(signal?.aborted).toBe(true)
 		} finally {
@@ -91,42 +96,42 @@ describe('useOAuthDisconnectPreview', () => {
 		const deleteRequest = vi.fn()
 		let didStartGitHubDelete = false
 		server.use(
-			http.get('*/api/v1/integrations/:serviceType/workflows', emptyImpactResponse),
 			http.delete('*/api/v1/oauth/connections/:provider', async ({ params }) => {
 				deleteRequest(params.provider)
 				if (params.provider === 'GITHUB' && !didStartGitHubDelete) {
 					didStartGitHubDelete = true
 					await firstGitHubResponse.promise
 				}
-				return new HttpResponse(null, { status: 204 })
+				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
 			})
 		)
-		const { queryClient, renderPreview } = createPreviewHarness()
+		const { renderPreview } = createPreviewHarness()
 		const first = renderPreview('GITHUB', 'oauth-github')
 		try {
 			await waitFor(() => expect(first.result.current.impact).toBeDefined())
 			act(() => {
-				void first.result.current.onConfirm()
+				void first.result.current.handleConfirm()
 			})
 			await waitFor(() => expect(deleteRequest).toHaveBeenCalledExactlyOnceWith('GITHUB'))
 			first.unmount()
 
 			const reopened = renderPreview('GITHUB', 'oauth-github')
 			await waitFor(() => expect(reopened.result.current.impact).toBeDefined())
+			expect(reopened.result.current.isConfirmDisabled).toBe(true)
 			act(() => {
-				void reopened.result.current.onConfirm()
+				void reopened.result.current.handleConfirm()
 			})
 
 			const notion = renderPreview('NOTION', 'oauth-notion')
 			await waitFor(() => expect(notion.result.current.impact).toBeDefined())
 			act(() => {
-				void notion.result.current.onConfirm()
+				void notion.result.current.handleConfirm()
 			})
 			await waitFor(() => expect(notion.onDisconnected).toHaveBeenCalledOnce())
 			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 
 			firstGitHubResponse.resolve()
-			await waitFor(() => expect(queryClient.isMutating()).toBe(0))
+			await waitFor(() => expect(reopened.result.current.isConfirmDisabled).toBe(false))
 			expect(deleteRequest.mock.calls).toEqual([['GITHUB'], ['NOTION']])
 			expect(first.onDisconnected).not.toHaveBeenCalled()
 			expect(reopened.onDisconnected).not.toHaveBeenCalled()

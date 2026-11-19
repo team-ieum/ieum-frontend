@@ -1,7 +1,8 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
+import { queryKeys } from '@/constants/queryKeys'
 import { oauthConnectionsResponse } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
@@ -20,22 +21,21 @@ const createImpactPage = (id: string, name: string, nextCursor: string | null) =
 		code: 'OK',
 	})
 
+const NOTION_CONNECTIONS_HANDLER = http.get('*/api/v1/oauth/connections', () =>
+	HttpResponse.json({
+		...oauthConnectionsResponse,
+		data: [{ ...oauthConnectionsResponse.data[0], provider: 'NOTION', providerAccountId: 'test-notion-account', scopes: [] }],
+	})
+)
+
 describe('OAuth 연동 해제 영향 다시 조회', () => {
 	it('두 번째 페이지가 실패하면 부분 목록과 확인 버튼을 숨기고 첫 페이지부터 새로 조회한다', async () => {
 		const user = userEvent.setup()
 		const observePage = vi.fn()
 		const deleteRequest = vi.fn()
-		const notionConnection = {
-			...oauthConnectionsResponse.data[0],
-			provider: 'NOTION',
-			providerAccountId: 'test-notion-account',
-			scopes: [],
-		}
 		let firstPageRequests = 0
 		server.use(
-			http.get('*/api/v1/oauth/connections', () =>
-				HttpResponse.json({ ...oauthConnectionsResponse, data: [notionConnection] })
-			),
+			NOTION_CONNECTIONS_HANDLER,
 			http.get('*/api/v1/integrations/notion/workflows', ({ request }) => {
 				const params = new URL(request.url).searchParams
 				const cursor = params.get('cursor')
@@ -87,5 +87,51 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Notion 연동 해제' })).not.toBeInTheDocument())
 		await waitFor(() => expect(opener).toHaveFocus())
 		expect(deleteRequest).not.toHaveBeenCalled()
+	})
+
+	it('완료한 영향 목록은 재조회 중이거나 실패해도 표시하고 새 목록을 확인한 뒤에만 해제를 허용한다', async () => {
+		const user = userEvent.setup()
+		const workflowPath = '*/api/v1/integrations/notion/workflows'
+		server.use(
+			NOTION_CONNECTIONS_HANDLER,
+			http.get(workflowPath, () => createImpactPage('first', '기존 워크플로우', null))
+		)
+		const { queryClient } = renderAppRoute('/inter-setting')
+
+		await user.click(await screen.findByRole('button', { name: '연동 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' }))
+		expect(await dialog.findByText('기존 워크플로우')).toBeVisible()
+		expect(dialog.getByRole('button', { name: '연동 해제' })).toBeEnabled()
+
+		let releaseRefetch!: () => void
+		const response = new Promise<void>(resolve => {
+			releaseRefetch = resolve
+		})
+		server.use(
+			http.get(workflowPath, async () => {
+				await response
+				return new HttpResponse(null, { status: 503 })
+			})
+		)
+		try {
+			act(() => {
+				void queryClient.invalidateQueries({ queryKey: queryKeys.integrations.all() })
+			})
+			await dialog.findByRole('region', { name: '연동 해제 안내', busy: true })
+			expect(dialog.getByText('기존 워크플로우')).toBeVisible()
+			expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+		} finally {
+			releaseRefetch()
+		}
+
+		expect(await dialog.findByRole('alert')).toHaveTextContent('영향받는 워크플로우를 모두 확인하지 못했습니다.')
+		expect(dialog.getByText('기존 워크플로우')).toBeVisible()
+		expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+
+		server.use(http.get(workflowPath, () => createImpactPage('second', '새 워크플로우', null)))
+		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
+		expect(await dialog.findByText('새 워크플로우')).toBeVisible()
+		expect(dialog.queryByText('기존 워크플로우')).not.toBeInTheDocument()
+		expect(dialog.getByRole('button', { name: '연동 해제' })).toBeEnabled()
 	})
 })

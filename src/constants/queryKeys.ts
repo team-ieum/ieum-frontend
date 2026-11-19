@@ -1,4 +1,4 @@
-import type { OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
+import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
 import type { IntegrationServiceType } from '@/types/integrationWorkflows'
 
 export const queryKeys = {

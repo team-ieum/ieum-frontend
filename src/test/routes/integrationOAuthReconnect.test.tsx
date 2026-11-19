@@ -2,17 +2,18 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createResourceHoldHandler } from '@/mocks/apiScenarios'
 import { oauthConnectionsResponse } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import type { OAuthConnectionDto } from '@/types/oauthConnections'
 
-const cases = [
+const RECONNECT_CASES = [
 	{
 		label: 'GitHub',
 		provider: 'GITHUB',
 		serviceType: 'github',
-		alreadyDisconnected: false,
+		isAlreadyDisconnected: false,
 		notice: /GitHub 설정 > Applications에서 직접 제거해 주세요/,
 		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
 	},
@@ -20,7 +21,7 @@ const cases = [
 		label: 'Notion',
 		provider: 'NOTION',
 		serviceType: 'notion',
-		alreadyDisconnected: true,
+		isAlreadyDisconnected: true,
 		notice: /Notion에도 권한 폐기를 요청합니다/,
 		authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
 	},
@@ -39,8 +40,8 @@ afterEach(() => {
 })
 
 describe('공용 OAuth 연동 해제 후 재연결', () => {
-	it.each(cases)('$label 해제를 확인하면 목록을 갱신하고 복원된 타일에서 다시 연결한다', async config => {
-		const { label, provider, serviceType, alreadyDisconnected, notice, authorizeUrl } = config
+	it.each(RECONNECT_CASES)('$label 해제를 확인하면 목록을 갱신하고 복원된 타일에서 다시 연결한다', async config => {
+		const { label, provider, serviceType, isAlreadyDisconnected, notice, authorizeUrl } = config
 		const user = userEvent.setup()
 		const assign = vi.fn()
 		vi.stubGlobal('location', { ...window.location, assign })
@@ -102,16 +103,29 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		expect(within(dialog).getByText(notice)).toBeInTheDocument()
 		expect(getWorkflows).toHaveBeenCalledExactlyOnceWith(serviceType, '100')
 		expect(deleteConnection).not.toHaveBeenCalled()
-		if (alreadyDisconnected) isConnected = false
-		await user.click(confirm)
+		// 해제가 끝나도 목록 재조회가 느리면 연 버튼이 남아 있다. 이때도 포커스는 사용 가능한 서비스로 돌아간다.
+		let releaseList!: () => void
+		const listResponse = new Promise<void>(resolve => {
+			releaseList = resolve
+		})
+		server.use(createResourceHoldHandler('oauthConnections', listResponse))
+		const available = screen.getByRole('region', { name: '사용 가능한 서비스' })
+		try {
+			if (isAlreadyDisconnected) isConnected = false
+			await user.click(confirm)
+			await waitFor(() => expect(dialog).not.toBeInTheDocument())
+			await waitFor(() => expect(available).toHaveFocus())
+			expect(connectedCard).toBeInTheDocument()
+		} finally {
+			releaseList()
+		}
 
 		await waitFor(() => expect(connectedCard).not.toBeInTheDocument())
 		expect(listConnections).toHaveBeenCalledWith(true)
 		expect(listConnections).toHaveBeenLastCalledWith(false)
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
 		expect(screen.queryByText(alreadyDisconnectedMessage)).not.toBeInTheDocument()
-		const available = screen.getByRole('region', { name: '사용 가능한 서비스' })
-		await waitFor(() => expect(available).toHaveFocus())
+		expect(available).toHaveFocus()
 		expect(within(await findCard('Google')).queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
 		const availableTile = await findCard(label)
 		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))
