@@ -6,7 +6,7 @@ import IntegrationDisconnectModal from '@/components/integration/IntegrationDisc
 
 type ModalProps = ComponentProps<typeof IntegrationDisconnectModal>
 
-const renderModal = (props: Partial<ModalProps> = {}) => {
+const modalView = (props: Partial<ModalProps>) => {
 	const resource = {
 		isLoading: !props.impact,
 		isRefetching: false,
@@ -14,7 +14,7 @@ const renderModal = (props: Partial<ModalProps> = {}) => {
 		isRefetchError: false,
 		retry: vi.fn(),
 	}
-	return render(
+	return (
 		<>
 			<button type='button'>모달 밖 버튼</button>
 			<IntegrationDisconnectModal
@@ -30,6 +30,8 @@ const renderModal = (props: Partial<ModalProps> = {}) => {
 		</>
 	)
 }
+
+const renderModal = (props: Partial<ModalProps> = {}) => render(modalView(props))
 
 const getDialog = (serviceName = 'Notion') => within(screen.getByRole('alertdialog', { name: `${serviceName} 연동 해제` }))
 
@@ -150,20 +152,38 @@ describe('IntegrationDisconnectModal', () => {
 		expect(onConfirm).toHaveBeenCalledOnce()
 	})
 
-	it('해제를 제출하는 동안에는 다시 확인하거나 취소할 수 없다', async () => {
+	it('키보드로 해제를 제출하면 확인 버튼에 포커스가 남고 응답을 기다리는 동안 재제출이나 취소를 막는다', async () => {
 		const user = userEvent.setup()
 		const onConfirm = vi.fn()
 		const onCancel = vi.fn()
-		renderModal({ impact: { workflows: [], automaticCount: 0 }, isSubmitting: true, onConfirm, onCancel })
+		const props = { impact: { workflows: [], automaticCount: 0 }, onConfirm, onCancel }
+		const { rerender } = renderModal(props)
 
 		const dialog = getDialog()
-		const confirm = dialog.getByRole('button', { name: /해제 중/ })
-		expect(confirm).toBeDisabled()
+		const cancel = dialog.getByRole('button', { name: '취소' })
+		const confirm = dialog.getByRole('button', { name: '연동 해제' })
+		await waitFor(() => expect(cancel).toHaveFocus())
+		await user.tab()
+		expect(confirm).toHaveFocus()
+		await user.keyboard('{Enter}')
+		expect(onConfirm).toHaveBeenCalledOnce()
+
+		rerender(modalView({ ...props, isSubmitting: true }))
+		expect(dialog.getByRole('button', { name: '해제 중…', busy: true })).toHaveFocus()
+		expect(confirm).toHaveAttribute('aria-disabled', 'true')
+		// 제출 뒤 영향 목록을 다시 조회하면 최신 목록 검증이 끝날 때까지 canConfirm이 false가 된다.
+		rerender(modalView({ ...props, isSubmitting: true, canConfirm: false }))
+		expect(confirm).toHaveFocus()
+		await user.keyboard('{Enter}[Space]')
 		await user.click(confirm)
-		await user.click(dialog.getByRole('button', { name: '취소' }))
+		await user.tab()
+		expect(cancel).toHaveFocus()
+		await user.keyboard('{Enter}')
+		await user.tab({ shift: true })
+		expect(confirm).toHaveFocus()
 		await user.keyboard('{Escape}')
 
-		expect(onConfirm).not.toHaveBeenCalled()
+		expect(onConfirm).toHaveBeenCalledOnce()
 		expect(onCancel).not.toHaveBeenCalled()
 	})
 
@@ -176,7 +196,7 @@ describe('IntegrationDisconnectModal', () => {
 		const dialog = getDialog()
 		expect(dialog.getByRole('status')).toHaveTextContent('이 연결의 해제 요청이 진행 중입니다.')
 		const confirm = dialog.getByRole('button', { name: '연동 해제' })
-		expect(confirm).toBeDisabled()
+		expect(confirm).toHaveAttribute('aria-disabled', 'true')
 		await user.click(confirm)
 		await user.click(dialog.getByRole('button', { name: '취소' }))
 

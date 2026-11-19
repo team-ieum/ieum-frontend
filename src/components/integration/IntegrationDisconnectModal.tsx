@@ -49,8 +49,12 @@ const IntegrationDisconnectModal = ({
 	const cancelRef = useRef<HTMLButtonElement>(null)
 	const isCheckingImpact = resource.isLoading || resource.isRefetching
 	const hasImpactError = resource.isLoadingError || resource.isRefetchError
+	const isConfirmBlocked = isSubmitting || isConfirmDisabled
 	const handleCancel = () => {
 		if (!isSubmitting) onCancel()
+	}
+	const handleConfirm = () => {
+		if (!isConfirmBlocked) onConfirm()
 	}
 
 	return createPortal(
@@ -118,7 +122,7 @@ const IntegrationDisconnectModal = ({
 						</p>
 					)}
 					<div className='flex shrink-0 flex-wrap justify-end gap-2'>
-						{/* 제출 중에도 확인창 안에 키보드 포커스를 둘 수 있도록 취소 버튼은 탭 순서에 남긴다. */}
+						{/* 요청 중에는 두 버튼을 탭 순서에 남겨 포커스를 유지하고 핸들러에서 재제출과 취소를 막는다. */}
 						<button
 							ref={cancelRef}
 							type='button'
@@ -128,13 +132,13 @@ const IntegrationDisconnectModal = ({
 						>
 							취소
 						</button>
-						{canConfirm && (
+						{(canConfirm || isSubmitting) && (
 							<button
 								type='button'
-								disabled={isSubmitting || isConfirmDisabled}
+								aria-disabled={isConfirmBlocked}
 								aria-busy={isSubmitting}
-								onClick={onConfirm}
-								className='min-h-11 rounded-brand-sm bg-danger-800 px-4 py-2 typo-button1_semibold text-neutral-white disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
+								onClick={handleConfirm}
+								className='min-h-11 rounded-brand-sm bg-danger-800 px-4 py-2 typo-button1_semibold text-neutral-white aria-disabled:cursor-not-allowed aria-disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 							>
 								{isSubmitting ? '해제 중…' : '연동 해제'}
 							</button>
