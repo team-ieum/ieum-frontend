@@ -1,9 +1,12 @@
-import { useId, useRef } from 'react'
+import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { FocusTrap } from 'focus-trap-react'
+import { ChevronDown } from 'lucide-react'
 import { OAUTH_DISCONNECT_NOTICE, type OAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import type { DisconnectImpact } from '@/utils/integration/getDisconnectImpact'
 import { cn } from '@/utils/cn'
+
+const WORKFLOW_PREVIEW_LIMIT = 3
 
 export type ReturnDialogFocus = (opener: HTMLElement | SVGElement) => HTMLElement | SVGElement | false
 
@@ -36,7 +39,12 @@ const IntegrationDisconnectModal = ({
 }: IntegrationDisconnectModalProps) => {
 	const titleId = useId()
 	const noticeId = useId()
+	const workflowListId = useId()
 	const cancelRef = useRef<HTMLButtonElement>(null)
+	const [isExpanded, setIsExpanded] = useState(false)
+	const workflows = impact?.workflows ?? []
+	const visibleWorkflows = isExpanded ? workflows : workflows.slice(0, WORKFLOW_PREVIEW_LIMIT)
+	const remainingCount = workflows.length - WORKFLOW_PREVIEW_LIMIT
 	const ready = !!impact && !loadFailed
 	const cancel = () => {
 		if (!isSubmitting) onCancel()
@@ -70,7 +78,7 @@ const IntegrationDisconnectModal = ({
 					<div
 						role='region'
 						aria-label='연동 해제 안내'
-						tabIndex={impact?.workflows.length ? 0 : undefined}
+						tabIndex={workflows.length ? 0 : undefined}
 						className='min-h-0 space-y-3 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:outline-main-blue'
 					>
 						<p id={noticeId} className='typo-body3_regular text-neutral-600'>
@@ -91,11 +99,11 @@ const IntegrationDisconnectModal = ({
 							<p role='status' className='typo-body3_regular'>
 								영향받는 워크플로우를 확인하고 있습니다…
 							</p>
-						) : impact.workflows.length === 0 ? (
+						) : workflows.length === 0 ? (
 							<p>연동을 해제하시겠습니까?</p>
 						) : (
 							<>
-								<p>아래 워크플로우 {impact.workflows.length}개는 연동을 해제하면 정상적으로 동작하지 않습니다.</p>
+								<p>아래 워크플로우 {workflows.length}개는 연동을 해제하면 정상적으로 동작하지 않습니다.</p>
 								{impact.automaticCount > 0 && (
 									<p className='typo-body3_semibold text-danger-700'>
 										자동 실행 중인 {impact.automaticCount}개는 해제 후에도 활성 상태로 남아 실행할 때마다
@@ -103,10 +111,11 @@ const IntegrationDisconnectModal = ({
 									</p>
 								)}
 								<ul
+									id={workflowListId}
 									aria-label='영향받는 워크플로우'
 									className='list-none divide-y divide-neutral-100 rounded-brand-md border border-neutral-200 p-0'
 								>
-									{impact.workflows.map(workflow => (
+									{visibleWorkflows.map(workflow => (
 										<li key={workflow.id} className='flex items-center justify-between gap-3 px-3 py-2'>
 											<span
 												className={cn(
@@ -130,6 +139,18 @@ const IntegrationDisconnectModal = ({
 										</li>
 									))}
 								</ul>
+								{remainingCount > 0 && (
+									<button
+										type='button'
+										aria-expanded={isExpanded}
+										aria-controls={workflowListId}
+										onClick={() => setIsExpanded(expanded => !expanded)}
+										className='inline-flex min-h-11 items-center gap-1 rounded-brand-sm px-2 typo-body3_semibold text-main-deep-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
+									>
+										{isExpanded ? '접기' : `외 ${remainingCount}개`}
+										<ChevronDown size={16} aria-hidden='true' className={cn(isExpanded && 'rotate-180')} />
+									</button>
+								)}
 							</>
 						)}
 					</div>

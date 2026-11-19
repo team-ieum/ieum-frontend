@@ -80,6 +80,7 @@ describe('IntegrationDisconnectModal', () => {
 		const dialog = getDialog()
 		const rows = dialog.getAllByRole('listitem')
 		expect(rows).toHaveLength(3)
+		expect(dialog.queryByRole('button', { name: /외 \d+개/ })).not.toBeInTheDocument()
 		expect(rows[0]).toHaveTextContent('일정 기록')
 		expect(within(rows[0]).getByText('활성')).toBeInTheDocument()
 		expect(within(rows[0]).getByText('자동 실행 실패')).toBeInTheDocument()
@@ -89,6 +90,36 @@ describe('IntegrationDisconnectModal', () => {
 		expect(rows[2]).toHaveTextContent('휴무 알림')
 		expect(within(rows[2]).getByText('비활성')).toBeInTheDocument()
 		expect(within(rows[2]).queryByText('자동 실행 실패')).not.toBeInTheDocument()
+	})
+
+	it('처음 세 개만 표시하고 나머지는 펼쳐 보며 숨겨진 자동 실행의 위험도 안내한다', async () => {
+		const user = userEvent.setup()
+		const workflows = ['주문 접수', '재고 확인', '송장 등록', '배송 조회', '반품 접수', '정산 알림'].map(name => ({
+			id: name,
+			name,
+			isActive: true,
+			willFailAutomatically: name === '정산 알림',
+		}))
+		renderModal({ impact: { workflows, automaticCount: 1 } })
+
+		const dialog = getDialog()
+		const list = within(dialog.getByRole('list', { name: '영향받는 워크플로우' }))
+		const rows = list.getAllByRole('listitem')
+		expect(rows).toHaveLength(3)
+		expect(rows[0]).toHaveTextContent('주문 접수')
+		expect(rows[2]).toHaveTextContent('송장 등록')
+		expect(dialog.getByText(/워크플로우 6개/)).toBeVisible()
+		expect(dialog.getByText(/자동 실행 중인 1개/)).toBeVisible()
+		await user.click(dialog.getByRole('button', { name: /외 3개/, expanded: false }))
+
+		const expandedRows = list.getAllByRole('listitem')
+		expect(expandedRows).toHaveLength(6)
+		expect(expandedRows[5]).toHaveTextContent('정산 알림')
+		expect(expandedRows[5]).toHaveTextContent('자동 실행 실패')
+		await user.click(dialog.getByRole('button', { name: /접기/, expanded: true }))
+
+		expect(list.getAllByRole('listitem')).toHaveLength(3)
+		expect(dialog.getByRole('button', { name: /외 3개/, expanded: false })).toBeVisible()
 	})
 
 	it('연동을 쓰는 워크플로우가 없으면 간단한 확인 메시지를 표시하고 해제를 요청할 수 있다', async () => {
