@@ -9,14 +9,3 @@ export type OAuthDisconnectWorkflowsParams = {
 }
 
 export type DeleteOAuthConnectionResponse = ApiResponse<null>
-
-export type DisconnectImpact = {
-	workflows: {
-		id: string
-		name: string
-		isActive: boolean
-		/** 해제 후에도 활성 상태로 남아 예약 또는 웹훅 실행 때마다 실패한다. */
-		isAutomaticExecutionAtRisk: boolean
-	}[]
-	automaticCount: number
-}

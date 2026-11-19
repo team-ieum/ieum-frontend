@@ -32,9 +32,9 @@ describe('OAuthDisconnectAction', () => {
 			</QueryClientProvider>
 		)
 		const { rerender } = render(view(true))
-		await user.click(screen.getByRole('button', { name: '연동 해제' }))
-		const dialog = await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' })
-		await within(dialog).findByRole('button', { name: '연동 해제' })
+		await user.click(screen.getByRole('button', { name: '연결 해제' }))
+		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		await within(dialog).findByRole('button', { name: '연결 해제' })
 
 		rerender(view(false))
 

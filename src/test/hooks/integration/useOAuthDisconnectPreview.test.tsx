@@ -79,7 +79,7 @@ describe('useOAuthDisconnectPreview', () => {
 			act(() => {
 				void preview.result.current.handleConfirm()
 			})
-			expect(preview.result.current.impact?.workflows.map(workflow => workflow.name)).toEqual([cachedWorkflow.name])
+			expect(preview.result.current.affectedNotice).toContain(cachedWorkflow.name)
 			expect(preview.result.current.canConfirm).toBe(false)
 			preview.unmount()
 			expect(signal?.aborted).toBe(true)
@@ -108,7 +108,7 @@ describe('useOAuthDisconnectPreview', () => {
 		const { renderPreview } = createPreviewHarness()
 		const first = renderPreview('GITHUB', 'oauth-github')
 		try {
-			await waitFor(() => expect(first.result.current.impact).toBeDefined())
+			await waitFor(() => expect(first.result.current.affectedNotice).toBeDefined())
 			act(() => {
 				void first.result.current.handleConfirm()
 			})
@@ -116,14 +116,14 @@ describe('useOAuthDisconnectPreview', () => {
 			first.unmount()
 
 			const reopened = renderPreview('GITHUB', 'oauth-github')
-			await waitFor(() => expect(reopened.result.current.impact).toBeDefined())
+			await waitFor(() => expect(reopened.result.current.affectedNotice).toBeDefined())
 			expect(reopened.result.current.isConfirmDisabled).toBe(true)
 			act(() => {
 				void reopened.result.current.handleConfirm()
 			})
 
 			const notion = renderPreview('NOTION', 'oauth-notion')
-			await waitFor(() => expect(notion.result.current.impact).toBeDefined())
+			await waitFor(() => expect(notion.result.current.affectedNotice).toBeDefined())
 			act(() => {
 				void notion.result.current.handleConfirm()
 			})

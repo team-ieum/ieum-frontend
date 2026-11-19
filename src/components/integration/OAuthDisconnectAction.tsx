@@ -40,7 +40,7 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose }: OAuthD
 		<IntegrationDisconnectModal
 			serviceName={service.name}
 			provider={provider}
-			impact={preview.impact}
+			affectedNotice={preview.affectedNotice}
 			resource={preview.resource}
 			canConfirm={preview.canConfirm}
 			isSubmitting={preview.isSubmitting}
@@ -74,7 +74,7 @@ const OAuthDisconnectAction = ({ service }: OAuthDisconnectActionProps) => {
 				className='mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-brand-sm border border-danger-300 bg-neutral-white px-3 typo-body3_semibold text-danger-800 hover:bg-danger-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 			>
 				<Link2Off size={15} aria-hidden='true' />
-				연동 해제
+				연결 해제
 			</button>
 			{isOpen && (
 				<OAuthDisconnectDialog

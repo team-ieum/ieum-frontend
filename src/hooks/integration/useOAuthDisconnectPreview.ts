@@ -6,7 +6,7 @@ import {
 } from '@/hooks/integration/mutations/useDisconnectIntegrationOAuthMutation'
 import { oauthDisconnectImpactQueryOptions } from '@/hooks/integration/queries/oauthDisconnectImpactQueryOptions'
 import type { AsyncResourceState } from '@/types/asyncResource'
-import type { DisconnectImpact, OAuthDisconnectProvider } from '@/types/oauthDisconnect'
+import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
 import { isApiError } from '@/utils/ApiError'
 
 type UseOAuthDisconnectPreviewOptions = {
@@ -17,7 +17,7 @@ type UseOAuthDisconnectPreviewOptions = {
 }
 
 type UseOAuthDisconnectPreviewResult = {
-	impact: DisconnectImpact | undefined
+	affectedNotice: string | undefined
 	resource: AsyncResourceState
 	canConfirm: boolean
 	isSubmitting: boolean
@@ -50,9 +50,9 @@ export const useOAuthDisconnectPreview = ({
 		}
 	}, [connectionId, provider])
 
-	const impact = query.data
+	const affectedNotice = query.data
 	const isIdle = query.fetchStatus === 'idle'
-	// 갱신 중에도 이전 전체 목록을 표시하되, 이번에 연 확인창의 조회가 끝나야 해제할 수 있다.
+	// 갱신 중에도 이전 안내를 표시하되, 이번에 연 확인창의 조회가 끝나야 해제할 수 있다.
 	const canConfirm = query.isSuccess && query.isFetchedAfterMount && isIdle
 
 	const handleRetry = () => {
@@ -90,11 +90,11 @@ export const useOAuthDisconnectPreview = ({
 	}
 
 	return {
-		impact,
+		affectedNotice,
 		canConfirm,
 		resource: {
-			isLoading: !impact && !isIdle,
-			isRefetching: !!impact && !isIdle,
+			isLoading: affectedNotice === undefined && !isIdle,
+			isRefetching: affectedNotice !== undefined && !isIdle,
 			isLoadingError: query.isLoadingError && isIdle,
 			isRefetchError: query.isRefetchError && isIdle,
 			retry: handleRetry,

@@ -14,7 +14,7 @@ const RECONNECT_CASES = [
 		provider: 'GITHUB',
 		serviceType: 'github',
 		isAlreadyDisconnected: false,
-		notice: /GitHub 설정 > Applications에서 직접 제거해 주세요/,
+		notice: /GitHub 앱은 설치된 채로 남아요\. GitHub 설정 > Applications에서 따로 삭제할 수 있어요/,
 		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
 	},
 	{
@@ -22,7 +22,7 @@ const RECONNECT_CASES = [
 		provider: 'NOTION',
 		serviceType: 'notion',
 		isAlreadyDisconnected: true,
-		notice: /Notion에도 권한 폐기를 요청합니다/,
+		notice: /Notion에도 이음의 접근 권한을 취소해 달라고 요청해요/,
 		authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
 	},
 ] as const
@@ -97,10 +97,11 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		renderAppRoute('/inter-setting')
 
 		const connectedCard = await findCard(label)
-		await user.click(within(connectedCard).getByRole('button', { name: '연동 해제' }))
-		const dialog = await screen.findByRole('alertdialog', { name: `${label} 연동 해제` })
-		const confirm = await within(dialog).findByRole('button', { name: '연동 해제' })
-		expect(within(dialog).getByText(notice)).toBeInTheDocument()
+		await user.click(within(connectedCard).getByRole('button', { name: '연결 해제' }))
+		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		const confirm = await within(dialog).findByRole('button', { name: '연결 해제' })
+		expect(dialog).toHaveTextContent(notice)
+		expect(dialog).toHaveTextContent('이 연결을 쓰는 워크플로우는 없어요.')
 		expect(getWorkflows).toHaveBeenCalledExactlyOnceWith(serviceType, '100')
 		expect(deleteConnection).not.toHaveBeenCalled()
 		// 해제가 끝나도 목록 재조회가 느리면 연 버튼이 남아 있다. 이때도 포커스는 사용 가능한 서비스로 돌아간다.
@@ -126,7 +127,7 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
 		expect(screen.queryByText(alreadyDisconnectedMessage)).not.toBeInTheDocument()
 		expect(available).toHaveFocus()
-		expect(within(await findCard('Google')).queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+		expect(within(await findCard('Google')).queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		const availableTile = await findCard(label)
 		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))
 

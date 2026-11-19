@@ -8,11 +8,19 @@ import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import type { IntegrationServiceWorkflowsResponse } from '@/types/integrationWorkflows'
 
-const createImpactPage = (id: string, name: string, nextCursor: string | null) =>
+const createImpactPage = (nextCursor: string | null, ...names: string[]) =>
 	HttpResponse.json<IntegrationServiceWorkflowsResponse>({
 		success: true,
 		data: {
-			content: [{ id, name, description: '', active: true, triggerType: 'SCHEDULE', usedNodeCount: 1, updatedAt: '' }],
+			content: names.map(name => ({
+				id: name,
+				name,
+				description: '',
+				active: true,
+				triggerType: 'SCHEDULE',
+				usedNodeCount: 1,
+				updatedAt: '',
+			})),
 			size: 100,
 			hasNext: nextCursor !== null,
 			nextCursor,
@@ -37,7 +45,7 @@ const holdResponse = () => {
 }
 
 describe('OAuth 연동 해제 영향 다시 조회', () => {
-	it('두 번째 페이지가 실패하면 부분 목록과 확인 버튼을 숨기고 첫 페이지부터 새로 조회한다', async () => {
+	it('두 번째 페이지가 실패하면 부분 결과와 확인 버튼을 숨기고 첫 페이지부터 새로 조회한다', async () => {
 		const user = userEvent.setup()
 		const observePage = vi.fn()
 		const deleteRequest = vi.fn()
@@ -51,10 +59,10 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 				if (cursor === null) {
 					firstPageRequests += 1
 					return firstPageRequests === 1
-						? createImpactPage('old', '이전 시도 워크플로우', 'old-next')
-						: createImpactPage('new-first', '새 첫 페이지 워크플로우', 'new-next')
+						? createImpactPage('old-next', '이전 시도 워크플로우')
+						: createImpactPage('new-next', '일정 알림', '주간 회의 정리')
 				}
-				if (cursor === 'new-next') return createImpactPage('new-second', '새 두 번째 페이지 워크플로우', null)
+				if (cursor === 'new-next') return createImpactPage(null, '휴가 등록', '일정 정리', '작업 요약', '마감 알림')
 				return new HttpResponse(null, { status: 503 })
 			}),
 			http.delete('*/api/v1/oauth/connections/NOTION', () => {
@@ -67,23 +75,24 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		const notionHeading = await screen.findByRole('heading', { name: 'Notion' })
 		const notionCard = notionHeading.closest('article')
 		if (!notionCard) throw new Error('Notion 연결 카드를 찾지 못했습니다.')
-		const opener = within(notionCard).getByRole('button', { name: '연동 해제' })
+		const opener = within(notionCard).getByRole('button', { name: '연결 해제' })
 		await user.click(opener)
-		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
 
-		expect(await dialog.findByRole('alert')).toHaveTextContent('영향받는 워크플로우를 모두 확인하지 못했습니다.')
-		expect(dialog.queryByRole('list', { name: '영향받는 워크플로우' })).not.toBeInTheDocument()
-		expect(dialog.queryByText('이전 시도 워크플로우')).not.toBeInTheDocument()
-		expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+		expect(await dialog.findByRole('alert')).toHaveTextContent('이 연결을 쓰는 워크플로우를 확인하지 못했어요.')
+		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()
+		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		expect(deleteRequest).not.toHaveBeenCalled()
 
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
-		const workflows = within(await dialog.findByRole('list', { name: '영향받는 워크플로우' }))
-		expect(workflows.getAllByRole('listitem')).toHaveLength(2)
-		expect(workflows.getByText('새 첫 페이지 워크플로우')).toBeInTheDocument()
-		expect(workflows.getByText('새 두 번째 페이지 워크플로우')).toBeInTheDocument()
-		expect(dialog.queryByText('이전 시도 워크플로우')).not.toBeInTheDocument()
-		expect(dialog.getByRole('button', { name: '연동 해제' })).toBeEnabled()
+		expect(
+			await dialog.findByText(/워크플로우 6개는 실행할 때 실패해요: 일정 알림, 주간 회의 정리, 휴가 등록 외 3개/)
+		).toBeVisible()
+		expect(dialog.getByText(/이 중 6개는 연결을 해제해도 계속 자동 실행을 시도해요/)).toBeVisible()
+		expect(dialog.queryByText(/마감 알림/)).not.toBeInTheDocument()
+		expect(dialog.queryByRole('button', { name: /외 3개/ })).not.toBeInTheDocument()
+		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 		expect(observePage.mock.calls).toEqual([
 			[null, '100'],
 			['old-next', '100'],
@@ -92,7 +101,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		])
 
 		await user.click(dialog.getByRole('button', { name: '취소' }))
-		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: 'Notion 연동 해제' })).not.toBeInTheDocument())
+		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument())
 		await waitFor(() => expect(opener).toHaveFocus())
 		expect(deleteRequest).not.toHaveBeenCalled()
 	})
@@ -102,14 +111,14 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		const workflowPath = '*/api/v1/integrations/notion/workflows'
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
-			http.get(workflowPath, () => createImpactPage('first', '기존 워크플로우', null))
+			http.get(workflowPath, () => createImpactPage(null, '기존 워크플로우'))
 		)
 		const { queryClient } = renderAppRoute('/inter-setting')
 
-		await user.click(await screen.findByRole('button', { name: '연동 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' }))
-		expect(await dialog.findByText('기존 워크플로우')).toBeVisible()
-		expect(dialog.getByRole('button', { name: '연동 해제' })).toBeEnabled()
+		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
+		expect(await dialog.findByText(/기존 워크플로우/)).toBeVisible()
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 
 		const refetch = holdResponse()
 		server.use(
@@ -123,21 +132,21 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 				void queryClient.invalidateQueries({ queryKey: queryKeys.integrations.all() })
 			})
 			await dialog.findByRole('region', { name: '연동 해제 안내', busy: true })
-			expect(dialog.getByText('기존 워크플로우')).toBeVisible()
-			expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+			expect(dialog.getByText(/기존 워크플로우/)).toBeVisible()
+			expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		} finally {
 			refetch.release()
 		}
 
-		expect(await dialog.findByRole('alert')).toHaveTextContent('영향받는 워크플로우를 모두 확인하지 못했습니다.')
-		expect(dialog.getByText('기존 워크플로우')).toBeVisible()
-		expect(dialog.queryByRole('button', { name: '연동 해제' })).not.toBeInTheDocument()
+		expect(await dialog.findByRole('alert')).toHaveTextContent('이 연결을 쓰는 워크플로우를 확인하지 못했어요.')
+		expect(dialog.getByText(/기존 워크플로우/)).toBeVisible()
+		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 
-		server.use(http.get(workflowPath, () => createImpactPage('second', '새 워크플로우', null)))
+		server.use(http.get(workflowPath, () => createImpactPage(null, '새 워크플로우')))
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
-		expect(await dialog.findByText('새 워크플로우')).toBeVisible()
-		expect(dialog.queryByText('기존 워크플로우')).not.toBeInTheDocument()
-		expect(dialog.getByRole('button', { name: '연동 해제' })).toBeEnabled()
+		expect(await dialog.findByText(/새 워크플로우/)).toBeVisible()
+		expect(dialog.queryByText(/기존 워크플로우/)).not.toBeInTheDocument()
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 	})
 
 	it('영향 목록 재조회 중 해제가 실패하면 확인 버튼에 포커스를 유지하고 조회 후 키보드로 다시 해제한다', async () => {
@@ -148,7 +157,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		const deleteRequest = vi.fn()
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
-			http.get(workflowPath, () => createImpactPage('first', '기존 워크플로우', null)),
+			http.get(workflowPath, () => createImpactPage(null, '기존 워크플로우')),
 			http.delete('*/api/v1/oauth/connections/NOTION', async () => {
 				deleteRequest()
 				if (deleteRequest.mock.calls.length === 1) {
@@ -162,13 +171,13 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 			})
 		)
 		const { queryClient } = renderAppRoute('/inter-setting')
-		await user.click(await screen.findByRole('button', { name: '연동 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연동 해제' }))
-		const confirm = await dialog.findByRole('button', { name: '연동 해제' })
+		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
+		const confirm = await dialog.findByRole('button', { name: '연결 해제' })
 		server.use(
 			http.get(workflowPath, async () => {
 				await refetch.promise
-				return createImpactPage('second', '새 워크플로우', null)
+				return createImpactPage(null, '새 워크플로우')
 			})
 		)
 
@@ -194,7 +203,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 			refetch.release()
 		}
 
-		expect(await dialog.findByText('새 워크플로우')).toBeVisible()
+		expect(await dialog.findByText(/새 워크플로우/)).toBeVisible()
 		expect(confirm).toHaveFocus()
 		await user.keyboard('{Enter}')
 		await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
