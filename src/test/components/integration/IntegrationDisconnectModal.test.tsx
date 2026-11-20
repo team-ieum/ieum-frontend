@@ -166,9 +166,7 @@ describe('IntegrationDisconnectModal', () => {
 		const rows = dialog.getAllByRole('listitem')
 		expect(rows).toHaveLength(3)
 		WORKFLOWS.forEach((workflow, index) => expect(rows[index]).toHaveTextContent(workflow.name))
-		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).toHaveTextContent(
-			`전체 ${totalCount}개 중 2개는 해제 후에도 자동 실행을 시도해요.`
-		)
+		expect(dialog.getByText(/^전체 /)).toHaveTextContent(`전체 ${totalCount}개 중 2개는 해제 후에도 자동 실행을 시도해요.`)
 		expect(dialog.queryByText(/예약된 시간/)).not.toBeInTheDocument()
 		if (totalCount === 3) {
 			expect(dialog.queryByText(/^외 /)).not.toBeInTheDocument()
@@ -184,7 +182,7 @@ describe('IntegrationDisconnectModal', () => {
 		const dialog = getDialog()
 		expect(dialog.getAllByRole('listitem')).toHaveLength(3)
 		expect(dialog.getByText('외 2개')).toBeVisible()
-		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).not.toHaveTextContent('자동 실행을 시도해요')
+		expect(dialog.queryByText(/^전체 /)).not.toBeInTheDocument()
 	})
 
 	it('키보드로 해제를 제출하면 확인 버튼에 포커스가 남고 응답을 기다리는 동안 재제출이나 취소를 막는다', async () => {

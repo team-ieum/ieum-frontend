@@ -101,9 +101,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		expect(rows[1]).toHaveTextContent('주간 회의 정리')
 		expect(rows[2]).toHaveTextContent('휴가 등록')
 		expect(dialog.getByText('외 3개')).toBeVisible()
-		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).toHaveTextContent(
-			'전체 6개 중 6개는 해제 후에도 자동 실행을 시도해요.'
-		)
+		expect(dialog.getByText(/^전체 /)).toHaveTextContent('전체 6개 중 6개는 해제 후에도 자동 실행을 시도해요.')
 		expect(dialog.queryByText(/마감 알림/)).not.toBeInTheDocument()
 		expect(dialog.queryByRole('button', { name: /외 3개/ })).not.toBeInTheDocument()
 		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()

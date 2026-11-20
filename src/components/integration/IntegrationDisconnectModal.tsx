@@ -48,6 +48,7 @@ const IntegrationDisconnectModal = ({
 	const impactId = useId()
 	const descriptionIds = [service.account?.trim() && accountId, impact && impactId, noticeId].filter(Boolean).join(' ')
 	const cancelRef = useRef<HTMLButtonElement>(null)
+	const showIndividualNotice = impact !== undefined && impact.totalCount <= 2
 	const isCheckingImpact = resource.isLoading || resource.isRefetching
 	const hasImpactError = resource.isLoadingError || resource.isRefetchError
 	// 해제 실패와 목록 재조회가 겹쳐도 포커스된 버튼을 남기고 재시도만 막는다.
@@ -129,7 +130,10 @@ const IntegrationDisconnectModal = ({
 							>
 								{impact && (
 									<div id={impactId}>
-										<IntegrationDisconnectWorkflows impact={impact} />
+										<IntegrationDisconnectWorkflows
+											impact={impact}
+											showIndividualNotice={showIndividualNotice}
+										/>
 									</div>
 								)}
 								{hasImpactError ? (
@@ -167,22 +171,27 @@ const IntegrationDisconnectModal = ({
 									연결을 해제하고 있어요.
 								</p>
 							)}
-							<div
-								id={noticeId}
-								className='mt-2.5 flex min-h-13.75 shrink-0 items-start gap-2 border-t border-neutral-200 pt-3 break-keep wrap-anywhere typo-body3_regular text-neutral-600 max-[600px]:mt-2 max-[600px]:min-h-15.75 max-[600px]:pt-2.5 max-[355px]:min-h-17.5'
-							>
-								<Info size={15} aria-hidden='true' className='mt-0.5 shrink-0' />
-								<p>
-									{OAUTH_DISCONNECT_NOTICE[provider]}
-									{provider === 'GITHUB' && (
-										<>
-											{' '}
-											<br />
-											GitHub 설정의 <strong className='typo-body3_semibold'>Applications</strong>에서 제거할
-											수 있어요.
-										</>
-									)}
-								</p>
+							<div id={noticeId} className='flex shrink-0 flex-col'>
+								{impact && !showIndividualNotice && impact.automaticCount > 0 && (
+									<p className='pt-2 break-keep typo-body3_regular text-main-deep-blue'>
+										전체 {impact.totalCount}개 중 <strong>{impact.automaticCount}개</strong>는 해제 후에도
+										자동 실행을 시도해요.
+									</p>
+								)}
+								<div className='mt-2.5 flex min-h-13.75 shrink-0 items-start gap-2 border-t border-neutral-200 pt-3 break-keep wrap-anywhere typo-body3_regular text-neutral-600 max-[600px]:mt-2 max-[600px]:min-h-15.75 max-[600px]:pt-2.5 max-[355px]:min-h-17.5'>
+									<Info size={15} aria-hidden='true' className='mt-0.5 shrink-0' />
+									<p>
+										{OAUTH_DISCONNECT_NOTICE[provider]}
+										{provider === 'GITHUB' && (
+											<>
+												{' '}
+												<br />
+												GitHub 설정의 <strong className='typo-body3_semibold'>Applications</strong>에서
+												제거할 수 있어요.
+											</>
+										)}
+									</p>
+								</div>
 							</div>
 							<div className='flex shrink-0 justify-end gap-2 pt-3 pb-4.5 max-[600px]:pt-2 max-[600px]:pb-3.5'>
 								<button

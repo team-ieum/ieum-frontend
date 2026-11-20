@@ -3,16 +3,16 @@ import { cn } from '@/utils/cn'
 
 type IntegrationDisconnectWorkflowsProps = {
 	impact: OAuthDisconnectImpact
+	showIndividualNotice: boolean
 }
 
-const IntegrationDisconnectWorkflows = ({ impact }: IntegrationDisconnectWorkflowsProps) => {
-	const { totalCount, workflows, automaticCount } = impact
+const IntegrationDisconnectWorkflows = ({ impact, showIndividualNotice }: IntegrationDisconnectWorkflowsProps) => {
+	const { totalCount, workflows } = impact
 	if (totalCount === 0) {
 		return <p className='mt-2 break-keep typo-body2_regular text-neutral-600'>현재 이 연결을 쓰는 워크플로우는 없어요.</p>
 	}
 
 	const remainingCount = totalCount - workflows.length
-	const showIndividualNotice = totalCount <= 2
 
 	return (
 		<>
@@ -40,7 +40,7 @@ const IntegrationDisconnectWorkflows = ({ impact }: IntegrationDisconnectWorkflo
 							{workflow.statusLabel}
 						</span>
 						<div className={cn('wrap-anywhere typo-body2_regular', showIndividualNotice ? 'mt-0.75' : 'mt-0.5')}>
-							<strong className='typo-body2_bold text-neutral-800'>{workflow.name}</strong>{' '}
+							<span className='text-neutral-800'>{workflow.name}</span>{' '}
 							<span className='typo-caption1_regular text-neutral-600'>· {workflow.triggerLabel}</span>
 						</div>
 						{showIndividualNotice && workflow.automaticNotice && (
@@ -50,11 +50,6 @@ const IntegrationDisconnectWorkflows = ({ impact }: IntegrationDisconnectWorkflo
 				))}
 			</ul>
 			{remainingCount > 0 && <p className='typo-body3_medium text-neutral-600'>외 {remainingCount}개</p>}
-			{!showIndividualNotice && automaticCount > 0 && (
-				<p className='mt-2.5 break-keep typo-body3_regular text-main-deep-blue max-[600px]:mt-2'>
-					전체 {totalCount}개 중 <strong>{automaticCount}개</strong>는 해제 후에도 자동 실행을 시도해요.
-				</p>
-			)}
 		</>
 	)
 }
