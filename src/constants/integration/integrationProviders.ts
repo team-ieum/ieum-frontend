@@ -72,6 +72,8 @@ export const isOAuthConnectServiceId = (serviceId: string): serviceId is OAuthCo
  */
 export const OAUTH_RECONNECT_SERVICE_ID_BY_PROVIDER: Partial<Record<string, OAuthConnectServiceId>> = {
 	GOOGLE: 'google-calendar',
+	NOTION: 'notion',
+	GITHUB: 'github',
 }
 
 type OAuthDisconnectConfig = {

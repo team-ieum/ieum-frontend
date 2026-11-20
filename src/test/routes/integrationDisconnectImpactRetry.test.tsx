@@ -36,6 +36,15 @@ const NOTION_CONNECTIONS_HANDLER = http.get('*/api/v1/oauth/connections', () =>
 	})
 )
 
+const NOTION_DETAIL_PATH = `/inter-setting?serviceId=oauth-${oauthConnectionsResponse.data[0].id}`
+
+// 상세 목록(size=20)은 기본 MSW 응답을 쓰고 확인창의 전체 영향 조회(size=100)만 바꾼다.
+const mockNotionImpact = (respond: (params: URLSearchParams) => Response | Promise<Response>) =>
+	http.get('*/api/v1/integrations/notion/workflows', ({ request }) => {
+		const params = new URL(request.url).searchParams
+		if (params.get('size') === '100') return respond(params)
+	})
+
 const holdResponse = () => {
 	let release!: () => void
 	const promise = new Promise<void>(resolve => {
@@ -52,8 +61,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		let firstPageRequests = 0
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
-			http.get('*/api/v1/integrations/notion/workflows', ({ request }) => {
-				const params = new URL(request.url).searchParams
+			mockNotionImpact(params => {
 				const cursor = params.get('cursor')
 				observePage(cursor, params.get('size'))
 				if (cursor === null) {
@@ -70,12 +78,13 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
 			})
 		)
-		renderAppRoute('/inter-setting')
-
-		const notionHeading = await screen.findByRole('heading', { name: 'Notion' })
+		const { router } = renderAppRoute('/inter-setting')
+		const notionHeading = await screen.findByRole('heading', { name: 'Notion', level: 3 })
 		const notionCard = notionHeading.closest('article')
 		if (!notionCard) throw new Error('Notion 연결 카드를 찾지 못했습니다.')
-		const opener = within(notionCard).getByRole('button', { name: '연결 해제' })
+		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		await user.click(within(notionCard).getByRole('button', { name: '관리' }))
+		const opener = await screen.findByRole('button', { name: '연결 해제' })
 		await user.click(opener)
 		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
 
@@ -103,17 +112,17 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		await user.click(dialog.getByRole('button', { name: '취소' }))
 		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument())
 		await waitFor(() => expect(opener).toHaveFocus())
+		expect(router.state.location.pathname + router.state.location.search).toBe(NOTION_DETAIL_PATH)
 		expect(deleteRequest).not.toHaveBeenCalled()
 	})
 
 	it('완료한 영향 목록은 재조회 중이거나 실패해도 표시하고 새 목록을 확인한 뒤에만 해제를 허용한다', async () => {
 		const user = userEvent.setup()
-		const workflowPath = '*/api/v1/integrations/notion/workflows'
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
-			http.get(workflowPath, () => createImpactPage(null, '기존 워크플로우'))
+			mockNotionImpact(() => createImpactPage(null, '기존 워크플로우'))
 		)
-		const { queryClient } = renderAppRoute('/inter-setting')
+		const { queryClient } = renderAppRoute(NOTION_DETAIL_PATH)
 
 		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
 		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
@@ -122,7 +131,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 
 		const refetch = holdResponse()
 		server.use(
-			http.get(workflowPath, async () => {
+			mockNotionImpact(async () => {
 				await refetch.promise
 				return new HttpResponse(null, { status: 503 })
 			})
@@ -142,7 +151,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		expect(dialog.getByText(/기존 워크플로우/)).toBeVisible()
 		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 
-		server.use(http.get(workflowPath, () => createImpactPage(null, '새 워크플로우')))
+		server.use(mockNotionImpact(() => createImpactPage(null, '새 워크플로우')))
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
 		expect(await dialog.findByText(/새 워크플로우/)).toBeVisible()
 		expect(dialog.queryByText(/기존 워크플로우/)).not.toBeInTheDocument()
@@ -151,13 +160,12 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 
 	it('영향 목록 재조회 중 해제가 실패하면 확인 버튼에 포커스를 유지하고 조회 후 키보드로 다시 해제한다', async () => {
 		const user = userEvent.setup()
-		const workflowPath = '*/api/v1/integrations/notion/workflows'
 		const refetch = holdResponse()
 		const firstDelete = holdResponse()
 		const deleteRequest = vi.fn()
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
-			http.get(workflowPath, () => createImpactPage(null, '기존 워크플로우')),
+			mockNotionImpact(() => createImpactPage(null, '기존 워크플로우')),
 			http.delete('*/api/v1/oauth/connections/NOTION', async () => {
 				deleteRequest()
 				if (deleteRequest.mock.calls.length === 1) {
@@ -170,12 +178,12 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
 			})
 		)
-		const { queryClient } = renderAppRoute('/inter-setting')
+		const { queryClient } = renderAppRoute(NOTION_DETAIL_PATH)
 		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
 		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
 		const confirm = await dialog.findByRole('button', { name: '연결 해제' })
 		server.use(
-			http.get(workflowPath, async () => {
+			mockNotionImpact(async () => {
 				await refetch.promise
 				return createImpactPage(null, '새 워크플로우')
 			})

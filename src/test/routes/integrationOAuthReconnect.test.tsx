@@ -13,6 +13,7 @@ const RECONNECT_CASES = [
 		label: 'GitHub',
 		provider: 'GITHUB',
 		serviceType: 'github',
+		entry: 'list',
 		isAlreadyDisconnected: false,
 		notice: /GitHub 앱은 설치된 채로 남아요\. GitHub 설정 > Applications에서 따로 삭제할 수 있어요/,
 		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
@@ -21,6 +22,7 @@ const RECONNECT_CASES = [
 		label: 'Notion',
 		provider: 'NOTION',
 		serviceType: 'notion',
+		entry: 'detail',
 		isAlreadyDisconnected: true,
 		notice: /Notion에도 이음의 접근 권한을 취소해 달라고 요청해요/,
 		authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
@@ -41,7 +43,7 @@ afterEach(() => {
 
 describe('공용 OAuth 연동 해제 후 재연결', () => {
 	it.each(RECONNECT_CASES)('$label 해제를 확인하면 목록을 갱신하고 복원된 타일에서 다시 연결한다', async config => {
-		const { label, provider, serviceType, isAlreadyDisconnected, notice, authorizeUrl } = config
+		const { label, provider, serviceType, entry, isAlreadyDisconnected, notice, authorizeUrl } = config
 		const user = userEvent.setup()
 		const assign = vi.fn()
 		vi.stubGlobal('location', { ...window.location, assign })
@@ -73,7 +75,7 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 				getWorkflows(params.serviceType, size)
 				return HttpResponse.json({
 					success: true,
-					data: { content: [], size: 100, hasNext: false, nextCursor: null },
+					data: { content: [], size: Number(size), hasNext: false, nextCursor: null },
 					message: 'success',
 					code: 'SUCCESS',
 				})
@@ -94,43 +96,63 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 				return HttpResponse.json({ success: true, data: { authorizationUrl: authorizeUrl }, message: 'OK', code: 'OK' })
 			})
 		)
-		renderAppRoute('/inter-setting')
-
-		const connectedCard = await findCard(label)
-		const opener = within(connectedCard).getByRole('button', { name: '연결 해제' })
+		const serviceId = `oauth-${connection.id}`
+		const initialSearch = entry === 'detail' ? `?serviceId=${serviceId}&source=test` : '?source=test'
+		const { router } = renderAppRoute(`/inter-setting${initialSearch}`)
+		if (entry === 'list') {
+			const connectedCard = within(await findCard(label))
+			expect(connectedCard.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+			await user.click(connectedCard.getByRole('button', { name: '관리' }))
+		}
+		await screen.findByRole('heading', { level: 2, name: label })
+		expect(new URLSearchParams(router.state.location.search).get('serviceId')).toBe(serviceId)
+		const opener = screen.getByRole('button', { name: '연결 해제' })
 		await user.click(opener)
 		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
 		const confirm = await within(dialog).findByRole('button', { name: '연결 해제' })
 		expect(dialog).toHaveTextContent(notice)
 		expect(dialog).toHaveTextContent('이 연결을 쓰는 워크플로우는 없어요.')
-		expect(getWorkflows).toHaveBeenCalledExactlyOnceWith(serviceType, '100')
+		expect(getWorkflows.mock.calls).toEqual([
+			[provider, '20'],
+			[serviceType, '100'],
+		])
 		expect(deleteConnection).not.toHaveBeenCalled()
-		// 해제가 끝나도 목록 재조회가 느리면 연 버튼이 남아 있다. 이때도 포커스는 사용 가능한 서비스로 돌아간다.
+		// 재조회가 늦어 목록에 이전 관리 버튼이 남더라도 키보드 포커스는 사용 가능한 서비스로 보낸다.
 		let releaseList!: () => void
 		const listResponse = new Promise<void>(resolve => {
 			releaseList = resolve
 		})
 		server.use(createResourceHoldHandler('oauthConnections', listResponse))
-		const available = screen.getByRole('region', { name: '사용 가능한 서비스' })
 		const focusOnDisconnectedService = vi.fn()
-		opener.addEventListener('focus', focusOnDisconnectedService, { once: true })
+		const trackStaleFocus = (event: FocusEvent) => {
+			const target = event.target
+			if (target === opener || (target instanceof HTMLButtonElement && target.textContent === '관리')) {
+				focusOnDisconnectedService()
+			}
+		}
+		document.addEventListener('focusin', trackStaleFocus)
 		try {
 			if (isAlreadyDisconnected) isConnected = false
 			await user.click(confirm)
 			await waitFor(() => expect(dialog).not.toBeInTheDocument())
+			const available = await screen.findByRole('region', { name: '사용 가능한 서비스' })
 			await waitFor(() => expect(available).toHaveFocus())
-			expect(connectedCard).toBeInTheDocument()
+			expect(router.state.location.search).toBe('?source=test')
+			const cachedCard = await findCard(label)
+			expect(within(cachedCard).getByRole('button', { name: '관리' })).toBeVisible()
+			releaseList()
+			await waitFor(() => expect(cachedCard).not.toBeInTheDocument())
+			expect(available).toHaveFocus()
+			expect(focusOnDisconnectedService).not.toHaveBeenCalled()
 		} finally {
 			releaseList()
+			document.removeEventListener('focusin', trackStaleFocus)
 		}
 
-		await waitFor(() => expect(connectedCard).not.toBeInTheDocument())
-		expect(focusOnDisconnectedService).not.toHaveBeenCalled()
 		expect(listConnections).toHaveBeenCalledWith(true)
 		expect(listConnections).toHaveBeenLastCalledWith(false)
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
 		expect(screen.queryByText(alreadyDisconnectedMessage)).not.toBeInTheDocument()
-		expect(available).toHaveFocus()
 		expect(within(await findCard('Google')).queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		const availableTile = await findCard(label)
 		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))

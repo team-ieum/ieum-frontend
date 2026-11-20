@@ -68,7 +68,7 @@ const IntegrationDisconnectModal = ({
 					return false
 				},
 				allowOutsideClick: true,
-				// 취소와 해제 성공의 복원 대상이 다르므로 트랩이 닫힐 때 한 번만 이동한다.
+				// 취소하면 상세의 해제 버튼으로 돌아가고, 성공하면 목록이 포커스를 넘겨받는다.
 				setReturnFocus: getReturnFocusTarget,
 			}}
 		>

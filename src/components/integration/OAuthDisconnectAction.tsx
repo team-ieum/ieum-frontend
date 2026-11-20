@@ -1,10 +1,10 @@
 import { useRef, useState, type RefObject } from 'react'
 import { useIsPresent } from 'framer-motion'
-import { Link2Off } from 'lucide-react'
 import { isOAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
 import { useOAuthDisconnectPreview } from '@/hooks/integration/useOAuthDisconnectPreview'
 import type { IntegrationService } from '@/types/integration'
 import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
+import IntegrationDisconnectButton from './IntegrationDisconnectButton'
 import IntegrationDisconnectModal from './IntegrationDisconnectModal'
 
 type OAuthDisconnectDialogProps = {
@@ -12,25 +12,25 @@ type OAuthDisconnectDialogProps = {
 	provider: OAuthDisconnectProvider
 	openerRef: RefObject<HTMLButtonElement | null>
 	onClose: () => void
+	onDisconnected: () => void
 }
 
-const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose }: OAuthDisconnectDialogProps) => {
-	const isDisconnectedRef = useRef(false)
+const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose, onDisconnected }: OAuthDisconnectDialogProps) => {
+	const wasCancelledRef = useRef(false)
 	const preview = useOAuthDisconnectPreview({
 		provider,
 		connectionId: service.id,
-		onCancel: onClose,
-		onDisconnected: () => {
-			isDisconnectedRef.current = true
+		onCancel: () => {
+			wasCancelledRef.current = true
 			onClose()
 		},
+		onDisconnected,
 	})
 
 	const getReturnFocusTarget = () => {
 		const opener = openerRef.current
-		if (!isDisconnectedRef.current && opener?.isConnected) return opener
-		// 해제 직후에는 재조회가 끝날 때까지 이전 카드가 남을 수 있다.
-		return document.getElementById('integration-available') ?? false
+		// 성공하면 상세가 사라지므로 목록이 열린 뒤 페이지에서 포커스를 복원한다.
+		return wasCancelledRef.current && opener?.isConnected ? opener : false
 	}
 
 	return (
@@ -52,10 +52,11 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose }: OAuthD
 
 type OAuthDisconnectActionProps = {
 	service: IntegrationService
+	onDisconnected: () => void
 }
 
-/** 연결 목록에서 Notion·GitHub의 전체 영향을 확인한 뒤 해제한다. */
-const OAuthDisconnectAction = ({ service }: OAuthDisconnectActionProps) => {
+/** 상세에서 Notion·GitHub 해제의 영향을 확인하고 성공하면 목록으로 돌아간다. */
+const OAuthDisconnectAction = ({ service, onDisconnected }: OAuthDisconnectActionProps) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const openerRef = useRef<HTMLButtonElement>(null)
 	const isPresent = useIsPresent()
@@ -64,16 +65,7 @@ const OAuthDisconnectAction = ({ service }: OAuthDisconnectActionProps) => {
 
 	return (
 		<>
-			<button
-				ref={openerRef}
-				type='button'
-				aria-haspopup='dialog'
-				onClick={() => setIsOpen(true)}
-				className='mt-2 inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-brand-sm border border-danger-300 bg-neutral-white px-3 typo-body3_semibold text-danger-800 hover:bg-danger-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
-			>
-				<Link2Off size={15} aria-hidden='true' />
-				연결 해제
-			</button>
+			<IntegrationDisconnectButton buttonRef={openerRef} onClick={() => setIsOpen(true)} />
 			{isOpen && (
 				<OAuthDisconnectDialog
 					key={service.id}
@@ -81,6 +73,7 @@ const OAuthDisconnectAction = ({ service }: OAuthDisconnectActionProps) => {
 					provider={provider}
 					openerRef={openerRef}
 					onClose={() => setIsOpen(false)}
+					onDisconnected={onDisconnected}
 				/>
 			)}
 		</>

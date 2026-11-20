@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { render, screen, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import OAuthDisconnectAction from '@/components/integration/OAuthDisconnectAction'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 import type { IntegrationService } from '@/types/integration'
@@ -24,8 +24,8 @@ describe('OAuthDisconnectAction', () => {
 			<QueryClientProvider client={client}>
 				<AnimatePresence>
 					{show && (
-						<motion.div key='list' exit={{ opacity: 0 }}>
-							<OAuthDisconnectAction service={NOTION_SERVICE} />
+						<motion.div key='detail' exit={{ opacity: 0 }}>
+							<OAuthDisconnectAction service={NOTION_SERVICE} onDisconnected={vi.fn()} />
 						</motion.div>
 					)}
 				</AnimatePresence>

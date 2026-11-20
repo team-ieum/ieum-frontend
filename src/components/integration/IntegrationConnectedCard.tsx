@@ -6,7 +6,6 @@ import type { IntegrationService } from '@/types/integration'
 import { toConnectedDisplayStatus } from '@/utils/integration/selectors'
 import { cn } from '@/utils/cn'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
-import OAuthDisconnectAction from './OAuthDisconnectAction'
 
 type IntegrationConnectedCardProps = {
 	service: IntegrationService
@@ -67,7 +66,6 @@ const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: Inte
 					관리
 					<ChevronRight size={14} />
 				</button>
-				<OAuthDisconnectAction service={service} />
 			</div>
 		</article>
 	)
