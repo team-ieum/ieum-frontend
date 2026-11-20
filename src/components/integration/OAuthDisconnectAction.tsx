@@ -35,9 +35,9 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose, onDiscon
 
 	return (
 		<IntegrationDisconnectModal
-			serviceName={service.name}
+			service={service}
 			provider={provider}
-			affectedNotice={preview.affectedNotice}
+			impact={preview.impact}
 			resource={preview.resource}
 			canConfirm={preview.canConfirm}
 			isSubmitting={preview.isSubmitting}

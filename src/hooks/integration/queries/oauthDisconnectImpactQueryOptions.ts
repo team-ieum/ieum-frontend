@@ -4,7 +4,7 @@ import { QUERY_STALE_TIME_MS } from '@/constants/queryCache'
 import { queryKeys } from '@/constants/queryKeys'
 import type { IntegrationServiceWorkflowDto } from '@/types/integrationWorkflows'
 import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
-import { formatDisconnectImpactNotice } from '@/utils/integration/formatDisconnectImpactNotice'
+import { getOAuthDisconnectImpact } from '@/utils/integration/getOAuthDisconnectImpact'
 
 const IMPACT_PAGE_SIZE = 100
 
@@ -33,7 +33,7 @@ export const oauthDisconnectImpactQueryOptions = (provider: OAuthDisconnectProvi
 	queryOptions({
 		queryKey: queryKeys.integrations.oauthDisconnectImpact(provider, connectionId),
 		queryFn: ({ signal }) => getAllIntegrationServiceWorkflows(provider, signal),
-		select: formatDisconnectImpactNotice,
+		select: getOAuthDisconnectImpact,
 		staleTime: QUERY_STALE_TIME_MS.oauthDisconnectImpact,
 		gcTime: 0,
 		refetchOnMount: 'always',

@@ -33,7 +33,7 @@ describe('OAuthDisconnectAction', () => {
 		)
 		const { rerender } = render(view(true))
 		await user.click(screen.getByRole('button', { name: '연결 해제' }))
-		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		const dialog = await screen.findByRole('alertdialog', { name: 'Notion 연결을 해제할까요?' })
 		await within(dialog).findByRole('button', { name: '연결 해제' })
 
 		rerender(view(false))

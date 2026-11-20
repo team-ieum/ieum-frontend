@@ -86,7 +86,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		await user.click(within(notionCard).getByRole('button', { name: '관리' }))
 		const opener = await screen.findByRole('button', { name: '연결 해제' })
 		await user.click(opener)
-		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연결을 해제할까요?' }))
 
 		expect(await dialog.findByRole('alert')).toHaveTextContent('이 연결을 쓰는 워크플로우를 확인하지 못했어요.')
 		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()
@@ -94,10 +94,16 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		expect(deleteRequest).not.toHaveBeenCalled()
 
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
-		expect(
-			await dialog.findByText(/워크플로우 6개는 실행할 때 실패해요: 일정 알림, 주간 회의 정리, 휴가 등록 외 3개/)
-		).toBeVisible()
-		expect(dialog.getByText(/이 중 6개는 연결을 해제해도 계속 자동 실행을 시도해요/)).toBeVisible()
+		expect(await dialog.findByText('이 연결을 쓰는 워크플로우 6개가 다음 실행부터 실패해요.')).toBeVisible()
+		const rows = dialog.getAllByRole('listitem')
+		expect(rows).toHaveLength(3)
+		expect(rows[0]).toHaveTextContent('일정 알림')
+		expect(rows[1]).toHaveTextContent('주간 회의 정리')
+		expect(rows[2]).toHaveTextContent('휴가 등록')
+		expect(dialog.getByText('외 3개')).toBeVisible()
+		expect(dialog.getByRole('region', { name: '연동 해제 안내' })).toHaveTextContent(
+			'전체 6개 중 6개는 해제 후에도 자동 실행을 시도해요.'
+		)
 		expect(dialog.queryByText(/마감 알림/)).not.toBeInTheDocument()
 		expect(dialog.queryByRole('button', { name: /외 3개/ })).not.toBeInTheDocument()
 		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()
@@ -110,7 +116,9 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		])
 
 		await user.click(dialog.getByRole('button', { name: '취소' }))
-		await waitFor(() => expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument())
+		await waitFor(() =>
+			expect(screen.queryByRole('alertdialog', { name: 'Notion 연결을 해제할까요?' })).not.toBeInTheDocument()
+		)
 		await waitFor(() => expect(opener).toHaveFocus())
 		expect(router.state.location.pathname + router.state.location.search).toBe(NOTION_DETAIL_PATH)
 		expect(deleteRequest).not.toHaveBeenCalled()
@@ -125,7 +133,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		const { queryClient } = renderAppRoute(NOTION_DETAIL_PATH)
 
 		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연결을 해제할까요?' }))
 		expect(await dialog.findByText(/기존 워크플로우/)).toBeVisible()
 		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 
@@ -180,7 +188,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		)
 		const { queryClient } = renderAppRoute(NOTION_DETAIL_PATH)
 		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
-		const dialog = within(await screen.findByRole('alertdialog', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog', { name: 'Notion 연결을 해제할까요?' }))
 		const confirm = await dialog.findByRole('button', { name: '연결 해제' })
 		server.use(
 			mockNotionImpact(async () => {

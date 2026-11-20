@@ -79,7 +79,10 @@ describe('useOAuthDisconnectPreview', () => {
 			act(() => {
 				void preview.result.current.handleConfirm()
 			})
-			expect(preview.result.current.affectedNotice).toContain(cachedWorkflow.name)
+			expect(preview.result.current.impact).toMatchObject({
+				totalCount: 1,
+				workflows: [{ id: cachedWorkflow.id, name: cachedWorkflow.name }],
+			})
 			expect(preview.result.current.canConfirm).toBe(false)
 			preview.unmount()
 			expect(signal?.aborted).toBe(true)

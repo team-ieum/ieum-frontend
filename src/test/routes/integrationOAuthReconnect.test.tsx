@@ -15,7 +15,7 @@ const RECONNECT_CASES = [
 		serviceType: 'github',
 		entry: 'list',
 		isAlreadyDisconnected: false,
-		notice: /GitHub 앱은 설치된 채로 남아요\. GitHub 설정 > Applications에서 따로 삭제할 수 있어요/,
+		notice: /GitHub 앱은 설치된 상태로 남아요\. GitHub 설정의 Applications에서 제거할 수 있어요/,
 		authorizeUrl: 'https://github.com/login/oauth/authorize?client_id=ieum-test',
 	},
 	{
@@ -108,10 +108,11 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		expect(new URLSearchParams(router.state.location.search).get('serviceId')).toBe(serviceId)
 		const opener = screen.getByRole('button', { name: '연결 해제' })
 		await user.click(opener)
-		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		const dialog = await screen.findByRole('alertdialog', { name: `${label} 연결을 해제할까요?` })
 		const confirm = await within(dialog).findByRole('button', { name: '연결 해제' })
 		expect(dialog).toHaveTextContent(notice)
-		expect(dialog).toHaveTextContent('이 연결을 쓰는 워크플로우는 없어요.')
+		expect(within(dialog).getByText(connection.providerAccountId)).toBeVisible()
+		expect(within(dialog).getByText('현재 이 연결을 쓰는 워크플로우는 없어요.')).toBeVisible()
 		expect(getWorkflows.mock.calls).toEqual([
 			[provider, '20'],
 			[serviceType, '100'],
