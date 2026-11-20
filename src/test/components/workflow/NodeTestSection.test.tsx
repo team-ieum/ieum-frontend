@@ -194,6 +194,23 @@ describe('NodeTestSection', () => {
 		expect(screen.getByText('최근 항목이 없습니다')).toBeInTheDocument()
 	})
 
+	it('API 키 없이 실행해 MISSING_CREDENTIAL로 실패하면 서버 원문 대신 API 키를 고르라고 안내한다', async () => {
+		const user = userEvent.setup()
+		// BE가 agent 응답 본문을 그대로 붙인 실서버 FAILED error 형태다.
+		const error = '에이전트 서비스 오류 (HTTP 400): {"detail":"LLM 헤더가 누락되었습니다.","errorCode":"MISSING_CREDENTIAL"}'
+		observeTestRequests(() => ok({ status: 'FAILED', error, testedAt: '2026-11-16T10:00:00' }))
+		renderSection(aiNode)
+		await screen.findByText('아직 테스트하지 않았어요.')
+
+		await user.click(getTestButton())
+		await user.click(screen.getByRole('button', { name: '테스트 실행' }))
+
+		expect(
+			await screen.findByText("AI API 키가 없어 실행하지 못했어요. 'API 키' 칸에서 등록한 키를 골라 주세요.")
+		).toBeInTheDocument()
+		expect(screen.queryByText(/에이전트 서비스 오류|MISSING_CREDENTIAL|LLM 헤더/)).not.toBeInTheDocument()
+	})
+
 	it('실행 중에는 버튼을 끄고 진행 중임을 알린다', async () => {
 		const user = userEvent.setup()
 		let release!: () => void
