@@ -25,6 +25,7 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 | Workflow list        |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다. |
 | Workflow detail      |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.       |
 | OAuth connections    |        10초 | 외부 연결 상태의 최신성을 우선한다.                                   |
+| OAuth 해제 영향      |         0초 | Notion·GitHub 해제 전 모든 페이지를 새로 확인한다. `gcTime`은 0이다.  |
 | Webhook credentials  |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                       |
 | AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
 | AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
@@ -68,6 +69,7 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 | Webhook 생성·삭제         | Webhook credentials list exact key                |
 | OAuth callback 완료       | OAuth connections list exact key                  |
 | OAuth 연결 해제(Slack)    | OAuth connections list exact key                  |
+| Notion·GitHub 연결 해제   | OAuth connections list exact key (이미 해제 포함) |
 | Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
 | 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
 

@@ -1,9 +1,10 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
-import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { googleIntegrationWorkflowsResponse, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import { useModalStore } from '@/stores/useModalStore'
@@ -285,16 +286,71 @@ describe('통합 설정 Slack 봇 연결', () => {
 	})
 
 	it('해제·재연결 경로가 없는 OAuth 연결 상세에는 연결 해제·다시 연결 버튼을 표시하지 않는다', async () => {
+		const connection = { ...oauthConnectionsResponse.data[0], provider: 'UNKNOWN', providerAccountId: 'unknown-account' }
 		server.use(
-			http.get('*/api/v1/oauth/connections', () =>
-				HttpResponse.json({ ...oauthConnectionsResponse, data: [GITHUB_OAUTH_CONNECTION] })
-			)
+			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] }))
 		)
-		renderAppRoute(`/inter-setting?serviceId=oauth-${GITHUB_OAUTH_CONNECTION.id}`)
+		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
 
-		await screen.findByRole('heading', { level: 2, name: 'GitHub' })
+		await screen.findByText(connection.providerAccountId)
+		expect(screen.getByRole('button', { name: '연결된 서비스 목록' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 연결' })).not.toBeInTheDocument()
+	})
+})
+
+describe('Notion·GitHub 연결 관리', () => {
+	it.each([
+		{
+			label: 'GitHub',
+			connection: GITHUB_OAUTH_CONNECTION,
+			workflowName: '새 이슈 알림',
+			authorizeUrl: GITHUB_AUTHORIZE_URL,
+		},
+		{
+			label: 'Notion',
+			connection: {
+				...oauthConnectionsResponse.data[0],
+				provider: 'NOTION',
+				providerAccountId: 'notion-team',
+				displayName: '팀 워크스페이스',
+				scopes: [],
+			},
+			workflowName: '주간 회의록 정리',
+			authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
+		},
+	])('$label 상세에 연결 정보와 워크플로우를 표시하고 다시 연결하면 해당 서비스로 이동한다', async config => {
+		const { label, connection, workflowName, authorizeUrl } = config
+		const user = userEvent.setup()
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+		const { data } = googleIntegrationWorkflowsResponse
+		server.use(
+			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] })),
+			http.get(`*/api/v1/integrations/${connection.provider}/workflows`, () =>
+				HttpResponse.json({
+					...googleIntegrationWorkflowsResponse,
+					data: { ...data, content: [{ ...data.content[0], name: workflowName }] },
+				})
+			),
+			http.get(`*/api/v1/${connection.provider.toLowerCase()}/oauth2/authorize`, () =>
+				HttpResponse.json({ success: true, data: { authorizationUrl: authorizeUrl }, message: 'OK', code: 'OK' })
+			)
+		)
+		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
+
+		await screen.findByRole('heading', { level: 2, name: label })
+		expect(screen.getByText(connection.displayName ?? connection.providerAccountId)).toBeInTheDocument()
+		if (connection.scopes.length) {
+			expect(screen.getByRole('heading', { name: '권한 범위' })).toBeInTheDocument()
+			expect(screen.getByText(connection.scopes[0])).toBeInTheDocument()
+		} else {
+			expect(screen.queryByRole('heading', { name: '권한 범위' })).not.toBeInTheDocument()
+		}
+		expect(await screen.findByRole('button', { name: new RegExp(workflowName) })).toBeInTheDocument()
+		await user.click(screen.getByRole('button', { name: '다시 연결' }))
+		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(authorizeUrl))
 	})
 })
 
