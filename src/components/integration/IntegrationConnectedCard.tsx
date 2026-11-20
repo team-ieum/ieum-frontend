@@ -15,6 +15,7 @@ type IntegrationConnectedCardProps = {
 
 const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: IntegrationConnectedCardProps) => {
 	const brand = getBrandConfig(service.brand)
+	const cardTint = service.brand === 'notion' || service.brand === 'github' ? getBrandConfig('google').tint : brand.tint
 	const displayStatus = toConnectedDisplayStatus(service.status)
 	const status = INTEGRATION_STATUS_LABEL[displayStatus]
 	const manageButtonRef = useCallback(
@@ -25,7 +26,7 @@ const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: Inte
 	return (
 		<article
 			className='flex h-full w-full min-w-0 flex-col overflow-hidden rounded-brand-md border border-neutral-200 bg-neutral-white shadow-sm transition-shadow hover:shadow-md'
-			style={{ background: `linear-gradient(180deg, ${brand.tint} 0%, #fff 42%)` }}
+			style={{ background: `linear-gradient(180deg, ${cardTint} 0%, var(--color-neutral-white) 42%)` }}
 		>
 			<div className='flex items-start gap-3 p-4'>
 				<span className='grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-neutral-white text-neutral-900'>
