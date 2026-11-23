@@ -7,6 +7,7 @@ import {
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
 	getNodeTestErrorMessage,
+	getNodeTestFailureMessage,
 	isManualRun,
 	isSampleRecordedSince,
 	parseManualRunInput,
@@ -209,6 +210,32 @@ describe('nodeTest', () => {
 			['숫자', '42'],
 		])('%s은 객체가 아니라서 거부한다', (_, text) => {
 			expect(parseManualRunInput(text)).toEqual({ ok: false, error: '중괄호로 감싼 객체({ … })만 넣을 수 있어요.' })
+		})
+	})
+	describe('getNodeTestFailureMessage', () => {
+		const MISSING_CREDENTIAL_MESSAGE = "AI API 키가 없어 실행하지 못했어요. 'API 키' 칸에서 등록한 키를 골라 주세요."
+
+		it.each([
+			[
+				'실서버 원문',
+				'에이전트 서비스 오류 (HTTP 400): {"detail":"LLM 헤더가 누락되었습니다.","errorCode":"MISSING_CREDENTIAL"}',
+			],
+			['키·값 사이 공백', '{"detail": "LLM 헤더가 누락되었습니다.", "errorCode" : "MISSING_CREDENTIAL"}'],
+			['앞부분 문구가 다른 경우', 'agent error 400 {"errorCode":"MISSING_CREDENTIAL"}'],
+		])('errorCode가 MISSING_CREDENTIAL이면(%s) 원문 대신 API 키 안내로 바꾼다', (_, error) => {
+			expect(getNodeTestFailureMessage(error)).toBe(MISSING_CREDENTIAL_MESSAGE)
+		})
+
+		it.each([
+			['다른 errorCode', '에이전트 서비스 오류 (HTTP 400): {"detail":"잘못된 요청","errorCode":"INVALID_INPUT"}'],
+			['코드 이름만 문장에 나온 경우', 'MISSING_CREDENTIAL 오류가 났어요'],
+			['일반 실패 문구', '최근 항목이 없습니다'],
+		])('%s는 서버 문구를 그대로 보여 준다', (_, error) => {
+			expect(getNodeTestFailureMessage(error)).toBe(error)
+		})
+
+		it.each([undefined, ''])('error가 없으면(%j) 기본 실패 문구를 보여 준다', error => {
+			expect(getNodeTestFailureMessage(error)).toBe('실행에 실패했어요.')
 		})
 	})
 })
