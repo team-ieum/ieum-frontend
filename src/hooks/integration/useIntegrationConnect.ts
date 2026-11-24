@@ -15,18 +15,22 @@ export const useIntegrationConnect = () => {
 	const [webhookConnectServiceId, setWebhookConnectServiceId] = useState<WebhookConnectServiceId | null>(null)
 	const openModal = useModalStore(state => state.open)
 
-	const cancelOAuthConnect = useCallback(() => {
-		connectRequestId.current += 1
-		setConnectingId(null)
-	}, [])
-
 	useLayoutEffect(() => {
 		activeLocationKey.current = locationKey
-		return () => {
-			activeLocationKey.current = null
-			cancelOAuthConnect()
+		// 인가 화면에서 뒤로 오면 브라우저가 이동 직전의 버튼 상태까지 복원한다.
+		const handlePageShow = (event: PageTransitionEvent) => {
+			if (!event.persisted) return
+			connectRequestId.current += 1
+			setConnectingId(id => (id !== null && isWebhookConnectServiceId(id) ? id : null))
 		}
-	}, [cancelOAuthConnect, locationKey])
+		window.addEventListener('pageshow', handlePageShow)
+		return () => {
+			window.removeEventListener('pageshow', handlePageShow)
+			activeLocationKey.current = null
+			connectRequestId.current += 1
+			setConnectingId(null)
+		}
+	}, [locationKey])
 
 	const closeWebhookConnect = useCallback(() => {
 		setWebhookConnectServiceId(null)
@@ -69,7 +73,6 @@ export const useIntegrationConnect = () => {
 
 	return {
 		connect,
-		cancelOAuthConnect,
 		connectingId,
 		isConnecting: connectingId !== null && webhookConnectServiceId === null,
 		webhookConnectServiceId,

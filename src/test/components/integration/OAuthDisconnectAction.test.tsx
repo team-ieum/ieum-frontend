@@ -25,7 +25,7 @@ describe('OAuthDisconnectAction', () => {
 				<AnimatePresence>
 					{show && (
 						<motion.div key='detail' exit={{ opacity: 0 }}>
-							<OAuthDisconnectAction service={NOTION_SERVICE} onOpen={vi.fn()} onDisconnected={vi.fn()} />
+							<OAuthDisconnectAction service={NOTION_SERVICE} disabled={false} onDisconnected={vi.fn()} />
 						</motion.div>
 					)}
 				</AnimatePresence>

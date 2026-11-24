@@ -12,7 +12,7 @@ type IntegrationConnectedDetailProps = {
 	onBack: () => void
 	/** Notion·GitHub 확인창에서 해제를 완료하면 목록으로 돌아간다. */
 	onOAuthDisconnected: () => void
-	onOAuthDisconnectOpen: () => void
+	isConnectionActionPending: boolean
 	/** Google·Slack·웹훅 상세에서 사용하는 공용 해제 명령. */
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
@@ -28,7 +28,7 @@ const IntegrationConnectedDetail = ({
 	service,
 	onBack,
 	onOAuthDisconnected,
-	onOAuthDisconnectOpen,
+	isConnectionActionPending,
 	onDisconnect,
 	isDisconnecting = false,
 	isCheckingDisconnect = false,
@@ -78,7 +78,7 @@ const IntegrationConnectedDetail = ({
 							<button
 								type='button'
 								onClick={onReconnect}
-								disabled={isReconnecting}
+								disabled={isConnectionActionPending}
 								className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none'
 							>
 								<RefreshCw size={15} aria-hidden='true' />
@@ -88,13 +88,14 @@ const IntegrationConnectedDetail = ({
 						{onDisconnect ? (
 							<IntegrationDisconnectButton
 								onClick={onDisconnect}
+								disabled={isConnectionActionPending}
 								isDisconnecting={isDisconnecting}
 								isCheckingDisconnect={isCheckingDisconnect}
 							/>
 						) : (
 							<OAuthDisconnectAction
 								service={service}
-								onOpen={onOAuthDisconnectOpen}
+								disabled={isConnectionActionPending}
 								onDisconnected={onOAuthDisconnected}
 							/>
 						)}

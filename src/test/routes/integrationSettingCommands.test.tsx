@@ -408,6 +408,7 @@ describe('통합 설정 Google 연결', () => {
 		await screen.findByRole('heading', { level: 2, name: 'Google' })
 		fireEvent.click(screen.getByRole('button', { name: '연결 해제' }))
 		expect(await screen.findByRole('button', { name: '확인 중…' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: '다시 연결' })).toBeDisabled()
 		expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument()
 
 		workflowsResponse.resolve()

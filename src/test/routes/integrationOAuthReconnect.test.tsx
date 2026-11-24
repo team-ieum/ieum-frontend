@@ -30,6 +30,17 @@ const RECONNECT_CASES = [
 	},
 ] as const
 
+const holdReconnectResponse = () => {
+	let succeed!: (url: string) => void
+	let fail!: (error: Error) => void
+	const response = new Promise<string>((resolve, reject) => {
+		succeed = resolve
+		fail = reject
+	})
+	vi.spyOn(integrationOAuth, 'fetchIntegrationOAuthAuthorizeUrl').mockReturnValueOnce(response)
+	return { succeed, fail }
+}
+
 const findCard = async (label: string) => {
 	const heading = await screen.findByRole('heading', { level: 3, name: label })
 	const card = heading.closest('article')
@@ -44,7 +55,7 @@ afterEach(() => {
 })
 
 describe('공용 OAuth 연동 해제 후 재연결', () => {
-	it.each(RECONNECT_CASES)('$label 해제 후 이전 재연결을 무시하고 새로 연결한다', async config => {
+	it.each(RECONNECT_CASES)('$label 해제 후 목록을 갱신하고 복원된 타일에서 새로 연결한다', async config => {
 		const { label, provider, serviceType, entry, isAlreadyDisconnected, notice, authorizeUrl } = config
 		const user = userEvent.setup()
 		const assign = vi.fn()
@@ -113,13 +124,6 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		}
 		await screen.findByRole('heading', { level: 2, name: label })
 		expect(new URLSearchParams(router.state.location.search).get('serviceId')).toBe(serviceId)
-		let finishReconnect!: (url: string) => void
-		const pendingReconnect = new Promise<string>(resolve => {
-			finishReconnect = resolve
-		})
-		const authorize = vi.spyOn(integrationOAuth, 'fetchIntegrationOAuthAuthorizeUrl').mockReturnValueOnce(pendingReconnect)
-		await user.click(screen.getByRole('button', { name: '다시 연결' }))
-		expect(authorize).toHaveBeenCalledExactlyOnceWith(serviceType)
 		const opener = screen.getByRole('button', { name: '연결 해제' })
 		await user.click(opener)
 		const dialog = await screen.findByRole('alertdialog', { name: `${label} 연결을 해제할까요?` })
@@ -169,11 +173,6 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 		expect(deleteConnection).toHaveBeenCalledExactlyOnceWith(provider, '')
 		expect(screen.queryByText(alreadyDisconnectedMessage)).not.toBeInTheDocument()
 		expect(within(await findCard('Google')).queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
-		await act(async () => {
-			finishReconnect(authorizeUrl)
-			await pendingReconnect
-		})
-		expect(assign).not.toHaveBeenCalled()
 		const availableTile = await findCard(label)
 		await user.click(within(availableTile).getByRole('button', { name: '연결하기' }))
 
@@ -182,45 +181,58 @@ describe('공용 OAuth 연동 해제 후 재연결', () => {
 	})
 })
 
+describe('OAuth 재연결과 해제', () => {
+	it.each(['GOOGLE', 'NOTION', 'GITHUB'])('%s 재연결 중 해제를 막고 재연결이 실패하면 해제를 다시 허용한다', async provider => {
+		const user = userEvent.setup()
+		const connection = { ...oauthConnectionsResponse.data[0], provider }
+		server.use(
+			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] }))
+		)
+		const reconnect = holdReconnectResponse()
+		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
+
+		await user.click(await screen.findByRole('button', { name: '다시 연결' }))
+		const disconnect = screen.getByRole('button', { name: '연결 해제' })
+		act(() => {
+			window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }))
+		})
+		expect(disconnect).toBeDisabled()
+		await user.click(disconnect)
+		expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+
+		await act(async () => reconnect.fail(new Error('재연결 요청 실패')))
+		const error = await screen.findByRole('dialog', { name: '연결 실패' })
+		await user.click(within(error).getByRole('button', { name: '확인' }))
+		expect(disconnect).toBeEnabled()
+		await user.click(disconnect)
+		expect(await screen.findByRole('alertdialog')).toBeInTheDocument()
+	})
+
+	it.each(['성공', '실패'])('목록으로 돌아간 뒤 도착한 재연결 %s 응답은 인증 화면이나 오류창을 열지 않는다', async result => {
+		const user = userEvent.setup()
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		const connection = { ...oauthConnectionsResponse.data[0], provider: 'GITHUB' }
+		server.use(
+			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] }))
+		)
+		const reconnect = holdReconnectResponse()
+		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
+
+		await user.click(await screen.findByRole('button', { name: '다시 연결' }))
+		expect(screen.getByRole('button', { name: '이동 중…' })).toBeDisabled()
+		await user.click(screen.getByRole('button', { name: '연결된 서비스 목록' }))
+		await screen.findByText(/연결됨 \d+개 · 사용 가능/)
+		await act(async () => {
+			if (result === '성공') reconnect.succeed('https://github.com/login/oauth/authorize?client_id=ieum-test')
+			else reconnect.fail(new Error('이전 재연결 요청 실패'))
+		})
+		expect(assign).not.toHaveBeenCalled()
+		expect(screen.queryByText('연결 실패')).not.toBeInTheDocument()
+	})
+})
+
 describe('Notion·GitHub 연결 관리', () => {
-	it.each(['해제 확인창 열기', '서비스 목록으로 돌아가기'] as const)(
-		'%s 이후 도착한 재연결 실패는 오류 창을 열지 않는다',
-		async action => {
-			const user = userEvent.setup()
-			const connection = { ...oauthConnectionsResponse.data[0], provider: 'GITHUB' }
-			server.use(
-				http.get('*/api/v1/oauth/connections', () =>
-					HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] })
-				)
-			)
-			let failReconnect!: (error: Error) => void
-			const pendingReconnect = new Promise<string>((_, reject) => {
-				failReconnect = reject
-			})
-			const authorize = vi
-				.spyOn(integrationOAuth, 'fetchIntegrationOAuthAuthorizeUrl')
-				.mockReturnValueOnce(pendingReconnect)
-			renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
-			await user.click(await screen.findByRole('button', { name: '다시 연결' }))
-			expect(authorize).toHaveBeenCalledExactlyOnceWith('github')
-			if (action === '해제 확인창 열기') {
-				await user.click(screen.getByRole('button', { name: '연결 해제' }))
-				const dialog = await screen.findByRole('alertdialog', { name: 'GitHub 연결을 해제할까요?' })
-				await user.click(within(dialog).getByRole('button', { name: '취소' }))
-				expect(screen.getByRole('button', { name: '다시 연결' })).toBeEnabled()
-			} else {
-				await user.click(screen.getByRole('button', { name: '연결된 서비스 목록' }))
-				await screen.findByText(/연결됨 \d+개 · 사용 가능/)
-			}
-
-			await act(async () => {
-				failReconnect(new Error('이전 재연결 요청 실패'))
-				await pendingReconnect.catch(() => undefined)
-			})
-			expect(screen.queryByText('연결 실패')).not.toBeInTheDocument()
-		}
-	)
-
 	it.each([
 		{
 			label: 'GitHub',
@@ -247,7 +259,7 @@ describe('Notion·GitHub 연결 관리', () => {
 			workflowName: '주간 회의록 정리',
 			authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
 		},
-	])('$label 상세에 연결 정보와 워크플로우를 표시하고 다시 연결하면 해당 서비스로 이동한다', async config => {
+	])('$label 상세에서 재연결한 뒤 브라우저가 화면을 복원하면 다시 연결할 수 있다', async config => {
 		const { label, connection, workflowName, authorizeUrl } = config
 		const user = userEvent.setup()
 		const assign = vi.fn()
@@ -279,5 +291,15 @@ describe('Notion·GitHub 연결 관리', () => {
 		expect(await screen.findByRole('button', { name: new RegExp(workflowName) })).toBeInTheDocument()
 		await user.click(screen.getByRole('button', { name: '다시 연결' }))
 		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(authorizeUrl))
+
+		act(() => {
+			window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+		})
+		const reconnect = screen.getByRole('button', { name: '다시 연결' })
+		expect(reconnect).toBeEnabled()
+		expect(screen.getByRole('button', { name: '연결 해제' })).toBeEnabled()
+		await user.click(reconnect)
+		await waitFor(() => expect(assign).toHaveBeenCalledTimes(2))
+		expect(assign).toHaveBeenLastCalledWith(authorizeUrl)
 	})
 })

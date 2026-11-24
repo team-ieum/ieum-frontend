@@ -3,6 +3,7 @@ import { Link2Off } from 'lucide-react'
 
 type IntegrationDisconnectButtonProps = {
 	onClick: () => void
+	disabled: boolean
 	isDisconnecting?: boolean
 	isCheckingDisconnect?: boolean
 	buttonRef?: Ref<HTMLButtonElement>
@@ -10,6 +11,7 @@ type IntegrationDisconnectButtonProps = {
 
 const IntegrationDisconnectButton = ({
 	onClick,
+	disabled,
 	isDisconnecting = false,
 	isCheckingDisconnect = false,
 	buttonRef,
@@ -19,7 +21,7 @@ const IntegrationDisconnectButton = ({
 		aria-haspopup='dialog'
 		type='button'
 		onClick={onClick}
-		disabled={isDisconnecting || isCheckingDisconnect}
+		disabled={disabled}
 		className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
 	>
 		<Link2Off size={15} aria-hidden='true' />
