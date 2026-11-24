@@ -20,6 +20,9 @@ export const useDeleteOAuthConnectionMutation = (provider?: string) => {
 	const queryClient = useQueryClient()
 
 	return useMutation({
+		// 오프라인에서 확인한 해제를 예약했다가 연결 복구 시 실행하지 않는다.
+		networkMode: 'always',
+		retry: false,
 		mutationFn: ({ provider, providerAccountId }: OAuthConnectionTarget) =>
 			deleteOAuthConnection(provider, providerAccountId),
 		onSuccess: () => {

@@ -1,3 +1,4 @@
+import { onlineManager } from '@tanstack/react-query'
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
@@ -182,6 +183,42 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		expect(await dialog.findByRole('alert')).toHaveTextContent('그대로 연결을 해제할 수 있어요.')
 		expect(deleteRequest).not.toHaveBeenCalled()
 		await user.click(dialog.getByRole('button', { name: '연결 해제' }))
+		await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+		expect(deleteRequest).toHaveBeenCalledOnce()
+	})
+
+	it('오프라인 해제 실패 후 확인창을 닫을 수 있고 온라인 복귀 후 다시 확인해야 해제한다', async () => {
+		const user = userEvent.setup()
+		const deleteRequest = vi.fn()
+		server.use(
+			NOTION_CONNECTIONS_HANDLER,
+			mockNotionImpact(() => createImpactPage(null)),
+			http.delete('*/api/v1/oauth/connections/NOTION', () => {
+				if (!onlineManager.isOnline()) return HttpResponse.error()
+				deleteRequest()
+				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
+			})
+		)
+		renderAppRoute(NOTION_DETAIL_PATH)
+		const opener = await screen.findByRole('button', { name: '연결 해제' })
+		await user.click(opener)
+		const dialog = within(await screen.findByRole('alertdialog'))
+		const confirm = await dialog.findByRole('button', { name: '연결 해제' })
+
+		try {
+			act(() => onlineManager.setOnline(false))
+			await user.click(confirm)
+			expect(await dialog.findByRole('alert')).toHaveTextContent('연결을 해제하지 못했습니다.')
+			await user.keyboard('{Escape}')
+			await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+		} finally {
+			await act(async () => onlineManager.setOnline(true))
+		}
+		expect(deleteRequest).not.toHaveBeenCalled()
+
+		await user.click(opener)
+		const reopened = within(await screen.findByRole('alertdialog'))
+		await user.click(await reopened.findByRole('button', { name: '연결 해제' }))
 		await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
 		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
