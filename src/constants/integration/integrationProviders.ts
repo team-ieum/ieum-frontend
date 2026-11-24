@@ -1,3 +1,4 @@
+import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
 import type { IntegrationBrand } from '@/types/integration'
 import type { GoogleConnectRequest } from '@/types/integrationOAuth'
 import type { WebhookCredentialProvider } from '@/types/webhookCredentials'
@@ -77,11 +78,17 @@ export const OAUTH_RECONNECT_SERVICE_ID_BY_PROVIDER: Partial<Record<string, OAut
 }
 
 type OAuthDisconnectConfig = {
-	path: string
+	/**
+	 * 해제 경로. 연결 하나만 두는 공급자는 계정 ID를 쓰지 않는다.
+	 * @throws 계정 ID가 필요한 공급자(Discord)인데 비었으면 Error. 빈 ID로 다른 경로를 부르지 않게 요청 전에 막는다.
+	 */
+	getPath: (providerAccountId?: string) => string
 	/** 해제 확인 창에 덧붙일 공급자별 안내 */
 	notice?: string
 	/** 해제 확인 전에 이 연결을 쓰는 워크플로우를 조회해 확인 창에 보여 줄지 */
 	listsAffectedWorkflows?: boolean
+	/** 워크플로우별 영향을 표시하는 전용 확인창의 공급자 */
+	previewProvider?: OAuthDisconnectProvider
 }
 
 /**
@@ -90,12 +97,19 @@ type OAuthDisconnectConfig = {
  */
 export const OAUTH_DISCONNECT_BY_PROVIDER: Record<string, OAuthDisconnectConfig> = {
 	SLACK: {
-		path: '/api/v1/slack/oauth2/connection',
+		getPath: () => '/api/v1/slack/oauth2/connection',
 		notice: '다시 연결하면 비공개 채널에는 봇을 다시 초대해야 해요.',
 	},
+	NOTION: { getPath: () => '/api/v1/oauth/connections/NOTION', previewProvider: 'NOTION' },
+	GITHUB: { getPath: () => '/api/v1/oauth/connections/GITHUB', previewProvider: 'GITHUB' },
 	GOOGLE: {
-		path: '/api/v1/oauth/connections/GOOGLE',
+		getPath: () => '/api/v1/oauth/connections/GOOGLE',
 		notice: '다시 연결하면 Google 권한 동의를 다시 받아야 해요.',
 		listsAffectedWorkflows: true,
 	},
+}
+
+export const getOAuthDisconnectConfig = (provider?: string): OAuthDisconnectConfig | undefined => {
+	const key = provider?.toUpperCase()
+	return key && Object.hasOwn(OAUTH_DISCONNECT_BY_PROVIDER, key) ? OAUTH_DISCONNECT_BY_PROVIDER[key] : undefined
 }

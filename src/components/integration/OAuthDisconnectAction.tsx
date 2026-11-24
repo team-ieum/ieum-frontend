@@ -1,6 +1,6 @@
 import { useRef, useState, type RefObject } from 'react'
 import { useIsPresent } from 'framer-motion'
-import { isOAuthDisconnectProvider } from '@/constants/integration/oauthDisconnect'
+import { getOAuthDisconnectConfig } from '@/constants/integration/integrationProviders'
 import { useOAuthDisconnectPreview } from '@/hooks/integration/useOAuthDisconnectPreview'
 import type { IntegrationService } from '@/types/integration'
 import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
@@ -60,8 +60,8 @@ const OAuthDisconnectAction = ({ service, onDisconnected }: OAuthDisconnectActio
 	const [isOpen, setIsOpen] = useState(false)
 	const openerRef = useRef<HTMLButtonElement>(null)
 	const isPresent = useIsPresent()
-	const provider = service.oauthProvider
-	if (!isPresent || service.origin !== 'oauth' || !provider || !isOAuthDisconnectProvider(provider)) return null
+	const provider = getOAuthDisconnectConfig(service.oauthProvider)?.previewProvider
+	if (!isPresent || service.origin !== 'oauth' || !provider) return null
 
 	return (
 		<>

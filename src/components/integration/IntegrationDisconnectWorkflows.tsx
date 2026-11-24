@@ -3,15 +3,15 @@ import { cn } from '@/utils/cn'
 
 type IntegrationDisconnectWorkflowsProps = {
 	impact: OAuthDisconnectImpact
-	showIndividualNotice: boolean
 }
 
-const IntegrationDisconnectWorkflows = ({ impact, showIndividualNotice }: IntegrationDisconnectWorkflowsProps) => {
+const IntegrationDisconnectWorkflows = ({ impact }: IntegrationDisconnectWorkflowsProps) => {
 	const { totalCount, workflows } = impact
 	if (totalCount === 0) {
 		return <p className='mt-2 break-keep typo-body2_regular text-neutral-600'>현재 이 연결을 쓰는 워크플로우는 없어요.</p>
 	}
 
+	const showIndividualNotice = impact.noticeMode === 'individual'
 	const remainingCount = totalCount - workflows.length
 
 	return (

@@ -3,6 +3,8 @@ import { MAX_DISCONNECT_PREVIEW_WORKFLOWS, OAUTH_DISCONNECT_AUTOMATIC_NOTICE } f
 import type { IntegrationServiceWorkflowDto } from '@/types/integrationWorkflows'
 import type { OAuthDisconnectImpact } from '@/types/oauthDisconnect'
 
+const MAX_INDIVIDUAL_NOTICES = 2
+
 /** 중복을 제거한 전체 조회 결과에서 해제 확인창의 목록과 자동 실행 개수를 구한다. */
 export const getOAuthDisconnectImpact = (workflows: IntegrationServiceWorkflowDto[]): OAuthDisconnectImpact => {
 	const previewWorkflows: OAuthDisconnectImpact['workflows'] = []
@@ -24,5 +26,10 @@ export const getOAuthDisconnectImpact = (workflows: IntegrationServiceWorkflowDt
 		}
 	}
 
-	return { totalCount: workflows.length, automaticCount, workflows: previewWorkflows }
+	return {
+		totalCount: workflows.length,
+		noticeMode: workflows.length <= MAX_INDIVIDUAL_NOTICES ? 'individual' : 'summary',
+		automaticCount,
+		workflows: previewWorkflows,
+	}
 }

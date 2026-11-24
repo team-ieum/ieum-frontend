@@ -13,3 +13,9 @@ export interface OAuthConnectionDto {
 }
 
 export type OAuthConnectionsListResponse = ApiResponse<OAuthConnectionDto[]>
+
+/** 해제할 OAuth 연결(해제 mutation 변수). 공급자 하나에 연결이 여러 개인 Discord만 `providerAccountId`로 연결을 고른다. */
+export type OAuthConnectionTarget = {
+	provider: string
+	providerAccountId?: string
+}

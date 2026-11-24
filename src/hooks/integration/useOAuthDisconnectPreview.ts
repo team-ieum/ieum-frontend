@@ -1,9 +1,9 @@
 import { useIsMutating, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useLayoutEffect, useRef } from 'react'
 import {
-	disconnectIntegrationOAuthMutationKey,
-	useDisconnectIntegrationOAuthMutation,
-} from '@/hooks/integration/mutations/useDisconnectIntegrationOAuthMutation'
+	deleteOAuthConnectionMutationKey,
+	useDeleteOAuthConnectionMutation,
+} from '@/hooks/oauthConnections/mutations/useDeleteOAuthConnectionMutation'
 import { oauthDisconnectImpactQueryOptions } from '@/hooks/integration/queries/oauthDisconnectImpactQueryOptions'
 import type { AsyncResourceState } from '@/types/asyncResource'
 import type { OAuthDisconnectImpact, OAuthDisconnectProvider } from '@/types/oauthDisconnect'
@@ -29,7 +29,7 @@ type UseOAuthDisconnectPreviewResult = {
 
 type ActivePreview = Pick<UseOAuthDisconnectPreviewOptions, 'provider' | 'connectionId'> & { isSubmitted: boolean }
 
-/** 확인창을 열 때마다 영향 목록을 조회하고, 조회가 끝난 상태에서만 해제를 실행한다. */
+/** 확인창을 열 때마다 영향 목록을 조회하고, 조회 성공 또는 실패 안내 후 사용자가 확인하면 해제를 실행한다. */
 export const useOAuthDisconnectPreview = ({
 	provider,
 	connectionId,
@@ -38,9 +38,9 @@ export const useOAuthDisconnectPreview = ({
 }: UseOAuthDisconnectPreviewOptions): UseOAuthDisconnectPreviewResult => {
 	const query = useQuery(oauthDisconnectImpactQueryOptions(provider, connectionId))
 	const queryClient = useQueryClient()
-	const pendingDeleteFilters = { mutationKey: disconnectIntegrationOAuthMutationKey(provider), exact: true }
+	const pendingDeleteFilters = { mutationKey: deleteOAuthConnectionMutationKey(provider), exact: true }
 	const pendingDeleteCount = useIsMutating(pendingDeleteFilters)
-	const { mutateAsync, isPending, error } = useDisconnectIntegrationOAuthMutation(provider)
+	const { mutateAsync, isPending, error } = useDeleteOAuthConnectionMutation(provider)
 	const activePreviewRef = useRef<ActivePreview | null>(null)
 
 	useLayoutEffect(() => {
@@ -53,7 +53,7 @@ export const useOAuthDisconnectPreview = ({
 	const impact = query.data
 	const isIdle = query.fetchStatus === 'idle'
 	// 갱신 중에도 이전 안내를 표시하되, 이번에 연 확인창의 조회가 끝나야 해제할 수 있다.
-	const canConfirm = query.isSuccess && query.isFetchedAfterMount && isIdle
+	const canConfirm = query.isFetchedAfterMount && isIdle && (query.isSuccess || query.isError)
 
 	const handleRetry = () => {
 		if (!query.isError || !isIdle) return
@@ -81,7 +81,7 @@ export const useOAuthDisconnectPreview = ({
 
 		preview.isSubmitted = true
 		try {
-			await mutateAsync()
+			await mutateAsync({ provider })
 		} catch {
 			preview.isSubmitted = false
 			return

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { OAUTH_DISCONNECT_BY_PROVIDER } from '@/constants/integration/integrationProviders'
+import { getOAuthDisconnectConfig } from '@/constants/integration/integrationProviders'
 import { integrationServiceWorkflowsQueryOptions } from '@/hooks/integration/queries/integrationServiceWorkflowsQueryOptions'
 import { useDeleteOAuthConnectionMutation } from '@/hooks/oauthConnections/mutations/useDeleteOAuthConnectionMutation'
 import { useDeleteWebhookCredentialMutation } from '@/hooks/webhookCredentials/mutations/useDeleteWebhookCredentialMutation'
@@ -16,12 +16,9 @@ type UseIntegrationDisconnectOptions = {
 	onDisconnected: () => void
 }
 
-const getOAuthDisconnectConfig = (service: IntegrationService) =>
-	service.oauthProvider ? OAUTH_DISCONNECT_BY_PROVIDER[service.oauthProvider] : undefined
-
 const buildDisconnectMessage = (service: IntegrationService, affectedNotice: string | null): string => {
 	const base = `${service.name} 연결을 해제할까요? 이 서비스를 사용하는 워크플로우가 동작하지 않을 수 있습니다.`
-	return [base, affectedNotice, getOAuthDisconnectConfig(service)?.notice].filter(Boolean).join(' ')
+	return [base, affectedNotice, getOAuthDisconnectConfig(service.oauthProvider)?.notice].filter(Boolean).join(' ')
 }
 
 /**
@@ -35,12 +32,17 @@ const buildDisconnectMessage = (service: IntegrationService, affectedNotice: str
 export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegrationDisconnectOptions) => {
 	const queryClient = useQueryClient()
 	const { mutateAsync: deleteWebhookCredential, isPending: isDeletingWebhook } = useDeleteWebhookCredentialMutation()
-	const { mutateAsync: deleteOAuthConnection, isPending: isDeletingOAuth } = useDeleteOAuthConnectionMutation()
+	const { mutateAsync: deleteOAuthConnection, isPending: isDeletingOAuth } = useDeleteOAuthConnectionMutation(
+		service?.oauthProvider
+	)
 	const openConfirm = useModalStore(state => state.openConfirm)
 	const openModal = useModalStore(state => state.open)
 	const [isCheckingAffectedWorkflows, setIsCheckingAffectedWorkflows] = useState(false)
 	const isDisconnecting = isDeletingWebhook || isDeletingOAuth
-	const canDisconnect = service !== undefined && canDisconnectIntegrationService(service)
+	const canDisconnect =
+		service !== undefined &&
+		canDisconnectIntegrationService(service) &&
+		!getOAuthDisconnectConfig(service.oauthProvider)?.previewProvider
 	const serviceId = service?.id
 	// 응답이 왔을 때 요청한 서비스를 아직 보고 있는지 판정한다. 화면을 떠나면 undefined가 된다.
 	// 다른 서비스 상세나 다른 화면에서 onDisconnected(목록 이동)·오류 modal이 실행되지 않게 막는다.
@@ -56,7 +58,7 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 	/** 이 연결을 쓰는 워크플로우 안내. 조회하지 않는 공급자면 `null`, 조회에 실패하면 확인하지 못했다는 문구다. */
 	const loadAffectedWorkflowsNotice = useCallback(
 		async (target: IntegrationService): Promise<string | null> => {
-			if (!getOAuthDisconnectConfig(target)?.listsAffectedWorkflows) return null
+			if (!getOAuthDisconnectConfig(target.oauthProvider)?.listsAffectedWorkflows) return null
 			const serviceType = getIntegrationServiceType(target.brand)
 			if (!serviceType) return formatAffectedWorkflowsNotice(null)
 			try {
@@ -80,11 +82,12 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 
 	const disconnect = useCallback(() => {
 		if (!service || !canDisconnect || isDisconnecting || isCheckingAffectedWorkflows) return
-		const { id, origin, oauthProvider } = service
+		const { id, origin, oauthProvider, oauthAccountId } = service
 
 		const runDisconnect = async () => {
 			try {
-				if (origin === 'oauth' && oauthProvider) await deleteOAuthConnection(oauthProvider)
+				if (origin === 'oauth' && oauthProvider)
+					await deleteOAuthConnection({ provider: oauthProvider, providerAccountId: oauthAccountId })
 				else await deleteWebhookCredential(id)
 				if (currentServiceIdRef.current === id) onDisconnected()
 			} catch (error) {
@@ -102,7 +105,7 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 				onConfirm: () => void runDisconnect(),
 			})
 
-		if (!getOAuthDisconnectConfig(service)?.listsAffectedWorkflows) {
+		if (!getOAuthDisconnectConfig(service.oauthProvider)?.listsAffectedWorkflows) {
 			openDisconnectConfirm(null)
 			return
 		}

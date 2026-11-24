@@ -17,10 +17,22 @@ import GoogleFormsIcon from '@/assets/serviceIcon/googleforms.png'
 
 const brandLogo = (src: string, alt: string) => <img src={src} alt={alt} className='h-6 w-6 object-contain' loading='lazy' />
 
+const CONNECTED_CARD_BLUE_TINT = '#e8f0fe'
+
 export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrandConfig> = {
 	slack: { tint: '#e8f5f0', icon: brandLogo(SlackIcon, 'Slack 로고'), label: 'Slack' },
-	notion: { tint: '#f0f0f0', icon: brandLogo(NotionIcon, 'Notion 로고'), label: 'Notion' },
-	github: { tint: '#eef0f2', icon: brandLogo(GithubIcon, 'GitHub 로고'), label: 'GitHub' },
+	notion: {
+		tint: '#f0f0f0',
+		connectedCardTint: CONNECTED_CARD_BLUE_TINT,
+		icon: brandLogo(NotionIcon, 'Notion 로고'),
+		label: 'Notion',
+	},
+	github: {
+		tint: '#eef0f2',
+		connectedCardTint: CONNECTED_CARD_BLUE_TINT,
+		icon: brandLogo(GithubIcon, 'GitHub 로고'),
+		label: 'GitHub',
+	},
 	gmail: { tint: '#fce8e6', icon: brandLogo(GmailIcon, 'Gmail 로고'), label: 'Gmail' },
 	sheets: { tint: '#e6f4ea', icon: brandLogo(GoogleSheetsIcon, 'Google Sheets 로고'), label: 'Sheets' },
 	jira: { tint: '#e8f0fe', icon: brandLogo(JiraIcon, 'Jira 로고'), label: 'Jira' },
@@ -28,7 +40,7 @@ export const INTEGRATION_BRAND_CONFIG: Record<IntegrationBrand, IntegrationBrand
 	airtable: { tint: '#fff8e1', icon: brandLogo(AirtableIcon, 'Airtable 로고'), label: 'Airtable' },
 	discord: { tint: '#eef0ff', icon: brandLogo(DiscordIcon, 'Discord 로고'), label: 'Discord' },
 	linear: { tint: '#eef0ff', icon: brandLogo(LinearIcon, 'Linear 로고'), label: 'Linear' },
-	google: { tint: '#e8f0fe', icon: brandLogo(GoogleDriveIcon, 'Google Drive 로고'), label: 'Google' },
+	google: { tint: CONNECTED_CARD_BLUE_TINT, icon: brandLogo(GoogleDriveIcon, 'Google Drive 로고'), label: 'Google' },
 }
 
 // 서버 카탈로그는 Google Calendar·Drive·Forms를 모두 brand `google`로 보내므로, 카탈로그 `app` 키로 로고를 나눈다.

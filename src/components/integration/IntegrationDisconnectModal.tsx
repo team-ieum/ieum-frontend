@@ -1,7 +1,7 @@
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { FocusTrap } from 'focus-trap-react'
 import { Info, X } from 'lucide-react'
+import DialogFocusTrap from '@/components/common/DialogFocusTrap'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
 import { OAUTH_DISCONNECT_NOTICE } from '@/constants/integration/oauthDisconnect'
 import type { IntegrationService } from '@/types/integration'
@@ -17,7 +17,7 @@ type IntegrationDisconnectModalProps = {
 	service: Pick<IntegrationService, 'brand' | 'name' | 'account'>
 	impact?: OAuthDisconnectImpact
 	resource: AsyncResourceState
-	/** 이번에 연 확인창에서 전체 목록 조회가 완료된 경우에만 해제를 확인할 수 있다. */
+	/** 이번에 연 확인창에서 영향 조회 결과나 실패 안내가 표시되면 해제를 확인할 수 있다. */
 	canConfirm: boolean
 	isSubmitting: boolean
 	isConfirmDisabled?: boolean
@@ -27,7 +27,10 @@ type IntegrationDisconnectModalProps = {
 	onConfirm: () => void
 }
 
-/** 해제 요청이 끝날 때까지 확인창을 열어 두어 실패 시 같은 버튼에서 재시도할 수 있게 한다. */
+/**
+ * 전역 openConfirm은 확인 즉시 닫힌다. 이 확인창은 영향 목록을 다시 조회하고 해제 실패 시
+ * 같은 화면에서 재시도할 수 있어야 하므로 요청이 끝날 때까지 상세 화면에 유지한다.
+ */
 const IntegrationDisconnectModal = ({
 	provider,
 	service,
@@ -48,7 +51,7 @@ const IntegrationDisconnectModal = ({
 	const impactId = useId()
 	const descriptionIds = [service.account?.trim() && accountId, impact && impactId, noticeId].filter(Boolean).join(' ')
 	const cancelRef = useRef<HTMLButtonElement>(null)
-	const showIndividualNotice = impact !== undefined && impact.totalCount <= 2
+	const { message, settingsHint } = OAUTH_DISCONNECT_NOTICE[provider]
 	const isCheckingImpact = resource.isLoading || resource.isRefetching
 	const hasImpactError = resource.isLoadingError || resource.isRefetchError
 	// 해제 실패와 목록 재조회가 겹쳐도 포커스된 버튼을 남기고 재시도만 막는다.
@@ -58,29 +61,12 @@ const IntegrationDisconnectModal = ({
 	const handleCancel = () => {
 		if (!isSubmitting) onCancel()
 	}
-	// 트랩은 열릴 때의 옵션을 유지하므로 document의 Escape도 최신 제출 상태를 확인한다.
-	const handleCancelRef = useRef(handleCancel)
-	useLayoutEffect(() => {
-		handleCancelRef.current = handleCancel
-	})
-
 	const handleConfirm = () => {
 		if (!isConfirmBlocked) onConfirm()
 	}
 
 	return createPortal(
-		<FocusTrap
-			focusTrapOptions={{
-				initialFocus: () => cancelRef.current ?? undefined,
-				escapeDeactivates: () => {
-					handleCancelRef.current()
-					return false
-				},
-				allowOutsideClick: true,
-				// 취소하면 상세의 해제 버튼으로 돌아가고, 성공하면 목록이 포커스를 넘겨받는다.
-				setReturnFocus: getReturnFocusTarget,
-			}}
-		>
+		<DialogFocusTrap onEscape={handleCancel} initialFocusRef={cancelRef} getReturnFocusTarget={getReturnFocusTarget}>
 			<div
 				className='fixed inset-0 z-50 flex items-center justify-center p-3'
 				onMouseDown={event => {
@@ -130,15 +116,15 @@ const IntegrationDisconnectModal = ({
 							>
 								{impact && (
 									<div id={impactId}>
-										<IntegrationDisconnectWorkflows
-											impact={impact}
-											showIndividualNotice={showIndividualNotice}
-										/>
+										<IntegrationDisconnectWorkflows impact={impact} />
 									</div>
 								)}
 								{hasImpactError ? (
 									<div role='alert' className='mt-2'>
-										<p>{formatAffectedWorkflowsNotice(null)}</p>
+										<p>
+											{formatAffectedWorkflowsNotice(null)} {impact && '표시된 목록은 이전 조회 결과예요. '}
+											목록을 다시 조회하거나 그대로 연결을 해제할 수 있어요.
+										</p>
 										<button
 											type='button'
 											onClick={resource.retry}
@@ -172,7 +158,7 @@ const IntegrationDisconnectModal = ({
 								</p>
 							)}
 							<div id={noticeId} className='flex shrink-0 flex-col'>
-								{impact && !showIndividualNotice && impact.automaticCount > 0 && (
+								{impact?.noticeMode === 'summary' && impact.automaticCount > 0 && (
 									<p className='pt-2 break-keep typo-body3_regular text-main-deep-blue'>
 										전체 {impact.totalCount}개 중 <strong>{impact.automaticCount}개</strong>는 해제 후에도
 										자동 실행을 시도해요.
@@ -181,13 +167,14 @@ const IntegrationDisconnectModal = ({
 								<div className='mt-2.5 flex min-h-13.75 shrink-0 items-start gap-2 border-t border-neutral-200 pt-3 break-keep wrap-anywhere typo-body3_regular text-neutral-600 max-[600px]:mt-2 max-[600px]:min-h-15.75 max-[600px]:pt-2.5 max-[355px]:min-h-17.5'>
 									<Info size={15} aria-hidden='true' className='mt-0.5 shrink-0' />
 									<p>
-										{OAUTH_DISCONNECT_NOTICE[provider]}
-										{provider === 'GITHUB' && (
+										{message}
+										{settingsHint && (
 											<>
 												{' '}
 												<br />
-												GitHub 설정의 <strong className='typo-body3_semibold'>Applications</strong>에서
-												제거할 수 있어요.
+												{settingsHint.before}
+												<strong className='typo-body3_semibold'>{settingsHint.emphasis}</strong>
+												{settingsHint.after}
 											</>
 										)}
 									</p>
@@ -219,7 +206,7 @@ const IntegrationDisconnectModal = ({
 					</div>
 				</section>
 			</div>
-		</FocusTrap>,
+		</DialogFocusTrap>,
 		document.body
 	)
 }

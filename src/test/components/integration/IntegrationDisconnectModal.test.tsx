@@ -8,7 +8,12 @@ type ModalProps = ComponentProps<typeof IntegrationDisconnectModal>
 
 const NOTION_SERVICE = { brand: 'notion', name: 'Notion', account: '이음 워크스페이스' } as const
 const GITHUB_SERVICE = { brand: 'github', name: 'GitHub', account: 'ieum-demo' } as const
-const EMPTY_IMPACT = { totalCount: 0, automaticCount: 0, workflows: [] }
+const EMPTY_IMPACT: NonNullable<ModalProps['impact']> = {
+	totalCount: 0,
+	noticeMode: 'individual',
+	automaticCount: 0,
+	workflows: [],
+}
 const EMPTY_NOTICE = '현재 이 연결을 쓰는 워크플로우는 없어요.'
 const WORKFLOWS: NonNullable<ModalProps['impact']>['workflows'] = [
 	{
@@ -102,13 +107,14 @@ describe('IntegrationDisconnectModal', () => {
 		const onConfirm = vi.fn()
 		renderModal({
 			resource: { isLoading: false, isRefetching: false, isLoadingError: true, isRefetchError: false, retry: onRetry },
+			canConfirm: true,
 			onCancel,
 			onConfirm,
 		})
 
 		const dialog = getDialog()
-		expect(dialog.getByRole('alert')).toBeInTheDocument()
-		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		expect(dialog.getByRole('alert')).toHaveTextContent('그대로 연결을 해제할 수 있어요.')
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
 		await user.click(dialog.getByRole('button', { name: closeLabel }))
 
@@ -132,7 +138,7 @@ describe('IntegrationDisconnectModal', () => {
 	})
 
 	it('일시정지된 수동 워크플로우 하나에는 이름과 상태만 표시한다', () => {
-		renderModal({ impact: { totalCount: 1, automaticCount: 0, workflows: [WORKFLOWS[1]] } })
+		renderModal({ impact: { totalCount: 1, noticeMode: 'individual', automaticCount: 0, workflows: [WORKFLOWS[1]] } })
 
 		const dialog = getDialog()
 		const row = dialog.getByRole('listitem')
@@ -144,7 +150,9 @@ describe('IntegrationDisconnectModal', () => {
 	})
 
 	it('자동 실행 워크플로우가 두 개면 스케줄과 웹훅에 맞는 실행 안내를 각 항목에 표시한다', () => {
-		renderModal({ impact: { totalCount: 2, automaticCount: 2, workflows: [WORKFLOWS[0], WORKFLOWS[2]] } })
+		renderModal({
+			impact: { totalCount: 2, noticeMode: 'individual', automaticCount: 2, workflows: [WORKFLOWS[0], WORKFLOWS[2]] },
+		})
 
 		const dialog = getDialog()
 		const rows = dialog.getAllByRole('listitem')
@@ -160,7 +168,7 @@ describe('IntegrationDisconnectModal', () => {
 	})
 
 	it.each([3, 4, 5])('워크플로우 %i개는 첫 세 이름과 전체 자동 실행 수를 요약한다', totalCount => {
-		renderModal({ impact: { totalCount, automaticCount: 2, workflows: WORKFLOWS } })
+		renderModal({ impact: { totalCount, noticeMode: 'summary', automaticCount: 2, workflows: WORKFLOWS } })
 
 		const dialog = getDialog()
 		const rows = dialog.getAllByRole('listitem')
@@ -177,7 +185,7 @@ describe('IntegrationDisconnectModal', () => {
 
 	it('여러 워크플로우 중 자동 실행이 없으면 요약에는 남은 개수만 표시한다', () => {
 		const workflows = ['회의 노트', '팀 위키', '프로젝트 문서'].map(name => ({ ...WORKFLOWS[1], id: name, name }))
-		renderModal({ impact: { totalCount: 5, automaticCount: 0, workflows } })
+		renderModal({ impact: { totalCount: 5, noticeMode: 'summary', automaticCount: 0, workflows } })
 
 		const dialog = getDialog()
 		expect(dialog.getAllByRole('listitem')).toHaveLength(3)
@@ -240,7 +248,7 @@ describe('IntegrationDisconnectModal', () => {
 
 	it('워크플로우가 있으면 Tab과 Shift+Tab으로 영향 목록에 접근할 수 있다', async () => {
 		const user = userEvent.setup()
-		renderModal({ impact: { totalCount: 3, automaticCount: 2, workflows: WORKFLOWS } })
+		renderModal({ impact: { totalCount: 3, noticeMode: 'summary', automaticCount: 2, workflows: WORKFLOWS } })
 
 		const dialog = getDialog()
 		const cancel = dialog.getByRole('button', { name: '취소' })

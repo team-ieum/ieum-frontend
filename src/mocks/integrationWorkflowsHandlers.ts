@@ -5,7 +5,7 @@ import { googleIntegrationWorkflowsResponse } from '@/mocks/fixtures/integration
 export const createIntegrationWorkflowsHandlers = ({ delayMs }: { delayMs?: number } = {}): HttpHandler[] => [
 	http.get('*/api/v1/integrations/:serviceType/workflows', async ({ params }) => {
 		if (delayMs) await delay(delayMs)
-		if (params.serviceType === 'GOOGLE') return HttpResponse.json(googleIntegrationWorkflowsResponse)
+		if (params.serviceType === 'google') return HttpResponse.json(googleIntegrationWorkflowsResponse)
 		return HttpResponse.json({
 			...googleIntegrationWorkflowsResponse,
 			data: { content: [], size: 20, hasNext: false, nextCursor: null },

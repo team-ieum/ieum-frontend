@@ -54,7 +54,7 @@ const holdResponse = () => {
 }
 
 describe('OAuth 연동 해제 영향 다시 조회', () => {
-	it('두 번째 페이지가 실패하면 부분 결과와 확인 버튼을 숨기고 첫 페이지부터 새로 조회한다', async () => {
+	it('두 번째 페이지가 실패하면 부분 목록을 숨기고 첫 페이지부터 다시 조회할 수 있다', async () => {
 		const user = userEvent.setup()
 		const observePage = vi.fn()
 		const deleteRequest = vi.fn()
@@ -90,7 +90,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 
 		expect(await dialog.findByRole('alert')).toHaveTextContent('이 연결을 쓰는 워크플로우를 확인하지 못했어요.')
 		expect(dialog.queryByText(/이전 시도 워크플로우/)).not.toBeInTheDocument()
-		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 		expect(deleteRequest).not.toHaveBeenCalled()
 
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
@@ -122,7 +122,7 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 		expect(deleteRequest).not.toHaveBeenCalled()
 	})
 
-	it('완료한 영향 목록은 재조회 중이거나 실패해도 표시하고 새 목록을 확인한 뒤에만 해제를 허용한다', async () => {
+	it('재조회 중에는 해제를 보류하고 실패하면 이전 목록임을 알린 뒤 해제를 허용한다', async () => {
 		const user = userEvent.setup()
 		server.use(
 			NOTION_CONNECTIONS_HANDLER,
@@ -155,13 +155,35 @@ describe('OAuth 연동 해제 영향 다시 조회', () => {
 
 		expect(await dialog.findByRole('alert')).toHaveTextContent('이 연결을 쓰는 워크플로우를 확인하지 못했어요.')
 		expect(dialog.getByText(/기존 워크플로우/)).toBeVisible()
-		expect(dialog.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
+		expect(dialog.getByRole('alert')).toHaveTextContent('표시된 목록은 이전 조회 결과예요.')
+		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
 
 		server.use(mockNotionImpact(() => createImpactPage(null, '새 워크플로우')))
 		await user.click(dialog.getByRole('button', { name: '다시 조회' }))
 		expect(await dialog.findByText(/새 워크플로우/)).toBeVisible()
 		expect(dialog.queryByText(/기존 워크플로우/)).not.toBeInTheDocument()
 		expect(dialog.getByRole('button', { name: '연결 해제' })).not.toHaveAttribute('aria-disabled', 'true')
+	})
+
+	it('영향을 확인할 수 없어도 경고를 본 뒤 연결 해제를 완료할 수 있다', async () => {
+		const user = userEvent.setup()
+		const deleteRequest = vi.fn()
+		server.use(
+			NOTION_CONNECTIONS_HANDLER,
+			mockNotionImpact(() => new HttpResponse(null, { status: 503 })),
+			http.delete('*/api/v1/oauth/connections/NOTION', () => {
+				deleteRequest()
+				return HttpResponse.json({ success: true, data: null, message: 'OK', code: 'OK' })
+			})
+		)
+		renderAppRoute(NOTION_DETAIL_PATH)
+		await user.click(await screen.findByRole('button', { name: '연결 해제' }))
+		const dialog = within(await screen.findByRole('alertdialog'))
+		expect(await dialog.findByRole('alert')).toHaveTextContent('그대로 연결을 해제할 수 있어요.')
+		expect(deleteRequest).not.toHaveBeenCalled()
+		await user.click(dialog.getByRole('button', { name: '연결 해제' }))
+		await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument())
+		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
 
 	it('영향 목록 재조회 중 해제가 실패하면 확인 버튼에 포커스를 유지하고 조회 후 키보드로 다시 해제한다', async () => {

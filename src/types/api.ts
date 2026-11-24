@@ -11,7 +11,7 @@ import type { WorkflowErrorCode } from '@/types/workflowList'
 
 type CommonErrorCode = 'INVALID_INPUT' | 'NOT_FOUND' | 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_SUPPORTED' | 'INTERNAL_SERVER_ERROR'
 
-export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode | CredentialErrorCode
+export type ApiErrorCode = CommonErrorCode | AuthErrorCode | WorkflowErrorCode | CredentialErrorCode | 'ACCOUNT_NOT_CONNECTED'
 
 export interface ApiErrorResponse {
 	success: false

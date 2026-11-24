@@ -34,6 +34,8 @@ export type IntegrationService = {
 	connectionMethod?: IntegrationConnectionMethod
 	/** OAuth 연결의 서버 provider 값(예: `SLACK`). 해제 경로를 고를 때 쓴다. */
 	oauthProvider?: string
+	/** OAuth 연결의 공급자 계정 ID(`providerAccountId`). Discord는 서버 ID라 서버마다 해제할 때 쓴다. */
+	oauthAccountId?: string
 	/** 노드 카탈로그의 `app` 키. 같은 브랜드 안에서 앱별 로고를 고를 때 쓴다(예: `google_calendar`). */
 	app?: string
 	desc?: string
@@ -61,6 +63,8 @@ export type IntegrationStatusLabelConfig = {
 
 export type IntegrationBrandConfig = {
 	tint: string
+	/** 연결 카드 배경이 기본 브랜드 색과 다를 때만 지정한다. */
+	connectedCardTint?: string
 	icon: ReactNode
 	label: string
 }

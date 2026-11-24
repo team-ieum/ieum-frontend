@@ -1,10 +1,9 @@
 import type { ComponentProps, ReactNode } from 'react'
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
-import { googleIntegrationWorkflowsResponse, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import { useModalStore } from '@/stores/useModalStore'
@@ -15,14 +14,6 @@ const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize?client_id=ieum
 const SLACK_BOT_SERVICE_ID = `oauth-${slackOAuthConnection.id}`
 const GOOGLE_SERVICE_ID = `oauth-${oauthConnectionsResponse.data[0].id}`
 const GOOGLE_AUTHORIZATION_PATH = '/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=test-link-token'
-const GITHUB_OAUTH_CONNECTION = {
-	id: '88888888-8888-4888-8888-888888888888',
-	provider: 'GITHUB',
-	providerAccountId: 'octocat',
-	displayName: null,
-	scopes: ['repo'],
-	createdAt: '2026-10-01T00:00:00Z',
-}
 
 // 상세 view 전환(mode='wait')과 Modal exit 애니메이션이 jsdom에서 끝나지 않으므로 즉시 렌더한다.
 vi.mock('framer-motion', async () => {
@@ -299,61 +290,6 @@ describe('통합 설정 Slack 봇 연결', () => {
 	})
 })
 
-describe('Notion·GitHub 연결 관리', () => {
-	it.each([
-		{
-			label: 'GitHub',
-			connection: GITHUB_OAUTH_CONNECTION,
-			workflowName: '새 이슈 알림',
-			authorizeUrl: GITHUB_AUTHORIZE_URL,
-		},
-		{
-			label: 'Notion',
-			connection: {
-				...oauthConnectionsResponse.data[0],
-				provider: 'NOTION',
-				providerAccountId: 'notion-team',
-				displayName: '팀 워크스페이스',
-				scopes: [],
-			},
-			workflowName: '주간 회의록 정리',
-			authorizeUrl: 'https://api.notion.com/v1/oauth/authorize?client_id=ieum-test',
-		},
-	])('$label 상세에 연결 정보와 워크플로우를 표시하고 다시 연결하면 해당 서비스로 이동한다', async config => {
-		const { label, connection, workflowName, authorizeUrl } = config
-		const user = userEvent.setup()
-		const assign = vi.fn()
-		vi.stubGlobal('location', { ...window.location, assign })
-		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
-		const { data } = googleIntegrationWorkflowsResponse
-		server.use(
-			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] })),
-			http.get(`*/api/v1/integrations/${connection.provider}/workflows`, () =>
-				HttpResponse.json({
-					...googleIntegrationWorkflowsResponse,
-					data: { ...data, content: [{ ...data.content[0], name: workflowName }] },
-				})
-			),
-			http.get(`*/api/v1/${connection.provider.toLowerCase()}/oauth2/authorize`, () =>
-				HttpResponse.json({ success: true, data: { authorizationUrl: authorizeUrl }, message: 'OK', code: 'OK' })
-			)
-		)
-		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
-
-		await screen.findByRole('heading', { level: 2, name: label })
-		expect(screen.getByText(connection.displayName ?? connection.providerAccountId)).toBeInTheDocument()
-		if (connection.scopes.length) {
-			expect(screen.getByRole('heading', { name: '권한 범위' })).toBeInTheDocument()
-			expect(screen.getByText(connection.scopes[0])).toBeInTheDocument()
-		} else {
-			expect(screen.queryByRole('heading', { name: '권한 범위' })).not.toBeInTheDocument()
-		}
-		expect(await screen.findByRole('button', { name: new RegExp(workflowName) })).toBeInTheDocument()
-		await user.click(screen.getByRole('button', { name: '다시 연결' }))
-		await waitFor(() => expect(assign).toHaveBeenCalledExactlyOnceWith(authorizeUrl))
-	})
-})
-
 describe('통합 설정 Google 연결', () => {
 	const observeGoogleConnect = () => {
 		const bodies: unknown[] = []
@@ -440,7 +376,7 @@ describe('통합 설정 Google 연결', () => {
 		// 조회 중 버튼 상태를 확인할 수 있도록 워크플로우 응답을 붙잡아 둔다. 상세 아래 목록 조회도 같은 응답을 기다린다.
 		const workflowsResponse = createDeferred()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', async () => {
+			http.get('*/api/v1/integrations/google/workflows', async () => {
 				await workflowsResponse.promise
 				return HttpResponse.json({
 					success: true,

@@ -15,7 +15,7 @@ type IntegrationConnectedCardProps = {
 
 const IntegrationConnectedCard = ({ service, onManage, onManageButtonRef }: IntegrationConnectedCardProps) => {
 	const brand = getBrandConfig(service.brand)
-	const cardTint = service.brand === 'notion' || service.brand === 'github' ? getBrandConfig('google').tint : brand.tint
+	const cardTint = brand.connectedCardTint ?? brand.tint
 	const displayStatus = toConnectedDisplayStatus(service.status)
 	const status = INTEGRATION_STATUS_LABEL[displayStatus]
 	const manageButtonRef = useCallback(

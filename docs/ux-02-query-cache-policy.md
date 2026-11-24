@@ -69,11 +69,12 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 | Webhook 생성·삭제         | Webhook credentials list exact key                |
 | OAuth callback 완료       | OAuth connections list exact key                  |
 | OAuth 연결 해제(Slack)    | OAuth connections list exact key                  |
-| Notion·GitHub 연결 해제   | OAuth connections list exact key (이미 해제 포함) |
 | Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
 | 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
 
 Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSuccess`는 `invalidateQueries()` Promise를 반환하지 않으며, `mutateAsync()`와 `isPending`이 완료된 뒤에도 active query refetch는 background에서 계속될 수 있다. 이때 기존 cache 데이터를 유지하고 refetch 실패를 mutation 실패로 취급하지 않는다.
+
+OAuth 연결 해제는 공급자별 경로를 공용 mutation에서 호출하고 연결 목록의 정확한 키만 무효화한다. Google·Notion·GitHub는 서버가 `ACCOUNT_NOT_CONNECTED`를 반환해도 이미 연결이 사라진 상태이므로 같은 목록을 갱신한다.
 
 OAuth callback은 mutation이 아니며 callback 처리와 query parameter 정리 순서를 보장하기 위해 OAuth connections invalidation을 기다린다. Query key 구조와 기존 prefix/exact invalidation 범위는 변경하지 않는다.
 

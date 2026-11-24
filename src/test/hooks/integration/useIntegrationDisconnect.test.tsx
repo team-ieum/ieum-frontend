@@ -129,7 +129,7 @@ describe('useIntegrationDisconnect', () => {
 		const workflowsRequest = vi.fn()
 		const deleteRequest = vi.fn()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', () => {
+			http.get('*/api/v1/integrations/google/workflows', () => {
 				workflowsRequest()
 				return workflowsResponse(['일정 알림', '주간 회의 정리'])
 			}),
@@ -161,9 +161,29 @@ describe('useIntegrationDisconnect', () => {
 		expect(deleteRequest).toHaveBeenCalledOnce()
 	})
 
+	it('다른 화면에서 Google을 이미 해제했으면 오류 없이 해제를 마친다', async () => {
+		server.use(
+			http.delete('*/api/v1/oauth/connections/GOOGLE', () =>
+				HttpResponse.json(
+					{ success: false, data: null, code: 'ACCOUNT_NOT_CONNECTED', message: '이미 해제됨' },
+					{ status: 400 }
+				)
+			)
+		)
+		const onDisconnected = vi.fn()
+		const { result } = renderHook(() => useIntegrationDisconnect({ service: googleService, onDisconnected }), {
+			wrapper: createWrapper(),
+		})
+		act(() => result.current.disconnect())
+		await waitFor(() => expect(useModalStore.getState().isOpen).toBe(true))
+		confirmModal()
+		await waitFor(() => expect(onDisconnected).toHaveBeenCalledOnce())
+		expect(useModalStore.getState().isOpen).toBe(false)
+	})
+
 	it('Google 워크플로우 조회가 실패해도 확인하지 못했다는 문구로 확인 modal을 연다', async () => {
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', () =>
+			http.get('*/api/v1/integrations/google/workflows', () =>
 				HttpResponse.json(
 					{ success: false, data: null, message: '서버 오류', code: 'INTERNAL_SERVER_ERROR' },
 					{ status: 500 }
@@ -184,7 +204,7 @@ describe('useIntegrationDisconnect', () => {
 	it('앱처럼 query 재시도가 켜진 QueryClient에서도 Google 워크플로우 조회 실패는 재시도 없이 바로 확인 modal을 연다', async () => {
 		const workflowsRequest = vi.fn()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', () => {
+			http.get('*/api/v1/integrations/google/workflows', () => {
 				workflowsRequest()
 				return HttpResponse.json(
 					{ success: false, data: null, message: '서버 오류', code: 'INTERNAL_SERVER_ERROR' },
@@ -211,7 +231,7 @@ describe('useIntegrationDisconnect', () => {
 		const response = createDeferred()
 		const workflowsRequest = vi.fn()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', async () => {
+			http.get('*/api/v1/integrations/google/workflows', async () => {
 				workflowsRequest()
 				await response.promise
 				return workflowsResponse([])
@@ -244,7 +264,7 @@ describe('useIntegrationDisconnect', () => {
 		const response = createDeferred()
 		const workflowsRequest = vi.fn()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', async () => {
+			http.get('*/api/v1/integrations/google/workflows', async () => {
 				workflowsRequest()
 				await response.promise
 				return workflowsResponse(['일정 알림'])
@@ -270,7 +290,7 @@ describe('useIntegrationDisconnect', () => {
 		expect(useModalStore.getState().isOpen).toBe(false)
 	})
 
-	it('해제 경로가 없는 OAuth 연결은 해제할 수 없고 확인 modal을 열지 않는다', () => {
+	it('전용 확인창을 쓰는 GitHub 연결은 공용 확인 modal을 열지 않는다', () => {
 		const { result } = renderHook(() => useIntegrationDisconnect({ service: githubService, onDisconnected: vi.fn() }), {
 			wrapper: createWrapper(),
 		})

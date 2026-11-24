@@ -14,7 +14,12 @@ const createWorkflow = (id: string, triggerType: string, active = true): Integra
 
 describe('getOAuthDisconnectImpact', () => {
 	it('영향받는 워크플로우가 없으면 빈 목록과 0개를 반환한다', () => {
-		expect(getOAuthDisconnectImpact([])).toEqual({ totalCount: 0, automaticCount: 0, workflows: [] })
+		expect(getOAuthDisconnectImpact([])).toEqual({
+			totalCount: 0,
+			noticeMode: 'individual',
+			automaticCount: 0,
+			workflows: [],
+		})
 	})
 
 	it.each([
@@ -31,11 +36,20 @@ describe('getOAuthDisconnectImpact', () => {
 			const result = getOAuthDisconnectImpact([createWorkflow('A', trigger, active)])
 			expect(result).toEqual({
 				totalCount: 1,
+				noticeMode: 'individual',
 				automaticCount: automaticNotice === null ? 0 : 1,
 				workflows: [{ id: 'A', name: '워크플로우 A', statusLabel, triggerLabel, automaticNotice }],
 			})
 		}
 	)
+
+	it.each([
+		[2, 'individual'],
+		[3, 'summary'],
+	] as const)('%i개일 때 %s 방식으로 안내한다', (count, mode) => {
+		const workflows = Array.from({ length: count }, (_, index) => createWorkflow(String(index), 'SCHEDULE'))
+		expect(getOAuthDisconnectImpact(workflows).noticeMode).toBe(mode)
+	})
 
 	it('처음 세 워크플로우의 순서를 유지하고 생략된 워크플로우도 자동 실행 집계에 포함한다', () => {
 		const result = getOAuthDisconnectImpact([
