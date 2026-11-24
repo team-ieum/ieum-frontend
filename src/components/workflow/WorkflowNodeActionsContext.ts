@@ -3,6 +3,8 @@ import { createContext } from 'react'
 type WorkflowNodeActions = {
 	/** 노드 뒤에 붙일 다음 노드를 고르게 한다. `invoker`는 고르기를 마치면 포커스를 돌려받을 버튼이다. */
 	onAddNext: (nodeId: string, invoker: HTMLButtonElement) => void
+	/** 노드와 거기 이어진 연결을 지운다. 확인 창 여부는 캔버스가 정한다. */
+	onDelete: (nodeId: string) => void
 }
 
 /**

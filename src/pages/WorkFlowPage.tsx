@@ -1,6 +1,6 @@
 import { Background, BackgroundVariant, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 import '@/styles/react-flow.css'
-import { useMemo, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type Ref, type RefObject } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import AnimatedEdge from '@/components/workflow/AnimatedEdge'
 import NodeAddButton from '@/components/workflow/NodeAddButton'
@@ -15,6 +15,7 @@ import WorkflowValidationBanner from '@/components/workflow/WorkflowValidationBa
 import { WorkflowDetailError, WorkflowDetailSkeleton } from '@/components/workflow/WorkflowDetailAsyncState'
 import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useNodeCatalogQuery } from '@/hooks/workflow/queries/useNodeCatalogQuery'
+import { useNodeDeleteConfirm } from '@/hooks/workflow/useNodeDeleteConfirm'
 import { useWorkflowQuery } from '@/hooks/workflow/queries/useWorkflowQuery'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
@@ -86,6 +87,8 @@ type WorkflowCanvasProps = {
 	settingsNodeId?: string
 	onNodeSelect: (nodeId: string) => void
 	onPaneClick: () => void
+	/** 마운트된 동안 캔버스의 노드 삭제 함수를 담는다. 설정 패널처럼 캔버스 밖에서 노드 삭제를 요청할 때 쓴다. */
+	deleteNodeRef: RefObject<((nodeId: string) => void) | null>
 }
 
 const WorkflowCanvas = ({
@@ -108,7 +111,9 @@ const WorkflowCanvas = ({
 	settingsNodeId,
 	onNodeSelect,
 	onPaneClick,
+	deleteNodeRef,
 }: WorkflowCanvasProps) => {
+	const confirmNodesDelete = useNodeDeleteConfirm()
 	// ref로 넘기는 값을 editor 객체에서 꺼내 두지 않으면 lint가 editor 전체를 ref로 보고 렌더 중 접근으로 판정한다.
 	const { setCanvasElement, ...editor } = useWorkflowCanvasEditor({
 		initialNodes: nodes,
@@ -117,7 +122,17 @@ const WorkflowCanvas = ({
 		onEdgesCommit,
 		onNodeAdd,
 		onNodesRemove,
+		confirmNodesDelete,
 	})
+
+	const { deleteNode } = editor
+	useEffect(() => {
+		deleteNodeRef.current = deleteNode
+		return () => {
+			// 캔버스가 다시 마운트될 때 새 캔버스가 먼저 채웠으면 지우지 않는다.
+			if (deleteNodeRef.current === deleteNode) deleteNodeRef.current = null
+		}
+	}, [deleteNodeRef, deleteNode])
 
 	const handleCatalogSelect = (entry: NodeCatalogEntry) => {
 		if (palette?.mode === 'next') editor.addNextCatalogNode(palette.sourceNodeId, entry)
@@ -128,8 +143,9 @@ const WorkflowCanvas = ({
 		() => ({
 			onAddNext: (nodeId: string, invoker: HTMLButtonElement) =>
 				onPaletteOpen({ mode: 'next', sourceNodeId: nodeId }, invoker),
+			onDelete: editor.deleteNode,
 		}),
-		[onPaletteOpen]
+		[onPaletteOpen, editor.deleteNode]
 	)
 	const isCanvasEmpty = editor.nodes.length === 0
 
@@ -185,6 +201,7 @@ const WorkflowCanvas = ({
 				onNodesChange={editor.onNodesChange}
 				onEdgesChange={editor.onEdgesChange}
 				onNodeDragStop={editor.onNodeDragStop}
+				onBeforeDelete={editor.onBeforeDelete}
 				onNodeClick={(_event, node) => onNodeSelect(node.id)}
 				onPaneClick={onPaneClick}
 				onConnect={editor.onConnect}
@@ -257,6 +274,7 @@ const WorkFlowPage = () => {
 		[catalogData]
 	)
 	const [selectedNode, setSelectedNode] = useState<{ workflowId: string; nodeId: string } | null>(null)
+	const canvasDeleteNodeRef = useRef<((nodeId: string) => void) | null>(null)
 
 	const serverDocument = useMemo<WorkflowDraftData | null>(() => {
 		if (!workflow) return null
@@ -295,6 +313,11 @@ const WorkFlowPage = () => {
 		selectedNode && selectedNode.workflowId === workflowId
 			? document?.nodes.find(node => node.id === selectedNode.nodeId)
 			: undefined
+	const handleCanvasNodesRemove = (nodeIds: string[], edges: WorkflowEdgeType[]) => {
+		handleNodesRemove(nodeIds, edges)
+		// 패널은 문서에서 노드가 사라지면 저절로 닫히지만, 고른 노드 id가 남으면 같은 id 노드가 다시 생길 때 패널이 다시 열린다.
+		if (selectedNode && nodeIds.includes(selectedNode.nodeId)) setSelectedNode(null)
+	}
 	const closeNodeSettings = () => {
 		setSelectedNode(null)
 		// 설정 패널은 열릴 때 포커스를 가져가므로 닫힐 때 그 노드로 돌려줘 키보드 위치를 잃지 않게 한다.
@@ -381,10 +404,11 @@ const WorkFlowPage = () => {
 						onNodeAdd={handleNodeAdd}
 						onNodePositionCommit={handleNodePositionCommit}
 						onEdgesCommit={handleEdgesCommit}
-						onNodesRemove={handleNodesRemove}
+						onNodesRemove={handleCanvasNodesRemove}
 						settingsNodeId={settingsNode?.id}
 						onNodeSelect={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						onPaneClick={() => setSelectedNode(null)}
+						deleteNodeRef={canvasDeleteNodeRef}
 					/>
 				) : null}
 				<WorkflowValidationBanner errors={validation.globalErrors} />
@@ -402,6 +426,7 @@ const WorkFlowPage = () => {
 						onNodeOpen={nodeId => workflowId && setSelectedNode({ workflowId, nodeId })}
 						savedNode={serverDocument?.nodes.find(node => node.id === settingsNode.id)}
 						isWorkflowActive={Boolean(active)}
+						onDeleteRequest={() => canvasDeleteNodeRef.current?.(settingsNode.id)}
 						onClose={closeNodeSettings}
 					/>
 				) : null}

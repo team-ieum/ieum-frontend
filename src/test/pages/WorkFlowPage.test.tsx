@@ -47,6 +47,16 @@ vi.mock('@xyflow/react', async () => {
 			</button>
 		)
 	}
+	// 실제 노드 카드의 삭제 버튼처럼 캔버스가 준 편집 동작으로 지운다.
+	const NodeDeleteButton = ({ nodeId }: { nodeId: string }) => {
+		const actions = useContext(WorkflowNodeActionsContext)
+		if (!actions) return null
+		return (
+			<button type='button' onClick={() => actions.onDelete(nodeId)}>
+				{`노드 삭제 ${nodeId}`}
+			</button>
+		)
+	}
 	type CanvasNode = {
 		id: string
 		position: { x: number; y: number }
@@ -76,10 +86,12 @@ vi.mock('@xyflow/react', async () => {
 		) => void
 		onEdgesChange?: (changes: { id: string; type: 'remove' }[]) => void
 		onNodesChange?: (changes: { id: string; type: 'remove' }[]) => void
+		onBeforeDelete?: (elements: { nodes: CanvasNode[]; edges: CanvasEdge[] }) => Promise<boolean>
 		onInit?: (instance: {
 			screenToFlowPosition: (position: { x: number; y: number }) => { x: number; y: number }
 			setCenter: () => Promise<boolean>
 			getZoom: () => number
+			deleteElements: (elements: { nodes?: { id: string }[] }) => Promise<unknown>
 		}) => void
 		onNodeClick?: (event: never, node: CanvasNode) => void
 		onPaneClick?: () => void
@@ -101,103 +113,116 @@ vi.mock('@xyflow/react', async () => {
 			onReconnect,
 			onEdgesChange,
 			onNodesChange,
+			onBeforeDelete,
 			onInit,
 			onNodeClick,
 			onPaneClick,
 			onKeyDown,
 			ref,
-		}: ReactFlowMockProps) => (
-			<div
-				onKeyDown={onKeyDown}
-				ref={element => {
-					if (typeof ref === 'function') ref(element)
-					else if (ref) ref.current = element
-					// 실제 ReactFlow처럼 마운트 직후 화면 좌표를 그대로 flow 좌표로 돌려주는 인스턴스를 넘긴다.
-					if (element)
-						onInit?.({ screenToFlowPosition: position => position, setCenter: async () => true, getZoom: () => 1 })
-				}}
-				data-testid='workflow-canvas'
-				data-nodes-draggable={nodesDraggable}
-				data-nodes-connectable={nodesConnectable}
-				data-edges-reconnectable={edgesReconnectable}
-				data-elements-selectable={elementsSelectable}
-			>
-				<span data-testid='edge-count'>{edges.length}</span>
-				{nodes.map(node => (
-					// 실제 ReactFlow 노드처럼 data-id와 포커스를 받는 요소를 둬 설정 패널이 닫힐 때 포커스 복귀를 확인한다.
-					<div key={node.id} className='react-flow__node' data-id={node.id} tabIndex={0}>
-						<button type='button' onClick={() => onNodeClick?.({} as never, node)}>
-							{`노드 선택 ${node.id}`}
-						</button>
-						<button
-							type='button'
-							onClick={() => {
-								// 실제 ReactFlow의 deleteElements처럼 한 이벤트에서 연결 remove를 먼저, 노드 remove를 뒤에 보낸다.
-								const connected = edges.filter(edge => edge.source === node.id || edge.target === node.id)
-								if (connected.length > 0)
-									onEdgesChange?.(connected.map(edge => ({ id: edge.id, type: 'remove' })))
-								onNodesChange?.([{ id: node.id, type: 'remove' }])
-							}}
-						>
-							{`노드 삭제 ${node.id}`}
-						</button>
-						<NextNodeButton nodeId={node.id} />
-						{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
-						<span data-testid={`status-${node.id}`}>{node.data.status}</span>
-						<span data-testid={`validation-${node.id}`}>{node.data.validationErrorCount ?? 0}</span>
-						{node.data.technicalMode ? (
-							node.data.technicalDetails.length > 0 ? (
-								node.data.technicalDetails.map(detail => (
-									<span key={detail.label}>{`${detail.label}: ${detail.value}`}</span>
-								))
+		}: ReactFlowMockProps) => {
+			// 실제 deleteElements처럼 지울 노드에 닿은 연결을 모아 onBeforeDelete를 거치고,
+			// 허락되면 한 이벤트에서 연결 remove를 먼저, 노드 remove를 뒤에 보낸다.
+			const deleteElements = async ({ nodes: targets = [] }: { nodes?: { id: string }[] }) => {
+				const ids = new Set(targets.map(target => target.id))
+				const targetNodes = nodes.filter(node => ids.has(node.id))
+				const connected = edges.filter(edge => ids.has(edge.source) || ids.has(edge.target))
+				if (onBeforeDelete && !(await onBeforeDelete({ nodes: targetNodes, edges: connected }))) return
+				if (connected.length > 0) onEdgesChange?.(connected.map(edge => ({ id: edge.id, type: 'remove' })))
+				onNodesChange?.(targetNodes.map(node => ({ id: node.id, type: 'remove' })))
+			}
+
+			return (
+				<div
+					onKeyDown={onKeyDown}
+					ref={element => {
+						if (typeof ref === 'function') ref(element)
+						else if (ref) ref.current = element
+						// 실제 ReactFlow처럼 마운트 직후 화면 좌표를 그대로 flow 좌표로 돌려주는 인스턴스를 넘긴다.
+						if (element)
+							onInit?.({
+								screenToFlowPosition: position => position,
+								setCenter: async () => true,
+								getZoom: () => 1,
+								deleteElements,
+							})
+					}}
+					data-testid='workflow-canvas'
+					data-nodes-draggable={nodesDraggable}
+					data-nodes-connectable={nodesConnectable}
+					data-edges-reconnectable={edgesReconnectable}
+					data-elements-selectable={elementsSelectable}
+				>
+					<span data-testid='edge-count'>{edges.length}</span>
+					{nodes.map(node => (
+						// 실제 ReactFlow 노드처럼 data-id와 포커스를 받는 요소를 둬 설정 패널이 닫힐 때 포커스 복귀를 확인한다.
+						<div key={node.id} className='react-flow__node' data-id={node.id} tabIndex={0}>
+							<button type='button' onClick={() => onNodeClick?.({} as never, node)}>
+								{`노드 선택 ${node.id}`}
+							</button>
+							<NodeDeleteButton nodeId={node.id} />
+							<NextNodeButton nodeId={node.id} />
+							{node.data.isSettingsOpen ? <span>{`설정 중 ${node.id}`}</span> : null}
+							<span data-testid={`status-${node.id}`}>{node.data.status}</span>
+							<span data-testid={`validation-${node.id}`}>{node.data.validationErrorCount ?? 0}</span>
+							{node.data.technicalMode ? (
+								node.data.technicalDetails.length > 0 ? (
+									node.data.technicalDetails.map(detail => (
+										<span key={detail.label}>{`${detail.label}: ${detail.value}`}</span>
+									))
+								) : (
+									<span>표시할 기술 정보가 없어요</span>
+								)
 							) : (
-								<span>표시할 기술 정보가 없어요</span>
-							)
-						) : (
-							<span>{node.data.description}</span>
-						)}
-						{node.data.modelName ? <span>{node.data.modelName}</span> : null}
-					</div>
-				))}
-				<button
-					type='button'
-					onClick={() => {
-						const node = nodes[0]
-						onNodeDragStop?.({} as never, { ...node, position: { x: 240, y: 180 } }, nodes)
-					}}
-				>
-					노드 이동
-				</button>
-				<button type='button' onClick={() => onPaneClick?.()}>
-					빈 곳 클릭
-				</button>
-				<button
-					type='button'
-					onClick={() => onConnect?.({ source: 'ai', target: 'action', sourceHandle: null, targetHandle: null })}
-				>
-					연결 추가
-				</button>
-				<button
-					type='button'
-					onClick={() => {
-						const edge = edges[0]
-						if (edge)
-							onReconnect?.(edge, { source: 'trigger', target: 'action', sourceHandle: null, targetHandle: null })
-					}}
-				>
-					연결 재연결
-				</button>
-				<button
-					type='button'
-					onClick={() => {
-						const edge = edges[0]
-						if (edge) onEdgesChange?.([{ id: edge.id, type: 'remove' }])
-					}}
-				>
-					연결 제거
-				</button>
-			</div>
-		),
+								<span>{node.data.description}</span>
+							)}
+							{node.data.modelName ? <span>{node.data.modelName}</span> : null}
+						</div>
+					))}
+					<button
+						type='button'
+						onClick={() => {
+							const node = nodes[0]
+							onNodeDragStop?.({} as never, { ...node, position: { x: 240, y: 180 } }, nodes)
+						}}
+					>
+						노드 이동
+					</button>
+					<button type='button' onClick={() => onPaneClick?.()}>
+						빈 곳 클릭
+					</button>
+					<button
+						type='button'
+						onClick={() => onConnect?.({ source: 'ai', target: 'action', sourceHandle: null, targetHandle: null })}
+					>
+						연결 추가
+					</button>
+					<button
+						type='button'
+						onClick={() => {
+							const edge = edges[0]
+							if (edge)
+								onReconnect?.(edge, {
+									source: 'trigger',
+									target: 'action',
+									sourceHandle: null,
+									targetHandle: null,
+								})
+						}}
+					>
+						연결 재연결
+					</button>
+					<button
+						type='button'
+						onClick={() => {
+							const edge = edges[0]
+							if (edge) onEdgesChange?.([{ id: edge.id, type: 'remove' }])
+						}}
+					>
+						연결 제거
+					</button>
+				</div>
+			)
+		},
 		Background: () => null,
 		Controls: () => null,
 		MiniMap: () => null,
@@ -310,10 +335,15 @@ vi.mock('@/hooks/workflow/useWorkflowExecution', () => ({
 	},
 }))
 
-vi.mock('@/stores/useModalStore', () => ({
-	useModalStore: (selector: (state: { open: typeof mocks.openModal; openConfirm: typeof mocks.openConfirm }) => unknown) =>
-		selector({ open: mocks.openModal, openConfirm: mocks.openConfirm }),
-}))
+vi.mock('@/stores/useModalStore', () => {
+	// 열린 모달이 없는 상태로 두어, 캔버스가 언마운트될 때 자기 삭제 확인 창을 찾는 정리 코드가 아무것도 닫지 않게 한다.
+	const getState = () => ({ open: mocks.openModal, openConfirm: mocks.openConfirm, isOpen: false, onCancel: undefined })
+	return {
+		useModalStore: Object.assign((selector: (state: ReturnType<typeof getState>) => unknown) => selector(getState()), {
+			getState,
+		}),
+	}
+})
 
 vi.mock('@/components/workflow/WorkflowChat', () => ({
 	default: function WorkflowChatMock({
@@ -644,7 +674,7 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByTestId('chat-edge-count')).toHaveTextContent('1')
 	})
 
-	it('노드를 지우면 연결선과 함께 초안에서 빼고 설정 패널을 닫으며 저장 요청에 빠진 상태를 싣는다', async () => {
+	it('노드 삭제를 확인하면 연결선과 함께 초안에서 빼고 설정 패널을 닫으며 저장 요청에 빠진 상태를 싣는다', async () => {
 		const user = userEvent.setup()
 		mocks.catalogEntries = nodeCatalogEntriesFixture
 		mocks.update.mockReset()
@@ -656,6 +686,13 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByRole('complementary', { name: '노드 설정' })).toBeInTheDocument()
 
 		await user.click(screen.getByRole('button', { name: '노드 삭제 ai' }))
+
+		// 확인하기 전에는 지우지 않는다.
+		expect(mocks.openConfirm).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ title: '노드 삭제', checkboxLabel: '다시 묻지 않기', variant: 'danger' })
+		)
+		expect(screen.getByRole('button', { name: '노드 선택 ai' })).toBeInTheDocument()
+		await act(async () => mocks.openConfirm.mock.calls[0][0].onConfirm({ isChecked: false }))
 
 		expect(screen.queryByRole('button', { name: '노드 선택 ai' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('complementary', { name: '노드 설정' })).not.toBeInTheDocument()
@@ -675,6 +712,50 @@ describe('WorkFlowPage', () => {
 		const request = mocks.update.mock.calls[0][0]
 		expect(request.nodes.map((node: { id: string }) => node.id)).toEqual(['trigger', 'action'])
 		expect(request.edges).toEqual([])
+	})
+
+	// 노드를 클릭하면 패널이 포커스를 가져가고 패널 전체가 nokey라 React Flow 삭제 키가 닿지 않는다.
+	it('노드를 클릭해 막 열린 설정 패널에서 Backspace를 누르면 확인을 거쳐 그 노드를 지운다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		await waitFor(() => expect(panel).toHaveFocus())
+		await user.keyboard('{Backspace}')
+
+		expect(mocks.openConfirm).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ title: '노드 삭제' }))
+		await act(async () => mocks.openConfirm.mock.calls[0][0].onConfirm({ isChecked: false }))
+
+		expect(screen.queryByRole('button', { name: '노드 선택 ai' })).not.toBeInTheDocument()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('0')
+	})
+
+	it('설정 패널 안의 버튼에서 누른 Delete는 노드 삭제로 이어지지 않는다', async () => {
+		const user = userEvent.setup()
+		mocks.catalogEntries = nodeCatalogEntriesFixture
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 선택 ai' }))
+		const panel = screen.getByRole('complementary', { name: '노드 설정' })
+		within(panel).getAllByRole('button')[0].focus()
+		await user.keyboard('{Delete}')
+
+		expect(mocks.openConfirm).not.toHaveBeenCalled()
+		expect(screen.getByRole('button', { name: '노드 선택 ai' })).toBeInTheDocument()
+	})
+
+	it('노드 삭제 확인 창을 취소하면 노드와 연결선을 그대로 두고 저장할 변경도 만들지 않는다', async () => {
+		const user = userEvent.setup()
+		renderPage()
+
+		await user.click(screen.getByRole('button', { name: '노드 삭제 ai' }))
+		await act(async () => mocks.openConfirm.mock.calls[0][0].onCancel())
+
+		expect(screen.getByRole('button', { name: '노드 선택 ai' })).toBeInTheDocument()
+		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
+		expect(screen.queryByRole('status', { name: '저장되지 않은 변경사항' })).not.toBeInTheDocument()
 	})
 
 	it('팔레트에서 고른 항목을 fixed 뼈대 그대로 노드로 추가하고 저장할 초안에 싣는다', async () => {

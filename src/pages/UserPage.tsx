@@ -3,6 +3,7 @@ import Collapse from '@/components/common/Collapse'
 import DefaultProfileImage from '@/components/common/DefaultProfileImage'
 import PatternBackground from '@/components/common/PatternBackground'
 import SkeletonPulse from '@/components/common/SkeletonPulse'
+import NodeDeleteConfirmSetting from '@/components/user/NodeDeleteConfirmSetting'
 import PasswordChangeSection from '@/components/user/PasswordChangeSection'
 import WithdrawSection from '@/components/user/WithdrawSection'
 import { useUserPageViewModel } from '@/hooks/user/useUserPageViewModel'
@@ -107,6 +108,7 @@ const UserPage = () => {
 
 						<div className='border-t border-neutral-200'>
 							<PasswordChangeSection section={viewModel.passwordSection} />
+							<NodeDeleteConfirmSetting />
 							<WithdrawSection section={viewModel.withdrawSection} />
 						</div>
 					</div>

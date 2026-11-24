@@ -13,6 +13,7 @@ import {
 	Play,
 	Plus,
 	Shuffle,
+	Trash2,
 	UserCheck,
 	Workflow,
 } from 'lucide-react'
@@ -158,6 +159,30 @@ const WorkflowNode = ({ id, data, selected }: NodeProps<WorkflowNodeType>) => {
 				>
 					<StatusIcon status={data.status} />
 				</motion.span>
+				{actions ? (
+					<button
+						type='button'
+						// 다음 노드 추가 버튼과 같은 이유로 키 입력을 노드 래퍼로 올리지 않고, 클릭이 설정 패널을 열지 않게 한다.
+						onKeyDown={event => event.stopPropagation()}
+						onClick={event => {
+							event.stopPropagation()
+							actions.onDelete(id)
+						}}
+						aria-label={`${data.title} 삭제`}
+						title='노드 삭제'
+						className={cn(
+							'nodrag nopan grid size-6 shrink-0 cursor-pointer place-items-center rounded-full text-neutral-500 transition-opacity',
+							'hover:bg-danger-50 hover:text-danger-700 focus-visible:opacity-100 motion-reduce:transition-none',
+							'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue',
+							'group-hover/node:pointer-events-auto group-hover/node:opacity-100',
+							'group-focus-within/node:pointer-events-auto group-focus-within/node:opacity-100',
+							// 숨겨진 버튼은 누를 수 없게 한다. hover가 없는 터치 화면에서 보이지 않는 버튼을 탭해 바로 지우는 일을 막는다.
+							selected || data.isSettingsOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+						)}
+					>
+						<Trash2 size={14} aria-hidden='true' />
+					</button>
+				) : null}
 			</header>
 
 			<div className='flex flex-col gap-[0.55rem] p-[0.85rem]'>

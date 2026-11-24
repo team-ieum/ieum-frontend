@@ -46,6 +46,11 @@ type NodeSettingsPanelProps = {
 	savedNode?: WorkflowNodeDto
 	/** 워크플로우가 켜져 있는지. 웹훅 수신 테스트가 실제 실행으로 이어진다고 알릴 때 쓴다. */
 	isWorkflowActive?: boolean
+	/**
+	 * 패널 자체에 포커스가 있을 때(막 열려 아직 안쪽 칸·버튼을 고르지 않음) Backspace·Delete를 누르면 이 노드 삭제를 요청한다.
+	 * 안쪽 칸·버튼에서 누른 키는 입력으로 보고 부르지 않는다. 없으면 삭제 키를 무시한다.
+	 */
+	onDeleteRequest?: () => void
 	onClose: () => void
 }
 
@@ -65,6 +70,7 @@ const NodeSettingsPanel = ({
 	onNodeOpen,
 	savedNode,
 	isWorkflowActive = false,
+	onDeleteRequest,
 	onClose,
 }: NodeSettingsPanelProps) => {
 	const {
@@ -103,10 +109,17 @@ const NodeSettingsPanel = ({
 		panelRef.current?.focus()
 	}, [])
 
-	const handleKeyDown = (event: KeyboardEvent) => {
-		if (event.key !== 'Escape') return
-		event.stopPropagation()
-		onClose()
+	const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+		if (event.key === 'Escape') {
+			event.stopPropagation()
+			onClose()
+			return
+		}
+		// 노드를 클릭하면 패널이 포커스를 가져가 React Flow 삭제 키가 `nokey`에 막히므로, 패널 자체에서 누른 삭제 키만 대신 넘긴다.
+		if ((event.key === 'Backspace' || event.key === 'Delete') && event.target === event.currentTarget && onDeleteRequest) {
+			event.preventDefault()
+			onDeleteRequest()
+		}
 	}
 
 	const renderBody = () => {
@@ -226,6 +239,7 @@ const NodeSettingsPanel = ({
 			transition={{ duration: 0.18, ease: 'easeOut' }}
 			className={cn(
 				// nokey: React Flow 삭제 키(Backspace·Delete)가 패널 안 키 입력으로 선택된 노드를 지우지 않게 한다.
+				// 패널 자체에서 누른 삭제 키는 handleKeyDown이 onDeleteRequest로 넘긴다.
 				'nokey absolute inset-y-3 right-3 z-20 flex w-90 max-w-[calc(100%-1.5rem)] flex-col overflow-hidden outline-none',
 				'rounded-2xl border border-neutral-200 bg-white shadow-[0_14px_36px_rgba(43,72,86,0.16)]'
 			)}
