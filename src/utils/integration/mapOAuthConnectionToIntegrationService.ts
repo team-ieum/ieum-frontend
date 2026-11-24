@@ -34,6 +34,7 @@ export const mapOAuthConnectionToIntegrationService = (connection: OAuthConnecti
 		origin: 'oauth',
 		connectionMethod: OAUTH_BOT_PROVIDERS.includes(provider) ? 'bot' : undefined,
 		oauthProvider: provider,
+		oauthAccountId: connection.providerAccountId,
 		account: connection.displayName ?? connection.providerAccountId,
 		lastSync: formatIntegrationLastSync(connection.createdAt),
 		scopes: connection.scopes,

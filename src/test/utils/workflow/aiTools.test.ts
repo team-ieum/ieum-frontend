@@ -144,7 +144,9 @@ describe('aiTools', () => {
 		expect(discordEntry.inputFields[0].path).toBe('config.webhookCredentialId')
 	})
 
-	it('웹훅 칸과 서버 기본값으로 고정되는 캘린더 칸은 비워도 AI가 정하지 않는다', () => {
+	it('웹훅 칸, 서버 기본값으로 고정되는 캘린더 칸, 목록용 Discord 서버 칸은 비워도 AI가 정하지 않는다', () => {
+		expect(isAiDecidedWhenEmpty('builtin:discord_send_channel_message', 'guild_id')).toBe(false)
+		expect(isAiDecidedWhenEmpty('builtin:discord_send_channel_message', 'channel_id')).toBe(true)
 		expect(isAiDecidedWhenEmpty('discord', 'content')).toBe(true)
 		expect(isAiDecidedWhenEmpty('discord', 'webhookCredentialId')).toBe(false)
 		expect(isAiDecidedWhenEmpty('builtin:google_calendar_update', 'scope')).toBe(false)

@@ -27,10 +27,13 @@ export const WORKFLOW_SERVICE_META: Record<WorkflowServiceId, WorkflowServiceMet
 	webhook: { id: 'webhook', name: 'Webhook', initial: 'Wh', bgClass: 'bg-main-gray' },
 }
 
-/** 통합설정 카탈로그 순서와 동일한 필터용 서비스 목록 */
-export const WORKFLOW_SERVICES: WorkflowServiceMeta[] = AVAILABLE_INTEGRATION_CATALOG.map(
-	service => WORKFLOW_SERVICE_META[service.brand as WorkflowServiceId]
-).filter(Boolean)
+/**
+ * 통합설정 카탈로그 순서와 동일한 필터용 서비스 목록.
+ * 카탈로그는 같은 브랜드를 연결 방식(봇·웹훅)이나 앱마다 여러 타일로 두므로 브랜드마다 처음 나온 한 번만 담는다.
+ */
+export const WORKFLOW_SERVICES: WorkflowServiceMeta[] = [...new Set(AVAILABLE_INTEGRATION_CATALOG.map(service => service.brand))]
+	.map(brand => WORKFLOW_SERVICE_META[brand as WorkflowServiceId])
+	.filter(Boolean)
 
 export const WORKFLOW_CATEGORY_META: Record<WorkflowCategoryId, WorkflowCategoryMeta> = {
 	cs: { id: 'cs', label: '고객지원', dotClass: 'bg-[#E2725B]' },

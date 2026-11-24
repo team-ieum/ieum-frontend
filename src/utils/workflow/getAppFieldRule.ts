@@ -2,6 +2,7 @@ import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalo
 import type { NodeReferenceContext } from '@/types/nodeReference'
 import type { NodeFieldNotice } from '@/utils/workflow/nodeFieldValue'
 import { getAiFieldRule } from '@/utils/workflow/getAiFieldRule'
+import { getDiscordBotFieldRule } from '@/utils/workflow/getDiscordBotFieldRule'
 import { getGoogleCalendarFieldRule } from '@/utils/workflow/getGoogleCalendarFieldRule'
 import { getSlackBotFieldRule } from '@/utils/workflow/getSlackBotFieldRule'
 
@@ -33,6 +34,7 @@ export type AppFieldRuleGetter = (
 // 카탈로그 항목 `app` → 그 앱의 칸 규칙.
 const APP_FIELD_RULES: Partial<Record<string, AppFieldRuleGetter>> = {
 	ai: getAiFieldRule,
+	discord_bot: getDiscordBotFieldRule,
 	google_calendar: getGoogleCalendarFieldRule,
 	slack_bot: getSlackBotFieldRule,
 }

@@ -61,15 +61,15 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 
 ## Mutation invalidation
 
-| 변경                      | 현재 invalidation                                 |
-| ------------------------- | ------------------------------------------------- |
-| Workflow 생성·삭제        | `queryKeys.workflows.all()` prefix                |
-| Credential 등록·삭제·검증 | `queryKeys.credentials.all()` prefix              |
-| Webhook 생성·삭제         | Webhook credentials list exact key                |
-| OAuth callback 완료       | OAuth connections list exact key                  |
-| OAuth 연결 해제(Slack)    | OAuth connections list exact key                  |
-| Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
-| 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
+| 변경                                         | 현재 invalidation                                 |
+| -------------------------------------------- | ------------------------------------------------- |
+| Workflow 생성·삭제                           | `queryKeys.workflows.all()` prefix                |
+| Credential 등록·삭제·검증                    | `queryKeys.credentials.all()` prefix              |
+| Webhook 생성·삭제                            | Webhook credentials list exact key                |
+| OAuth callback 완료                          | OAuth connections list exact key                  |
+| OAuth 연결 해제(Slack·Google·Discord 서버별) | OAuth connections list exact key                  |
+| Workflow 수정(저장)                          | Workflow list prefix, validation detail exact key |
+| 수신 주소 발급·재발급                        | invalidation 없음, 주소·발급 상태 `setQueryData`  |
 
 Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSuccess`는 `invalidateQueries()` Promise를 반환하지 않으며, `mutateAsync()`와 `isPending`이 완료된 뒤에도 active query refetch는 background에서 계속될 수 있다. 이때 기존 cache 데이터를 유지하고 refetch 실패를 mutation 실패로 취급하지 않는다.
 

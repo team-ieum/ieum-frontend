@@ -53,6 +53,16 @@ export const slackOAuthConnection = {
 	createdAt: '2026-10-21T10:00:00Z',
 } satisfies OAuthConnectionDto
 
+/** 연결한 Discord 서버 하나. 서버마다 DISCORD 항목이 하나씩 온다(`providerAccountId` = 서버 ID). */
+export const discordOAuthConnection = {
+	id: '88888888-8888-4888-8888-888888888888',
+	provider: 'DISCORD',
+	providerAccountId: '1490935305161801760',
+	displayName: 'Team IEUM',
+	scopes: [],
+	createdAt: '2026-10-24T13:15:02',
+} satisfies OAuthConnectionDto
+
 /** Google 연결을 쓰는 워크플로우 목록(`GET /api/v1/integrations/GOOGLE/workflows` 첫 페이지) */
 export const googleIntegrationWorkflowsResponse = {
 	success: true,

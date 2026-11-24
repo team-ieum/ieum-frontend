@@ -80,11 +80,12 @@ export const useIntegrationDisconnect = ({ service, onDisconnected }: UseIntegra
 
 	const disconnect = useCallback(() => {
 		if (!service || !canDisconnect || isDisconnecting || isCheckingAffectedWorkflows) return
-		const { id, origin, oauthProvider } = service
+		const { id, origin, oauthProvider, oauthAccountId } = service
 
 		const runDisconnect = async () => {
 			try {
-				if (origin === 'oauth' && oauthProvider) await deleteOAuthConnection(oauthProvider)
+				if (origin === 'oauth' && oauthProvider)
+					await deleteOAuthConnection({ provider: oauthProvider, providerAccountId: oauthAccountId })
 				else await deleteWebhookCredential(id)
 				if (currentServiceIdRef.current === id) onDisconnected()
 			} catch (error) {

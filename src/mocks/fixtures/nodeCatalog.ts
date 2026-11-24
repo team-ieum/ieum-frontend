@@ -125,6 +125,7 @@ const aiAgentEntry = {
 			choices: [
 				{ id: 'discord', name: 'Discord 웹훅으로 보내기' },
 				{ id: 'builtin:slack_send_channel_message', name: 'Slack 채널에 메시지 보내기' },
+				{ id: 'builtin:discord_send_channel_message', name: 'Discord 채널에 메시지 보내기' },
 				{ id: 'builtin:google_calendar_update', name: '캘린더 일정 수정' },
 			],
 			path: 'config.tools',
@@ -175,6 +176,7 @@ const aiReasoningEntry = {
 	outputsFrom: 'config.outputFields',
 } satisfies NodeCatalogEntry
 
+// 웹훅으로 보내는 Discord 노드(ieum-node-catalog events/discord/send_message.json).
 const discordSendEntry = {
 	id: 'discord.send_message',
 	kind: 'action',
@@ -184,6 +186,7 @@ const discordSendEntry = {
 	toolKey: 'discord',
 	nodeType: 'ACTION',
 	title: 'Discord 웹훅으로 보내기',
+	description: '등록한 웹훅으로 Discord에 메시지를 보내요.',
 	fixed: { type: 'ACTION', event: 'discord.send_message', config: { brand: 'discord' } },
 	inputFields: [
 		{
@@ -198,7 +201,57 @@ const discordSendEntry = {
 		{ key: 'content', title: '메시지', type: 'text', path: 'config.content' },
 		{ key: 'username', title: '보낸 사람 이름', type: 'string', path: 'config.username' },
 	],
-	outputFields: [{ key: 'id', title: '메시지 ID', type: 'string' }],
+	outputFields: [
+		{ key: 'id', title: '메시지 ID', type: 'string' },
+		{ key: 'channel_id', title: '채널 ID', type: 'string' },
+	],
+} satisfies NodeCatalogEntry
+
+// 실제 카탈로그(ieum-node-catalog events/discord_bot/send_channel_message.json)와 같은 칸·설명이다.
+const discordBotSendEntry = {
+	id: 'discord_bot.send_channel_message',
+	kind: 'action',
+	provider: 'discord',
+	app: 'discord_bot',
+	appTitle: 'Discord',
+	toolKey: 'builtin:discord_send_channel_message',
+	nodeType: 'ACTION',
+	title: 'Discord 채널에 메시지 보내기',
+	description: '연결한 Discord 서버의 채널에 봇으로 메시지를 보내요.',
+	fixed: { type: 'ACTION', event: 'discord_bot.send_channel_message', config: { brand: 'discord' } },
+	inputFields: [
+		{
+			key: 'guild_id',
+			title: '서버',
+			type: 'string',
+			ref: false,
+			optionsSource: 'discord.guilds',
+			description: '채널 목록을 고르는 데만 써요. 보낼 곳은 채널이 정해요',
+			path: 'config.guild_id',
+		},
+		{
+			key: 'channel_id',
+			title: '채널',
+			type: 'string',
+			required: true,
+			optionsSource: 'discord.channels',
+			optionsInputs: ['guild_id'],
+			path: 'config.channel_id',
+		},
+		{
+			key: 'content',
+			title: '메시지',
+			type: 'text',
+			required: true,
+			description: '최대 2,000자. @everyone·역할 멘션은 알림이 가지 않아요',
+			path: 'config.content',
+		},
+	],
+	outputFields: [
+		{ key: 'id', title: '메시지 ID', type: 'string' },
+		{ key: 'channel_id', title: '채널 ID', type: 'string' },
+		{ key: 'url', title: '메시지 링크', type: 'string' },
+	],
 } satisfies NodeCatalogEntry
 
 // 실제 카탈로그(ieum-node-catalog events/slack_bot/send_channel_message.json)와 같은 칸·설명이다.
@@ -480,6 +533,7 @@ const googleCalendarDeleteEntry = {
 export const nodeCatalogEntriesFixture: NodeCatalogEntry[] = [
 	aiAgentEntry,
 	aiReasoningEntry,
+	discordBotSendEntry,
 	discordSendEntry,
 	gmailNewEmailEntry,
 	googleCalendarCreateEntry,

@@ -317,7 +317,7 @@ describe('NodeSettingsPanel', () => {
 				within(nextList)
 					.getAllByRole('option')
 					.map(option => option.textContent)
-			).toEqual([`${SLACK_TITLE}Slack`, '캘린더 일정 수정Google Calendar'])
+			).toEqual([`${SLACK_TITLE}Slack`, 'Discord 채널에 메시지 보내기Discord', '캘린더 일정 수정Google Calendar'])
 		})
 
 		it('저장된 도구는 접어 두고, 펼친 도구 칸 값을 그 원소 config에 쓰며 비우면 키를 지우고 AI가 정한다고 안내한다', async () => {
@@ -424,6 +424,35 @@ describe('NodeSettingsPanel', () => {
 			])
 			expect(within(card).queryByText(/채널을 골라 고정해 두는 걸 권장해요/)).not.toBeInTheDocument()
 			expect(getFieldInput('채널')).toHaveAccessibleDescription(expect.stringContaining('공개 채널에만 보낼 수 있어요.'))
+		})
+
+		it('Discord 봇 도구는 서버 칸에 AI 안내를 두지 않고, 채널이 비면 고정 권장 경고를 보여 주다가 채널을 고르면 지운다', async () => {
+			const user = userEvent.setup()
+			const DISCORD_BOT_TOOL = 'builtin:discord_send_channel_message'
+			const DISCORD_BOT_TITLE = 'Discord 채널에 메시지 보내기'
+			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: DISCORD_BOT_TOOL, config: {} }]))
+
+			await user.click(getToolToggle(DISCORD_BOT_TITLE))
+			const card = getToolCard(DISCORD_BOT_TITLE)
+			expect(within(card).getByRole('status')).toHaveTextContent('채널을 골라 고정해 두는 걸 권장해요.')
+			// 서버·채널·메시지 세 칸 중 목록용 서버 칸을 뺀 채널·메시지에만 안내가 붙는다.
+			expect(within(card).getAllByText('비우면 AI가 정해요')).toHaveLength(2)
+			expect(within(card).queryByRole('radiogroup', { name: '채널 입력 방식' })).not.toBeInTheDocument()
+
+			await chooseFromDropdown(user, '서버', /Team IEUM/)
+			await chooseFromDropdown(user, '채널', /#git-event/)
+
+			expect(lastNode().config.tools).toEqual([
+				{
+					name: DISCORD_BOT_TOOL,
+					config: {
+						guild_id: '1490935305161801760',
+						channel_id: '1490957748668727358',
+						_names: { guild_id: 'Team IEUM', channel_id: '#git-event' },
+					},
+				},
+			])
+			expect(within(card).queryByText(/채널을 골라 고정해 두는 걸 권장해요/)).not.toBeInTheDocument()
 		})
 
 		it('Calendar 수정 도구 카드는 적용 범위·참석자 알림만 보여 주고 숨긴 칸 값은 그대로 둔다', async () => {
@@ -1598,6 +1627,47 @@ describe('NodeSettingsPanel', () => {
 				_names: { channel: '#random' },
 				text: '배포 완료',
 				thread_ts: '1700000000.000100',
+			})
+		})
+	})
+
+	describe('Discord 봇 노드', () => {
+		const createDiscordNode = (config: Record<string, unknown> = {}) =>
+			createNode({ event: 'discord_bot.send_channel_message', config: { brand: 'discord', ...config } })
+
+		it('서버를 비우면 채널 드롭다운을 막고, 참조식 방식으로 앞 노드가 넘긴 채널을 넣어 저장한다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createDiscordNode())
+
+			expect(getFieldInput('채널')).toHaveAttribute('aria-disabled', 'true')
+			expect(getFieldInput('채널')).toHaveAccessibleDescription(
+				expect.stringContaining("'서버' 칸을 먼저 채우면 목록에서 고를 수 있어요.")
+			)
+			// 서버 칸은 목록을 고르는 데만 써 참조식(ref: false) 전환을 두지 않는다.
+			expect(screen.queryByRole('radiogroup', { name: '서버 입력 방식' })).not.toBeInTheDocument()
+
+			const modes = screen.getByRole('radiogroup', { name: '채널 입력 방식' })
+			await user.click(within(modes).getByRole('radio', { name: '참조식' }))
+			await user.click(getFieldInput('채널'))
+			await user.paste('{{nodes.trigger.output.channel_id}}')
+
+			expect(lastNode().config).toEqual({ brand: 'discord', channel_id: '{{nodes.trigger.output.channel_id}}' })
+		})
+
+		it('서버를 고르면 그 서버의 채널 목록에서 채널을 골라 서버·채널·메시지를 config에 저장한다', async () => {
+			const user = userEvent.setup()
+			const { lastNode } = renderPanel(createDiscordNode())
+
+			await chooseFromDropdown(user, '서버', /스터디 서버/)
+			await chooseFromDropdown(user, '채널', /#공지/)
+			await user.type(getFieldInput('메시지'), '배포 완료')
+
+			expect(lastNode().config).toEqual({
+				brand: 'discord',
+				guild_id: '1500000000000000000',
+				channel_id: '1500000000000000001',
+				_names: { guild_id: '스터디 서버', channel_id: '#공지' },
+				content: '배포 완료',
 			})
 		})
 	})
