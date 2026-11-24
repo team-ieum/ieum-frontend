@@ -36,6 +36,7 @@ type UseIntegrationSettingResult = {
 	canDisconnect: boolean
 	/** 상세의 OAuth 연결을 같은 공급자 인가 화면으로 다시 보낸다. `canReconnect`가 false면 아무것도 하지 않는다. */
 	onReconnect: () => void
+	cancelOAuthConnect: () => void
 	canReconnect: boolean
 	/** 다시 연결 인가 URL을 받는 중이거나 그 URL로 이동하는 중인지 */
 	isReconnecting: boolean
@@ -46,7 +47,7 @@ type UseIntegrationSettingResult = {
 export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 	useIntegrationOAuthReturn()
 
-	const { connect, connectingId, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
+	const { connect, cancelOAuthConnect, connectingId, webhookConnectServiceId, closeWebhookConnect } = useIntegrationConnect()
 	const services = useIntegrationServicesViewModel()
 	const navigation = useIntegrationServiceNavigation({
 		connected: services.connected,
@@ -100,6 +101,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		isCheckingDisconnect: isCheckingAffectedWorkflows,
 		canDisconnect,
 		onReconnect,
+		cancelOAuthConnect,
 		canReconnect: reconnectServiceId !== null,
 		isReconnecting,
 		webhookConnectServiceId,

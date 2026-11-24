@@ -52,11 +52,12 @@ const OAuthDisconnectDialog = ({ service, provider, openerRef, onClose, onDiscon
 
 type OAuthDisconnectActionProps = {
 	service: IntegrationService
+	onOpen: () => void
 	onDisconnected: () => void
 }
 
 /** 상세에서 Notion·GitHub 해제의 영향을 확인하고 성공하면 목록으로 돌아간다. */
-const OAuthDisconnectAction = ({ service, onDisconnected }: OAuthDisconnectActionProps) => {
+const OAuthDisconnectAction = ({ service, onOpen, onDisconnected }: OAuthDisconnectActionProps) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const openerRef = useRef<HTMLButtonElement>(null)
 	const isPresent = useIsPresent()
@@ -65,7 +66,13 @@ const OAuthDisconnectAction = ({ service, onDisconnected }: OAuthDisconnectActio
 
 	return (
 		<>
-			<IntegrationDisconnectButton buttonRef={openerRef} onClick={() => setIsOpen(true)} />
+			<IntegrationDisconnectButton
+				buttonRef={openerRef}
+				onClick={() => {
+					onOpen()
+					setIsOpen(true)
+				}}
+			/>
 			{isOpen && (
 				<OAuthDisconnectDialog
 					key={service.id}

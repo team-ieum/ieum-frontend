@@ -12,6 +12,7 @@ type IntegrationConnectedDetailProps = {
 	onBack: () => void
 	/** Notion·GitHub 확인창에서 해제를 완료하면 목록으로 돌아간다. */
 	onOAuthDisconnected: () => void
+	onOAuthDisconnectOpen: () => void
 	/** Google·Slack·웹훅 상세에서 사용하는 공용 해제 명령. */
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
@@ -27,6 +28,7 @@ const IntegrationConnectedDetail = ({
 	service,
 	onBack,
 	onOAuthDisconnected,
+	onOAuthDisconnectOpen,
 	onDisconnect,
 	isDisconnecting = false,
 	isCheckingDisconnect = false,
@@ -90,7 +92,11 @@ const IntegrationConnectedDetail = ({
 								isCheckingDisconnect={isCheckingDisconnect}
 							/>
 						) : (
-							<OAuthDisconnectAction service={service} onDisconnected={onOAuthDisconnected} />
+							<OAuthDisconnectAction
+								service={service}
+								onOpen={onOAuthDisconnectOpen}
+								onDisconnected={onOAuthDisconnected}
+							/>
 						)}
 					</div>
 				</div>

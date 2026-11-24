@@ -62,6 +62,7 @@ const InterSettingPage = () => {
 		isCheckingDisconnect,
 		canDisconnect,
 		onReconnect,
+		cancelOAuthConnect,
 		canReconnect,
 		isReconnecting,
 		webhookConnectServiceId,
@@ -221,6 +222,7 @@ const InterSettingPage = () => {
 									service={currentService}
 									onBack={handleBack}
 									onOAuthDisconnected={handleOAuthDisconnected}
+									onOAuthDisconnectOpen={cancelOAuthConnect}
 									onDisconnect={canDisconnect ? onDisconnect : undefined}
 									isDisconnecting={isDisconnecting}
 									isCheckingDisconnect={isCheckingDisconnect}
