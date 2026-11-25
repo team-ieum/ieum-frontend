@@ -156,9 +156,10 @@ describe('mapWorkflowCanvas', () => {
 		const modelNames = createModelNameMap(providers)
 		const result = toWorkflowCanvasNodes(nodes, modelNames, false)
 
+		// 트리거를 포함한 모든 노드를 캔버스에서 지울 수 있다(ReactFlow는 deletable이 false일 때만 막는다).
+		expect(result.map(node => node.deletable)).not.toContain(false)
 		expect(result[0]).toMatchObject({
 			position: { x: 40, y: 80 },
-			deletable: false,
 			data: {
 				role: 'trigger',
 				typeLabel: '시작 조건',

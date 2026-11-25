@@ -58,8 +58,7 @@ const createDeferred = () => {
 
 const confirmModal = () =>
 	act(() => {
-		useModalStore.getState().onConfirm?.()
-		useModalStore.getState().close()
+		useModalStore.getState().confirm()
 	})
 
 describe('useIntegrationDisconnect', () => {
