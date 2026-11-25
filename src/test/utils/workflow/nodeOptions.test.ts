@@ -144,6 +144,8 @@ describe('getNodeOptionsErrorNotice', () => {
 			'AUTHENTICATION_REQUIRED',
 			'ACCOUNT_NOT_CONNECTED',
 			'SLACK_NOT_CONNECTED',
+			'DISCORD_NOT_CONNECTED',
+			'DISCORD_GUILD_NOT_CONNECTED',
 			'GOOGLE_SCOPE_REQUIRED',
 			'TOKEN_REFRESH_FAILED',
 		]) {
@@ -165,6 +167,21 @@ describe('getNodeOptionsErrorNotice', () => {
 		})
 		expect(getNodeOptionsErrorNotice(apiError('SLACK_API_UNAVAILABLE'), 'slack.channels')).toEqual({
 			message: 'Slack이 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
+			action: 'retry',
+		})
+	})
+
+	it('Discord 서버·채널 목록 오류는 명세 표의 Discord 문구로 안내한다', () => {
+		expect(getNodeOptionsErrorNotice(apiError('DISCORD_NOT_CONNECTED'), 'discord.guilds')).toEqual({
+			message: 'Discord 서버가 연결되어 있지 않아요. 통합 설정에서 Discord를 연결해 주세요.',
+			action: 'connect',
+		})
+		expect(getNodeOptionsErrorNotice(apiError('DISCORD_GUILD_NOT_CONNECTED'), 'discord.channels')).toEqual({
+			message: '연결하지 않은 Discord 서버예요. 통합 설정에서 이 서버를 연결하거나 다른 서버를 골라 주세요.',
+			action: 'connect',
+		})
+		expect(getNodeOptionsErrorNotice(apiError('DISCORD_API_UNAVAILABLE'), 'discord.channels')).toEqual({
+			message: 'Discord가 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
 			action: 'retry',
 		})
 	})

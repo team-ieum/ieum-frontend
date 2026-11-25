@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createResourceEmptyHandler } from '@/mocks/apiScenarios'
-import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { discordOAuthConnection, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { renderAppRoute } from '@/test/renderAppRoute'
 import { useModalStore } from '@/stores/useModalStore'
@@ -12,6 +12,13 @@ const WEBHOOK_SERVICE_ID = '55555555-5555-4555-8555-555555555555'
 const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize?client_id=ieum-test'
 const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize?client_id=ieum-test&state=s'
 const SLACK_BOT_SERVICE_ID = `oauth-${slackOAuthConnection.id}`
+const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize?client_id=ieum-test&state=s'
+const DISCORD_SECOND_GUILD = {
+	...discordOAuthConnection,
+	id: '99999999-9999-4999-8999-999999999999',
+	providerAccountId: '1500000000000000000',
+	displayName: '스터디 서버',
+}
 const GOOGLE_SERVICE_ID = `oauth-${oauthConnectionsResponse.data[0].id}`
 const GOOGLE_AUTHORIZATION_PATH = '/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=test-link-token'
 const GITHUB_OAUTH_CONNECTION = {
@@ -153,7 +160,7 @@ describe('통합 설정 연결', () => {
 	it('webhook 서비스 연결은 연결 modal을 연다', async () => {
 		renderAppRoute('/inter-setting')
 
-		const tile = await getAvailableTile('Discord')
+		const tile = await getAvailableTile('Discord 웹훅')
 		fireEvent.click(within(tile).getByRole('button', { name: '연결하기' }))
 
 		expect(await screen.findByRole('dialog', { name: 'Discord 웹훅 연결' })).toBeInTheDocument()
@@ -295,6 +302,76 @@ describe('통합 설정 Slack 봇 연결', () => {
 		await screen.findByRole('heading', { level: 2, name: 'GitHub' })
 		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 연결' })).not.toBeInTheDocument()
+	})
+})
+
+describe('통합 설정 Discord 봇 연결', () => {
+	const mockDiscordGuildsConnected = () =>
+		server.use(
+			http.get('*/api/v1/oauth/connections', () =>
+				HttpResponse.json({ ...oauthConnectionsResponse, data: [discordOAuthConnection, DISCORD_SECOND_GUILD] })
+			)
+		)
+
+	it('Discord 봇 타일의 연결하기는 Discord authorize URL로 이동한다', async () => {
+		const assign = vi.fn()
+		vi.stubGlobal('location', { ...window.location, assign })
+		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
+		server.use(
+			http.get('*/api/v1/discord/oauth2/authorize', () =>
+				HttpResponse.json({ success: true, data: { authUrl: DISCORD_AUTHORIZE_URL }, message: 'OK', code: 'OK' })
+			)
+		)
+		renderAppRoute('/inter-setting')
+
+		const tile = await getAvailableTile('Discord 봇')
+		fireEvent.click(within(tile).getByRole('button', { name: '연결하기' }))
+
+		await waitFor(() => expect(assign).toHaveBeenCalledWith(DISCORD_AUTHORIZE_URL))
+	})
+
+	it('연결한 서버마다 봇 카드를 보여 주고 Discord 봇 타일은 서버 추가용으로 남긴다', async () => {
+		mockDiscordGuildsConnected()
+		renderAppRoute('/inter-setting')
+
+		expect(await screen.findByText('Team IEUM')).toBeInTheDocument()
+		const cards = screen.getAllByRole('heading', { level: 3, name: 'Discord' }).map(heading => heading.closest('article'))
+		expect(cards).toHaveLength(2)
+		expect(within(cards[0] as HTMLElement).getByText('봇')).toBeInTheDocument()
+		expect(within(cards[1] as HTMLElement).getByText('스터디 서버')).toBeInTheDocument()
+		expect(await getAvailableTile('Discord 봇')).toBeInTheDocument()
+	})
+
+	it('connected=discord로 돌아오면 서버 연결 완료를 안내한다', async () => {
+		renderAppRoute('/inter-setting?connected=discord')
+
+		expect(await screen.findByText('Discord 서버가 연결되었습니다.')).toBeInTheDocument()
+	})
+
+	it('error=discord_denied로 돌아오면 봇 추가 취소를 안내한다', async () => {
+		renderAppRoute('/inter-setting?error=discord_denied')
+
+		expect(await screen.findByText('봇 추가를 취소했어요.')).toBeInTheDocument()
+	})
+
+	it('Discord 봇 해제는 그 서버 ID로 서버별 해제 API를 호출하고 목록으로 돌아간다', async () => {
+		mockDiscordGuildsConnected()
+		const deletedGuildIds: string[] = []
+		server.use(
+			http.delete('*/api/v1/discord/oauth2/connections/:guildId', ({ params }) => {
+				deletedGuildIds.push(String(params.guildId))
+				return new HttpResponse(null, { status: 204 })
+			})
+		)
+		const { router } = renderAppRoute(`/inter-setting?serviceId=oauth-${DISCORD_SECOND_GUILD.id}`)
+
+		await screen.findByRole('heading', { level: 2, name: 'Discord' })
+		fireEvent.click(screen.getByRole('button', { name: '연결 해제' }))
+		const dialog = await screen.findByRole('alertdialog', { name: '연결 해제' })
+		fireEvent.click(within(dialog).getByRole('button', { name: '연결 해제' }))
+
+		await waitFor(() => expect(new URLSearchParams(router.state.location.search).has('serviceId')).toBe(false))
+		expect(deletedGuildIds).toEqual(['1500000000000000000'])
 	})
 })
 

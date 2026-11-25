@@ -3,14 +3,14 @@ import type { IntegrationService } from '@/types/integration'
 /** 연결 가능 서비스 카탈로그 (OAuth·웹훅 등 연동 전 목록) */
 export const AVAILABLE_INTEGRATION_CATALOG: IntegrationService[] = [
 	{
-		id: 'slack',
+		id: 'slack-bot',
 		name: 'Slack 봇',
 		brand: 'slack',
 		status: 'available',
 		desc: '공개 채널에 봇으로 메시지 보내기',
 	},
 	{
-		id: 'slack-webhook',
+		id: 'slack',
 		name: 'Slack 웹훅',
 		brand: 'slack',
 		status: 'available',
@@ -74,11 +74,18 @@ export const AVAILABLE_INTEGRATION_CATALOG: IntegrationService[] = [
 		desc: '레코드 CRUD 자동화',
 	},
 	{
-		id: 'discord',
-		name: 'Discord',
+		id: 'discord-bot',
+		name: 'Discord 봇',
 		brand: 'discord',
 		status: 'available',
-		desc: '채널 메시지 및 웹훅',
+		desc: '서버를 연결해 채널에 봇으로 보내기 · 서버마다 추가 연결',
+	},
+	{
+		id: 'discord',
+		name: 'Discord 웹훅',
+		brand: 'discord',
+		status: 'available',
+		desc: '웹훅으로 지정 채널에 보내기',
 	},
 	{
 		id: 'linear',

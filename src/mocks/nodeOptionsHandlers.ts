@@ -43,6 +43,20 @@ const slackChannelPages: Record<string, NodeOptionsPage> = {
 	'channels-2': { items: [{ id: 'C0345678901', name: '#release' }], nextCursor: null },
 }
 
+// 연결한 Discord 서버와 서버별 채널. 실제 응답처럼 채널 이름은 `#이름`이다.
+const discordGuilds: NodeOption[] = [
+	{ id: '1490935305161801760', name: 'Team IEUM' },
+	{ id: '1500000000000000000', name: '스터디 서버' },
+]
+
+const discordChannelsByGuild: Record<string, NodeOption[]> = {
+	'1490935305161801760': [
+		{ id: '1490935306038542398', name: '#일반' },
+		{ id: '1490957748668727358', name: '#git-event' },
+	],
+	'1500000000000000000': [{ id: '1500000000000000001', name: '#공지' }],
+}
+
 const getOptionsPage = (source: string, params: URLSearchParams): NodeOptionsPage => {
 	if (source === 'google.calendars')
 		return {
@@ -54,11 +68,13 @@ const getOptionsPage = (source: string, params: URLSearchParams): NodeOptionsPag
 	if (source === 'google.writable_calendars') return writableCalendarPages[params.get('cursor') ?? 'first'] ?? { items: [] }
 	if (source === 'google.events') return { items: eventsByCalendar[params.get('calendar_id') ?? ''] ?? [] }
 	if (source === 'slack.channels') return slackChannelPages[params.get('cursor') ?? 'first'] ?? { items: [] }
+	if (source === 'discord.guilds') return { items: discordGuilds }
+	if (source === 'discord.channels') return { items: discordChannelsByGuild[params.get('guild_id') ?? ''] ?? [] }
 	return { items: [] }
 }
 
 /**
- * 노드 설정 드롭다운 목록(options API) mock. Google Calendar·Slack 채널 공급원만 항목을 주고 나머지는 빈 목록이다.
+ * 노드 설정 드롭다운 목록(options API) mock. Google Calendar·Slack 채널·Discord 서버·채널 공급원만 항목을 주고 나머지는 빈 목록이다.
  * 단위 테스트는 공급원별 응답을 `server.use`로 덮어쓴다.
  */
 export const createNodeOptionsHandlers = ({ delayMs }: NodeOptionsHandlersOptions = {}): HttpHandler[] => [

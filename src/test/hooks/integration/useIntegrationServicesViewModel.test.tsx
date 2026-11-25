@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { useIntegrationServicesViewModel } from '@/hooks/integration/useIntegrationServicesViewModel'
 import { http, HttpResponse } from 'msw'
 import { createPartialFailureHandlers, createResourceEmptyHandler, createResourceSuccessHandler } from '@/mocks/apiScenarios'
-import { oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
+import { discordOAuthConnection, oauthConnectionsResponse, slackOAuthConnection } from '@/mocks/fixtures/integrations'
 import { server } from '@/mocks/server'
 import { createTestQueryClient } from '@/test/createTestQueryClient'
 
@@ -41,8 +41,8 @@ describe('useIntegrationServicesViewModel', () => {
 			])
 			const availableIds = result.current.available.map(service => service.id)
 			// Slack 웹훅만 연결된 상태라 웹훅 타일만 빠지고 봇 타일은 남는다.
-			expect(availableIds).toContain('slack')
-			for (const excludedId of ['slack-webhook', 'google', 'gmail', 'sheets']) {
+			expect(availableIds).toContain('slack-bot')
+			for (const excludedId of ['slack', 'google', 'gmail', 'sheets']) {
 				expect(availableIds).not.toContain(excludedId)
 			}
 			expect(result.current.connectedCount).toBe(result.current.connected.length)
@@ -120,8 +120,51 @@ describe('useIntegrationServicesViewModel', () => {
 				}),
 			])
 			const availableIds = result.current.available.map(service => service.id)
-			expect(availableIds).not.toContain('slack')
-			expect(availableIds).toContain('slack-webhook')
+			expect(availableIds).not.toContain('slack-bot')
+			expect(availableIds).toContain('slack')
+		} finally {
+			queryClient.clear()
+		}
+	})
+
+	it('Discord 서버를 연결하면 서버마다 봇 카드를 만들고 다른 서버를 더 연결하도록 봇·웹훅 타일을 모두 남긴다', async () => {
+		const secondGuild = {
+			...discordOAuthConnection,
+			id: '99999999-9999-4999-8999-999999999999',
+			providerAccountId: '1500000000000000000',
+			displayName: '스터디 서버',
+		}
+		server.use(
+			createResourceEmptyHandler('webhookCredentials'),
+			http.get('*/api/v1/oauth/connections', () =>
+				HttpResponse.json({ ...oauthConnectionsResponse, data: [discordOAuthConnection, secondGuild] })
+			)
+		)
+		const queryClient = createTestQueryClient()
+		const { result } = renderHook(() => useIntegrationServicesViewModel(), { wrapper: createWrapper(queryClient) })
+
+		try {
+			await waitFor(() => expect(result.current.canResolveAvailable).toBe(true))
+
+			expect(result.current.connected).toEqual([
+				expect.objectContaining({
+					id: `oauth-${discordOAuthConnection.id}`,
+					name: 'Discord',
+					brand: 'discord',
+					oauthProvider: 'DISCORD',
+					oauthAccountId: '1490935305161801760',
+					connectionMethod: 'bot',
+					account: 'Team IEUM',
+				}),
+				expect.objectContaining({
+					id: `oauth-${secondGuild.id}`,
+					oauthAccountId: '1500000000000000000',
+					account: '스터디 서버',
+				}),
+			])
+			const availableIds = result.current.available.map(service => service.id)
+			expect(availableIds).toContain('discord-bot')
+			expect(availableIds).toContain('discord')
 		} finally {
 			queryClient.clear()
 		}

@@ -97,6 +97,9 @@ const CONNECT_MESSAGES: Record<string, string> = {
 	AUTHENTICATION_REQUIRED: '연동이 만료됐어요. 통합 설정에서 다시 연결해 주세요.',
 	ACCOUNT_NOT_CONNECTED: '연결된 계정이 없어요. 통합 설정에서 먼저 연결해 주세요.',
 	SLACK_NOT_CONNECTED: 'Slack이 연결되어 있지 않아요. 통합 설정에서 Slack을 연결해 주세요.',
+	DISCORD_NOT_CONNECTED: 'Discord 서버가 연결되어 있지 않아요. 통합 설정에서 Discord를 연결해 주세요.',
+	// 해제한 서버가 노드에 남아 있을 때 온다(403). 다시 연결하거나 다른 서버를 고르면 된다.
+	DISCORD_GUILD_NOT_CONNECTED: '연결하지 않은 Discord 서버예요. 통합 설정에서 이 서버를 연결하거나 다른 서버를 골라 주세요.',
 	GOOGLE_SCOPE_REQUIRED: 'Google 권한이 더 필요해요. 통합 설정에서 다시 연결해 주세요.',
 	TOKEN_REFRESH_FAILED: '연동을 갱신하지 못했어요. 통합 설정에서 다시 연결해 주세요.',
 }
@@ -121,6 +124,7 @@ const RETRY_MESSAGES: Record<string, string> = {
 	GOOGLE_RESOURCE_NOT_FOUND: 'Google에서 항목을 찾을 수 없거나 볼 권한이 없어요.',
 	NOT_FOUND: '이 칸은 목록을 불러올 수 없어요.',
 	SLACK_API_UNAVAILABLE: 'Slack이 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
+	DISCORD_API_UNAVAILABLE: 'Discord가 잠시 응답하지 않아요. 잠시 뒤 다시 시도해 주세요.',
 }
 
 /**
