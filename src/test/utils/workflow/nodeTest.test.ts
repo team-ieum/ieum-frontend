@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { ApiError } from '@/utils/ApiError'
 import {
@@ -57,6 +57,8 @@ describe('nodeTest', () => {
 	describe('getListenWindow', () => {
 		const now = Date.parse('2026-11-09T05:00:00Z')
 
+		afterEach(() => vi.unstubAllEnvs())
+
 		it('서버 만료 시각에서 서버 기준 시작 시각을 구하고, 화면 시계와 가까우면 만료 시각을 그대로 쓴다', () => {
 			expect(getListenWindow('2026-11-09T05:04:59.500Z', now)).toEqual({
 				serverStartedAt: Date.parse('2026-11-09T04:59:59.500Z'),
@@ -64,12 +66,14 @@ describe('nodeTest', () => {
 			})
 		})
 
-		it('오프셋 없는 문자열은 화면 시간대 시각으로 읽는다', () => {
-			const local = new Date(now + 5 * 60_000)
-			const pad = (value: number) => String(value).padStart(2, '0')
-			const expiresAt = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}:${pad(local.getSeconds())}`
-			expect(getListenWindow(expiresAt, now)).toEqual({ serverStartedAt: now, deadline: now + 5 * 60_000 })
-		})
+		it.each(['America/Los_Angeles', 'Asia/Seoul'])(
+			'오프셋 없는 문자열은 화면 시간대(%s)와 상관없이 한국 시각으로 읽는다',
+			timeZone => {
+				vi.stubEnv('TZ', timeZone)
+				const expiresAt = new Date(now + 5 * 60_000 + 9 * 3_600_000).toISOString().slice(0, 19)
+				expect(getListenWindow(expiresAt, now)).toEqual({ serverStartedAt: now, deadline: now + 5 * 60_000 })
+			}
+		)
 
 		it.each([
 			['화면 시계가 서버보다 3분 빠르면', '2026-11-09T05:02:00Z', Date.parse('2026-11-09T04:57:00Z')],

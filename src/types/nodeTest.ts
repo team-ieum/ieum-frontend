@@ -6,7 +6,7 @@ type NodeTestStatus = 'SUCCESS' | 'FAILED' | 'LISTENING'
 
 /**
  * 노드 테스트 결과이자 노드의 최신 샘플. 값이 없는 필드는 응답에서 빠진다.
- * `testedAt`·`expiresAt`은 서버 시각 문자열이다. 지금은 `…Z`(UTC)로 오고, 옛 데이터는 오프셋이 없다.
+ * `testedAt`·`expiresAt`은 UTC Instant 문자열(`…Z`)이다. 옛 데이터는 오프셋이 없고 한국 시각으로 본다.
  */
 export type NodeTestResult = {
 	status: NodeTestStatus

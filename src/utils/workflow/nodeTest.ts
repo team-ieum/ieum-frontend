@@ -1,5 +1,6 @@
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import { isApiError } from '@/utils/ApiError'
+import { parseServerDateTime } from '@/utils/workflow/parseServerDateTime'
 
 /** 실행하지 않고 수신 주소로 들어오는 첫 요청을 기다리는 테스트 방식의 event */
 const WEBHOOK_CATCH_EVENT = 'webhook.catch'
@@ -76,7 +77,7 @@ type ListenWindow = {
  */
 export const getListenWindow = (expiresAt: string | undefined, now: number): ListenWindow => {
 	const fallbackDeadline = now + LISTEN_DURATION_MS
-	const serverExpiresAt = expiresAt ? Date.parse(expiresAt) : Number.NaN
+	const serverExpiresAt = expiresAt ? parseServerDateTime(expiresAt) : Number.NaN
 	if (Number.isNaN(serverExpiresAt)) return { serverStartedAt: now, deadline: fallbackDeadline }
 	const isClockClose = Math.abs(serverExpiresAt - fallbackDeadline) <= LISTEN_CLOCK_SKEW_MS
 	return {
@@ -87,7 +88,7 @@ export const getListenWindow = (expiresAt: string | undefined, now: number): Lis
 
 /** 샘플이 대기를 시작한 뒤 서버에 기록됐는지. `testedAt`이 없거나 읽지 못하면 받은 것으로 보지 않는다. */
 export const isSampleRecordedSince = (testedAt: string | undefined, serverStartedAt: number) => {
-	const recordedAt = testedAt ? Date.parse(testedAt) : Number.NaN
+	const recordedAt = testedAt ? parseServerDateTime(testedAt) : Number.NaN
 	return !Number.isNaN(recordedAt) && recordedAt >= serverStartedAt
 }
 
