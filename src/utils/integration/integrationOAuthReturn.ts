@@ -21,7 +21,7 @@ const OAUTH_RETURN_QUERY_KEYS = [
 	'message',
 ] as const
 
-// Slack은 콜백을 BE가 받은 뒤 `connected`·`error` 쿼리로 연동 화면에 돌려보낸다.
+// Slack·Discord는 콜백을 BE가 받은 뒤 `connected`·`error` 쿼리로 연동 화면에 돌려보낸다.
 // Google 연결은 BE가 `/oauth2/callback?linked=google`(실패면 `?error=`)로 돌려보낸다.
 // 콜백 URL이 프론트로 잘못 오면 code를 API로 다시 보내야 하므로(nonce 검증) 이 패턴에 넣지 않는다.
 const FRONTEND_OAUTH_CALLBACK_PATTERN = /^\/api\/v\d+\/(?:github|notion)\/oauth2\/callback\/?$/i

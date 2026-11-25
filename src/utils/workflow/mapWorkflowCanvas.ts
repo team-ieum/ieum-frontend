@@ -180,7 +180,6 @@ export const toWorkflowCanvasNodes = (
 		return {
 			id: dto.id,
 			type: 'workflowNode',
-			deletable: false,
 			// TODO: 서버가 노드 위치를 항상 반환하면 배열 순서 기반 배치를 제거합니다.
 			position: dto.position ?? { x: index * 360, y: 100 },
 			data: {

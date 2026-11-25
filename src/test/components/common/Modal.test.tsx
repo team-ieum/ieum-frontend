@@ -99,4 +99,64 @@ describe('전역 Modal 접근성', () => {
 
 		expect(screen.getByRole('dialog', { name: '알림' })).toHaveAccessibleDescription('처리되었습니다.')
 	})
+
+	it('체크 칸 문구를 주면 체크 여부를 확인 결과로 넘기고 취소 콜백은 부르지 않는다', async () => {
+		const user = userEvent.setup()
+		const onConfirm = vi.fn()
+		const onCancel = vi.fn()
+		await user.click(
+			renderWithOpener(() =>
+				useModalStore.getState().openConfirm({
+					title: '노드 삭제',
+					message: '노드를 삭제할까요?',
+					checkboxLabel: '다시 묻지 않기',
+					onConfirm,
+					onCancel,
+				})
+			)
+		)
+
+		await user.click(screen.getByRole('checkbox', { name: '다시 묻지 않기' }))
+		await user.click(screen.getByRole('button', { name: '확인' }))
+
+		expect(onConfirm).toHaveBeenCalledExactlyOnceWith({ isChecked: true })
+		expect(onCancel).not.toHaveBeenCalled()
+		expect(useModalStore.getState().isOpen).toBe(false)
+	})
+
+	it('확인형 모달을 Escape로 닫으면 취소 콜백을 한 번 부르고, 다시 열면 체크 칸이 비어 있다', async () => {
+		const user = userEvent.setup()
+		const onConfirm = vi.fn()
+		const onCancel = vi.fn()
+		const openConfirm = () =>
+			useModalStore.getState().openConfirm({
+				title: '노드 삭제',
+				message: '노드를 삭제할까요?',
+				checkboxLabel: '다시 묻지 않기',
+				onConfirm,
+				onCancel,
+			})
+		const opener = renderWithOpener(openConfirm)
+		await user.click(opener)
+		await user.click(screen.getByRole('checkbox', { name: '다시 묻지 않기' }))
+
+		await user.keyboard('{Escape}')
+
+		expect(onCancel).toHaveBeenCalledOnce()
+		expect(onConfirm).not.toHaveBeenCalled()
+
+		await user.click(opener)
+		expect(screen.getByRole('checkbox', { name: '다시 묻지 않기' })).not.toBeChecked()
+	})
+
+	it('확인형 모달이 열린 채 다른 모달로 바뀌면 앞 모달의 취소 콜백을 부른다', () => {
+		const onCancel = vi.fn()
+		act(() => {
+			useModalStore.getState().openConfirm({ title: '노드 삭제', message: '삭제할까요?', onConfirm: vi.fn(), onCancel })
+			useModalStore.getState().open('저장 실패', '다시 시도해 주세요.')
+		})
+
+		expect(onCancel).toHaveBeenCalledOnce()
+		expect(useModalStore.getState()).toMatchObject({ isOpen: true, title: '저장 실패', onConfirm: undefined })
+	})
 })

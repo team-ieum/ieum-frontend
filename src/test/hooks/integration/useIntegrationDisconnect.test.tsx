@@ -58,8 +58,7 @@ const createDeferred = () => {
 
 const confirmModal = () =>
 	act(() => {
-		useModalStore.getState().onConfirm?.()
-		useModalStore.getState().close()
+		useModalStore.getState().confirm()
 	})
 
 describe('useIntegrationDisconnect', () => {
@@ -320,6 +319,30 @@ describe('useIntegrationDisconnect', () => {
 
 		await waitFor(() => expect(useModalStore.getState().title).toBe('연결 해제 실패'))
 		expect(useModalStore.getState().message).toBe('Slack 해제에 실패했어요.')
+		expect(onDisconnected).not.toHaveBeenCalled()
+	})
+
+	it.each([
+		{ name: 'Slack', provider: 'SLACK', path: '/slack/oauth2/connection', accountId: undefined },
+		{ name: 'Discord', provider: 'DISCORD', path: '/discord/oauth2/connections/123456', accountId: '123456' },
+	])('$name 전용 해제 API의 ACCOUNT_NOT_CONNECTED는 실패로 안내한다', async ({ name, provider, path, accountId }) => {
+		const message = '연결 정보를 찾을 수 없습니다.'
+		server.use(
+			http.delete(`*/api/v1${path}`, () =>
+				HttpResponse.json({ success: false, data: null, code: 'ACCOUNT_NOT_CONNECTED', message }, { status: 400 })
+			)
+		)
+		const botService = { ...slackBotService, name, oauthProvider: provider, oauthAccountId: accountId }
+		const onDisconnected = vi.fn()
+		const { result } = renderHook(() => useIntegrationDisconnect({ service: botService, onDisconnected }), {
+			wrapper: createWrapper(),
+		})
+
+		act(() => result.current.disconnect())
+		confirmModal()
+
+		await waitFor(() => expect(useModalStore.getState().title).toBe('연결 해제 실패'))
+		expect(useModalStore.getState().message).toBe(message)
 		expect(onDisconnected).not.toHaveBeenCalled()
 	})
 

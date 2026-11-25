@@ -22,10 +22,28 @@ describe('getAppFieldRule', () => {
 		expect(rule.notice?.tone).toBe('warning')
 	})
 
+	it('카탈로그 app으로 Discord 봇 규칙을 골라 채널 칸에 참조식 전환을 켠다', () => {
+		const rule = getAppFieldRule(
+			{ id: 'discord_bot.send_channel_message', app: 'discord_bot' },
+			field('channel_id'),
+			undefined,
+			{ target: 'node' }
+		)
+
+		expect(rule.canUseOptionsReference).toBe(true)
+	})
+
+	it('카탈로그 app으로 AI 규칙을 골라 빈 API 키 칸에 경고를 붙인다', () => {
+		const rule = getAppFieldRule({ id: 'ai.reasoning', app: 'ai' }, field('credentialId'), '', { target: 'node' })
+
+		expect(rule.notice?.tone).toBe('warning')
+	})
+
 	it.each([
 		// 다른 앱에 같은 key가 있어도 그 앱 칸에는 Calendar·Slack 규칙이 붙지 않아야 한다.
 		['slack.send_message', 'slack', 'channel'],
 		['discord.send_message', 'discord', 'event_id'],
+		['discord.send_message', 'discord', 'channel_id'],
 		['google_calendar.update', 'other_app', 'calendar_id'],
 	])('규칙이 없는 앱(%s, app %s)의 %s 칸은 그대로 돌려준다', (id, app, key) => {
 		const catalogField = field(key)

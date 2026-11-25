@@ -1,5 +1,6 @@
 import { setupWorker } from 'msw/browser'
 import { createDelayedSuccessHandlers } from '@/mocks/apiScenarios'
+import { createDiscordOAuthHandlers } from '@/mocks/discordOAuthHandlers'
 import { createGoogleOAuthHandlers } from '@/mocks/googleOAuthHandlers'
 import { createIntegrationWorkflowsHandlers } from '@/mocks/integrationWorkflowsHandlers'
 import { createNodeOptionsHandlers } from '@/mocks/nodeOptionsHandlers'
@@ -18,11 +19,16 @@ export const enableMeasurementMode = async () => {
 	installMeasurementResourceObserver()
 	const delayMs = parseMeasurementDelay(import.meta.env.VITE_MEASUREMENT_DELAY_MS)
 	const worker = setupWorker(
-		// 연결 목록 조회를 Slack·Google 연결 상태로 덮어써야 하므로 기본 성공 handler보다 앞에 둔다.
+		// 연결 목록 조회를 Slack·Discord·Google 연결 상태로 덮어써야 하므로 기본 성공 handler보다 앞에 둔다.
 		createStoredOAuthConnectionsHandler({ delayMs, connectionStorage: window.sessionStorage }),
 		...createSlackOAuthHandlers({
 			delayMs,
 			authUrl: `${window.location.origin}/inter-setting?connected=slack`,
+			connectionStorage: window.sessionStorage,
+		}),
+		...createDiscordOAuthHandlers({
+			delayMs,
+			authUrl: `${window.location.origin}/inter-setting?connected=discord`,
 			connectionStorage: window.sessionStorage,
 		}),
 		...createGoogleOAuthHandlers({

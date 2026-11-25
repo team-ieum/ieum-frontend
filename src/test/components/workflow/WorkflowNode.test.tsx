@@ -43,7 +43,7 @@ describe('WorkflowNode', () => {
 		const user = userEvent.setup()
 		const onAddNext = vi.fn()
 		render(
-			<WorkflowNodeActionsContext.Provider value={{ onAddNext }}>
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext, onDelete: vi.fn() }}>
 				<WorkflowNode {...createProps(false)} />
 			</WorkflowNodeActionsContext.Provider>
 		)
@@ -62,7 +62,7 @@ describe('WorkflowNode', () => {
 		const onAddNext = vi.fn()
 		const onWrapperKeyDown = vi.fn()
 		render(
-			<WorkflowNodeActionsContext.Provider value={{ onAddNext }}>
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext, onDelete: vi.fn() }}>
 				<div onKeyDown={onWrapperKeyDown}>
 					<WorkflowNode {...createProps(false)} />
 				</div>
@@ -78,7 +78,7 @@ describe('WorkflowNode', () => {
 
 	it('선택된 노드는 다음 노드 추가 버튼을 늘 보이고, 편집 동작이 없으면 버튼을 그리지 않는다', () => {
 		const { rerender } = render(
-			<WorkflowNodeActionsContext.Provider value={{ onAddNext: vi.fn() }}>
+			<WorkflowNodeActionsContext.Provider value={{ onAddNext: vi.fn(), onDelete: vi.fn() }}>
 				<WorkflowNode {...createProps(false)} selected />
 			</WorkflowNodeActionsContext.Provider>
 		)
@@ -86,6 +86,50 @@ describe('WorkflowNode', () => {
 
 		rerender(<WorkflowNode {...createProps(false)} />)
 		expect(screen.queryByRole('button', { name: /뒤에 노드 추가/ })).not.toBeInTheDocument()
+	})
+
+	it('캔버스가 편집 동작을 주면 노드 삭제 버튼을 두고 누르면 그 노드 id로 삭제를 요청하며 설정 패널을 열지 않는다', async () => {
+		const user = userEvent.setup()
+		const onDelete = vi.fn()
+		const onWrapperClick = vi.fn()
+		render(
+			<div onClick={onWrapperClick}>
+				<WorkflowNodeActionsContext.Provider value={{ onAddNext: vi.fn(), onDelete }}>
+					<WorkflowNode {...createProps(false)} />
+				</WorkflowNodeActionsContext.Provider>
+			</div>
+		)
+
+		const button = screen.getByRole('button', { name: '문의 유형 나누기 삭제' })
+		// 숨겨진 동안은 누를 수 없고, 마우스를 올리거나 포커스가 들어오면 보이며 눌린다.
+		expect(button).toHaveClass('nodrag', 'nopan', 'opacity-0', 'pointer-events-none', 'group-hover/node:pointer-events-auto')
+		await user.click(button)
+
+		expect(onDelete).toHaveBeenCalledExactlyOnceWith('ai-node')
+		// 노드 래퍼의 클릭은 ReactFlow onNodeClick(설정 패널 열기)으로 이어진다.
+		expect(onWrapperClick).not.toHaveBeenCalled()
+	})
+
+	it('선택된 노드는 삭제 버튼을 늘 보이고, 키 입력은 노드 래퍼로 올리지 않으며, 편집 동작이 없으면 그리지 않는다', async () => {
+		const user = userEvent.setup()
+		const onWrapperKeyDown = vi.fn()
+		const { rerender } = render(
+			<div onKeyDown={onWrapperKeyDown}>
+				<WorkflowNodeActionsContext.Provider value={{ onAddNext: vi.fn(), onDelete: vi.fn() }}>
+					<WorkflowNode {...createProps(false, 'trigger')} selected />
+				</WorkflowNodeActionsContext.Provider>
+			</div>
+		)
+		const button = screen.getByRole('button', { name: '문의 유형 나누기 삭제' })
+		expect(button).toHaveClass('opacity-100')
+		expect(button).not.toHaveClass('pointer-events-none')
+
+		button.focus()
+		await user.keyboard('{Backspace}')
+		expect(onWrapperKeyDown).not.toHaveBeenCalled()
+
+		rerender(<WorkflowNode {...createProps(false)} />)
+		expect(screen.queryByRole('button', { name: /삭제$/ })).not.toBeInTheDocument()
 	})
 
 	it('일반 모드에서 설명과 읽기 전용 모델 정보를 표시한다', () => {

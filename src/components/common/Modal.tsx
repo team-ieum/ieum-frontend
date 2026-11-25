@@ -7,7 +7,20 @@ import { useModalStore } from '@/stores/useModalStore'
 import { cn } from '@/utils/cn'
 
 const Modal = () => {
-	const { isOpen, title, message, confirmText, cancelText, variant, onConfirm, close } = useModalStore()
+	const {
+		isOpen,
+		title,
+		message,
+		confirmText,
+		cancelText,
+		variant,
+		checkboxLabel,
+		isChecked,
+		onConfirm,
+		setChecked,
+		confirm,
+		close,
+	} = useModalStore()
 	const isConfirm = onConfirm !== undefined
 	const titleId = useId()
 	const messageId = useId()
@@ -15,11 +28,6 @@ const Modal = () => {
 	const primaryButtonRef = useRef<HTMLButtonElement>(null)
 	// 위험한 확인은 실수로 Enter를 눌러도 실행되지 않도록 취소에서 시작한다.
 	const initialFocusRef = isConfirm && variant === 'danger' ? cancelButtonRef : primaryButtonRef
-
-	const handleConfirm = () => {
-		onConfirm?.()
-		close()
-	}
 
 	return createPortal(
 		<AnimatePresence>
@@ -70,8 +78,20 @@ const Modal = () => {
 								{message}
 							</p>
 
+							{isConfirm && checkboxLabel ? (
+								<label className='mt-5 flex w-fit cursor-pointer items-center gap-2'>
+									<input
+										type='checkbox'
+										checked={isChecked}
+										onChange={event => setChecked(event.target.checked)}
+										className='size-4 accent-main-blue'
+									/>
+									<span className='typo-body3_medium text-neutral-600'>{checkboxLabel}</span>
+								</label>
+							) : null}
+
 							{isConfirm ? (
-								<div className='mt-6 flex gap-2'>
+								<div className={cn('flex gap-2', checkboxLabel ? 'mt-4' : 'mt-6')}>
 									<button
 										ref={cancelButtonRef}
 										type='button'
@@ -83,7 +103,7 @@ const Modal = () => {
 									<button
 										ref={primaryButtonRef}
 										type='button'
-										onClick={handleConfirm}
+										onClick={confirm}
 										className={cn(
 											'flex-1 rounded-brand-md py-2.5 typo-body2_bold text-neutral-white transition hover:brightness-105',
 											variant === 'danger' ? 'bg-danger-700' : 'bg-main-blue'

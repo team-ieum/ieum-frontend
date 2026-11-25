@@ -144,7 +144,7 @@ jobs:
       - name: Write Dockerfile
         run: |
           cat > Dockerfile.ci <<'EOF'
-          FROM nginx:1.29-alpine
+          FROM nginx:1.30.7-alpine@sha256:caf4e1e032a20f9c3c5e28fc7f25ffd768ad8677b4975c54193075997b3a97e3
           COPY dist /usr/share/nginx/html
           # 비공개 설정 단계의 umask 077로 생성된 공개 파일을 nginx worker가 읽을 수 있게 합니다.
           RUN chmod -R a+rX /usr/share/nginx/html

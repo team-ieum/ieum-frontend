@@ -1,18 +1,26 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { isApiError } from '@/utils/ApiError'
 import { deleteOAuthConnection as requestOAuthDisconnect } from '@/api/oauthConnections'
+import { getOAuthDisconnectConfig } from '@/constants/integration/integrationProviders'
 import { queryKeys } from '@/constants/queryKeys'
 import type { OAuthConnectionTarget } from '@/types/oauthConnections'
 
 export const deleteOAuthConnectionMutationKey = (provider?: string) =>
 	[...queryKeys.oauthConnections.all(), 'disconnect', provider] as const
 
-// 다른 화면에서 먼저 연결을 해제했더라도 같은 성공 경로로 목록을 갱신한다.
+// 공용 해제 API는 다른 화면에서 먼저 해제했어도 목록을 갱신한다.
 const deleteOAuthConnection = async (provider: string, providerAccountId?: string) => {
 	try {
 		await requestOAuthDisconnect(provider, providerAccountId)
 	} catch (error) {
-		if (!isApiError(error) || error.code !== 'ACCOUNT_NOT_CONNECTED') throw error
+		if (
+			isApiError(error) &&
+			error.code === 'ACCOUNT_NOT_CONNECTED' &&
+			getOAuthDisconnectConfig(provider)?.canIgnoreMissingConnection
+		) {
+			return
+		}
+		throw error
 	}
 }
 

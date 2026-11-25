@@ -1,5 +1,6 @@
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import { isApiError } from '@/utils/ApiError'
+import { parseServerDateTime } from '@/utils/workflow/parseServerDateTime'
 
 /** 실행하지 않고 수신 주소로 들어오는 첫 요청을 기다리는 테스트 방식의 event */
 const WEBHOOK_CATCH_EVENT = 'webhook.catch'
@@ -76,7 +77,7 @@ type ListenWindow = {
  */
 export const getListenWindow = (expiresAt: string | undefined, now: number): ListenWindow => {
 	const fallbackDeadline = now + LISTEN_DURATION_MS
-	const serverExpiresAt = expiresAt ? Date.parse(expiresAt) : Number.NaN
+	const serverExpiresAt = expiresAt ? parseServerDateTime(expiresAt) : Number.NaN
 	if (Number.isNaN(serverExpiresAt)) return { serverStartedAt: now, deadline: fallbackDeadline }
 	const isClockClose = Math.abs(serverExpiresAt - fallbackDeadline) <= LISTEN_CLOCK_SKEW_MS
 	return {
@@ -87,7 +88,7 @@ export const getListenWindow = (expiresAt: string | undefined, now: number): Lis
 
 /** 샘플이 대기를 시작한 뒤 서버에 기록됐는지. `testedAt`이 없거나 읽지 못하면 받은 것으로 보지 않는다. */
 export const isSampleRecordedSince = (testedAt: string | undefined, serverStartedAt: number) => {
-	const recordedAt = testedAt ? Date.parse(testedAt) : Number.NaN
+	const recordedAt = testedAt ? parseServerDateTime(testedAt) : Number.NaN
 	return !Number.isNaN(recordedAt) && recordedAt >= serverStartedAt
 }
 
@@ -111,6 +112,21 @@ export const getMissingSampleNodeIds = (error: unknown): string[] => {
 	const { missingNodeIds } = data
 	if (!Array.isArray(missingNodeIds)) return []
 	return missingNodeIds.filter((id): id is string => typeof id === 'string')
+}
+
+// agent가 LLM 키 없이 호출됐을 때의 errorCode(agent↔BE 계약). BE는 agent 응답 본문을
+// `에이전트 서비스 오류 (HTTP 400): {...}` 형태로 붙여 넘기므로 앞부분 문구가 아니라 본문의 errorCode로 판별한다.
+const MISSING_CREDENTIAL_PATTERN = /"errorCode"\s*:\s*"MISSING_CREDENTIAL"/
+const MISSING_CREDENTIAL_MESSAGE = "AI API 키가 없어 실행하지 못했어요. 'API 키' 칸에서 등록한 키를 골라 주세요."
+
+/**
+ * 실행 실패(`FAILED`) 결과의 `error`를 화면 문구로 바꾼다. 원인을 아는 내부 오류는 원문 대신 쉬운 문구로 바꾸고,
+ * 그 밖에는 서버 문구를 그대로 쓴다. 비어 있으면 기본 실패 문구다.
+ */
+export const getNodeTestFailureMessage = (error: string | undefined): string => {
+	if (!error) return '실행에 실패했어요.'
+	if (MISSING_CREDENTIAL_PATTERN.test(error)) return MISSING_CREDENTIAL_MESSAGE
+	return error
 }
 
 const DEFAULT_ERROR_MESSAGE = '테스트하지 못했어요. 잠시 후 다시 시도해 주세요.'

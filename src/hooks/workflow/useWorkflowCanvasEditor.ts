@@ -6,6 +6,7 @@ import {
 	type Connection,
 	type EdgeChange,
 	type NodeChange,
+	type OnBeforeDelete,
 	type OnConnect,
 	type OnNodeDrag,
 	type OnReconnect,
@@ -14,7 +15,7 @@ import {
 	useNodesState,
 } from '@xyflow/react'
 import { useReducedMotion } from 'framer-motion'
-import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import type { NodeCatalogEntry } from '@/types/nodeCatalog'
 import type { WorkflowEdgeType, WorkflowNodeType } from '@/types/workflow'
 import type { WorkflowNodeDto } from '@/types/workflowList'
@@ -23,8 +24,16 @@ import { createWorkflowNodeFromCatalogEntry } from '@/utils/workflow/nodeCatalog
 import { getNodeRect, placeNewNode, placeNextNode } from '@/utils/workflow/placeNewNode'
 import { isWorkflowConnectionValid } from '@/utils/workflow/workflowConnection'
 
-// 노드 배치에는 좌표 변환과 화면 이동만 쓰므로, 표시용 노드 타입이 다른 ReactFlow 인스턴스도 받을 수 있게 필요한 메서드만 요구한다.
-type CanvasFlowPositioner = Pick<ReactFlowInstance, 'screenToFlowPosition' | 'setCenter' | 'getZoom'>
+// 노드 배치·삭제에는 좌표 변환, 화면 이동, 요소 삭제만 쓰므로, 표시용 노드 타입이 다른 ReactFlow 인스턴스도 받을 수 있게 필요한 메서드만 요구한다.
+type CanvasFlowControls = Pick<ReactFlowInstance, 'screenToFlowPosition' | 'setCenter' | 'getZoom' | 'deleteElements'>
+
+// ReactFlow는 삭제 키를 문서 전체에서 듣고 입력칸(input·select·textarea·contenteditable)과 `.nokey` 안(설정 패널)만 거른다.
+// 노드·연결은 선택된 채 남으므로, 그 밖의 캔버스 밖 버튼(채팅, 툴바, 팔레트, 전역 모달)에 포커스가 있을 때 Backspace로 지워지지 않게 한다.
+const isFocusOutsideCanvas = (canvas: HTMLElement | null) => {
+	const active = document.activeElement
+	if (!canvas || !(active instanceof HTMLElement) || active === document.body) return false
+	return !canvas.contains(active)
+}
 
 type UseWorkflowCanvasEditorOptions = {
 	initialNodes: WorkflowNodeType[]
@@ -42,6 +51,8 @@ type UseWorkflowCanvasEditorOptions = {
 	 * 받는 쪽은 이전 렌더의 연결 목록이 아니라 이 `edges`로 문서를 덮어써야 앞선 연결 삭제를 잃지 않는다.
 	 */
 	onNodesRemove: (nodeIds: string[], edges: WorkflowEdgeType[]) => void
+	/** 노드를 지우기 전에 사용자에게 묻는다. true로 끝나야 지운다. 연결만 지울 때는 부르지 않는다. */
+	confirmNodesDelete: (nodes: WorkflowNodeType[]) => Promise<boolean>
 }
 
 export const useWorkflowCanvasEditor = ({
@@ -51,6 +62,7 @@ export const useWorkflowCanvasEditor = ({
 	onEdgesCommit,
 	onNodeAdd,
 	onNodesRemove,
+	confirmNodesDelete,
 }: UseWorkflowCanvasEditorOptions) => {
 	const [nodes, setNodes] = useNodesState<WorkflowNodeType>(initialNodes)
 	const [edges, setEdges] = useEdgesState<WorkflowEdgeType>(initialEdges)
@@ -137,15 +149,48 @@ export const useWorkflowCanvasEditor = ({
 		[onNodePositionCommit]
 	)
 
-	const flowRef = useRef<CanvasFlowPositioner | null>(null)
+	const flowRef = useRef<CanvasFlowControls | null>(null)
 	const canvasElementRef = useRef<HTMLDivElement | null>(null)
 
 	const setCanvasElement = useCallback((element: HTMLDivElement | null) => {
 		canvasElementRef.current = element
 	}, [])
 
-	const onInit = useCallback((instance: CanvasFlowPositioner) => {
+	const onInit = useCallback((instance: CanvasFlowControls) => {
 		flowRef.current = instance
+	}, [])
+
+	// 노드 카드 삭제 버튼·설정 패널처럼 노드를 지목해 시작한 삭제인지. 이 경로는 포커스가 캔버스 밖(설정 패널)에 있거나,
+	// 마우스 클릭이 브라우저에 따라 버튼에 포커스를 주지 않아 포커스로 판정할 수 없다.
+	const isTargetedDeleteRef = useRef(false)
+	// 확인 창을 기다리는 사이 채팅 반영·저장으로 캔버스가 다시 마운트되면, 기다리던 삭제는 옛 ReactFlow와 옛 렌더의 콜백으로
+	// 이어져 옛 편집 문서로 덮어쓴다. 그래서 언마운트된 뒤 끝난 확인은 지우지 않는다.
+	const isMountedRef = useRef(false)
+	useEffect(() => {
+		isMountedRef.current = true
+		return () => {
+			isMountedRef.current = false
+		}
+	}, [])
+
+	const onBeforeDelete = useCallback<OnBeforeDelete<WorkflowNodeType, WorkflowEdgeType>>(
+		async ({ nodes: targetNodes }) => {
+			const isTargetedDelete = isTargetedDeleteRef.current
+			isTargetedDeleteRef.current = false
+			if (!isTargetedDelete && isFocusOutsideCanvas(canvasElementRef.current)) return false
+			if (targetNodes.length === 0) return true
+			const isConfirmed = await confirmNodesDelete(targetNodes)
+			return isConfirmed && isMountedRef.current
+		},
+		[confirmNodesDelete]
+	)
+
+	/** 노드와 거기 이어진 연결을 지운다. `onBeforeDelete`의 확인을 거쳐 `onNodesChange` → `onNodesRemove`로 편집 문서에 반영된다. */
+	const deleteNode = useCallback((nodeId: string) => {
+		const flow = flowRef.current
+		if (!flow) return
+		isTargetedDeleteRef.current = true
+		void flow.deleteElements({ nodes: [{ id: nodeId }] })
 	}, [])
 
 	const reduceMotion = useReducedMotion()
@@ -240,6 +285,8 @@ export const useWorkflowCanvasEditor = ({
 		onReconnectStart,
 		onReconnectEnd,
 		onNodeDragStop,
+		onBeforeDelete,
+		deleteNode,
 		isValidConnection,
 		setCanvasElement,
 		onInit,

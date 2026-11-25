@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { ApiError } from '@/utils/ApiError'
 import {
@@ -7,6 +7,7 @@ import {
 	getMissingSampleNodeIds,
 	getNodeTestAvailability,
 	getNodeTestErrorMessage,
+	getNodeTestFailureMessage,
 	isManualRun,
 	isSampleRecordedSince,
 	parseManualRunInput,
@@ -56,6 +57,8 @@ describe('nodeTest', () => {
 	describe('getListenWindow', () => {
 		const now = Date.parse('2026-11-09T05:00:00Z')
 
+		afterEach(() => vi.unstubAllEnvs())
+
 		it('서버 만료 시각에서 서버 기준 시작 시각을 구하고, 화면 시계와 가까우면 만료 시각을 그대로 쓴다', () => {
 			expect(getListenWindow('2026-11-09T05:04:59.500Z', now)).toEqual({
 				serverStartedAt: Date.parse('2026-11-09T04:59:59.500Z'),
@@ -63,12 +66,14 @@ describe('nodeTest', () => {
 			})
 		})
 
-		it('오프셋 없는 문자열은 화면 시간대 시각으로 읽는다', () => {
-			const local = new Date(now + 5 * 60_000)
-			const pad = (value: number) => String(value).padStart(2, '0')
-			const expiresAt = `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}:${pad(local.getSeconds())}`
-			expect(getListenWindow(expiresAt, now)).toEqual({ serverStartedAt: now, deadline: now + 5 * 60_000 })
-		})
+		it.each(['America/Los_Angeles', 'Asia/Seoul'])(
+			'오프셋 없는 문자열은 화면 시간대(%s)와 상관없이 한국 시각으로 읽는다',
+			timeZone => {
+				vi.stubEnv('TZ', timeZone)
+				const expiresAt = new Date(now + 5 * 60_000 + 9 * 3_600_000).toISOString().slice(0, 19)
+				expect(getListenWindow(expiresAt, now)).toEqual({ serverStartedAt: now, deadline: now + 5 * 60_000 })
+			}
+		)
 
 		it.each([
 			['화면 시계가 서버보다 3분 빠르면', '2026-11-09T05:02:00Z', Date.parse('2026-11-09T04:57:00Z')],
@@ -209,6 +214,32 @@ describe('nodeTest', () => {
 			['숫자', '42'],
 		])('%s은 객체가 아니라서 거부한다', (_, text) => {
 			expect(parseManualRunInput(text)).toEqual({ ok: false, error: '중괄호로 감싼 객체({ … })만 넣을 수 있어요.' })
+		})
+	})
+	describe('getNodeTestFailureMessage', () => {
+		const MISSING_CREDENTIAL_MESSAGE = "AI API 키가 없어 실행하지 못했어요. 'API 키' 칸에서 등록한 키를 골라 주세요."
+
+		it.each([
+			[
+				'실서버 원문',
+				'에이전트 서비스 오류 (HTTP 400): {"detail":"LLM 헤더가 누락되었습니다.","errorCode":"MISSING_CREDENTIAL"}',
+			],
+			['키·값 사이 공백', '{"detail": "LLM 헤더가 누락되었습니다.", "errorCode" : "MISSING_CREDENTIAL"}'],
+			['앞부분 문구가 다른 경우', 'agent error 400 {"errorCode":"MISSING_CREDENTIAL"}'],
+		])('errorCode가 MISSING_CREDENTIAL이면(%s) 원문 대신 API 키 안내로 바꾼다', (_, error) => {
+			expect(getNodeTestFailureMessage(error)).toBe(MISSING_CREDENTIAL_MESSAGE)
+		})
+
+		it.each([
+			['다른 errorCode', '에이전트 서비스 오류 (HTTP 400): {"detail":"잘못된 요청","errorCode":"INVALID_INPUT"}'],
+			['코드 이름만 문장에 나온 경우', 'MISSING_CREDENTIAL 오류가 났어요'],
+			['일반 실패 문구', '최근 항목이 없습니다'],
+		])('%s는 서버 문구를 그대로 보여 준다', (_, error) => {
+			expect(getNodeTestFailureMessage(error)).toBe(error)
+		})
+
+		it.each([undefined, ''])('error가 없으면(%j) 기본 실패 문구를 보여 준다', error => {
+			expect(getNodeTestFailureMessage(error)).toBe('실행에 실패했어요.')
 		})
 	})
 })

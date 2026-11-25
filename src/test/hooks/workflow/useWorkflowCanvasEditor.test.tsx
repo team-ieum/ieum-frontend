@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useWorkflowCanvasEditor } from '@/hooks/workflow/useWorkflowCanvasEditor'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import type { WorkflowNodeRole, WorkflowNodeType } from '@/types/workflow'
@@ -25,6 +25,7 @@ const renderEditorForNext = (
 			onEdgesCommit,
 			onNodeAdd,
 			onNodesRemove: vi.fn(),
+			confirmNodesDelete: vi.fn(),
 		})
 	)
 	const canvas = document.createElement('div')
@@ -32,7 +33,14 @@ const renderEditorForNext = (
 		({ left: 0, top: 0, right: canvasWidth, bottom: 1000, width: canvasWidth, height: 1000 }) as DOMRect
 	view.result.current.setCanvasElement(canvas)
 	const setCenter = vi.fn()
-	act(() => view.result.current.onInit({ screenToFlowPosition: position => position, setCenter, getZoom: () => 0.8 }))
+	act(() =>
+		view.result.current.onInit({
+			screenToFlowPosition: position => position,
+			setCenter,
+			getZoom: () => 0.8,
+			deleteElements: vi.fn(),
+		})
+	)
 	return { ...view, onNodeAdd, onEdgesCommit, setCenter }
 }
 
@@ -89,6 +97,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit: vi.fn(),
 				onNodeAdd: vi.fn(),
 				onNodesRemove: vi.fn(),
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 
@@ -113,13 +122,14 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit: vi.fn(),
 				onNodeAdd,
 				onNodesRemove: vi.fn(),
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 		const canvas = document.createElement('div')
 		canvas.getBoundingClientRect = () => ({ left: 100, top: 50, width: 800, height: 600 }) as DOMRect
 		result.current.setCanvasElement(canvas)
 		const screenToFlowPosition = vi.fn(({ x, y }: { x: number; y: number }) => ({ x: x - 100, y: y - 50 }))
-		act(() => result.current.onInit({ screenToFlowPosition, setCenter: vi.fn(), getZoom: () => 1 }))
+		act(() => result.current.onInit({ screenToFlowPosition, setCenter: vi.fn(), getZoom: () => 1, deleteElements: vi.fn() }))
 
 		act(() => result.current.addCatalogNode(slackEntry))
 
@@ -143,6 +153,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit: vi.fn(),
 				onNodeAdd,
 				onNodesRemove: vi.fn(),
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 		result.current.setCanvasElement(document.createElement('div'))
@@ -163,6 +174,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit,
 				onNodeAdd: vi.fn(),
 				onNodesRemove: vi.fn(),
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 
@@ -192,6 +204,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit,
 				onNodeAdd: vi.fn(),
 				onNodesRemove: vi.fn(),
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 
@@ -221,6 +234,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit: vi.fn(),
 				onNodeAdd: vi.fn(),
 				onNodesRemove,
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 
@@ -250,6 +264,7 @@ describe('useWorkflowCanvasEditor', () => {
 				onEdgesCommit,
 				onNodeAdd: vi.fn(),
 				onNodesRemove,
+				confirmNodesDelete: vi.fn(),
 			})
 		)
 
@@ -265,5 +280,91 @@ describe('useWorkflowCanvasEditor', () => {
 		expect(onEdgesCommit).toHaveBeenLastCalledWith([])
 		expect(onNodesRemove).toHaveBeenCalledWith(['ai'], [])
 		expect(result.current.edges).toEqual([])
+	})
+
+	describe('노드 삭제 전 확인', () => {
+		const renderEditorForDelete = (confirmResult: boolean) => {
+			const confirmNodesDelete = vi.fn().mockResolvedValue(confirmResult)
+			const deleteElements = vi.fn().mockResolvedValue({ deletedNodes: [], deletedEdges: [] })
+			const view = renderHook(() =>
+				useWorkflowCanvasEditor({
+					initialNodes: nodes,
+					initialEdges: [],
+					onNodePositionCommit: vi.fn(),
+					onEdgesCommit: vi.fn(),
+					onNodeAdd: vi.fn(),
+					onNodesRemove: vi.fn(),
+					confirmNodesDelete,
+				})
+			)
+			const canvas = document.createElement('div')
+			const canvasButton = document.createElement('button')
+			canvas.append(canvasButton)
+			// 설정 패널·채팅처럼 캔버스 밖에 있는 버튼
+			const outsideButton = document.createElement('button')
+			document.body.append(canvas, outsideButton)
+			view.result.current.setCanvasElement(canvas)
+			act(() =>
+				view.result.current.onInit({
+					screenToFlowPosition: position => position,
+					setCenter: vi.fn(),
+					getZoom: () => 1,
+					deleteElements,
+				})
+			)
+			return { ...view, confirmNodesDelete, deleteElements, canvasButton, outsideButton }
+		}
+
+		afterEach(() => {
+			document.body.replaceChildren()
+		})
+
+		it('포커스가 캔버스 밖 버튼에 있으면 키보드 삭제를 묻지 않고 막는다', async () => {
+			const { result, confirmNodesDelete, outsideButton } = renderEditorForDelete(true)
+			outsideButton.focus()
+
+			await expect(result.current.onBeforeDelete({ nodes: [nodes[1]], edges: [] })).resolves.toBe(false)
+			expect(confirmNodesDelete).not.toHaveBeenCalled()
+		})
+
+		it('캔버스 안에서는 연결만 지울 때 바로 지우고, 노드가 섞이면 확인 결과를 따른다', async () => {
+			const { result, confirmNodesDelete, canvasButton } = renderEditorForDelete(false)
+			canvasButton.focus()
+			const edge = createWorkflowCanvasEdge({ source: 'trigger', target: 'ai', conditionType: null }, 'e1')
+
+			await expect(result.current.onBeforeDelete({ nodes: [], edges: [edge] })).resolves.toBe(true)
+			expect(confirmNodesDelete).not.toHaveBeenCalled()
+
+			await expect(result.current.onBeforeDelete({ nodes: [nodes[1]], edges: [edge] })).resolves.toBe(false)
+			expect(confirmNodesDelete).toHaveBeenCalledExactlyOnceWith([nodes[1]])
+		})
+
+		// 채팅 응답 반영·저장으로 캔버스가 다시 마운트되면, 옛 캔버스의 삭제가 옛 편집 문서로 덮어쓰지 않아야 한다.
+		it('확인 창을 기다리는 사이 캔버스가 언마운트되면 확인해도 지우지 않는다', async () => {
+			const { result, unmount, confirmNodesDelete, canvasButton } = renderEditorForDelete(true)
+			let confirm!: (isConfirmed: boolean) => void
+			confirmNodesDelete.mockReturnValueOnce(new Promise<boolean>(resolve => (confirm = resolve)))
+			canvasButton.focus()
+
+			const pending = result.current.onBeforeDelete({ nodes: [nodes[1]], edges: [] })
+			unmount()
+			confirm(true)
+
+			await expect(pending).resolves.toBe(false)
+		})
+
+		// 마우스 클릭은 브라우저에 따라 버튼에 포커스를 주지 않아, 설정 패널 입력칸에 포커스가 남아 있을 수 있다.
+		it('노드 카드 삭제 버튼으로 시작한 삭제는 포커스가 캔버스 밖이어도 확인을 거쳐 한 번만 통과시킨다', async () => {
+			const { result, confirmNodesDelete, deleteElements, outsideButton } = renderEditorForDelete(true)
+			outsideButton.focus()
+
+			act(() => result.current.deleteNode('ai'))
+
+			expect(deleteElements).toHaveBeenCalledExactlyOnceWith({ nodes: [{ id: 'ai' }] })
+			await expect(result.current.onBeforeDelete({ nodes: [nodes[1]], edges: [] })).resolves.toBe(true)
+			expect(confirmNodesDelete).toHaveBeenCalledOnce()
+			// 다음 키보드 삭제는 다시 포커스 위치로 막는다.
+			await expect(result.current.onBeforeDelete({ nodes: [nodes[1]], edges: [] })).resolves.toBe(false)
+		})
 	})
 })
