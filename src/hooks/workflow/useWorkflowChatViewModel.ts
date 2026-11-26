@@ -2,7 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from
 import { PROVIDER_DISPLAY_NAME, PROVIDER_VISUAL } from '@/constants/aiCredentials'
 import { CHAT_SCROLLBAR_VISIBLE_MS } from '@/constants/workflow/workflowChat'
 import { useWorkflowChat } from '@/hooks/workflow/useWorkflowChat'
-import type { WorkflowChatCredentialOption, WorkflowChatScrollbarView, WorkflowChatViewModel } from '@/types/workflowChat'
+import type {
+	WorkflowChatCredentialOption,
+	WorkflowChatModelOption,
+	WorkflowChatScrollbarView,
+	WorkflowChatViewModel,
+} from '@/types/workflowChat'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 
 type UseWorkflowChatViewModelArgs = {
@@ -14,6 +19,9 @@ type UseWorkflowChatViewModelArgs = {
 	isOpen?: boolean
 	onOpenChange?: (isOpen: boolean) => void
 }
+
+/** 입력창 위의 두 선택 메뉴. 하나를 열면 다른 하나는 닫힌다. */
+type ChatMenu = 'credential' | 'model'
 
 const EMPTY_SCROLLBAR: WorkflowChatScrollbarView = {
 	isVisible: false,
@@ -35,12 +43,15 @@ export const useWorkflowChatViewModel = ({
 		if (controlledIsOpen === undefined) setUncontrolledIsOpen(next)
 		onOpenChange?.(next)
 	}
-	const [isModelMenuOpen, setIsModelMenuOpen] = useState(false)
+	const [openMenu, setOpenMenu] = useState<ChatMenu | null>(null)
+	const isModelMenuOpen = openMenu === 'credential'
+	const isModelIdMenuOpen = openMenu === 'model'
 	const [scrollbar, setScrollbar] = useState<WorkflowChatScrollbarView>(EMPTY_SCROLLBAR)
 	const chatBodyRef = useRef<HTMLDivElement>(null)
 	const messagesEndRef = useRef<HTMLDivElement>(null)
 	const inputRef = useRef<HTMLTextAreaElement>(null)
 	const modelMenuRef = useRef<HTMLDivElement>(null)
+	const modelIdMenuRef = useRef<HTMLDivElement>(null)
 	const scrollbarHideTimerRef = useRef<number | undefined>(undefined)
 	const isProgrammaticScrollRef = useRef(false)
 
@@ -122,17 +133,18 @@ export const useWorkflowChatViewModel = ({
 	}, [])
 
 	useEffect(() => {
-		if (!isModelMenuOpen) return
+		if (!openMenu) return
 
+		const menuRef = openMenu === 'credential' ? modelMenuRef : modelIdMenuRef
 		const handleDocumentMouseDown = (event: MouseEvent) => {
-			if (!modelMenuRef.current?.contains(event.target as Node)) {
-				setIsModelMenuOpen(false)
+			if (!menuRef.current?.contains(event.target as Node)) {
+				setOpenMenu(null)
 			}
 		}
 
 		document.addEventListener('mousedown', handleDocumentMouseDown)
 		return () => document.removeEventListener('mousedown', handleDocumentMouseDown)
-	}, [isModelMenuOpen])
+	}, [openMenu])
 
 	const credentialOptions: WorkflowChatCredentialOption[] = chat.credentials
 		.filter(credential => Object.hasOwn(PROVIDER_VISUAL, credential.provider))
@@ -143,22 +155,36 @@ export const useWorkflowChatViewModel = ({
 		}))
 	const selectedCredentialOption = credentialOptions.find(option => option.id === chat.selectedCredentialId) ?? null
 
+	const modelOptions: WorkflowChatModelOption[] = chat.availableModels.map(model => ({
+		id: model.id,
+		label: model.displayName,
+		isDefault: model.default === true,
+	}))
+	const selectedModelOption = modelOptions.find(option => option.id === chat.selectedModelId) ?? null
+
 	const openChat = () => setIsOpen(true)
 	const closeChat = () => {
 		setIsOpen(false)
-		setIsModelMenuOpen(false)
+		setOpenMenu(null)
 	}
 
-	const toggleModelMenu = () => setIsModelMenuOpen(prev => !prev)
+	const toggleModelMenu = () => setOpenMenu(prev => (prev === 'credential' ? null : 'credential'))
+	const toggleModelIdMenu = () => setOpenMenu(prev => (prev === 'model' ? null : 'model'))
 
-	const selectCredential = (id: string | null) => {
+	const selectCredential = (id: string) => {
 		chat.setSelectedCredentialId(id)
-		setIsModelMenuOpen(false)
+		setOpenMenu(null)
 		focusInput()
 	}
 
-	const onModelMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-		if (e.key === 'Escape') setIsModelMenuOpen(false)
+	const selectModelId = (id: string) => {
+		chat.setSelectedModelId(id)
+		setOpenMenu(null)
+		focusInput()
+	}
+
+	const handleMenuKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+		if (e.key === 'Escape') setOpenMenu(null)
 	}
 
 	const handleSend = () => {
@@ -183,13 +209,21 @@ export const useWorkflowChatViewModel = ({
 		isTyping: chat.isTyping,
 		currentStage: chat.currentStage,
 		credentialOptions,
+		hasNoCredentials: chat.hasNoCredentials,
 		selectedCredentialOption,
 		selectedCredentialId: chat.selectedCredentialId,
 		isModelMenuOpen,
 		toggleModelMenu,
 		selectCredential,
-		onModelMenuKeyDown,
+		onModelMenuKeyDown: handleMenuKeyDown,
 		modelMenuRef,
+		modelOptions,
+		selectedModelOption,
+		isModelIdMenuOpen,
+		toggleModelIdMenu,
+		selectModelId,
+		onModelIdMenuKeyDown: handleMenuKeyDown,
+		modelIdMenuRef,
 		handleSend,
 		handleKeyDown,
 		scrollbar,

@@ -2,6 +2,7 @@ import { Client, type IMessage, type StompSubscription } from '@stomp/stompjs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SockJS from 'sockjs-client'
 import { useCredentialsQuery } from '@/hooks/aiCredentials/queries/useCredentialsQuery'
+import { useProvidersQuery } from '@/hooks/aiCredentials/queries/useProvidersQuery'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import type {
@@ -11,8 +12,12 @@ import type {
 	WorkflowChatResponseData,
 	WorkflowChatStreamResponse,
 } from '@/types/workflowChat'
+import { selectWorkflowChatCredential } from '@/utils/workflow/selectWorkflowChatCredential'
+import { selectWorkflowChatModel } from '@/utils/workflow/selectWorkflowChatModel'
 
 const CHAT_STREAM_DESTINATION = '/user/queue/chat/stream'
+const CREDENTIAL_STORAGE_KEY = 'ieum-chat-credential-id'
+const MODEL_STORAGE_KEY = 'ieum-chat-model-id'
 const CONNECTION_TIMEOUT_MS = 8000
 
 const getWebSocketUrl = (): string | null => {
@@ -55,8 +60,9 @@ export const useWorkflowChat = (
 	const [connectionStatus, setConnectionStatus] = useState<WorkflowChatConnectionStatus>('idle')
 	const [currentStage, setCurrentStage] = useState<string | null>(null)
 	const [selectedCredentialId, setSelectedCredentialIdState] = useState<string | null>(() =>
-		localStorage.getItem('ieum-chat-credential-id')
+		localStorage.getItem(CREDENTIAL_STORAGE_KEY)
 	)
+	const [preferredModelId, setPreferredModelId] = useState<string | null>(() => localStorage.getItem(MODEL_STORAGE_KEY))
 	const clientRef = useRef<Client | null>(null)
 	const subscriptionRef = useRef<StompSubscription | null>(null)
 	const connectionReadyRef = useRef<Promise<void> | null>(null)
@@ -68,6 +74,14 @@ export const useWorkflowChat = (
 
 	const { data: credentialsData } = useCredentialsQuery()
 	const credentials = useMemo(() => credentialsData?.data ?? [], [credentialsData])
+	const { data: providersData } = useProvidersQuery()
+
+	// 아직 고르지 않았으면 가장 최근에 추가한 자격 증명을 쓴다. 고른 값만 저장하고 자동 선택은 저장하지 않는다.
+	const selectedCredential = selectWorkflowChatCredential(credentials, selectedCredentialId)
+	// 고른 모델은 제공자와 관계없이 하나만 기억한다. 다른 제공자의 키로 바꾸면 그 제공자의 기본 모델로 돌아간다.
+	const selectedProvider = selectedCredential?.provider
+	const availableModels = providersData?.data.providers.find(info => info.provider === selectedProvider)?.models ?? []
+	const selectedModel = selectWorkflowChatModel(availableModels, preferredModelId)
 
 	useEffect(() => {
 		onCanvasUpdateRef.current = onCanvasUpdate
@@ -76,18 +90,19 @@ export const useWorkflowChat = (
 	useEffect(() => {
 		if (!credentialsData) return
 		if (selectedCredentialId && !credentials.find(c => c.id === selectedCredentialId)) {
-			localStorage.removeItem('ieum-chat-credential-id')
+			localStorage.removeItem(CREDENTIAL_STORAGE_KEY)
 			queueMicrotask(() => setSelectedCredentialIdState(null))
 		}
 	}, [credentialsData, credentials, selectedCredentialId])
 
-	const setSelectedCredentialId = (id: string | null) => {
+	const setSelectedCredentialId = (id: string) => {
 		setSelectedCredentialIdState(id)
-		if (id) {
-			localStorage.setItem('ieum-chat-credential-id', id)
-		} else {
-			localStorage.removeItem('ieum-chat-credential-id')
-		}
+		localStorage.setItem(CREDENTIAL_STORAGE_KEY, id)
+	}
+
+	const setSelectedModelId = (id: string) => {
+		setPreferredModelId(id)
+		localStorage.setItem(MODEL_STORAGE_KEY, id)
 	}
 
 	const createConnectionReady = useCallback(() => {
@@ -309,7 +324,8 @@ export const useWorkflowChat = (
 				prompt: text,
 				...(currentNodes.length > 0 ? { currentNodes, currentEdges } : {}),
 				...(sessionId ? { sessionId } : {}),
-				...(selectedCredentialId ? { credentialId: selectedCredentialId } : {}),
+				...(selectedCredential ? { credentialId: selectedCredential.id } : {}),
+				...(selectedCredential && selectedModel ? { model: selectedModel.id } : {}),
 			}
 
 			client.publish({
@@ -343,7 +359,12 @@ export const useWorkflowChat = (
 		handleSend,
 		handleKeyDown,
 		credentials,
-		selectedCredentialId,
+		/** 자격 증명 목록을 받았는데 하나도 없다. 불러오는 중이거나 실패했으면 false다. */
+		hasNoCredentials: credentialsData !== undefined && credentials.length === 0,
+		selectedCredentialId: selectedCredential?.id ?? null,
 		setSelectedCredentialId,
+		availableModels,
+		selectedModelId: selectedModel?.id ?? null,
+		setSelectedModelId,
 	}
 }

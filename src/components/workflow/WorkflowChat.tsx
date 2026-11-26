@@ -1,6 +1,7 @@
-import { ArrowUp, Check, ChevronDown, Sparkles, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, KeyRound, Sparkles, X } from 'lucide-react'
 import type { ReactElement, ReactNode } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Link } from 'react-router'
 import symbolLogo from '@/assets/symbolNoLine.png'
 import { CHAT_SCROLLBAR_FADE_MS, CHAT_STAGE_FALLBACK_LABEL, CHAT_STAGE_LABEL } from '@/constants/workflow/workflowChat'
 import { useWorkflowChatViewModel } from '@/hooks/workflow/useWorkflowChatViewModel'
@@ -8,17 +9,22 @@ import type { WorkflowEdgeDto, WorkflowNodeDto } from '@/types/workflowList'
 import { cn } from '@/utils/cn'
 
 const MODEL_MENU_ID = 'workflow-chat-model-menu'
+const MODEL_ID_MENU_ID = 'workflow-chat-model-id-menu'
+const MENU_PANEL_CLASS =
+	'absolute bottom-[calc(100%+6px)] left-0 z-20 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
 /** 시작 안내 말풍선이 FAB 등장 spring을 기다리는 시간(초). */
 const START_HINT_DELAY_S = 0.18
 
 type ModelMenuItemProps = {
 	label: string
 	isSelected: boolean
-	leading: ReactNode
+	leading?: ReactNode
+	/** 라벨 오른쪽에 붙는 보조 표시(예: '기본'). */
+	badge?: string
 	onSelect: () => void
 }
 
-const ModelMenuItem = ({ label, isSelected, leading, onSelect }: ModelMenuItemProps): ReactElement => (
+const ModelMenuItem = ({ label, isSelected, leading, badge, onSelect }: ModelMenuItemProps): ReactElement => (
 	<button
 		type='button'
 		role='menuitemradio'
@@ -29,8 +35,9 @@ const ModelMenuItem = ({ label, isSelected, leading, onSelect }: ModelMenuItemPr
 			isSelected ? 'bg-main-light-blue text-main-deep-blue' : 'text-neutral-700 hover:bg-neutral-50'
 		)}
 	>
-		<span className='grid h-3 w-3 shrink-0 place-items-center'>{leading}</span>
+		{leading ? <span className='grid h-3 w-3 shrink-0 place-items-center'>{leading}</span> : null}
 		<span className='flex-1'>{label}</span>
+		{badge ? <span className='shrink-0 typo-caption2_medium text-neutral-400'>{badge}</span> : null}
 		{isSelected && <Check size={14} className='shrink-0' />}
 	</button>
 )
@@ -119,6 +126,7 @@ const WorkflowChat = ({
 		handleSend,
 		handleKeyDown,
 		credentialOptions,
+		hasNoCredentials,
 		selectedCredentialOption,
 		selectedCredentialId,
 		isModelMenuOpen,
@@ -126,6 +134,13 @@ const WorkflowChat = ({
 		selectCredential,
 		onModelMenuKeyDown,
 		modelMenuRef,
+		modelOptions,
+		selectedModelOption,
+		isModelIdMenuOpen,
+		toggleModelIdMenu,
+		selectModelId,
+		onModelIdMenuKeyDown,
+		modelIdMenuRef,
 		currentStage,
 		scrollbar,
 		onChatBodyScroll,
@@ -259,7 +274,7 @@ const WorkflowChat = ({
 											</span>
 											<div className='flex flex-col gap-2 max-w-70'>
 												<div
-													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800'
+													className='rounded-[0_14px_14px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-neutral-800 whitespace-pre-wrap wrap-anywhere'
 													style={{ background: '#F0F4FC' }}
 												>
 													{msg.body}
@@ -279,7 +294,7 @@ const WorkflowChat = ({
 										</div>
 									) : (
 										<div key={i} className='flex justify-end'>
-											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap'>
+											<div className='rounded-[14px_14px_4px_14px] px-3.5 py-2.5 text-sm leading-relaxed text-white max-w-70 bg-main-blue whitespace-pre-wrap wrap-anywhere'>
 												{msg.body}
 											</div>
 										</div>
@@ -309,79 +324,143 @@ const WorkflowChat = ({
 
 						{/* 입력창 */}
 						<div className='p-3 border-t border-neutral-200 bg-neutral-50 shrink-0 flex flex-col gap-2'>
-							{credentialOptions.length > 0 && (
-								<div ref={modelMenuRef} className='relative self-start' onKeyDown={onModelMenuKeyDown}>
-									<button
-										type='button'
-										onClick={toggleModelMenu}
-										aria-haspopup='menu'
-										aria-expanded={isModelMenuOpen}
-										aria-controls={MODEL_MENU_ID}
-										aria-label='AI 모델 선택'
-										className={cn(
-											'inline-flex h-7 items-center gap-1.5 rounded-full border bg-white pr-2 pl-2.5 typo-caption1_medium transition-colors',
-											isModelMenuOpen
-												? 'border-main-blue text-main-deep-blue'
-												: 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
-										)}
+							{hasNoCredentials ? (
+								<p className='flex flex-wrap items-center gap-x-1.5 gap-y-0.5 self-start typo-caption1_medium text-neutral-500'>
+									<KeyRound size={12} aria-hidden='true' className='shrink-0 text-neutral-400' />
+									<span>AI 자격 증명을 추가해 주세요.</span>
+									<Link
+										to='/inter-setting'
+										className='rounded-sm font-semibold text-main-deep-blue underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue'
 									>
-										{selectedCredentialOption ? (
-											<span
-												className='h-2 w-2 shrink-0 rounded-full'
-												style={{ background: selectedCredentialOption.brandColor }}
-											/>
-										) : (
-											<Sparkles size={12} className='shrink-0 text-neutral-400' />
-										)}
-										<span className={cn(!selectedCredentialOption && 'text-neutral-500')}>
-											{selectedCredentialOption?.label ?? 'AI 모델 선택'}
-										</span>
-										<ChevronDown
-											size={14}
+										통합 설정에서 추가
+									</Link>
+								</p>
+							) : null}
+							{credentialOptions.length > 0 && (
+								<div className='flex max-w-full min-w-0 items-center gap-1.5 self-start'>
+									<div ref={modelMenuRef} className='relative shrink-0' onKeyDown={onModelMenuKeyDown}>
+										<button
+											type='button'
+											onClick={toggleModelMenu}
+											aria-haspopup='menu'
+											aria-expanded={isModelMenuOpen}
+											aria-controls={MODEL_MENU_ID}
+											aria-label='AI 모델 선택'
 											className={cn(
-												'text-neutral-400 transition-transform duration-200',
-												isModelMenuOpen && 'rotate-180'
+												'inline-flex h-7 items-center gap-1.5 rounded-full border bg-white pr-2 pl-2.5 typo-caption1_medium transition-colors',
+												isModelMenuOpen
+													? 'border-main-blue text-main-deep-blue'
+													: 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
 											)}
-										/>
-									</button>
-
-									<AnimatePresence>
-										{isModelMenuOpen && (
-											<motion.div
-												id={MODEL_MENU_ID}
-												role='menu'
-												initial={{ opacity: 0, y: 4 }}
-												animate={{ opacity: 1, y: 0 }}
-												exit={{ opacity: 0, y: 4 }}
-												transition={{ duration: 0.15 }}
-												className='absolute bottom-[calc(100%+6px)] left-0 z-20 w-44 rounded-xl border border-neutral-200 bg-white p-1.5 shadow-[0_16px_32px_-12px_rgba(16,24,40,.22)]'
-											>
-												<p className='px-2.5 pt-1 pb-1.5 typo-caption1_semibold text-neutral-400'>
-													AI 모델
-												</p>
-												<ModelMenuItem
-													label='선택 안 함'
-													isSelected={selectedCredentialId === null}
-													onSelect={() => selectCredential(null)}
-													leading={<Sparkles size={12} className='text-neutral-400' />}
+										>
+											{selectedCredentialOption ? (
+												<span
+													className='h-2 w-2 shrink-0 rounded-full'
+													style={{ background: selectedCredentialOption.brandColor }}
 												/>
-												{credentialOptions.map(option => (
-													<ModelMenuItem
-														key={option.id}
-														label={option.label}
-														isSelected={option.id === selectedCredentialId}
-														onSelect={() => selectCredential(option.id)}
-														leading={
-															<span
-																className='h-2 w-2 rounded-full'
-																style={{ background: option.brandColor }}
+											) : (
+												<Sparkles size={12} className='shrink-0 text-neutral-400' />
+											)}
+											<span className={cn(!selectedCredentialOption && 'text-neutral-500')}>
+												{selectedCredentialOption?.label ?? 'AI 모델 선택'}
+											</span>
+											<ChevronDown
+												size={14}
+												className={cn(
+													'text-neutral-400 transition-transform duration-200',
+													isModelMenuOpen && 'rotate-180'
+												)}
+											/>
+										</button>
+
+										<AnimatePresence>
+											{isModelMenuOpen && (
+												<motion.div
+													id={MODEL_MENU_ID}
+													role='menu'
+													initial={{ opacity: 0, y: 4 }}
+													animate={{ opacity: 1, y: 0 }}
+													exit={{ opacity: 0, y: 4 }}
+													transition={{ duration: 0.15 }}
+													className={cn(MENU_PANEL_CLASS, 'w-44')}
+												>
+													<p className='px-2.5 pt-1 pb-1.5 typo-caption1_semibold text-neutral-400'>
+														AI 모델
+													</p>
+													{credentialOptions.map(option => (
+														<ModelMenuItem
+															key={option.id}
+															label={option.label}
+															isSelected={option.id === selectedCredentialId}
+															onSelect={() => selectCredential(option.id)}
+															leading={
+																<span
+																	className='h-2 w-2 rounded-full'
+																	style={{ background: option.brandColor }}
+																/>
+															}
+														/>
+													))}
+												</motion.div>
+											)}
+										</AnimatePresence>
+									</div>
+
+									{modelOptions.length > 0 && (
+										<div ref={modelIdMenuRef} className='relative min-w-0' onKeyDown={onModelIdMenuKeyDown}>
+											<button
+												type='button'
+												onClick={toggleModelIdMenu}
+												aria-haspopup='menu'
+												aria-expanded={isModelIdMenuOpen}
+												aria-controls={MODEL_ID_MENU_ID}
+												aria-label={`세부 모델 선택: ${selectedModelOption?.label ?? '없음'}`}
+												className={cn(
+													'inline-flex h-7 max-w-full items-center gap-1 rounded-full border bg-white pr-2 pl-2.5 typo-caption1_medium transition-colors',
+													isModelIdMenuOpen
+														? 'border-main-blue text-main-deep-blue'
+														: 'border-neutral-200 text-neutral-700 hover:border-neutral-300'
+												)}
+											>
+												<span className='truncate'>{selectedModelOption?.label}</span>
+												<ChevronDown
+													size={14}
+													aria-hidden='true'
+													className={cn(
+														'shrink-0 text-neutral-400 transition-transform duration-200 motion-reduce:transition-none',
+														isModelIdMenuOpen && 'rotate-180'
+													)}
+												/>
+											</button>
+
+											<AnimatePresence>
+												{isModelIdMenuOpen && (
+													<motion.div
+														id={MODEL_ID_MENU_ID}
+														role='menu'
+														initial={{ opacity: 0, y: 4 }}
+														animate={{ opacity: 1, y: 0 }}
+														exit={{ opacity: 0, y: 4 }}
+														transition={{ duration: 0.15 }}
+														className={cn(MENU_PANEL_CLASS, 'w-56')}
+													>
+														<p className='px-2.5 pt-1 pb-1.5 typo-caption1_semibold text-neutral-400'>
+															모델
+														</p>
+														{modelOptions.map(option => (
+															<ModelMenuItem
+																key={option.id}
+																label={option.label}
+																badge={option.isDefault ? '기본' : undefined}
+																isSelected={option.id === selectedModelOption?.id}
+																onSelect={() => selectModelId(option.id)}
 															/>
-														}
-													/>
-												))}
-											</motion.div>
-										)}
-									</AnimatePresence>
+														))}
+													</motion.div>
+												)}
+											</AnimatePresence>
+										</div>
+									)}
 								</div>
 							)}
 							<div className='flex items-end gap-2 bg-white border border-neutral-200 rounded-[14px] px-3 py-2'>

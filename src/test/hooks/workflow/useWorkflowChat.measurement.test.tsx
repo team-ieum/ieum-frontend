@@ -21,6 +21,9 @@ vi.mock('sockjs-client', () => ({ default: vi.fn() }))
 vi.mock('@/hooks/aiCredentials/queries/useCredentialsQuery', () => ({
 	useCredentialsQuery: () => ({ data: undefined }),
 }))
+vi.mock('@/hooks/aiCredentials/queries/useProvidersQuery', () => ({
+	useProvidersQuery: () => ({ data: undefined }),
+}))
 
 describe('useWorkflowChat measurement mode', () => {
 	beforeEach(() => {
