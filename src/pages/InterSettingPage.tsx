@@ -62,6 +62,7 @@ const InterSettingPage = () => {
 		isCheckingDisconnect,
 		canDisconnect,
 		onReconnect,
+		isConnectionActionPending,
 		canReconnect,
 		isReconnecting,
 		webhookConnectServiceId,
@@ -73,7 +74,7 @@ const InterSettingPage = () => {
 	const sectionButtonRefs = useRef(new Map<IntegrationTabId, HTMLButtonElement>())
 	const detailHeadingRef = useRef<HTMLHeadingElement>(null)
 	const lastManagedServiceIdRef = useRef<string | null>(null)
-	const selectedSectionRef = useRef<IntegrationTabId | null>(null)
+	const returnFocusTargetRef = useRef<IntegrationTabId | 'available' | null>(null)
 	const completedViewKeyRef = useRef(viewKey)
 	const focusedDetailViewKeyRef = useRef<string | null>(null)
 
@@ -92,20 +93,25 @@ const InterSettingPage = () => {
 	const handleManage = useCallback(
 		(id: string) => {
 			lastManagedServiceIdRef.current = id
-			selectedSectionRef.current = null
+			returnFocusTargetRef.current = null
 			goDetail(id)
 		},
 		[goDetail]
 	)
 
 	const handleBack = useCallback(() => {
-		selectedSectionRef.current = null
+		returnFocusTargetRef.current = null
+		goList()
+	}, [goList])
+
+	const handleOAuthDisconnected = useCallback(() => {
+		returnFocusTargetRef.current = 'available'
 		goList()
 	}, [goList])
 
 	const handleSectionChange = useCallback(
 		(tab: IntegrationTabId) => {
-			selectedSectionRef.current = tab
+			returnFocusTargetRef.current = tab
 			handleTabChange(tab)
 		},
 		[handleTabChange]
@@ -114,6 +120,13 @@ const InterSettingPage = () => {
 	const handleViewAnimationComplete = useCallback(
 		(definition: IntegrationViewAnimationDefinition) => {
 			if (definition !== 'animate') return
+			// 상세 진입 애니메이션보다 해제가 빨리 끝나면 마지막 완료 키가 아직 list일 수 있다.
+			if (view.kind === 'list' && returnFocusTargetRef.current === 'available') {
+				returnFocusTargetRef.current = null
+				completedViewKeyRef.current = viewKey
+				document.getElementById('integration-available')?.focus()
+				return
+			}
 			if (completedViewKeyRef.current === viewKey) return
 			completedViewKeyRef.current = viewKey
 
@@ -126,10 +139,10 @@ const InterSettingPage = () => {
 			}
 
 			if (transitionDirection !== -1) return
-			const selectedSection = selectedSectionRef.current
-			if (selectedSection) {
-				sectionButtonRefs.current.get(selectedSection)?.focus()
-				selectedSectionRef.current = null
+			const target = returnFocusTargetRef.current
+			if (target && target !== 'available') {
+				sectionButtonRefs.current.get(target)?.focus()
+				returnFocusTargetRef.current = null
 				return
 			}
 
@@ -208,6 +221,8 @@ const InterSettingPage = () => {
 								<IntegrationConnectedDetail
 									service={currentService}
 									onBack={handleBack}
+									onOAuthDisconnected={handleOAuthDisconnected}
+									isConnectionActionPending={isConnectionActionPending}
 									onDisconnect={canDisconnect ? onDisconnect : undefined}
 									isDisconnecting={isDisconnecting}
 									isCheckingDisconnect={isCheckingDisconnect}

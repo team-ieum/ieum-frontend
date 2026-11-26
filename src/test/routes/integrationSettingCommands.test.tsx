@@ -21,14 +21,6 @@ const DISCORD_SECOND_GUILD = {
 }
 const GOOGLE_SERVICE_ID = `oauth-${oauthConnectionsResponse.data[0].id}`
 const GOOGLE_AUTHORIZATION_PATH = '/api/v1/oauth2/authorize/google?scope_groups=calendar&link_token=test-link-token'
-const GITHUB_OAUTH_CONNECTION = {
-	id: '88888888-8888-4888-8888-888888888888',
-	provider: 'GITHUB',
-	providerAccountId: 'octocat',
-	displayName: null,
-	scopes: ['repo'],
-	createdAt: '2026-10-01T00:00:00Z',
-}
 
 // 상세 view 전환(mode='wait')과 Modal exit 애니메이션이 jsdom에서 끝나지 않으므로 즉시 렌더한다.
 vi.mock('framer-motion', async () => {
@@ -292,14 +284,14 @@ describe('통합 설정 Slack 봇 연결', () => {
 	})
 
 	it('해제·재연결 경로가 없는 OAuth 연결 상세에는 연결 해제·다시 연결 버튼을 표시하지 않는다', async () => {
+		const connection = { ...oauthConnectionsResponse.data[0], provider: 'UNKNOWN', providerAccountId: 'unknown-account' }
 		server.use(
-			http.get('*/api/v1/oauth/connections', () =>
-				HttpResponse.json({ ...oauthConnectionsResponse, data: [GITHUB_OAUTH_CONNECTION] })
-			)
+			http.get('*/api/v1/oauth/connections', () => HttpResponse.json({ ...oauthConnectionsResponse, data: [connection] }))
 		)
-		renderAppRoute(`/inter-setting?serviceId=oauth-${GITHUB_OAUTH_CONNECTION.id}`)
+		renderAppRoute(`/inter-setting?serviceId=oauth-${connection.id}`)
 
-		await screen.findByRole('heading', { level: 2, name: 'GitHub' })
+		await screen.findByText(connection.providerAccountId)
+		expect(screen.getByRole('button', { name: '연결된 서비스 목록' })).toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '연결 해제' })).not.toBeInTheDocument()
 		expect(screen.queryByRole('button', { name: '다시 연결' })).not.toBeInTheDocument()
 	})
@@ -461,7 +453,7 @@ describe('통합 설정 Google 연결', () => {
 		// 조회 중 버튼 상태를 확인할 수 있도록 워크플로우 응답을 붙잡아 둔다. 상세 아래 목록 조회도 같은 응답을 기다린다.
 		const workflowsResponse = createDeferred()
 		server.use(
-			http.get('*/api/v1/integrations/GOOGLE/workflows', async () => {
+			http.get('*/api/v1/integrations/google/workflows', async () => {
 				await workflowsResponse.promise
 				return HttpResponse.json({
 					success: true,
@@ -493,6 +485,7 @@ describe('통합 설정 Google 연결', () => {
 		await screen.findByRole('heading', { level: 2, name: 'Google' })
 		fireEvent.click(screen.getByRole('button', { name: '연결 해제' }))
 		expect(await screen.findByRole('button', { name: '확인 중…' })).toBeDisabled()
+		expect(screen.getByRole('button', { name: '다시 연결' })).toBeDisabled()
 		expect(screen.queryByRole('alertdialog', { name: '연결 해제' })).not.toBeInTheDocument()
 
 		workflowsResponse.resolve()

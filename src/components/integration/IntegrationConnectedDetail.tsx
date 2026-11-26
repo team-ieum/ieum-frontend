@@ -1,14 +1,19 @@
 import type { Ref } from 'react'
-import { ArrowLeft, Link2Off, RefreshCw } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
 import type { IntegrationService } from '@/types/integration'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
+import IntegrationDisconnectButton from './IntegrationDisconnectButton'
+import OAuthDisconnectAction from './OAuthDisconnectAction'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
 type IntegrationConnectedDetailProps = {
 	service: IntegrationService
 	onBack: () => void
-	/** 해제할 수 있는 연결일 때만 넘긴다. 없으면 해제 버튼을 렌더하지 않는다. */
+	/** Notion·GitHub 확인창에서 해제를 완료하면 목록으로 돌아간다. */
+	onOAuthDisconnected: () => void
+	isConnectionActionPending: boolean
+	/** Google·Slack·웹훅 상세에서 사용하는 공용 해제 명령. */
 	onDisconnect?: () => void
 	isDisconnecting?: boolean
 	/** 해제 확인 전에 영향받는 워크플로우를 조회하는 중인지 */
@@ -22,6 +27,8 @@ type IntegrationConnectedDetailProps = {
 const IntegrationConnectedDetail = ({
 	service,
 	onBack,
+	onOAuthDisconnected,
+	isConnectionActionPending,
 	onDisconnect,
 	isDisconnecting = false,
 	isCheckingDisconnect = false,
@@ -45,45 +52,54 @@ const IntegrationConnectedDetail = ({
 
 			<div className='overflow-hidden rounded-brand-md border border-neutral-200 bg-neutral-white shadow-sm'>
 				<div className='flex flex-wrap items-center gap-4 px-6 py-5'>
-					<span className='grid h-12 w-12 place-items-center rounded-xl bg-neutral-white text-neutral-900'>
-						{brand.icon}
-					</span>
-					<div className='min-w-0 flex-1'>
-						<div className='flex flex-wrap items-center gap-2'>
-							<h2 ref={headingRef} tabIndex={-1} className='typo-title2_bold m-0 text-neutral-900'>
-								{service.name}
-							</h2>
-							{service.connectionMethod && <IntegrationConnectionMethodBadge method={service.connectionMethod} />}
-						</div>
-						<p className='typo-body3_regular m-0 text-neutral-600'>{service.account}</p>
-					</div>
-					{isError && (
-						<span className='rounded-full bg-danger-100 px-3 py-1 typo-caption1_semibold text-danger-700'>
-							연결 오류
+					<div className='flex min-w-0 grow basis-56 items-center gap-4'>
+						<span className='grid h-12 w-12 place-items-center rounded-xl bg-neutral-white text-neutral-900'>
+							{brand.icon}
 						</span>
-					)}
-					{onReconnect && (
-						<button
-							type='button'
-							onClick={onReconnect}
-							disabled={isReconnecting}
-							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none'
-						>
-							<RefreshCw size={15} aria-hidden='true' />
-							{isReconnecting ? '이동 중…' : '다시 연결'}
-						</button>
-					)}
-					{onDisconnect && (
-						<button
-							type='button'
-							onClick={onDisconnect}
-							disabled={isDisconnecting || isCheckingDisconnect}
-							className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-danger-300 bg-danger-50 px-4 typo-body3_semibold text-danger-700 transition-colors hover:bg-danger-100 disabled:cursor-not-allowed disabled:opacity-60'
-						>
-							<Link2Off size={15} />
-							{isDisconnecting ? '해제 중…' : isCheckingDisconnect ? '확인 중…' : '연결 해제'}
-						</button>
-					)}
+						<div className='min-w-0 flex-1'>
+							<div className='flex flex-wrap items-center gap-2'>
+								<h2 ref={headingRef} tabIndex={-1} className='typo-title2_bold m-0 text-neutral-900'>
+									{service.name}
+								</h2>
+								{service.connectionMethod && (
+									<IntegrationConnectionMethodBadge method={service.connectionMethod} />
+								)}
+							</div>
+							<p className='typo-body3_regular m-0 wrap-anywhere text-neutral-600'>{service.account}</p>
+						</div>
+					</div>
+					<div className='flex flex-wrap items-center gap-4 empty:hidden'>
+						{isError && (
+							<span className='rounded-full bg-danger-100 px-3 py-1 typo-caption1_semibold text-danger-700'>
+								연결 오류
+							</span>
+						)}
+						{onReconnect && (
+							<button
+								type='button'
+								onClick={onReconnect}
+								disabled={isConnectionActionPending}
+								className='inline-flex h-9 items-center gap-1.5 rounded-brand-sm border border-neutral-300 bg-neutral-white px-4 typo-body3_semibold text-neutral-700 transition-colors hover:border-main-blue hover:text-main-blue focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-main-blue disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none'
+							>
+								<RefreshCw size={15} aria-hidden='true' />
+								{isReconnecting ? '이동 중…' : '다시 연결'}
+							</button>
+						)}
+						{onDisconnect ? (
+							<IntegrationDisconnectButton
+								onClick={onDisconnect}
+								disabled={isConnectionActionPending}
+								isDisconnecting={isDisconnecting}
+								isCheckingDisconnect={isCheckingDisconnect}
+							/>
+						) : (
+							<OAuthDisconnectAction
+								service={service}
+								disabled={isConnectionActionPending}
+								onDisconnected={onOAuthDisconnected}
+							/>
+						)}
+					</div>
 				</div>
 
 				{service.scopes && service.scopes.length > 0 && (

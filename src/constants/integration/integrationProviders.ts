@@ -1,3 +1,4 @@
+import type { OAuthDisconnectProvider } from '@/types/oauthDisconnect'
 import type { IntegrationBrand } from '@/types/integration'
 import type { GoogleConnectRequest } from '@/types/integrationOAuth'
 import type { WebhookCredentialProvider } from '@/types/webhookCredentials'
@@ -76,6 +77,8 @@ export const isOAuthConnectServiceId = (serviceId: string): serviceId is OAuthCo
  */
 export const OAUTH_RECONNECT_SERVICE_ID_BY_PROVIDER: Partial<Record<string, OAuthConnectServiceId>> = {
 	GOOGLE: 'google-calendar',
+	NOTION: 'notion',
+	GITHUB: 'github',
 }
 
 type OAuthDisconnectConfig = {
@@ -84,10 +87,14 @@ type OAuthDisconnectConfig = {
 	 * @throws 계정 ID가 필요한 공급자(Discord)인데 비었으면 Error. 빈 ID로 다른 경로를 부르지 않게 요청 전에 막는다.
 	 */
 	getPath: (providerAccountId?: string) => string
+	/** 공용 해제 API의 ACCOUNT_NOT_CONNECTED 응답도 해제 완료로 취급한다. */
+	canIgnoreMissingConnection?: boolean
 	/** 해제 확인 창에 덧붙일 공급자별 안내 */
 	notice?: string
 	/** 해제 확인 전에 이 연결을 쓰는 워크플로우를 조회해 확인 창에 보여 줄지 */
 	listsAffectedWorkflows?: boolean
+	/** 워크플로우별 영향을 표시하는 전용 확인창의 공급자 */
+	previewProvider?: OAuthDisconnectProvider
 }
 
 /**
@@ -100,8 +107,11 @@ export const OAUTH_DISCONNECT_BY_PROVIDER: Record<string, OAuthDisconnectConfig>
 		getPath: () => '/api/v1/slack/oauth2/connection',
 		notice: '다시 연결하면 비공개 채널에는 봇을 다시 초대해야 해요.',
 	},
+	NOTION: { getPath: () => '/api/v1/oauth/connections/NOTION', canIgnoreMissingConnection: true, previewProvider: 'NOTION' },
+	GITHUB: { getPath: () => '/api/v1/oauth/connections/GITHUB', canIgnoreMissingConnection: true, previewProvider: 'GITHUB' },
 	GOOGLE: {
 		getPath: () => '/api/v1/oauth/connections/GOOGLE',
+		canIgnoreMissingConnection: true,
 		notice: '다시 연결하면 Google 권한 동의를 다시 받아야 해요.',
 		listsAffectedWorkflows: true,
 	},
@@ -111,4 +121,9 @@ export const OAUTH_DISCONNECT_BY_PROVIDER: Record<string, OAuthDisconnectConfig>
 			return `/api/v1/discord/oauth2/connections/${encodeURIComponent(guildId)}`
 		},
 	},
+}
+
+export const getOAuthDisconnectConfig = (provider?: string): OAuthDisconnectConfig | undefined => {
+	const key = provider?.toUpperCase()
+	return key && Object.hasOwn(OAUTH_DISCONNECT_BY_PROVIDER, key) ? OAUTH_DISCONNECT_BY_PROVIDER[key] : undefined
 }

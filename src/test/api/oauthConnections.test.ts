@@ -1,12 +1,30 @@
+import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { deleteOAuthConnection } from '@/api/oauthConnections'
+import { server } from '@/mocks/server'
 import { api } from '@/utils/AxiosInstance'
+
+const PROVIDERS = ['NOTION', 'GITHUB'] as const
 
 afterEach(() => {
 	vi.restoreAllMocks()
 })
 
 describe('deleteOAuthConnection', () => {
+	it.each(PROVIDERS)('%s 연동 해제를 대문자 경로에 본문 없이 요청한다', async provider => {
+		const observeRequest = vi.fn()
+		const body = { success: true, data: null, message: 'OK', code: 'OK' }
+		server.use(
+			http.delete('*/api/v1/oauth/connections/:provider', async ({ params, request }) => {
+				observeRequest(params.provider, await request.text())
+				return HttpResponse.json(body)
+			})
+		)
+
+		await expect(deleteOAuthConnection(provider)).resolves.toBeUndefined()
+		expect(observeRequest).toHaveBeenCalledExactlyOnceWith(provider, '')
+	})
+
 	it('Discord는 서버 ID로 그 서버 연결만 해제한다', async () => {
 		const remove = vi.spyOn(api, 'delete').mockResolvedValue({ data: null })
 
@@ -34,7 +52,7 @@ describe('deleteOAuthConnection', () => {
 	it('연동 화면에서 해제할 수 없는 공급자는 요청 없이 실패한다', async () => {
 		const remove = vi.spyOn(api, 'delete')
 
-		await expect(deleteOAuthConnection('GITHUB')).rejects.toThrow('해제할 수 없는 OAuth 공급자입니다: GITHUB')
+		await expect(deleteOAuthConnection('UNKNOWN')).rejects.toThrow('해제할 수 없는 OAuth 공급자입니다: UNKNOWN')
 		expect(remove).not.toHaveBeenCalled()
 	})
 })

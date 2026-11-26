@@ -63,6 +63,8 @@ export type IntegrationStatusLabelConfig = {
 
 export type IntegrationBrandConfig = {
 	tint: string
+	/** 연결 카드 배경이 기본 브랜드 색과 다를 때만 지정한다. */
+	connectedCardTint?: string
 	icon: ReactNode
 	label: string
 }

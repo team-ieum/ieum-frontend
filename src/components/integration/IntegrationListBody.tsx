@@ -70,6 +70,7 @@ const IntegrationListBody = ({
 
 		<section
 			id='integration-available'
+			tabIndex={-1}
 			className='w-full scroll-mt-(--layout-header-height)'
 			aria-labelledby='integration-available-heading'
 		>

@@ -79,8 +79,8 @@ describe('useIntegrationServiceWorkflowListViewModel', () => {
 			)
 			expect(result.current.viewModel.hasNextPage).toBe(false)
 			expect(observeRequest.mock.calls).toEqual([
-				['GOOGLE', null],
-				['GOOGLE', 'cursor-2'],
+				['google', null],
+				['google', 'cursor-2'],
 			])
 		} finally {
 			queryClient.clear()
