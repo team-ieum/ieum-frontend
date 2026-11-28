@@ -8,6 +8,25 @@ import { server } from '@/mocks/server'
 import { createWorkflowValidateHandler } from '@/mocks/workflowValidationHandlers'
 import { renderAppRoute } from '@/test/renderAppRoute'
 
+vi.mock('sockjs-client', () => ({ default: vi.fn(() => ({})) }))
+vi.mock('@stomp/stompjs', () => ({
+	Client: class {
+		active = false
+		connected = false
+		activate() {
+			this.active = true
+		}
+		deactivate() {
+			this.active = false
+			return Promise.resolve()
+		}
+		subscribe() {
+			return { unsubscribe: vi.fn() }
+		}
+		publish() {}
+	},
+}))
+
 describe('대시보드 검증 실패 오류', () => {
 	it('문제 보기를 누르면 그 워크플로우 편집 화면으로 이동해 저장된 버전을 검사한다', async () => {
 		const onValidate = vi.fn()
