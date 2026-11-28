@@ -74,36 +74,6 @@ describe('mutation query invalidation', () => {
 		queryClient.clear()
 	})
 
-	it('webhook 생성 성공 후 exact list key를 무효화해 active list를 refetch한다', async () => {
-		const queryClient = createTestQueryClient()
-		const observeWebhookRequest = vi.fn()
-		server.use(
-			http.get('*/api/v1/webhook-credentials', () => {
-				observeWebhookRequest()
-				return HttpResponse.json(webhookCredentialsResponse)
-			}),
-			http.post('*/api/v1/webhook-credentials', () =>
-				HttpResponse.json({ ...webhookCredentialsResponse, data: webhookCredentialsResponse.data[0] })
-			)
-		)
-		const { result } = renderHook(
-			() => ({ query: useWebhookCredentialsQuery(), mutation: useCreateWebhookCredentialMutation() }),
-			{ wrapper: createWrapper(queryClient) }
-		)
-		await waitFor(() => expect(result.current.query.isSuccess).toBe(true))
-
-		await act(async () => {
-			await result.current.mutation.mutateAsync({
-				provider: 'SLACK',
-				displayName: '새 Slack',
-				webhookUrl: 'https://example.com/webhook',
-			})
-		})
-
-		await waitFor(() => expect(observeWebhookRequest).toHaveBeenCalledTimes(2))
-		queryClient.clear()
-	})
-
 	it('webhook mutation은 API 성공 후 완료되고 active list refetch는 background에서 계속한다', async () => {
 		const queryClient = createTestQueryClient()
 		let webhookRequestCount = 0

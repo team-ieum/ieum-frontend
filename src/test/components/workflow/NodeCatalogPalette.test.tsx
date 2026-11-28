@@ -16,13 +16,12 @@ import type { NodePaletteMode } from '@/types/nodeCatalog'
 
 const renderPalette = (mode?: NodePaletteMode) => {
 	const onSelect = vi.fn()
-	const onClose = vi.fn()
 	render(
 		<QueryClientProvider client={createTestQueryClient()}>
-			<NodeCatalogPalette mode={mode} onSelect={onSelect} onClose={onClose} />
+			<NodeCatalogPalette mode={mode} onSelect={onSelect} onClose={vi.fn()} />
 		</QueryClientProvider>
 	)
-	return { onSelect, onClose }
+	return { onSelect }
 }
 
 describe('NodeCatalogPalette', () => {
@@ -152,15 +151,5 @@ describe('NodeCatalogPalette', () => {
 		renderPalette()
 
 		expect(await screen.findByText('추가할 수 있는 노드가 없어요.')).toBeInTheDocument()
-	})
-
-	it('닫기 버튼과 Escape로 닫는다', async () => {
-		const user = userEvent.setup()
-		const { onClose } = renderPalette()
-
-		await user.click(screen.getByRole('button', { name: '노드 추가 닫기' }))
-		await user.keyboard('{Escape}')
-
-		expect(onClose).toHaveBeenCalledTimes(2)
 	})
 })

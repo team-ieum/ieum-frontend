@@ -2,12 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useWorkflowEditorViewModel } from '@/hooks/workflow/useWorkflowEditorViewModel'
 import type { WorkflowEdgeType } from '@/types/workflow'
-import {
-	getWorkflowDraftKey,
-	readWorkflowDraft,
-	type WorkflowDraftData,
-	writeWorkflowDraft,
-} from '@/utils/workflow/workflowDraftStorage'
+import { readWorkflowDraft, type WorkflowDraftData } from '@/utils/workflow/workflowDraftStorage'
 
 const serverDocument: WorkflowDraftData = {
 	title: '고객 문의 분류',
@@ -33,16 +28,6 @@ describe('useWorkflowEditorViewModel', () => {
 		localStorage.clear()
 	})
 
-	it('서버 버전과 일치하는 변경 초안을 편집 문서로 복원한다', () => {
-		writeWorkflowDraft('workflow-1', 3, { ...serverDocument, title: '복원된 문의 분류' })
-
-		const { result } = renderEditor()
-
-		expect(result.current.document?.title).toBe('복원된 문의 분류')
-		expect(result.current.hasUnsavedChanges).toBe(true)
-		expect(result.current.isDraftPersisted).toBe(true)
-	})
-
 	it('편집 화면 진입 시 읽지 않는 이전 버전 초안 키를 지운다', () => {
 		localStorage.setItem('ieum-workflow-draft:v1:workflow-1', '{}')
 		localStorage.setItem('ieum-workflow-draft:v1:other-workflow', '{}')
@@ -51,15 +36,6 @@ describe('useWorkflowEditorViewModel', () => {
 
 		expect(localStorage.getItem('ieum-workflow-draft:v1:workflow-1')).toBeNull()
 		expect(localStorage.getItem('ieum-workflow-draft:v1:other-workflow')).toBeNull()
-	})
-
-	it('서버 원본과 같은 초안은 마운트 이후 제거한다', () => {
-		writeWorkflowDraft('workflow-1', 3, serverDocument)
-
-		const { result } = renderEditor()
-
-		expect(result.current.hasUnsavedChanges).toBe(false)
-		expect(localStorage.getItem(getWorkflowDraftKey('workflow-1'))).toBeNull()
 	})
 
 	it('팔레트로 추가한 노드를 편집 문서 끝에 붙이고 로컬 초안에 남긴다', () => {

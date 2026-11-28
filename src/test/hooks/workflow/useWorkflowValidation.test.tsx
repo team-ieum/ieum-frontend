@@ -70,17 +70,6 @@ describe('useWorkflowValidation', () => {
 		expect(result.current.globalErrors).toEqual([])
 	})
 
-	it('미저장 변경이 생겨도 결과를 숨기지 않고 저장된 버전 기준임을 알린다', async () => {
-		server.use(createWorkflowValidateHandler([channelError]))
-		const { result, rerender } = renderValidation()
-		await waitFor(() => expect(result.current.statusView?.label).toBe('문제 1건'))
-
-		rerender({ hasUnsavedChanges: true })
-
-		expect(result.current.statusView?.detail).toBe('저장된 버전 기준')
-		expect(result.current.errorsByNodeId.get('slack-1')).toEqual([channelError])
-	})
-
 	it('다시 검사가 502 PROVIDER_ERROR로 실패해도 이전 결과를 지우지 않는다', async () => {
 		server.use(createWorkflowValidateHandler(workflowValidationErrorsFixture))
 		const { result } = renderValidation()

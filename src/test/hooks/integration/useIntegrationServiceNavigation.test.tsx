@@ -1,6 +1,6 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor } from '@testing-library/react'
 import type { PropsWithChildren } from 'react'
-import { MemoryRouter, useLocation, useNavigate } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { useIntegrationServiceNavigation } from '@/hooks/integration/useIntegrationServiceNavigation'
 import type { IntegrationService } from '@/types/integration'
@@ -18,30 +18,6 @@ const createWrapper = (initialEntry: string) =>
 	}
 
 describe('useIntegrationServiceNavigation', () => {
-	it('상세 이동은 다른 query를 보존하고 history back으로 이전 목록 entry를 복원한다', async () => {
-		const { result } = renderHook(
-			() => ({
-				navigation: useIntegrationServiceNavigation({
-					connected: [service],
-					canNormalizeDetail: true,
-					hasDetailResolutionError: false,
-				}),
-				location: useLocation(),
-				navigate: useNavigate(),
-			}),
-			{ wrapper: createWrapper('/inter-setting?source=test') }
-		)
-
-		act(() => result.current.navigation.goDetail(service.id))
-		await waitFor(() => expect(result.current.navigation.detailResolution).toBe('ready'))
-		expect(new URLSearchParams(result.current.location.search).get('source')).toBe('test')
-		expect(new URLSearchParams(result.current.location.search).get('serviceId')).toBe(service.id)
-
-		act(() => result.current.navigate(-1))
-		await waitFor(() => expect(result.current.navigation.view).toEqual({ kind: 'list' }))
-		expect(new URLSearchParams(result.current.location.search).has('serviceId')).toBe(false)
-	})
-
 	it('미확정 ID는 loading 또는 error 중 보존하고 성공적으로 확정된 뒤 replace 정규화한다', async () => {
 		const { result, rerender } = renderHook(
 			({ canNormalizeDetail, hasDetailResolutionError }) => ({

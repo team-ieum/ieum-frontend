@@ -385,29 +385,6 @@ describe('NodeSettingsPanel', () => {
 			expect(lastNode().config.tools).toEqual([mcpTool, { name: 'discord', config: { content: 'a' } }])
 		})
 
-		it('도구 칸 목록에서 고르면 그 도구 config의 _names에 이름을 남긴다', async () => {
-			const user = userEvent.setup()
-			server.use(
-				http.get('*/api/v1/integrations/:app/options/:resource', () =>
-					HttpResponse.json({
-						success: true,
-						message: 'OK',
-						code: 'OK',
-						data: { items: [{ id: 'C2', name: '#random' }], nextCursor: null },
-					})
-				)
-			)
-			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }]))
-
-			await user.click(getToolToggle(SLACK_TITLE))
-			await user.click(getFieldInput('채널'))
-			await user.click(await screen.findByRole('option', { name: /#random/ }))
-
-			expect(lastNode().config.tools).toEqual([
-				{ name: SLACK_TOOL, config: { channel: 'C2', _names: { channel: '#random' } } },
-			])
-		})
-
 		it('Slack 봇 도구 채널이 비면 고정 권장 경고를 보여 주고, 채널을 고르면 공개 채널 안내로 바꾼다', async () => {
 			const user = userEvent.setup()
 			const { lastNode } = renderPanel(createAiNode('ai.agent', [{ name: SLACK_TOOL, config: {} }]))

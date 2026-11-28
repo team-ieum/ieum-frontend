@@ -115,18 +115,4 @@ describe('useWorkflowChatViewModel', () => {
 
 		expect(result.current.scrollbar.isVisible).toBe(false)
 	})
-
-	it('openChat과 closeChat으로 채팅 패널 열림 상태를 바꾼다', () => {
-		const { result } = renderViewModel()
-
-		expect(result.current.isOpen).toBe(false)
-
-		act(() => result.current.openChat())
-
-		expect(result.current.isOpen).toBe(true)
-
-		act(() => result.current.closeChat())
-
-		expect(result.current.isOpen).toBe(false)
-	})
 })

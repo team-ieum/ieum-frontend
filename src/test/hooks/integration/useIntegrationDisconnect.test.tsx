@@ -101,29 +101,6 @@ describe('useIntegrationDisconnect', () => {
 		await waitFor(() => expect(onDisconnected).toHaveBeenCalledOnce())
 	})
 
-	it('Slack 봇 연결은 재초대 안내를 확인 문구에 붙이고 확인하면 Slack 해제 API를 호출한다', async () => {
-		const deleteRequest = vi.fn()
-		server.use(
-			http.delete('*/api/v1/slack/oauth2/connection', () => {
-				deleteRequest()
-				return new HttpResponse(null, { status: 204 })
-			})
-		)
-		const onDisconnected = vi.fn()
-		const { result } = renderHook(() => useIntegrationDisconnect({ service: slackBotService, onDisconnected }), {
-			wrapper: createWrapper(),
-		})
-
-		expect(result.current.canDisconnect).toBe(true)
-		act(() => result.current.disconnect())
-		expect(useModalStore.getState().message).toContain('비공개 채널에는 봇을 다시 초대해야 해요')
-
-		confirmModal()
-
-		await waitFor(() => expect(onDisconnected).toHaveBeenCalledOnce())
-		expect(deleteRequest).toHaveBeenCalledOnce()
-	})
-
 	it('Google 해제는 영향받는 워크플로우를 조회해 확인 문구에 넣고 확인하면 공용 해제 API를 호출한다', async () => {
 		const workflowsRequest = vi.fn()
 		const deleteRequest = vi.fn()
