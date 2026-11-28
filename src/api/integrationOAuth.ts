@@ -5,7 +5,7 @@ import {
 	type OAuthAuthorizeRequest,
 } from '@/constants/integration/integrationProviders'
 import { pickAuthorizationUrl } from '@/utils/integration/pickAuthorizationUrl'
-import type { OAuthAuthorizeResponse } from '@/types/integrationOAuth'
+import type { GithubAppInstallResponse, OAuthAuthorizeResponse } from '@/types/integrationOAuth'
 
 const requestAuthorize = async (request: OAuthAuthorizeRequest) => {
 	if (request.method === 'post') return api.post<OAuthAuthorizeResponse>(request.path, request.body)
@@ -21,4 +21,9 @@ export const fetchIntegrationOAuthAuthorizeUrl = async (serviceId: string): Prom
 	if (!isOAuthConnectServiceId(serviceId)) return null
 	const response = await requestAuthorize(OAUTH_AUTHORIZE_REQUEST_BY_SERVICE_ID[serviceId])
 	return pickAuthorizationUrl(response.data.data)
+}
+
+export const getGithubAppInstallUrl = async (): Promise<GithubAppInstallResponse> => {
+	const response = await api.get('/api/v1/github/oauth2/install')
+	return response.data
 }

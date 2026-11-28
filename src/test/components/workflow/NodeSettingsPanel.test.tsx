@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import NodeSettingsPanel from '@/components/workflow/settings/NodeSettingsPanel'
 import { providersResponse } from '@/mocks/fixtures/aiCredentials'
+import { MOCK_GITHUB_APP_INSTALL_URL } from '@/mocks/githubAppHandlers'
 import { nodeCatalogEntriesFixture } from '@/mocks/fixtures/nodeCatalog'
 import { server } from '@/mocks/server'
 import type { NodeCatalogEntry, NodeCatalogInputField } from '@/types/nodeCatalog'
@@ -1628,6 +1629,122 @@ describe('NodeSettingsPanel', () => {
 				text: '배포 완료',
 				thread_ts: '1700000000.000100',
 			})
+		})
+	})
+
+	describe('GitHub 레포 드롭다운', () => {
+		const githubIssueEntry: NodeCatalogEntry = {
+			id: 'github.new_issue',
+			kind: 'trigger',
+			provider: 'github',
+			app: 'github',
+			appTitle: 'GitHub',
+			nodeType: 'TRIGGER',
+			title: '새 이슈',
+			fixed: { type: 'TRIGGER', event: 'github.new_issue', config: { brand: 'github' } },
+			inputFields: [
+				{
+					key: 'repository',
+					title: '레포',
+					type: 'string',
+					required: true,
+					optionsSource: 'github.installed_repos',
+					path: 'config.repository',
+				},
+			],
+			outputFields: [],
+		}
+		const createGithubNode = () =>
+			createNode({ type: 'TRIGGER', event: 'github.new_issue', label: '새 이슈', config: { brand: 'github' } })
+
+		/** options 요청 수를 세고, `getItems`가 돌려준 목록을 한 페이지로 준다. */
+		const mockRepos = (getItems: (requestCount: number) => NodeOption[]) => {
+			const requests = vi.fn()
+			server.use(
+				http.get('*/api/v1/integrations/github/options/installed_repos', () => {
+					requests()
+					const items = getItems(requests.mock.calls.length)
+					return HttpResponse.json({ success: true, message: 'OK', code: 'OK', data: { items, nextCursor: null } })
+				})
+			)
+			return requests
+		}
+
+		const mockInstallUrl = (installUrl: string) => {
+			const requests = vi.fn()
+			server.use(
+				http.get('*/api/v1/github/oauth2/install', () => {
+					requests()
+					return HttpResponse.json({ success: true, message: 'OK', code: 'OK', data: { installUrl } })
+				})
+			)
+			return requests
+		}
+
+		beforeEach(() => {
+			mocks.entries = [...nodeCatalogEntriesFixture, githubIssueEntry]
+		})
+
+		it('앱을 설치하지 않아 목록이 비면 새 탭 설치 링크를 보여 주고, 다시 불러오면 추가한 레포를 고를 수 있다', async () => {
+			const user = userEvent.setup()
+			const repoRequests = mockRepos(count => (count === 1 ? [] : [{ id: 'team/app', name: 'team/app' }]))
+			const { lastNode } = renderPanel(createGithubNode())
+
+			await user.click(getFieldInput('레포'))
+			const installLink = await screen.findByRole('link', { name: /GitHub 앱 설치/ })
+			expect(screen.getByText(/GitHub 앱을 설치한 레포가 없어요/)).toBeInTheDocument()
+			expect(installLink).toHaveAttribute('href', MOCK_GITHUB_APP_INSTALL_URL)
+			expect(installLink).toHaveAttribute('target', '_blank')
+			expect(installLink).toHaveAttribute('rel', 'noopener noreferrer')
+			expect(screen.queryByText('고를 수 있는 항목이 없어요.')).not.toBeInTheDocument()
+
+			await user.click(screen.getByRole('button', { name: '다시 불러오기' }))
+			await user.click(await screen.findByRole('option', { name: /team\/app/ }))
+
+			expect(repoRequests).toHaveBeenCalledTimes(2)
+			expect(lastNode().config).toEqual({ brand: 'github', repository: 'team/app', _names: { repository: 'team/app' } })
+		})
+
+		it('설치 주소가 github.com 주소가 아니면 링크로 그리지 않고 통합 설정으로 안내한다', async () => {
+			const user = userEvent.setup()
+			mockRepos(() => [])
+			mockInstallUrl('javascript:alert(1)')
+			renderPanel(createGithubNode())
+
+			await user.click(getFieldInput('레포'))
+
+			expect(await screen.findByRole('link', { name: '통합 설정 열기' })).toHaveAttribute('href', '/inter-setting')
+			expect(screen.queryByRole('link', { name: /GitHub 앱 설치/ })).not.toBeInTheDocument()
+		})
+
+		it('레포가 있으면 설치 주소를 요청하지 않고 설치 안내도 하지 않는다', async () => {
+			const user = userEvent.setup()
+			mockRepos(() => [{ id: 'team/app', name: 'team/app' }])
+			const installRequests = mockInstallUrl(MOCK_GITHUB_APP_INSTALL_URL)
+			renderPanel(createGithubNode())
+
+			await user.click(getFieldInput('레포'))
+
+			expect(await screen.findByRole('option', { name: /team\/app/ })).toBeInTheDocument()
+			expect(screen.queryByText(/GitHub 앱을 설치한 레포가 없어요/)).not.toBeInTheDocument()
+			expect(installRequests).not.toHaveBeenCalled()
+		})
+
+		it('GitHub 레포 목록이 아닌 공급원은 비어도 기존 빈 목록 안내만 한다', async () => {
+			const user = userEvent.setup()
+			server.use(
+				http.get('*/api/v1/integrations/slack/options/channels', () =>
+					HttpResponse.json({ success: true, message: 'OK', code: 'OK', data: { items: [], nextCursor: null } })
+				)
+			)
+			const installRequests = mockInstallUrl(MOCK_GITHUB_APP_INSTALL_URL)
+			renderPanel(createNode())
+
+			await user.click(getFieldInput('채널'))
+
+			expect(await screen.findByText('고를 수 있는 항목이 없어요.')).toBeInTheDocument()
+			expect(screen.queryByText(/GitHub 앱을 설치한 레포가 없어요/)).not.toBeInTheDocument()
+			expect(installRequests).not.toHaveBeenCalled()
 		})
 	})
 

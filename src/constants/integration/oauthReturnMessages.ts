@@ -31,3 +31,22 @@ export const OAUTH_FALLBACK_ERROR_MESSAGES: Partial<Record<IntegrationOAuthProvi
 	discord: 'Discord 연결에 실패했어요. 다시 시도해 주세요.',
 	google: 'Google 연결에 실패했어요. 다시 시도해 주세요.',
 }
+
+/** GitHub App 설치 화면이 연동 화면으로 돌려보낼 때 붙이는 `setup_action` 값. */
+type GithubAppSetupAction = 'install' | 'update' | 'request'
+
+/** `setup_action`별 복귀 안내. 모르는 값이면 `install` 문구를 쓴다. */
+export const GITHUB_APP_SETUP_RETURN_MESSAGES: Record<GithubAppSetupAction, { title: string; message: string }> = {
+	install: {
+		title: 'GitHub 앱 설치 완료',
+		message: 'GitHub 앱을 설치했어요. 노드 설정에서 레포 목록을 다시 불러오면 추가한 레포를 고를 수 있어요.',
+	},
+	update: {
+		title: '레포 범위 변경 완료',
+		message: 'GitHub 앱의 레포 범위를 바꿨어요. 노드 설정에서 레포 목록을 다시 불러와 주세요.',
+	},
+	request: {
+		title: '설치 승인 요청',
+		message: '조직 관리자에게 GitHub 앱 설치 승인을 요청했어요. 승인되면 레포를 고를 수 있어요.',
+	},
+}

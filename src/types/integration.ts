@@ -47,6 +47,16 @@ export type IntegrationService = {
 
 export type IntegrationView = { kind: 'list' } | { kind: 'detail'; id: string }
 
+/** GitHub App 설치(레포 추가·관리) 링크 상태. */
+export type GithubAppInstallLink = {
+	/** 설치 화면 주소. 불러오는 중이거나 실패했거나 쓸 수 없는 주소면 `null`이다. */
+	href: string | null
+	isLoading: boolean
+	/** 주소를 받지 못했거나 링크로 쓸 수 없는 주소를 받았다. */
+	hasError: boolean
+	retry: () => void
+}
+
 export type IntegrationDetailResolution = 'list' | 'loading' | 'error' | 'ready'
 
 export type IntegrationTabId = 'services' | 'aiCredentials'

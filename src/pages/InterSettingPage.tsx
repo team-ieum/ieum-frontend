@@ -65,6 +65,7 @@ const InterSettingPage = () => {
 		isConnectionActionPending,
 		canReconnect,
 		isReconnecting,
+		githubAppInstall,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	} = useIntegrationSetting()
@@ -228,6 +229,7 @@ const InterSettingPage = () => {
 									isCheckingDisconnect={isCheckingDisconnect}
 									onReconnect={canReconnect ? onReconnect : undefined}
 									isReconnecting={isReconnecting}
+									githubAppInstall={githubAppInstall}
 									headingRef={detailHeadingRef}
 								/>
 							</div>

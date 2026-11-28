@@ -128,6 +128,12 @@ const RETRY_MESSAGES: Record<string, string> = {
 }
 
 /**
+ * GitHub App 설치 안내가 필요한 공급원인지 판정한다.
+ * 연동만 하고 앱을 설치하지 않았으면 서버가 오류 대신 빈 목록을 주므로, 빈 목록일 때 설치를 안내한다.
+ */
+export const isGithubAppInstallSource = (source: string) => source === 'github.installed_repos'
+
+/**
  * options 오류를 code별 안내로 바꾼다. 401이 두 종류라 status가 아니라 code로 구분한다.
  * `source`를 넘기면 그 공급원 앱 전용 문구가 있는 code는 그 문구로 안내한다.
  */

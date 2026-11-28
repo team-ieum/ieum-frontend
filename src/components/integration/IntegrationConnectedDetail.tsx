@@ -1,9 +1,10 @@
 import type { Ref } from 'react'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { getBrandConfig } from '@/constants/integration/brandConfig'
-import type { IntegrationService } from '@/types/integration'
+import type { GithubAppInstallLink, IntegrationService } from '@/types/integration'
 import IntegrationConnectionMethodBadge from './IntegrationConnectionMethodBadge'
 import IntegrationDisconnectButton from './IntegrationDisconnectButton'
+import IntegrationGithubRepoAccess from './IntegrationGithubRepoAccess'
 import OAuthDisconnectAction from './OAuthDisconnectAction'
 import IntegrationServiceWorkflowList from './IntegrationServiceWorkflowList'
 
@@ -21,6 +22,8 @@ type IntegrationConnectedDetailProps = {
 	/** 다시 연결할 수 있는 OAuth 연결일 때만 넘긴다. 없으면 다시 연결 버튼을 렌더하지 않는다. */
 	onReconnect?: () => void
 	isReconnecting?: boolean
+	/** GitHub 연결일 때만 넘긴다. 있으면 레포 접근 범위와 레포 추가·관리 링크를 그린다. */
+	githubAppInstall?: GithubAppInstallLink | null
 	headingRef?: Ref<HTMLHeadingElement>
 }
 
@@ -34,6 +37,7 @@ const IntegrationConnectedDetail = ({
 	isCheckingDisconnect = false,
 	onReconnect,
 	isReconnecting = false,
+	githubAppInstall,
 	headingRef,
 }: IntegrationConnectedDetailProps) => {
 	const brand = getBrandConfig(service.brand)
@@ -117,6 +121,8 @@ const IntegrationConnectedDetail = ({
 						</ul>
 					</div>
 				)}
+
+				{githubAppInstall && <IntegrationGithubRepoAccess installLink={githubAppInstall} />}
 
 				{isError && (
 					<div className='border-t border-neutral-100 px-6 py-4'>
