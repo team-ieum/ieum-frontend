@@ -1,9 +1,10 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useEffect } from 'react'
+import { useGithubAppInstallLink } from '@/hooks/integration/useGithubAppInstallLink'
 import { nodeOptionsQueryOptions } from '@/hooks/workflow/queries/nodeOptionsQueryOptions'
 import { useSettingsDropdown } from '@/hooks/workflow/useSettingsDropdown'
 import type { NodeOption } from '@/types/nodeOptions'
-import { getNodeOptionsErrorNotice, type NodeOptionsInputsState } from '@/utils/workflow/nodeOptions'
+import { getNodeOptionsErrorNotice, isGithubAppInstallSource, type NodeOptionsInputsState } from '@/utils/workflow/nodeOptions'
 
 // 빈 페이지가 이만큼 이어지면 자동으로 더 읽지 않고 '더 불러오기'를 보여 준다(서버 cursor 반복 대비).
 const MAX_AUTO_EMPTY_PAGES = 5
@@ -26,6 +27,7 @@ type UseNodeOptionsComboboxOptions = {
  * 행 index는 비우기 행(`onClear`를 넘긴 경우)을 포함한다. 목록은 열려 있고 부모 칸이 준비됐을 때만 부른다.
  * 부모 칸이 막혀 있으면 `hasValue`일 때만 열리고, 그때는 비우기 행만 남는다.
  * 열려 있는 동안 끝 페이지가 비었고 다음 페이지가 있으면 자동으로 이어 읽는다.
+ * GitHub 레포 목록이 비면 `githubAppInstall`로 앱 설치 링크를 함께 준비한다.
  */
 export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect, onClear }: UseNodeOptionsComboboxOptions) => {
 	const isReady = inputsState.status === 'ready'
@@ -56,6 +58,10 @@ export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect
 		if (shouldReadNextPage) void fetchNextPage()
 	}, [shouldReadNextPage, pageCount, fetchNextPage])
 
+	const isEmpty = query.isSuccess && !query.hasNextPage && items.length === 0
+	const needsGithubAppInstall = dropdown.isOpen && isEmpty && isGithubAppInstallSource(source)
+	const githubAppInstall = useGithubAppInstallLink(needsGithubAppInstall)
+
 	const choose = (rowIndex: number) => {
 		if (onClear && rowIndex === 0) {
 			onClear()
@@ -73,6 +79,10 @@ export const useNodeOptionsCombobox = ({ source, inputsState, hasValue, onSelect
 		errorNotice: query.isError ? getNodeOptionsErrorNotice(query.error, source) : null,
 		hasNextPage: query.hasNextPage,
 		isFetchingNextPage: query.isFetchingNextPage,
+		/** 받은 목록을 다시 불러오는 중인지(빈 목록에서 '다시 불러오기'를 누른 뒤 등) */
+		isRefetching: query.isRefetching,
+		/** GitHub 앱을 설치하지 않아 레포 목록이 비었을 때만 있는 설치 링크 */
+		githubAppInstall: needsGithubAppInstall ? githubAppInstall : null,
 		fetchNextPage: () => void fetchNextPage(),
 		retry: () => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch()),
 		choose,

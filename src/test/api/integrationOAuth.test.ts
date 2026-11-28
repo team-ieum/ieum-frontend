@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchIntegrationOAuthAuthorizeUrl } from '@/api/integrationOAuth'
+import { fetchIntegrationOAuthAuthorizeUrl, getGithubAppInstallUrl } from '@/api/integrationOAuth'
 import { api } from '@/utils/AxiosInstance'
 
 afterEach(() => {
@@ -52,5 +52,15 @@ describe('fetchIntegrationOAuthAuthorizeUrl', () => {
 
 		await expect(fetchIntegrationOAuthAuthorizeUrl(serviceId)).resolves.toBeNull()
 		expect(get).not.toHaveBeenCalled()
+	})
+})
+
+describe('getGithubAppInstallUrl', () => {
+	it('GitHub App 설치 주소 응답을 그대로 돌려준다', async () => {
+		const response = { success: true, data: { installUrl: 'https://github.com/apps/ieum-service/installations/new' } }
+		const get = vi.spyOn(api, 'get').mockResolvedValue({ data: response })
+
+		await expect(getGithubAppInstallUrl()).resolves.toEqual(response)
+		expect(get).toHaveBeenCalledWith('/api/v1/github/oauth2/install')
 	})
 })

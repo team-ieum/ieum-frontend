@@ -11,3 +11,11 @@ type GoogleScopeGroup = 'gmail' | 'sheets' | 'drive' | 'calendar'
 export type GoogleConnectRequest = {
 	scopeGroups: readonly GoogleScopeGroup[]
 }
+
+type GithubAppInstallDto = {
+	/** GitHub App 설치 화면 주소. 처음 설치와 레포 추가·변경이 같은 주소다. 설치 후 다시 연동할 필요는 없다. */
+	installUrl: string
+}
+
+/** `GET /api/v1/github/oauth2/install` 응답. 로그인이 필요하다. */
+export type GithubAppInstallResponse = ApiResponse<GithubAppInstallDto>

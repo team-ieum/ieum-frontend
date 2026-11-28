@@ -2,8 +2,15 @@ import { useCallback } from 'react'
 import type { RefObject } from 'react'
 import type { WebhookConnectServiceId } from '@/constants/integration/webhookCredentialConnect'
 import type { AsyncResourceState } from '@/types/asyncResource'
-import type { IntegrationDetailResolution, IntegrationService, IntegrationTabId, IntegrationView } from '@/types/integration'
+import type {
+	GithubAppInstallLink,
+	IntegrationDetailResolution,
+	IntegrationService,
+	IntegrationTabId,
+	IntegrationView,
+} from '@/types/integration'
 import { getOAuthReconnectServiceId } from '@/utils/integration/getOAuthReconnectServiceId'
+import { useGithubAppInstallLink } from './useGithubAppInstallLink'
 import { useIntegrationConnect } from './useIntegrationConnect'
 import { useIntegrationDisconnect } from './useIntegrationDisconnect'
 import { useIntegrationOAuthReturn } from './useIntegrationOAuthReturn'
@@ -41,6 +48,8 @@ type UseIntegrationSettingResult = {
 	canReconnect: boolean
 	/** 다시 연결 인가 URL을 받는 중이거나 그 URL로 이동하는 중인지 */
 	isReconnecting: boolean
+	/** 상세가 GitHub OAuth 연결일 때만 있는 레포 추가·관리(GitHub App 설치) 링크 */
+	githubAppInstall: GithubAppInstallLink | null
 	webhookConnectServiceId: WebhookConnectServiceId | null
 	closeWebhookConnect: () => void
 }
@@ -71,6 +80,10 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		},
 		[connect]
 	)
+
+	const currentService = navigation.currentService
+	const isGithubDetail = currentService?.origin === 'oauth' && currentService.oauthProvider === 'GITHUB'
+	const githubAppInstall = useGithubAppInstallLink(isGithubDetail)
 
 	const reconnectServiceId = getOAuthReconnectServiceId(navigation.currentService)
 	const isReconnecting = reconnectServiceId !== null && connectingId === reconnectServiceId
@@ -106,6 +119,7 @@ export const useIntegrationSetting = (): UseIntegrationSettingResult => {
 		isConnectionActionPending,
 		canReconnect: reconnectServiceId !== null,
 		isReconnecting,
+		githubAppInstall: isGithubDetail ? githubAppInstall : null,
 		webhookConnectServiceId,
 		closeWebhookConnect,
 	}

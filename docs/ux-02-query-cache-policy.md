@@ -17,22 +17,23 @@ SideBar의 pointer enter·focus production prefetch는 UX-03에서 적용한다.
 
 ## 데이터별 캐시 정책
 
-| 데이터               | `staleTime` | 결정 근거                                                             |
-| -------------------- | ----------: | --------------------------------------------------------------------- |
-| Dashboard summary    |        30초 | 집계 데이터의 짧은 재방문 요청을 줄인다.                              |
-| Dashboard executions |        10초 | 실행 직후 변경 가능성이 높은 운영 데이터다.                           |
-| Dashboard errors     |        10초 | 실행 오류 직후 변경 가능성이 높은 운영 데이터다.                      |
-| Workflow list        |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다. |
-| Workflow detail      |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.       |
-| OAuth connections    |        10초 | 외부 연결 상태의 최신성을 우선한다.                                   |
-| OAuth 해제 영향      |         0초 | Notion·GitHub 해제 전 모든 페이지를 새로 확인한다. `gcTime`은 0이다.  |
-| Webhook credentials  |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                       |
-| AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                              |
-| AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                 |
-| Node test sample     |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.             |
-| Webhook token status |        60초 | 수신 주소 발급은 이 화면의 발급 버튼에서만 바뀐다.                    |
-| Workflow validation  |         0초 | 편집 화면을 열 때마다 저장된 버전을 다시 검사한다. 2026-11-08 결정.   |
-| Current user         |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                        |
+| 데이터               | `staleTime` | 결정 근거                                                                   |
+| -------------------- | ----------: | --------------------------------------------------------------------------- |
+| Dashboard summary    |        30초 | 집계 데이터의 짧은 재방문 요청을 줄인다.                                    |
+| Dashboard executions |        10초 | 실행 직후 변경 가능성이 높은 운영 데이터다.                                 |
+| Dashboard errors     |        10초 | 실행 오류 직후 변경 가능성이 높은 운영 데이터다.                            |
+| Workflow list        |        30초 | 생성·삭제 후에는 prefix invalidation하고, 그 외 재방문 요청을 줄인다.       |
+| Workflow detail      |        10초 | prefetch 직후 mount 중복 요청을 막는다. 2026-10-12 사용자 결정.             |
+| OAuth connections    |        10초 | 외부 연결 상태의 최신성을 우선한다.                                         |
+| OAuth 해제 영향      |         0초 | Notion·GitHub 해제 전 모든 페이지를 새로 확인한다. `gcTime`은 0이다.        |
+| GitHub App 설치 주소 |        30분 | 서버 설정값이라 거의 바뀌지 않는다. 연동 상세·빈 레포 드롭다운이 함께 쓴다. |
+| Webhook credentials  |        10초 | 생성·삭제 가능한 연결 상태의 최신성을 우선한다.                             |
+| AI credentials       |        10초 | 등록·삭제·검증 결과의 최신성을 우선한다.                                    |
+| AI providers         |         5분 | 변경 빈도가 낮은 메타데이터이며 기존 정책을 유지한다.                       |
+| Node test sample     |        10초 | 채팅 에이전트도 노드를 테스트해 화면 밖에서 바뀔 수 있다.                   |
+| Webhook token status |        60초 | 수신 주소 발급은 이 화면의 발급 버튼에서만 바뀐다.                          |
+| Workflow validation  |         0초 | 편집 화면을 열 때마다 저장된 버전을 다시 검사한다. 2026-11-08 결정.         |
+| Current user         |         5분 | 본인 정보는 이 화면 밖에서 거의 바뀌지 않는다.                              |
 
 발급 응답의 평문 수신 주소(`queryKeys.webhookTokens.address`)는 서버에서 다시 받을 수 없어 요청하지 않는 query(`skipToken`)로 두고 `staleTime`·`gcTime`을 `Infinity`로 둔다. 새로고침이나 로그아웃(`queryClient.clear()`)이면 사라진다.
 
@@ -68,6 +69,7 @@ Providers는 UX-01에서도 5분 동안 fresh해 `/inter-setting` warm 재요청
 | Credential 등록·삭제·검증 | `queryKeys.credentials.all()` prefix              |
 | Webhook 생성·삭제         | Webhook credentials list exact key                |
 | OAuth callback 완료       | OAuth connections list exact key                  |
+| GitHub App 설치 복귀      | OAuth connections list exact key                  |
 | OAuth 연결 해제           | OAuth connections list exact key                  |
 | Workflow 수정(저장)       | Workflow list prefix, validation detail exact key |
 | 수신 주소 발급·재발급     | invalidation 없음, 주소·발급 상태 `setQueryData`  |
@@ -76,7 +78,7 @@ Mutation의 완료 기준은 API 변경 요청의 성공이다. Mutation `onSucc
 
 OAuth 연결 해제는 공급자별 경로를 공용 mutation에서 호출하고 연결 목록의 정확한 키만 무효화한다. Discord는 서버 ID로 선택한 서버의 연결만 해제한다. Google·Notion·GitHub는 서버가 `ACCOUNT_NOT_CONNECTED`를 반환해도 이미 연결이 사라진 상태이므로 같은 목록을 갱신한다.
 
-OAuth callback은 mutation이 아니며 callback 처리와 query parameter 정리 순서를 보장하기 위해 OAuth connections invalidation을 기다린다. Query key 구조와 기존 prefix/exact invalidation 범위는 변경하지 않는다.
+OAuth callback과 GitHub App 설치 복귀(`installation_id`·`setup_action`)는 mutation이 아니며 처리와 query parameter 정리 순서를 보장하기 위해 OAuth connections invalidation을 기다린다. 설치 복귀는 전체 페이지 로드로 들어와 node options 캐시가 비어 있으므로 따로 무효화하지 않는다. Query key 구조와 기존 prefix/exact invalidation 범위는 변경하지 않는다.
 
 현재 workflow 실행은 dashboard query를 무효화하지 않으므로 실행 직후 dashboard에는 최대 10초의 stale 구간이 남을 수 있다. Workflow 활성화 토글도 list를 무효화하지 않으므로 목록에는 최대 30초의 stale 구간이 남을 수 있다. 이 invalidation 개선은 UX-02 범위에서 제외한다.
 

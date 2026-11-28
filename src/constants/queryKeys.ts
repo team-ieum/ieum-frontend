@@ -55,6 +55,10 @@ export const queryKeys = {
 		all: () => ['node-options'] as const,
 		list: (source: string, inputs: Record<string, string>) => [...queryKeys.nodeOptions.all(), source, inputs] as const,
 	},
+	githubApp: {
+		all: () => ['github-app'] as const,
+		installUrl: () => [...queryKeys.githubApp.all(), 'install-url'] as const,
+	},
 	integrations: {
 		all: () => ['integrations'] as const,
 		workflows: (serviceType: IntegrationServiceType | 'UNKNOWN', params?: { size?: number }) =>
