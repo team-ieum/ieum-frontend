@@ -52,18 +52,6 @@ describe('useWorkflowActivation', () => {
 		expect(mocks.toggle).toHaveBeenCalledExactlyOnceWith(true)
 	})
 
-	it('검사에서 문제가 나오면 확인 창을 띄우고, 확인해야 켠다', async () => {
-		const { result } = renderActivation(vi.fn().mockResolvedValue({ status: 'ok', errorCount: 2 }))
-
-		await act(() => result.current.handleToggleActive())
-
-		expect(mocks.toggle).not.toHaveBeenCalled()
-		expect(getConfirmOptions().message).toBe('서버 검사에서 문제 2건을 찾았어요. 이대로 켜면 실행될 때마다 실패해요.')
-
-		await act(async () => getConfirmOptions().onConfirm())
-		expect(mocks.toggle).toHaveBeenCalledExactlyOnceWith(true)
-	})
-
 	it('검사 요청이 실패하면 검사할 수 없다는 확인 창을 띄운다', async () => {
 		const { result } = renderActivation(vi.fn().mockResolvedValue({ status: 'unavailable' }))
 

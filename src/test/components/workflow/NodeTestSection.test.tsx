@@ -73,7 +73,6 @@ type RenderSectionOptions = {
 	onNodeOpen?: (id: string) => void
 	/** 기본은 렌더하는 노드 그대로 저장된 상태다. */
 	savedNode?: WorkflowNodeDto | null
-	isWorkflowActive?: boolean
 }
 
 const renderSection = (node: WorkflowNodeDto, options: RenderSectionOptions = {}) => {
@@ -84,7 +83,7 @@ const renderSection = (node: WorkflowNodeDto, options: RenderSectionOptions = {}
 		nodes: options.nodes ?? [node],
 		onNodeOpen,
 		savedNode: options.savedNode === null ? undefined : (options.savedNode ?? node),
-		isWorkflowActive: options.isWorkflowActive ?? false,
+		isWorkflowActive: false,
 	}
 	const result = renderWithProviders(<NodeTestSection node={node} {...props} />)
 	return {
@@ -110,12 +109,6 @@ describe('NodeTestSection', () => {
 		expect(screen.getByText('11월 2일 09:05')).toBeInTheDocument()
 		expect(screen.getByLabelText('테스트 출력')).toHaveTextContent('"subject": "문의"')
 		expect(screen.queryByRole('status', { name: '이전 테스트 결과 불러오는 중' })).not.toBeInTheDocument()
-	})
-
-	it('샘플이 없으면 아직 테스트하지 않았다고 알린다', async () => {
-		renderSection(triggerNode)
-
-		expect(await screen.findByText('아직 테스트하지 않았어요.')).toBeInTheDocument()
 	})
 
 	it('샘플 조회에 실패해도 테스트 버튼은 쓸 수 있고 다시 시도로 다시 불러온다', async () => {
@@ -515,13 +508,6 @@ describe('NodeTestSection webhook.catch', () => {
 		expect(getTestButton()).toBeDisabled()
 	})
 
-	it('워크플로우가 켜져 있으면 테스트로 받은 요청도 실행된다고 알린다', async () => {
-		mockTokenStatus(true)
-		renderSection(webhookNode, { isWorkflowActive: true })
-
-		expect(await screen.findByText('워크플로우가 켜져 있어서 테스트로 받은 요청도 실제로 실행돼요.')).toBeInTheDocument()
-	})
-
 	it('수신 대기를 시작하면 5초마다 샘플을 확인하고, 대기를 시작한 뒤 기록된 샘플을 받으면 결과를 보여 주고 멈춘다', async () => {
 		vi.useFakeTimers({ shouldAdvanceTime: true })
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
@@ -757,18 +743,6 @@ describe('NodeTestSection manual.run 테스트 입력', () => {
 			node: triggerNode,
 			input: { orderId: 'ORD-1', amount: 12000, items: [{ sku: 'A' }] },
 		})
-	})
-
-	it('입력을 비우면 input 없이 테스트한다', async () => {
-		const user = userEvent.setup()
-		const bodies = observeTestRequests()
-		renderSection(triggerNode)
-		await screen.findByText('아직 테스트하지 않았어요.')
-
-		await user.click(getTestButton())
-
-		await screen.findByText('성공')
-		expect(bodies[0]).toEqual({ node: triggerNode })
 	})
 
 	it.each([

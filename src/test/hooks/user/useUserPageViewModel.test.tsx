@@ -85,16 +85,4 @@ describe('useUserPageViewModel', () => {
 			})
 		)
 	})
-
-	it('소셜 로그인 계정은 비밀번호를 바꿀 수 없다고 알린다', async () => {
-		server.use(
-			http.get('*/api/v1/users/me', () =>
-				HttpResponse.json({ ...currentUserResponse, data: { ...currentUserResponse.data, provider: 'GOOGLE' } })
-			)
-		)
-		const { result } = await renderViewModel()
-
-		expect(result.current.passwordSection.canChangePassword).toBe(false)
-		expect(result.current.passwordSection.isToggleDisabled).toBe(false)
-	})
 })

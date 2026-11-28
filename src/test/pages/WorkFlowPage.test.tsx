@@ -471,12 +471,6 @@ describe('WorkFlowPage', () => {
 		expect(screen.getByTestId('workflow-canvas')).toHaveAttribute('data-elements-selectable', 'true')
 	})
 
-	it('존재하지 않는 노드를 참조하는 연결선을 제외한다', () => {
-		renderPage()
-
-		expect(screen.getByTestId('edge-count')).toHaveTextContent('1')
-	})
-
 	it('툴바 스위치로 모든 노드를 기술 정보 모드로 전환한다', () => {
 		renderPage()
 

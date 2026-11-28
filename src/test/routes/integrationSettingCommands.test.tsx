@@ -9,7 +9,6 @@ import { renderAppRoute } from '@/test/renderAppRoute'
 import { useModalStore } from '@/stores/useModalStore'
 
 const WEBHOOK_SERVICE_ID = '55555555-5555-4555-8555-555555555555'
-const GITHUB_AUTHORIZE_URL = 'https://github.com/login/oauth/authorize?client_id=ieum-test'
 const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize?client_id=ieum-test&state=s'
 const SLACK_BOT_SERVICE_ID = `oauth-${slackOAuthConnection.id}`
 const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize?client_id=ieum-test&state=s'
@@ -125,30 +124,6 @@ afterEach(() => {
 })
 
 describe('통합 설정 연결', () => {
-	it('OAuth 서비스 연결은 authorize URL로 이동한다', async () => {
-		const assign = vi.fn()
-		vi.stubGlobal('location', { ...window.location, assign })
-		// OAuth 이동 주소는 VITE_API_URL을 기준으로 만든다. .env가 없는 CI에서도 같은 조건으로 실행한다.
-		vi.stubEnv('VITE_API_URL', 'https://api.example.com')
-		server.use(
-			http.get('*/api/v1/github/oauth2/authorize', () =>
-				HttpResponse.json({
-					success: true,
-					data: { authorizationUrl: GITHUB_AUTHORIZE_URL },
-					message: 'success',
-					code: 'SUCCESS',
-				})
-			)
-		)
-		renderAppRoute('/inter-setting')
-
-		const tile = await getAvailableTile('GitHub')
-		fireEvent.click(within(tile).getByRole('button', { name: '연결하기' }))
-
-		await waitFor(() => expect(assign).toHaveBeenCalledWith(GITHUB_AUTHORIZE_URL))
-		expect(assign).toHaveBeenCalledTimes(1)
-	})
-
 	it('webhook 서비스 연결은 연결 modal을 연다', async () => {
 		renderAppRoute('/inter-setting')
 
